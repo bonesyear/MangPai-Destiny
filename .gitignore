@@ -1,0 +1,23 @@
+# 个人信息
+output/
+_kang*
+*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# 环境
+.env
+.hermes/
+
+# 知识库（版权）
+mangpai/docs/
+
+# 临时文件
+/tmp/

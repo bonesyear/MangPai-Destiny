@@ -1,0 +1,541 @@
+"""
+yunfan — 岁运反局（大运/流年引动反局）·主观层
+
+理论来源：段建业《盲派高级命理学》3.3「大运、流年引发的反局应事」
+          + 第十二/十三章 岁运精微
+          （源文件 mangpai/docs/duan-books/mangpai-gaoji-ocr.txt 3505-3820 行）
+
+核心精义：原局为体、运岁为用。原局本为正局/清纯，行至特定运岁，其干支以
+合/冲/刑/穿/墓等方式破坏原局功神、改变做功方式(冲变合/合变冲)、或引发伏吟
+三刑自我冲突，引动原局潜在矛盾 → 反局灾祸。「静体待动，动则生变；变而反局，
+灾祸立现」。
+
+大运反局三大类型（源文 3541-3707）：
+  类型一·破坏原局功神：运干支合绊/穿害/冲散核心功神，或生扶被制忌神 → 功不施。
+  类型二·改变做功方式：原局喜冲怕逢合(运来合→闭)、喜合怕逢冲(运来冲→破)，
+          冲合互变，能量路径反转。
+  类型三·伏吟/三刑：运与原局某柱伏吟(重复)，或组三刑/自刑 → 内部矛盾激化。
+
+流年反局两大类型（源文 3712-3819）：
+  类型一·流年单独引动：流年干支单独作用原局，引动忌神/破坏功神/改做功方式。
+  类型二·岁运联动(最凶)：流年与大运天合地合(天地合)、或组三刑/双冲，锁住或
+          激烈冲击原局 → 大灾（岁运并临/岁运互动）。
+
+心法：
+  - 冲合 vs 合冲：原局喜冲怕逢合(合变冲为闭库)、喜合怕逢冲(冲开合为破局)。
+  - 阴阳逆转：本护身之禄刃被冲反戈攻身、忌神得运生助反客为主。
+
+依赖（统一消费）：
+  objective.constants（冲合穿刑破表）+ zuogong_confirm（原局做功/功神废神）
+  + zhengfan（原局正反局基线）+ dayun/liunian（运岁互动数据）。
+依赖方向单向：subjective -> objective + subjective（zuogong_confirm/zhengfan/dayun/liunian），
+  本模块不反向依赖。
+置信度：中（运岁引动判据为结构启发式，应期精细须结合领域应期模块）。
+"""
+from typing import Dict, List, Optional, Any
+
+from mangpai.objective.constants import (
+    TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, LIU_PO, XING_PAIRS, AN_HE,
+    GAN_WX, ZHI_WX, WX_SHENG, WX_KE, PILLAR_KEYS, TOMB_MAP, LU,
+)
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
+from mangpai.subjective.zhengfan import analyze_zhengfan
+
+# ── 三刑组（寅巳申 / 丑戌未 / 子卯互刑；辰午酉亥自刑）──
+_SANXING_GROUPS = [frozenset('寅巳申'), frozenset('丑戌未'), frozenset('子卯')]
+_ZIXING = ('辰', '午', '酉', '亥')
+
+_HE_TYPES = {'天干合', '合', '暗合'}       # 合家族（用于冲变合判定）
+_CHONG_TYPES = {'冲'}                       # 冲家族（用于合变冲判定）
+_HARM_TYPES = {'天干合', '冲', '合', '穿', '破', '暗合'}  # 破坏功神的合绊/穿害/冲散
+
+
+def _pos_elem(pos: str, gans: List[str], zhis: List[str]) -> str:
+    """pos -> 对应干/支字符。"""
+    if not pos or '_' not in pos:
+        return ''
+    p, t = pos.split('_', 1)
+    if p not in PILLAR_KEYS:
+        return ''
+    idx = PILLAR_KEYS.index(p)
+    return gans[idx] if t == 'gan' else (zhis[idx] if idx < len(zhis) else '')
+
+
+def _pair_hit(a: str, b: str, pairs) -> bool:
+    return (a, b) in pairs or (b, a) in pairs
+
+
+def _op_interactions(
+    op_gan: str, op_zhi: str,
+    natal_gans: List[str], natal_zhis: List[str],
+) -> List[Dict]:
+    """运岁干支 vs 原局四柱的 冲/合/穿/刑/破/暗合 关系。
+
+    Returns: [{type, target_pos, target_elem, desc}, ...]
+    """
+    out: List[Dict] = []
+    # 天干合
+    if op_gan:
+        for i, ng in enumerate(natal_gans):
+            if ng and TIAN_GAN_HE.get(op_gan) == ng:
+                out.append({'type': '天干合', 'target_pos': f'{PILLAR_KEYS[i]}_gan',
+                            'target_elem': ng,
+                            'desc': f'{op_gan}合{PILLAR_KEYS[i]}干{ng}'})
+    # 地支六关系
+    if op_zhi:
+        tbls = (('冲', LIU_CHONG), ('合', LIU_HE), ('穿', LIU_HAI), ('破', LIU_PO))
+        for i, nz in enumerate(natal_zhis):
+            if not nz:
+                continue
+            pos = f'{PILLAR_KEYS[i]}_zhi'
+            for tname, tbl in tbls:
+                if _pair_hit(op_zhi, nz, tbl):
+                    out.append({'type': tname, 'target_pos': pos, 'target_elem': nz,
+                                'desc': f'{op_zhi}{tname}{PILLAR_KEYS[i]}支{nz}'})
+            # 刑（XING_PAIRS 含自刑，对称判定关系存在）
+            if _pair_hit(op_zhi, nz, XING_PAIRS):
+                out.append({'type': '刑', 'target_pos': pos, 'target_elem': nz,
+                            'desc': f'{op_zhi}刑{PILLAR_KEYS[i]}支{nz}'})
+            # 暗合
+            if AN_HE.get(op_zhi) == nz or AN_HE.get(nz) == op_zhi:
+                out.append({'type': '暗合', 'target_pos': pos, 'target_elem': nz,
+                            'desc': f'{op_zhi}暗合{PILLAR_KEYS[i]}支{nz}'})
+    return out
+
+
+def _detect_fuyin(
+    op_gan: str, op_zhi: str,
+    natal_gans: List[str], natal_zhis: List[str],
+) -> List[str]:
+    """运岁与原局某柱伏吟（干/支重复）。"""
+    out: List[str] = []
+    for i, pk in enumerate(PILLAR_KEYS):
+        if i >= len(natal_gans):
+            continue
+        if op_gan and natal_gans[i] == op_gan:
+            out.append(f'{op_gan}伏吟{pk}干')
+        if i < len(natal_zhis) and op_zhi and natal_zhis[i] == op_zhi:
+            out.append(f'{op_zhi}伏吟{pk}支')
+    return out
+
+
+def _detect_sanxing(op_zhi: str, natal_zhis: List[str]) -> List[str]:
+    """运支加入后是否与原局构成完整三刑/自刑（须运支参与、且原局原本不完整）。"""
+    if not op_zhi:
+        return []
+    out: List[str] = []
+    natal_set = set(z for z in natal_zhis if z)
+    pool = natal_set | {op_zhi}
+    for g in _SANXING_GROUPS:
+        # 须运支在此刑组内，且原局原本未齐全（运支补全方为「组成」三刑）
+        if op_zhi in g and g <= pool and not g <= natal_set:
+            out.append(''.join(sorted(g)) + '三刑')
+    for z in _ZIXING:
+        if op_zhi == z and z in natal_set:
+            out.append(z + '自刑')
+    return out
+
+
+def _detect_jishen_fufu(
+    op_gan: str, op_zhi: str,
+    natal_gans: List[str], natal_zhis: List[str],
+    fei_shen: List[str],
+) -> List[str]:
+    """忌神反客为主：运岁五行生扶废神（被制忌神）五行。"""
+    fei_wxs = set()
+    for pos in (fei_shen or []):
+        e = _pos_elem(pos, natal_gans, natal_zhis)
+        w = GAN_WX.get(e) or ZHI_WX.get(e)
+        if w:
+            fei_wxs.add(w)
+    out: List[str] = []
+    for ow in (GAN_WX.get(op_gan, ''), ZHI_WX.get(op_zhi, '')):
+        if not ow:
+            continue
+        for fw in fei_wxs:
+            if WX_SHENG.get(ow) == fw:
+                out.append(f'运{ow}生废神{fw}——忌神得运生助，反客为主')
+    return out
+
+
+def _detect_lu_ren_fangg(
+    op_zhi: str, day_gan: str, natal_zhis: List[str],
+) -> Optional[str]:
+    """阴阳逆转：禄/刃被冲反戈攻身。"""
+    if not op_zhi or not day_gan:
+        return None
+    targets: List[str] = []
+    lu = LU.get(day_gan, '')
+    if lu and _pair_hit(op_zhi, lu, LIU_CHONG):
+        targets.append(f'禄({lu})被冲')
+    # 羊刃（阳干刃位）被冲
+    from mangpai.objective.shensha import _YANG_REN as _YR
+    yr = _YR.get(day_gan, '')
+    if yr and _pair_hit(op_zhi, yr, LIU_CHONG):
+        targets.append(f'羊刃({yr})被冲')
+    if targets:
+        return '、'.join(targets) + '——本护身之禄刃反戈攻身（阴阳逆转）'
+    return None
+
+
+def _work_mode(work_actions: List[Dict], work_types: List[str], natal_zhis: List[str]) -> Dict:
+    """原局做功方式：是否以冲为主、以合为主。
+
+    zuogong 的 work_actions/work_types 漏检原局地支间的冲/合结构（如丑未冲做功
+    未必标为「冲」action），故辅以原局地支两两六冲/六合检测兜底。
+    """
+    has_chong = any(wa.get('type') == '冲' and not wa.get('auxiliary') for wa in work_actions) \
+        or any('冲' in (wt or '') for wt in (work_types or []))
+    he_set = {'天干合', '地支合', '暗合', '半合'}
+    has_he = any(wa.get('type') in he_set and not wa.get('auxiliary') for wa in work_actions) \
+        or any('合' in (wt or '') for wt in (work_types or []))
+    # 原局地支两两冲/合兜底
+    nz = [z for z in (natal_zhis or []) if z]
+    for i in range(len(nz)):
+        for j in range(i + 1, len(nz)):
+            if _pair_hit(nz[i], nz[j], LIU_CHONG):
+                has_chong = True
+            if _pair_hit(nz[i], nz[j], LIU_HE):
+                has_he = True
+    return {'has_chong': has_chong, 'has_he': has_he}
+
+
+def _detect_dayun_fan(
+    op_gan: str, op_zhi: str,
+    natal_gans: List[str], natal_zhis: List[str],
+    gshen: List[str], fei_shen: List[str],
+    work_actions: List[Dict], work_types: List[str],
+    day_gan: str,
+) -> List[Dict]:
+    """单步大运反局检测（三大类型）。"""
+    fans: List[Dict] = []
+    inter = _op_interactions(op_gan, op_zhi, natal_gans, natal_zhis)
+    gong_pos = set(gshen or [])
+
+    # ── 类型一：破坏原局功神 ──
+    hits_gong = [x for x in inter
+                 if x['target_pos'] in gong_pos and x['type'] in _HARM_TYPES]
+    if hits_gong:
+        fans.append({
+            'fan_type': '大运反局·类型一(破坏功神)',
+            'severity': '重',
+            'reason': '；'.join(h['desc'] for h in hits_gong)
+                      + '——运岁合绊/穿害/冲散核心功神，原局之功无法施展',
+        })
+    # 忌神反客为主（阴阳逆转）
+    js = _detect_jishen_fufu(op_gan, op_zhi, natal_gans, natal_zhis, fei_shen)
+    if js:
+        fans.append({
+            'fan_type': '大运反局·类型一(忌神反客)',
+            'severity': '重',
+            'reason': '；'.join(js),
+        })
+
+    # ── 类型二：改变做功方式（冲合互变）──
+    mode = _work_mode(work_actions, work_types, natal_zhis)
+    if mode['has_chong']:
+        # 原局喜冲怕逢合：运来合冲做功之字 → 合变冲（闭）
+        he_hits = [x for x in inter if x['type'] in _HE_TYPES]
+        if he_hits:
+            fans.append({
+                'fan_type': '大运反局·类型二(冲变合)',
+                'severity': '中',
+                'reason': '原局以冲做功，运来'
+                          + '；'.join(h['desc'] for h in he_hits)
+                          + '——合住冲局，做功方式反转（喜冲怕逢合）',
+            })
+    if mode['has_he']:
+        # 原局喜合怕逢冲：运来冲合做功之字 → 合变冲（破）
+        chong_hits = [x for x in inter if x['type'] in _CHONG_TYPES]
+        if chong_hits:
+            fans.append({
+                'fan_type': '大运反局·类型二(合变冲)',
+                'severity': '中',
+                'reason': '原局以合做功，运来'
+                          + '；'.join(h['desc'] for h in chong_hits)
+                          + '——冲开合局，做功方式反转（喜合怕逢冲）',
+            })
+    # 闭库/开库：运合原局墓库位 → 闭库（合变冲闭库反局）
+    if op_zhi:
+        for i, nz in enumerate(natal_zhis):
+            if nz in TOMB_MAP and _pair_hit(op_zhi, nz, LIU_HE):
+                fans.append({
+                    'fan_type': '大运反局·类型二(合闭墓库)',
+                    'severity': '中',
+                    'reason': f'运{op_zhi}合{PILLAR_KEYS[i]}支{nz}墓库——闭库，'
+                              f'墓中之物被困，原局墓用做功失效',
+                })
+                break
+
+    # ── 类型三：伏吟/三刑 ──
+    fy = _detect_fuyin(op_gan, op_zhi, natal_gans, natal_zhis)
+    sx = _detect_sanxing(op_zhi, natal_zhis)
+    if fy or sx:
+        fans.append({
+            'fan_type': '大运反局·类型三(伏吟三刑)',
+            'severity': '中',
+            'reason': ('；'.join(fy + sx))
+                      + '——运岁伏吟/三刑激化原局内部矛盾，反复动荡',
+        })
+
+    return fans
+
+
+def _detect_liunian_fan(
+    op_gan: str, op_zhi: str,
+    natal_gans: List[str], natal_zhis: List[str],
+    gshen: List[str], fei_shen: List[str],
+    work_actions: List[Dict], work_types: List[str],
+    day_gan: str,
+    dy_gan: str, dy_zhi: str,
+) -> Tuple[List[Dict], List[Dict]]:
+    """单流年反局检测（两大类型）。返回 (流年反局, 岁运联动)。"""
+    fans: List[Dict] = []
+    liandong: List[Dict] = []
+    inter = _op_interactions(op_gan, op_zhi, natal_gans, natal_zhis)
+    gong_pos = set(gshen or [])
+
+    # ── 类型一：流年单独引动忌神/破坏功神/改做功方式 ──
+    hits_gong = [x for x in inter
+                 if x['target_pos'] in gong_pos and x['type'] in _HARM_TYPES]
+    if hits_gong:
+        fans.append({
+            'fan_type': '流年反局·类型一(破坏功神)',
+            'severity': '重',
+            'reason': '；'.join(h['desc'] for h in hits_gong)
+                      + '——流年冲合刑穿功神处，当年必有是非',
+        })
+    js = _detect_jishen_fufu(op_gan, op_zhi, natal_gans, natal_zhis, fei_shen)
+    if js:
+        fans.append({
+            'fan_type': '流年反局·类型一(引动忌神)',
+            'severity': '中',
+            'reason': '；'.join(js),
+        })
+    lr = _detect_lu_ren_fangg(op_zhi, day_gan, natal_zhis)
+    if lr:
+        fans.append({
+            'fan_type': '流年反局·类型一(禄刃倒戈)',
+            'severity': '重',
+            'reason': lr,
+        })
+    # 冲合互变（流年改做功方式）
+    mode = _work_mode(work_actions, work_types, natal_zhis)
+    if mode['has_chong'] and any(x['type'] in _HE_TYPES for x in inter):
+        fans.append({
+            'fan_type': '流年反局·类型一(冲变合)',
+            'severity': '中',
+            'reason': '原局以冲做功，流年来合——做功方式被改，事与愿违',
+        })
+    if mode['has_he'] and any(x['type'] in _CHONG_TYPES for x in inter):
+        fans.append({
+            'fan_type': '流年反局·类型一(合变冲)',
+            'severity': '中',
+            'reason': '原局以合做功，流年来冲——做功方式被改，事与愿违',
+        })
+    # 流年引动伏吟/三刑（流年+原局组成三刑，或伏吟原局柱）
+    fy = _detect_fuyin(op_gan, op_zhi, natal_gans, natal_zhis)
+    sx = _detect_sanxing(op_zhi, natal_zhis)
+    if fy or sx:
+        fans.append({
+            'fan_type': '流年反局·类型一(伏吟三刑)',
+            'severity': '中',
+            'reason': ('；'.join(fy + sx))
+                      + '——流年伏吟/三刑搅局，破坏原局单一做功，是非突发',
+        })
+
+    # ── 类型二：岁运联动（天地合/三刑/双冲，最凶）──
+    sui_fans: List[Dict] = []
+    if dy_gan and dy_zhi:
+        # 天地合：流年干合大运干 + 流年支合大运支
+        tian_he = TIAN_GAN_HE.get(op_gan) == dy_gan
+        di_he = _pair_hit(op_zhi, dy_zhi, LIU_HE)
+        if tian_he and di_he:
+            sui_fans.append({
+                'fan_type': '岁运联动·天地合',
+                'severity': '极重',
+                'reason': f'流年{op_gan}{op_zhi}与大运{dy_gan}{dy_zhi}天合地合'
+                          f'——锁住原局用神/功神，祸难移（岁运反局最凶者）',
+            })
+        # 双冲：流年干克大运干 + 流年支冲大运支
+        ln_gw, dy_gw = GAN_WX.get(op_gan, ''), GAN_WX.get(dy_gan, '')
+        gan_ke = (ln_gw and dy_gw and
+                  (WX_KE.get(ln_gw) == dy_gw or WX_KE.get(dy_gw) == ln_gw)
+                  and TIAN_GAN_HE.get(op_gan) != dy_gan)
+        zhi_chong = _pair_hit(op_zhi, dy_zhi, LIU_CHONG)
+        if gan_ke and zhi_chong:
+            sui_fans.append({
+                'fan_type': '岁运联动·双冲',
+                'severity': '极重',
+                'reason': f'流年{op_gan}{op_zhi}与大运{dy_gan}{dy_zhi}干克支冲'
+                          f'——激烈冲击原局，伤残死别在须臾',
+            })
+        # 三刑：流年支+大运支+原局构成完整三刑
+        pool = set(z for z in natal_zhis if z) | {op_zhi, dy_zhi}
+        for g in _SANXING_GROUPS:
+            if g <= pool:
+                sui_fans.append({
+                    'fan_type': '岁运联动·三刑',
+                    'severity': '极重',
+                    'reason': f'流年{op_zhi}+大运{dy_zhi}+原局构成'
+                              f'{''.join(sorted(g))}三刑——搅局破原局单一做功，无事生非',
+                })
+                break
+        # 流年支刑大运支（二支刑，次凶）
+        if _pair_hit(op_zhi, dy_zhi, XING_PAIRS) and not sui_fans:
+            sui_fans.append({
+                'fan_type': '岁运联动·相刑',
+                'severity': '重',
+                'reason': f'流年{op_zhi}刑大运{dy_zhi}——是非纠纷，搅动运局',
+            })
+    fans.extend(sui_fans)
+    liandong = sui_fans  # 岁运联动单列
+
+    return fans, liandong
+
+
+def analyze_yunfan(
+    natal_gans: List[str],
+    natal_zhis: List[str],
+    day_gan: str,
+    dayun_list: Optional[List[Dict]] = None,
+    liunian_list: Optional[List[Dict]] = None,
+    current_dayun: Optional[Dict] = None,
+    natal_work_actions: Optional[List[Dict]] = None,
+    natal_gong_shen: Optional[List[str]] = None,
+    natal_fei_shen: Optional[List[str]] = None,
+    natal_work_types: Optional[List[str]] = None,
+    day_he_type: Optional[str] = None,
+    kong_wang: Any = None,
+) -> Dict:
+    """岁运反局分析：大运反局 / 流年反局 / 岁运联动 三位一体。
+
+    统一消费 zuogong_confirm（原局做功/功神废神）+ zhengfan（原局正反局基线）
+    + dayun/liunian（运岁互动）。原局做功数据缺省时本函数自调 analyze_zuogong。
+
+    Args:
+        natal_gans/natal_zhis: 原局四柱天干/地支 [year,month,day,hour]。
+        day_gan: 日干。
+        dayun_list: 大运柱列表，每项 {gz|gan+zhi, start_age, end_age, order}。
+        liunian_list: 流年柱列表，每项 {gz|gan+zhi, year}。
+        current_dayun: 流年所处大运柱 {gz|gan+zhi}（岁运联动判定所需）。
+        natal_work_actions/gong_shen/fei_shen/work_types: 原局做功数据（缺省自调）。
+        day_he_type: 日干合类型（合财/合官，透传 zhengfan）。
+        kong_wang: 空亡数据（透传 zuogong）。
+
+    Returns:
+        {
+          'natal_zhengfan': {...},          # 原局正反局基线
+          'dayun_fan': [大运反局...],      # 每步大运的反局类型
+          'liunian_fan': [流年反局...],    # 每流年的反局类型
+          'sui_yun_liandong': [岁运联动...], # 天地合/三刑/双冲（最凶，单列）
+          'summary': str,
+        }
+    """
+    natal_gans = natal_gans or []
+    natal_zhis = natal_zhis or []
+
+    # ── 原局做功数据（缺省自调 analyze_zuogong）──
+    if natal_work_actions is None or natal_gong_shen is None or natal_fei_shen is None:
+        try:
+            zg = analyze_zuogong(
+                day_gan, natal_zhis[PILLAR_KEYS.index('day')] if len(natal_zhis) == 4 else '',
+                natal_gans[0] if len(natal_gans) > 0 else '', natal_zhis[0] if len(natal_zhis) > 0 else '',
+                natal_gans[1] if len(natal_gans) > 1 else '', natal_zhis[1] if len(natal_zhis) > 1 else '',
+                natal_gans[3] if len(natal_gans) > 3 else '', natal_zhis[3] if len(natal_zhis) > 3 else '',
+                kong_wang=kong_wang,
+            ) if len(natal_gans) == 4 and len(natal_zhis) == 4 else {}
+        except Exception:
+            zg = {}
+        work_actions = natal_work_actions if natal_work_actions is not None else (zg.get('work_actions') or [])
+        gshen = natal_gong_shen if natal_gong_shen is not None else (zg.get('gong_shen') or [])
+        fei = natal_fei_shen if natal_fei_shen is not None else (zg.get('fei_shen') or [])
+        wtypes = natal_work_types if natal_work_types is not None else (zg.get('work_types') or [])
+    else:
+        work_actions = natal_work_actions
+        gshen = natal_gong_shen
+        fei = natal_fei_shen
+        wtypes = natal_work_types or []
+
+    # ── 原局正反局基线（zhengfan）──
+    try:
+        natal_zf = analyze_zhengfan(work_actions, day_he_type, natal_gans, natal_zhis)
+    except Exception:
+        natal_zf = {'configuration': '基线判定失败', 'type': 'neutral'}
+
+    dayun_fan: List[Dict] = []
+    for entry in (dayun_list or []):
+        gz = entry.get('gz', '')
+        if gz and len(gz) >= 2:
+            gan, zhi = gz[0], gz[1]
+        else:
+            gan, zhi = entry.get('gan', ''), entry.get('zhi', '')
+        if not gan or not zhi:
+            continue
+        fans = _detect_dayun_fan(
+            gan, zhi, natal_gans, natal_zhis, gshen, fei, work_actions, wtypes, day_gan)
+        if fans:
+            dayun_fan.append({
+                'order': entry.get('order', len(dayun_fan) + 1),
+                'gz': f'{gan}{zhi}',
+                'start_age': entry.get('start_age', 0),
+                'end_age': entry.get('end_age', 0),
+                'fans': fans,
+            })
+
+    # ── 当前大运干支（流年岁运联动所需）──
+    dy_gan, dy_zhi = '', ''
+    if current_dayun:
+        gz = current_dayun.get('gz', '')
+        if gz and len(gz) >= 2:
+            dy_gan, dy_zhi = gz[0], gz[1]
+        else:
+            dy_gan, dy_zhi = current_dayun.get('gan', ''), current_dayun.get('zhi', '')
+
+    liunian_fan: List[Dict] = []
+    sui_yun_liandong: List[Dict] = []
+    for entry in (liunian_list or []):
+        gz = entry.get('gz', '')
+        if gz and len(gz) >= 2:
+            gan, zhi = gz[0], gz[1]
+        else:
+            gan, zhi = entry.get('gan', ''), entry.get('zhi', '')
+        if not gan or not zhi:
+            continue
+        fans, liandong = _detect_liunian_fan(
+            gan, zhi, natal_gans, natal_zhis, gshen, fei,
+            work_actions, wtypes, day_gan, dy_gan, dy_zhi)
+        if fans:
+            liunian_fan.append({
+                'year': entry.get('year', 0),
+                'gz': f'{gan}{zhi}',
+                'dayun_gz': f'{dy_gan}{dy_zhi}' if dy_gan and dy_zhi else '',
+                'fans': fans,
+            })
+        if liandong:
+            sui_yun_liandong.append({
+                'year': entry.get('year', 0),
+                'gz': f'{gan}{zhi}',
+                'dayun_gz': f'{dy_gan}{dy_zhi}' if dy_gan and dy_zhi else '',
+                'liandong': liandong,
+            })
+
+    # ── 摘要 ──
+    parts = [f'原局{natal_zf.get("configuration","")}({natal_zf.get("type","")})']
+    if dayun_fan:
+        parts.append(f'{len(dayun_fan)}步大运反局')
+    if liunian_fan:
+        parts.append(f'{len(liunian_fan)}流年反局')
+    if sui_yun_liandong:
+        parts.append(f'{len(sui_yun_liandong)}岁运联动(最凶)')
+
+    return {
+        'natal_zhengfan': natal_zf,
+        'dayun_fan': dayun_fan,
+        'liunian_fan': liunian_fan,
+        'sui_yun_liandong': sui_yun_liandong,
+        'summary': '；'.join(parts),
+    }
+
+
+__all__ = ['analyze_yunfan']
