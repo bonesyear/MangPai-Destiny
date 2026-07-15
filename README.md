@@ -1,5 +1,4 @@
-# 玄学命理系统 · 盲派引擎
-## Xuanxue Destiny System — Blind-Pai Engine
+# MangPai · Chinese Bazi Analysis Engine
 
 基于段建业/郝金阳盲派理论的八字命理推演引擎，49 模块四层架构，919+ 验证用例全绿。
 
