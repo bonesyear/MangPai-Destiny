@@ -46,6 +46,7 @@ from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.zuogong_detect import detect_relations
+from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 
 _YANG_GANS = set('甲丙戊庚壬')
 _YANG_ZHIS = set('子寅辰午申戌')
@@ -464,8 +465,10 @@ def analyze_gongmen_wuzhi(
     relations: Optional[Dict] = None,
     gongliang_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    direction_result: Optional[Dict] = None,
 ) -> Dict:
     """公门武职综合：类象 + 军官四组合 + 公检法三组 + 层次。
+    A3：接入 yongshen 方向总线（direction_result 缺省自调，只读信号不改判定）。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
 
@@ -511,6 +514,14 @@ def analyze_gongmen_wuzhi(
     gjf = classify_gongjianfa(day_gan, gans, zhis, relations)
     lv = assess_wuzhi_level(day_gan, gans, zhis, gl)
 
+    # A3：方向总线信号（缺省自调）
+    if direction_result is None:
+        try:
+            direction_result = assess_direction_signals(
+                day_gan, gans, zhis, relations=relations, gongliang_result=gl)
+        except Exception:
+            direction_result = {}
+
     is_wuzhi = jg.get('is_junguan') or gjf.get('is_gongjianfa') or \
         bool(xiang.get('wuzhi'))
     primary = ''
@@ -534,6 +545,7 @@ def analyze_gongmen_wuzhi(
         'level': lv,
         'is_wuzhi': is_wuzhi,
         'primary': primary,
+        'direction_signals': direction_brief(direction_result),
         'summary': summary,
     }
 

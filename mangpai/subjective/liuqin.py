@@ -43,6 +43,7 @@ from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.shensha import compute_shensha_ext
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.zuogong_detect import detect_relations
+from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -887,10 +888,13 @@ def analyze_liuqin(
     gender: str = '男',
     *,
     relations: Optional[Dict] = None,
+    direction_result: Optional[Dict] = None,
 ) -> Dict:
     """六亲综合：父母定位/早逝/多婚/弃养 + 子息有无/性别 + 兄弟姐妹数量/克损。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
+    A3：接入 yongshen 方向总线（direction_result 缺省自调），
+    direction_signals 切片录入输出（只读信号，不改六亲判定）。
 
     Returns:
         {
@@ -923,6 +927,14 @@ def analyze_liuqin(
     xd_sl = classify_xiongdi_shuliang(day_gan, gans, zhis, relations)
     xd_ks = detect_xiongdi_keshun(day_gan, gans, zhis, relations)
 
+    # A3：方向总线信号（缺省自调）
+    if direction_result is None:
+        try:
+            direction_result = assess_direction_signals(
+                day_gan, gans, zhis, relations=relations)
+        except Exception:
+            direction_result = {}
+
     parts = ['六亲论断']
     if pzs.get('is_zaoshi'):
         parts.append('父母早逝之象')
@@ -947,6 +959,7 @@ def analyze_liuqin(
         'zixi_xingbie': zx_xb,
         'xiongdi_shuliang': xd_sl,
         'xiongdi_keshun': xd_ks,
+        'direction_signals': direction_brief(direction_result),
         'summary': '；'.join(parts),
     }
 

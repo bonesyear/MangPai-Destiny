@@ -32,6 +32,7 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.zuogong_detect import detect_relations
+from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -461,8 +462,10 @@ def analyze_xueli(
     zhis: Optional[List[str]] = None,
     *,
     relations: Optional[Dict] = None,
+    direction_result: Optional[Dict] = None,
 ) -> Dict:
     """学历综合：学历之神/破坏之神 + 学历高低 + 文理。
+    A3：接入 yongshen 方向总线（direction_result 缺省自调，只读信号不改判定）。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
 
@@ -484,6 +487,14 @@ def analyze_xueli(
     level = classify_xueli_level(day_gan, gans or [], zhis or [], relations)
     wenli = classify_wenli(day_gan, gans or [], zhis or [])
 
+    # A3：方向总线信号（缺省自调）
+    if direction_result is None:
+        try:
+            direction_result = assess_direction_signals(
+                day_gan, gans or [], zhis or [], relations=relations)
+        except Exception:
+            direction_result = {}
+
     summary = f'学历{level.get("level","中")}；{wenli.get("direction","文理兼")}'
     po = shen.get('破坏_shen', [])
     if po:
@@ -495,6 +506,7 @@ def analyze_xueli(
         'wenli': wenli,
         'level_str': level.get('level', '中'),
         'direction': wenli.get('direction', '文理兼'),
+        'direction_signals': direction_brief(direction_result),
         'summary': summary,
     }
 

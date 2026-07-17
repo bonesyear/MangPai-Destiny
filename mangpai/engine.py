@@ -471,6 +471,17 @@ class MangpaiEngine:
             include_liunian=bool(cur_ln_list) and not getattr(self, '_auto_liunian_injected', False),
         )
 
+        # A3 方向总线：yongshen.assess_direction_signals 全引擎统一计算一次，
+        # 透传各领域模块（hunyin/liuqin/xueli/zaihuo/gongmen_wuzhi 只读消费；
+        # caiming/guanming/zhiye 已有内部否决链，口径同源）。
+        from mangpai.subjective.yongshen import assess_direction_signals
+        result['direction'] = self._safe_compute(
+            'direction', assess_direction_signals,
+            self.day_gan, self.gans, self.zhis,
+            relations=relations, gongliang_result=gl,
+            yunfan_result=yunfan_slice,
+        ) or {}
+
         result['caiming'] = self._safe_compute(
             'caiming', analyze_caiming,
             self.day_gan, self.gans, self.zhis,
@@ -496,12 +507,14 @@ class MangpaiEngine:
             liunian_gan=cur_ln_gan, liunian_zhi=cur_ln_zhi,
             relations=relations,
             shensha_result=result.get('shensha'),
+            direction_result=result.get('direction'),
         ) or {}
 
         result['xueli'] = self._safe_compute(
             'xueli', analyze_xueli,
             self.day_gan, self.gans, self.zhis,
             relations=relations,
+            direction_result=result.get('direction'),
         ) or {}
 
         result['laoyu'] = self._safe_compute(
@@ -536,6 +549,7 @@ class MangpaiEngine:
             self.day_gan, self.gans, self.zhis,
             relations=relations, gongliang_result=gl,
             shensha_result=result.get('shensha'),
+            direction_result=result.get('direction'),
         ) or {}
 
         result['liuqin'] = self._safe_compute(
@@ -543,6 +557,7 @@ class MangpaiEngine:
             self.day_gan, self.gans, self.zhis,
             self.input_data.get('gender', '男'),
             relations=relations,
+            direction_result=result.get('direction'),
         ) or {}
 
         # 灾祸（消费 yunfan_result：detect_siwang 取岁运反局联动信号）
@@ -552,6 +567,7 @@ class MangpaiEngine:
             relations=relations,
             yunfan_result=result.get('yunfan'),
             shensha_result=result.get('shensha'),
+            direction_result=result.get('direction'),
         ) or {}
 
         # 综合应期（原局=车，大运=路，流年=触发点；age/互动缺省空转）

@@ -126,13 +126,14 @@ def _judge_chong_xiji(
     natal_zhis: List[str],
     clashed_zhi: str,
 ) -> str:
-    """判定流年冲大运时，所冲大运支对日主的喜忌方向。
+    """判定流年冲大运时，所冲大运支对日主的喜忌方向（A3：复用 yongshen 扶抑框架）。
 
     段氏《段氏理象学》：「冲忌神反吉，冲喜神反凶」。所冲之物（大运支）为
-    日主喜神则冲之反凶，为忌神则冲之反吉。喜忌由日主党势定向：
-      身强（印比党众）-> 忌体（印比），喜用（财官食伤）
-      身弱（印比党寡）-> 喜体（印比），忌用（财官食伤）
-    党势均衡（印比与财官食伤相等）则喜忌不明，返回空串，调用方按中性处理。
+    日主喜神则冲之反凶，为忌神则冲之反吉。喜忌定向复用
+    yongshen.classify_strength（扶抑身强弱，方向总线统一口径）：
+      身强/从强（印比党众）-> 忌体（印比），喜用（财官食伤）
+      身弱/从弱（印比党寡）-> 喜体（印比），忌用（财官食伤）
+    中和/不明则喜忌不明，返回空串，调用方按中性处理。
 
     Args:
         day_gan: 日干
@@ -143,6 +144,7 @@ def _judge_chong_xiji(
     Returns:
         '喜' / '忌' / ''（无法判定）
     """
+    from mangpai.subjective.yongshen import classify_strength
     day_wx = GAN_WX.get(day_gan, '')
     clashed_wx = ZHI_WX.get(clashed_zhi, '')
     if not day_wx or not clashed_wx:
@@ -155,34 +157,14 @@ def _judge_chong_xiji(
             yin_wx = _w
             break
 
-    # 党势：体（印比）vs 用（财官食伤），不计日干自身
-    ti_count = 0
-    yong_count = 0
-    for i, g in enumerate(natal_gans):
-        if i == 2 or not g:  # 跳过日干
-            continue
-        w = GAN_WX.get(g, '')
-        if w == day_wx or w == yin_wx:
-            ti_count += 1
-        elif w:
-            yong_count += 1
-    for z in natal_zhis:
-        w = ZHI_WX.get(z, '')
-        if w == day_wx or w == yin_wx:
-            ti_count += 1
-        elif w:
-            yong_count += 1
-
-    if ti_count == yong_count:
-        return ''  # 党势均衡，喜忌不明
-
-    strong = ti_count > yong_count  # 身强
+    strength = classify_strength(day_gan, natal_gans, natal_zhis)
+    if strength in ('中和', '不明'):
+        return ''  # 党势均衡/数据不足，喜忌不明
     clashed_is_ti = (clashed_wx == day_wx) or (clashed_wx == yin_wx)
-
-    if strong:
+    if strength in ('身强', '从强'):
         # 身强忌体喜用
         return '忌' if clashed_is_ti else '喜'
-    # 身弱喜体忌用
+    # 身弱/从弱喜体忌用
     return '喜' if clashed_is_ti else '忌'
 
 

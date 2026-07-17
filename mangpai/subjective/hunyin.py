@@ -38,6 +38,7 @@ from mangpai.objective.constants import (
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.zuogong_detect import detect_relations
+from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -861,11 +862,14 @@ def analyze_hunyin(
     liunian_gan: str = '', liunian_zhi: str = '',
     relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    direction_result: Optional[Dict] = None,
 ) -> Dict:
     """婚姻综合：好坏 + 多婚 + 独身 + 水中捞月 + 关财门 + 禄绊桃花
     + 结婚四法 + 独身四格 + 结离婚应期。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
+    A3：接入 yongshen 方向总线（direction_result 缺省自调），
+    direction_signals 切片录入输出（只读信号，不改婚姻判定）。
 
     Returns:
         {
@@ -873,7 +877,7 @@ def analyze_hunyin(
           'guan_caimen': {...}, 'lu_ban_taohua': {...},
           'jiehun_sifa': {...}, 'dushen_sige': {...},
           'jiehun_yingqi': {...}, 'lihun_yingqi': {...},
-          'summary': str,
+          'direction_signals': {...}, 'summary': str,
         }
     """
     if is_pillars(day_gan):
@@ -903,6 +907,14 @@ def analyze_hunyin(
                                  dayun_gan, dayun_zhi, liunian_gan, liunian_zhi)
     lihun = infer_lihun_yingqi(day_gan, gans or [], zhis or [], gender,
                                dayun_gan, dayun_zhi, liunian_gan, liunian_zhi)
+
+    # A3：方向总线信号（缺省自调）
+    if direction_result is None:
+        try:
+            direction_result = assess_direction_signals(
+                day_gan, gans or [], zhis or [], relations=relations)
+        except Exception:
+            direction_result = {}
 
     parts = [f'婚姻{quality.get("quality","平")}']
     if duohun.get('is_duohun'):
@@ -934,6 +946,7 @@ def analyze_hunyin(
         'dushen_sige': dushen_ge,
         'jiehun_yingqi': jiehun,
         'lihun_yingqi': lihun,
+        'direction_signals': direction_brief(direction_result),
         'summary': '；'.join(parts),
     }
 

@@ -44,6 +44,7 @@ from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.zuogong_detect import detect_relations
+from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 
 _YANG_GANS = set('甲丙戊庚壬')
 _YANG_GAN_OF_WX = {'木': '甲', '火': '丙', '土': '戊', '金': '庚', '水': '壬'}
@@ -627,8 +628,10 @@ def analyze_zaihuo(
     relations: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    direction_result: Optional[Dict] = None,
 ) -> Dict:
     """灾祸综合：疾病 + 车祸 + 死亡。
+    A3：接入 yongshen 方向总线（direction_result 缺省自调，只读信号不改判定）。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
 
@@ -659,6 +662,15 @@ def analyze_zaihuo(
     sw = detect_siwang(day_gan, gans, zhis, relations, yunfan_result,
                        shensha_result=ss)
 
+    # A3：方向总线信号（缺省自调；zaihuo 已自有 yunfan 切片，透传一致口径）
+    if direction_result is None:
+        try:
+            direction_result = assess_direction_signals(
+                day_gan, gans, zhis, relations=relations,
+                yunfan_result=yunfan_result)
+        except Exception:
+            direction_result = {}
+
     order = {'高': 3, '中': 2, '低': 1, '无': 0}
     max_risk = max([jb['risk'], ch['risk'], sw['risk']], key=lambda r: order.get(r, 0))
 
@@ -675,6 +687,7 @@ def analyze_zaihuo(
         'chehuo': ch,
         'siwang': sw,
         'max_risk': max_risk,
+        'direction_signals': direction_brief(direction_result),
         'summary': '；'.join(parts),
     }
 

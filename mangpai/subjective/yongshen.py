@@ -205,6 +205,24 @@ def _ensure_laoyu(day_gan: str, gans: List[str], zhis: List[str],
         return {}
 
 
+def direction_brief(direction_result: Optional[Dict]) -> Dict:
+    """方向总线·精简切片（A3）：供各领域模块录入输出的标准形态。
+
+    assess_direction_signals 的全量字典含子结构（bijiao_duocai/suiyun_reasons
+    等），领域模块输出只需精简方向切片：方向、是否反局/岁运反局、是否破财、
+    严重度与理由。缺省/异常输入安全返回中性。
+    """
+    d = direction_result or {}
+    return {
+        'direction': d.get('direction', '中性'),
+        'fanju': bool(d.get('fanju')),
+        'suiyun_fanju': bool(d.get('suiyun_fanju')),
+        'pocai': bool(d.get('pocai')),
+        'pocai_severe': bool(d.get('pocai_severe')),
+        'reasons': list(d.get('reasons') or []),
+    }
+
+
 def assess_direction_signals(
     day_gan: str, gans: List[str], zhis: List[str],
     *,
