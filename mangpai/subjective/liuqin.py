@@ -519,8 +519,11 @@ def detect_zixi_youwu(
       4. 枭神夺食（女命印太旺克食伤）。
       5. 满盘比劫（男）/伤官（女）克子。
 
+    聚合口径（M3）：五标志须 ≥2 条共振方断无子（has_zixi=False）；
+    单标志仅示子息有阻（待运岁引动），不即断无子。
+
     Returns:
-        {'has_zixi': bool, 'markers': [str], 'desc': str}
+        {'has_zixi': bool, 'markers': [str], 'markers_count': int, 'desc': str}
     """
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
@@ -591,12 +594,21 @@ def detect_zixi_youwu(
         if sg_count >= 3:
             markers.append('满盘伤官克官（不利子息）')
 
-    has_zixi = not markers
+    # M3：单标志即否改为 ≥2 标志共振——无子五标志须两条以上共振方断无子
+    # （单标志仅为子息有阻，待运岁引动；多标志互证方为结构性无子）。
+    has_zixi = len(markers) < 2
+    if has_zixi and markers:
+        desc = f'子息有阻（单标志：{markers[0]}，待运岁引动）'
+    elif has_zixi:
+        desc = '有子息之象'
+    else:
+        desc = '；'.join(markers)
     return {
         'has_zixi': has_zixi,
         'child_star_cat': cat,
         'markers': markers,
-        'desc': '有子息之象' if has_zixi else '；'.join(markers),
+        'markers_count': len(markers),
+        'desc': desc,
     }
 
 

@@ -160,18 +160,36 @@ def _dayzhi_attacked(wa: List[Dict]) -> List[str]:
 
 # ───────────────────── 1. 婚姻好坏 ─────────────────────
 
+# 宫/星加权（M3）：源文《盲派中级命理学》第十章第一节「看婚姻的好坏，应以
+# 配偶宫为主，配偶星为辅」——宫为主（权重×2）、星为辅（权重×1）。
+# 破坏程度分档（源文「能否离婚，却要看夫妻宫破坏到什么程度」）：
+#   穿=2.0（穿倒最重，盲派"穿坏即灾"）；冲=1.5（正面对抗）；
+#   合=1.5（六合/暗合他星，合走配偶）；刑=1.0、破=1.0（较轻）。
+_GONG_ATTACK_W = {'穿': 2.0, '冲': 1.5, '合': 1.5, '刑': 1.0, '破': 1.0}
+_GONG_SAFE_W = 2.0        # 宫位安静（宫为主，安稳为婚姻好之基）
+_STAR_MINGXIAN_W = 1.0    # 配偶星明现（星为辅）
+_STAR_IN_GONG_W = 1.0     # 配偶星居婚姻宫（得位）
+_STAR_ABSENT_W = -1.0     # 配偶星不明现
+_ZHENG_HE_W = -1.0        # 争合（比劫争夫/争妻，第三者之象）
+_STAR_MIXED_W = -1.0      # 星杂透多现（正偏混杂）
+# 阈值：好须宫星俱善（≥2.0）；差为净负分（<0，宫坏为主即落差）；其间为平。
+_QUALITY_GOOD_MIN = 2.0
+
+
 def classify_hunyin_quality(
     day_gan: str, gans: List[str], zhis: List[str],
     gender: str = '男', relations: Optional[Dict] = None,
 ) -> Dict:
-    """婚姻好坏判断。
+    """婚姻好坏判断（M3：星/宫/破坏程度加权，替代等权一票制）。
 
     男命看财星(妻星)、女命看官杀(夫星)，日支为婚姻宫。
-    好：配偶星明现不被克破、婚姻宫不被冲合穿刑、星宫得位（星在日支/主位）；
-    差：星被克破/争合/入墓、婚姻宫被冲合穿刑、男财多身弱/女官杀混杂伤官见官。
+    加权口径（源文：宫为主、星为辅；破坏程度定吉凶深浅）：
+      宫：安稳 +2.0；被穿 -2.0 / 冲 -1.5 / 合(他星) -1.5 / 刑 -1.0 / 破 -1.0；
+      星：明现 +1.0、居宫得位 +1.0、不明现 -1.0、争合 -1.0、杂透多现 -1.0。
 
     Returns:
-        {'quality': '好'|'差'|'平', 'signals': [str], 'star_count': int, 'gong_attacked': [str]}
+        {'quality': '好'|'差'|'平', 'score': float, 'signals': [str],
+         'star_count': int, 'gong_attacked': [str]}
     """
     if is_pillars(day_gan):
         p = day_gan
@@ -189,45 +207,46 @@ def classify_hunyin_quality(
     gong_attacked = _dayzhi_attacked(wa)
 
     signals: List[str] = []
-    good = 0
-    bad = 0
+    score = 0.0
 
-    # 星明现
+    # 星明现（星为辅 ±1.0）
     if star_count >= 1:
         signals.append(f'配偶星明现（{star_count}位）')
-        good += 1
+        score += _STAR_MINGXIAN_W
     else:
         signals.append('配偶星不明现')
-        bad += 1
-    # 星在日支(婚姻宫)得位
+        score += _STAR_ABSENT_W
+    # 星在日支(婚姻宫)得位（+1.0）
     day_idx = PILLAR_KEYS.index('day')
     day_zhi_wx = ZHI_WX.get(zhis[day_idx], '')
     swx = _spouse_wx(day_gan, gender)
     if day_zhi_wx == swx:
         signals.append('配偶星居婚姻宫（日支），星宫得位')
-        good += 1
-    # 婚姻宫被冲合穿刑
+        score += _STAR_IN_GONG_W
+    # 婚姻宫被冲合穿刑（宫为主：按破坏程度加权扣分）
     if gong_attacked:
-        signals.append(f'婚姻宫(日支)被{"、".join(gong_attacked)}')
-        bad += len(gong_attacked)
+        gong_loss = sum(_GONG_ATTACK_W.get(k, 1.0) for k in gong_attacked)
+        signals.append(f'婚姻宫(日支)被{"、".join(gong_attacked)}（破坏度-{gong_loss:g}）')
+        score -= gong_loss
     else:
         signals.append('婚姻宫(日支)安稳无冲合穿刑')
-        good += 1
+        score += _GONG_SAFE_W
     # 争合（日干被两干以上合）
     if rel.get('zheng_he'):
         signals.append('日干争合，配偶星易被争')
-        bad += 1
+        score += _ZHENG_HE_W
     # 男财多/女官杀混杂
     if gender == '男' and star_count >= 3:
         signals.append('男命财星多现（正偏财混杂），婚姻易不稳')
-        bad += 1
+        score += _STAR_MIXED_W
     if gender == '女' and star_count >= 3:
         signals.append('女命官杀多现（官杀混杂），婚姻易不稳')
-        bad += 1
+        score += _STAR_MIXED_W
 
-    quality = '好' if good > bad else ('差' if bad > good else '平')
+    quality = '好' if score >= _QUALITY_GOOD_MIN else ('差' if score < 0 else '平')
     return {
         'quality': quality,
+        'score': round(score, 2),
         'signals': signals,
         'star_count': star_count,
         'gong_attacked': gong_attacked,
@@ -240,10 +259,12 @@ def classify_duohun(
     day_gan: str, gans: List[str], zhis: List[str],
     gender: str = '男', relations: Optional[Dict] = None,
 ) -> Dict:
-    """多婚命理判定。
+    """多婚命理判定（M3 补三检测）。
 
     男财星多(正偏财混杂)/女官杀多(正官七杀混杂)、婚姻宫被冲合多次、
     比劫克财(男)/伤官克官(女) -> 多婚（离婚再婚之象）。
+    M3 补（源文第二节规则1 + 高级篇盖头）：配偶星被穿/破/冲、
+    劫财(男)/伤官(女)盖头配偶星、配偶星入墓。
 
     Returns:
         {'is_duohun': bool, 'factors': [str]}
@@ -275,6 +296,10 @@ def classify_duohun(
     for a in wa:
         if a.get('type') in ('冲', '克', '穿', '刑'):
             fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            # 日主克财=「我克者财」（正常得财），非比劫夺财/伤官克官，
+            # 与 yongshen.detect_bijiao_duocai 的 day_gan 排除同口径。
+            if fp == 'day_gan':
+                continue
             if fp and tp:
                 f_idx = PILLAR_KEYS.index(fp.split('_')[0]) if fp.split('_')[0] in PILLAR_KEYS else -1
                 t_idx = PILLAR_KEYS.index(tp.split('_')[0]) if tp.split('_')[0] in PILLAR_KEYS else -1
@@ -284,6 +309,61 @@ def classify_duohun(
                     if f_main == killer and t_main == cat:
                         factors.append(f'{killer}克{cat}（{a.get("desc","")}），配偶星受克')
                         break
+
+    # ── M3 补三检测（源文第二节多婚规则 + 高级篇盖头）──
+    swx = _spouse_wx(day_gan, gender)
+    # 本气配偶星支（被穿/破/冲仅认本气：中气藏星过弱，免误检——如 zb04 未中乙财
+    # 被丑未冲误中，书断"妻好无事"）
+    star_zhis_main: Set[str] = {z for z in zhis if z and ZHI_WX.get(z) == swx}
+    # 本/中气配偶星支（盖头用：克星干坐于藏星之支上同柱相克）
+    star_zhis_all: Set[str] = set(star_zhis_main)
+    for i in range(4):
+        z = zhis[i]
+        if not z or z in star_zhis_all:
+            continue
+        for idx, (cg, _) in enumerate(get_canggan_mangpai(z)):
+            if idx <= 1 and GAN_WX.get(cg) == swx:  # 本/中气藏配偶星
+                star_zhis_all.add(z)
+                break
+    # 1. 配偶星被穿/破/冲（源文规则1：「夫妻宫穿了夫妻星的那个字，必离婚（可以冲）」，
+    #    推及配偶星所在支被穿/破/冲即为多婚标志）
+    for a in wa:
+        t = a.get('type', '')
+        if t not in ('穿', '破', '冲'):
+            continue
+        hit_zhi, via_gong = None, False
+        for pk in (a.get('from_pos', ''), a.get('to_pos', '')):
+            k = pk.split('_')[0]
+            if pk.endswith('_zhi') and k in PILLAR_KEYS:
+                zv = zhis[PILLAR_KEYS.index(k)]
+                if zv in star_zhis_main:
+                    hit_zhi = zv
+                    if (a.get('from_pos') == 'day_zhi' or a.get('to_pos') == 'day_zhi'):
+                        via_gong = True
+        if hit_zhi:
+            gong_note = '，夫妻宫{0}夫妻星（源文：必离婚）'.format(t) if via_gong else ''
+            factors.append(f'配偶星({hit_zhi})被{t}{gong_note}，多婚标志')
+            break
+    # 2. 盖头劫财(男)/盖头伤官(女)（高级篇：「酉金财星被丁火劫财盖头」、
+    #    「酉金正官为夫星，但被丁火盖头」——克星干坐配偶星支上，同柱相克）
+    for i in range(4):
+        if i == PILLAR_KEYS.index('day'):
+            continue
+        g, z = gans[i], zhis[i]
+        if not g or not z or z not in star_zhis_all:
+            continue
+        if _cat(_compute_shishen(day_gan, g)) == killer and WX_KE.get(GAN_WX.get(g, '')) == swx:
+            factors.append(f'{killer}({g})盖头配偶星({z})，同柱相克，婚不稳')
+            break
+    # 3. 配偶星入墓（星入墓库，婚缘受损，多婚/婚变标志之一）。
+    #    须配偶星明现于天干或地支本气方论入墓——仅中气藏星且该星即藏于墓库
+    #    自身者（如未中乙）为"星藏于库"，非星被收墓，不计（免 zb04 误中）。
+    tombs = _star_in_tomb(day_gan, gans, zhis, gender)
+    if tombs:
+        star_mingxian = bool(star_zhis_main) or any(
+            g and GAN_WX.get(g) == swx for g in gans)
+        if star_mingxian:
+            factors.append(f'配偶星入{"".join(sorted(set(tombs)))}墓，婚缘受损')
 
     return {'is_duohun': len(factors) >= 2 or star_count >= 3, 'factors': factors}
 
