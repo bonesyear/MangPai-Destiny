@@ -126,6 +126,53 @@ class MangpaiEngine:
             for y in (cur_year, cur_year - 1, cur_year + 1)
         ]
 
+    def _current_dayun(self, dy_list: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+        """定位「当下」所处大运：按当前年龄（当前年 − 出生年）匹配
+        start_age/end_age 区间，与 _auto_liunian_list 的「当下」锚点
+        （系统当前年）同口径。
+
+        回退策略（保持旧行为/书例兼容）：无出生年、条目缺 start_age、
+        或年龄未入任何区间（书例只喂单步相关大运）时取首步大运；
+        年龄超出末步区间时取末步（不再错锚童年首运）。
+        """
+        if not dy_list:
+            return None
+
+        def _pair(entry: Any) -> Optional[Dict[str, str]]:
+            gz = entry.get('gz', '') if isinstance(entry, dict) else ''
+            return {'gan': gz[0], 'zhi': gz[1]} if len(gz) >= 2 else None
+
+        birth_year = self.input_data.get('year')
+        age = None
+        if birth_year:
+            try:
+                from datetime import datetime
+                age = datetime.now().year - int(birth_year)
+            except Exception:
+                age = None
+        if age is not None:
+            first_sa = last_ea = None
+            for entry in dy_list:
+                if not isinstance(entry, dict):
+                    continue
+                sa = entry.get('start_age')
+                if sa is None:
+                    continue
+                ea = entry.get('end_age', sa + 10)
+                if first_sa is None:
+                    first_sa = sa
+                last_ea = ea
+                if sa <= age < ea:
+                    pair = _pair(entry)
+                    if pair:
+                        return pair
+            # 超出末步区间 → 末步；未起运（童年）→ 首步（旧行为）
+            if last_ea is not None and age >= last_ea:
+                pair = _pair(dy_list[-1])
+                if pair:
+                    return pair
+        return _pair(dy_list[0])
+
     def compute_all(self) -> Dict[str, Any]:
         """计算全部盲派分析结果。
 
@@ -332,12 +379,8 @@ class MangpaiEngine:
             ln_list = liunian_data if isinstance(liunian_data, list) else liunian_data.get('liunian', [])
             if ln_list:
                 fei_shen = zg.get('fei_shen', []) if zg else []
-                current_dy = None
-                if dy_list and isinstance(dy_list, list) and dy_list:
-                    first_dy = dy_list[0]
-                    gz = first_dy.get('gz', '')
-                    if gz and len(gz) >= 2:
-                        current_dy = {'gan': gz[0], 'zhi': gz[1]}
+                # 当下大运按当前年龄定位（与自动流年同锚点），非首步大运
+                current_dy = self._current_dayun(dy_list) if isinstance(dy_list, list) else None
                 result['liunian_analysis'] = self._safe_compute(
                     'liunian_analysis', analyze_liunian_mangpai,
                     ln_list, self.gans, self.zhis, self.day_gan,
@@ -399,13 +442,12 @@ class MangpaiEngine:
             shensha_result=result.get('shensha'),
         ) or {}
 
-        # 当前大运/流年干支（无明确"当下"锚点时取首步大运/首流年，与
-        # liunian_analysis 之 current_dayun 约定一致；缺数据则空串）
+        # 当前大运/流年干支（大运按当前年龄定位，与 liunian_analysis 之
+        # current_dayun 同一「当下」锚点；无锚点时回退首步大运/首流年）
         cur_dy_gan, cur_dy_zhi = '', ''
-        if dy_list:
-            gz = (dy_list[0].get('gz', '') if isinstance(dy_list[0], dict) else '')
-            if gz and len(gz) >= 2:
-                cur_dy_gan, cur_dy_zhi = gz[0], gz[1]
+        _cur_dy = self._current_dayun(dy_list) if isinstance(dy_list, list) else None
+        if _cur_dy:
+            cur_dy_gan, cur_dy_zhi = _cur_dy['gan'], _cur_dy['zhi']
 
         cur_ln_list = []
         if isinstance(liunian_data, list):
