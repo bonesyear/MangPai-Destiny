@@ -242,8 +242,9 @@ def detect_relations(
 
     # ── 非日干天干合（伤官合杀/食神合官/羊刃合杀等，合制做功）──
     # 段氏：天干合不限于日干，伤官合杀、食神合官、羊刃合杀等非日干合亦为合制做功
-    # （如 day=丁 戊癸合=伤官合杀）。仅检涉主位（时干）且为合制（食伤/比劫 合 官杀）
-    # 之非日干合；宾宾合（年月合）及非合制之合（如印合食伤）不计，避免误改功神/废神。
+    # （如 day=丁 戊癸合=伤官合杀）。M4：放开涉时干限制——年月（宾宾）合制同为
+    # 真实关系，一并检出；做功权重（主宾/远近）由 confirm 层判定，本层只检不判。
+    # 非合制之合（如印合食伤）仍不计，避免误改功神/废神。
     if day_wx:
         _guan_wx = WX_KE_ME.get(day_wx, '')      # 官杀五行（克我）
         _shi_wx = WX_SHENG.get(day_wx, '')       # 食伤五行（我生）
@@ -254,8 +255,7 @@ def detect_relations(
             for j in range(i + 1, 4):
                 if j == 2:
                     continue
-                if i != 3 and j != 3:
-                    continue  # 至少一方主位（时干），排除宾宾合
+                # M4：放开涉时干限制（原要求至少一方时干，宾宾年月合制漏检）
                 gi, gj = gans[i], gans[j]
                 if not gi or not gj:
                     continue
@@ -271,6 +271,7 @@ def detect_relations(
                 if not _is_hezhi:
                     continue
                 pk_i, pk_j = pillar_keys[i], pillar_keys[j]
+                _bin_bin = (i != 3 and j != 3)  # M4：宾宾（年月）合制，不做主功
                 work_actions.append({
                     'type': '天干合',
                     'action': '合用',
@@ -278,7 +279,10 @@ def detect_relations(
                     'to': f'{PILLAR_NAMES_CN[j]}干({gj})',
                     'from_pos': f'{pk_i}_gan',
                     'to_pos': f'{pk_j}_gan',
-                    'desc': f'{gi}{gj}合（非日干合，合制做功）',
+                    'desc': f'{gi}{gj}合（非日干合，合制做功）'
+                            + ('（宾宾合制，不做主功）' if _bin_bin else ''),
+                    # M4：宾宾合制检出但标 auxiliary（时干主位合制照旧计入）
+                    **({'auxiliary': True, 'bin_bin_hezhi': True} if _bin_bin else {}),
                 })
                 work_types.add('合用')
 
@@ -286,10 +290,13 @@ def detect_relations(
     # 盲派生用 = 食伤泄秀：日干有食神/伤官贴近日干（天干月干/时干，或地支月支/日支
     # 藏干食伤），且该食伤再去生财或制杀，方为做功。无财杀目标者仅泄秀，不做功。
     # 食伤在地支（如坐支食神、月支食神）亦为泄秀做功（宾来生主之食伤生财）。
+    # M4：补年干食伤漏检——年干（宾位远干）食伤生财/制杀同为真实关系，检出但
+    # 标 auxiliary（远干泄秀力弱，不做主功；段氏生例皆月/时干或月/日支贴身食伤），
+    # 做功权重交 confirm 判定。
     if day_wx:
         cai_wx = WX_KE.get(day_wx, '')      # 财五行 = 我克
         sha_wx = WX_KE_ME.get(day_wx, '')   # 杀五行 = 克我
-        for idx in (1, 3):  # 月干、时干
+        for idx in (0, 1, 3):  # 年干(M4补)、月干、时干
             other_gan = gans[idx]
             if not other_gan:
                 continue
@@ -343,6 +350,11 @@ def detect_relations(
                 'to_pos': f'{pk}_gan',
                 'desc': f'{ss}{other_gan}泄秀，' + '、'.join(sub_parts),
             }
+            if idx == 0:
+                # M4 年干食伤：宾位远干泄秀力弱，检出标 auxiliary 不做主功
+                action['auxiliary'] = True
+                action['year_gan_shengyong'] = True
+                action['desc'] += '（年干远泄，不做主功）'
             work_actions.append(action)
             sheng_yong_actions.append(action)
             work_types.add('生用')
@@ -634,10 +646,10 @@ def detect_relations(
     # 遍历天干，用 GAN_WX 判两干生克；日干参与的克加 type=克（与支克共用同名 type）。
     # 天干五合之对（甲己/乙庚/丙辛/丁壬/戊癸）亦含单向克，但合为主动关系，
     # 段氏以合论不以克论，故合对不再计天干克，避免与天干合重复。
+    # M4：放开日干参与限制——他干之间相克（年月/年时/月时）同为真实关系，一并
+    # 检出；主宾/做功权重由 confirm S2 宾宾过滤判定（非日柱参与者降 auxiliary）。
     for i in range(4):
         for j in range(i + 1, 4):
-            if not (i == 2 or j == 2):
-                continue  # 日干参与
             g1, g2 = gans[i], gans[j]
             if not g1 or not g2:
                 continue
@@ -650,6 +662,7 @@ def detect_relations(
                 fg, tg, f_idx, t_idx = g2, g1, j, i
             else:
                 continue  # 须天干相克
+            _non_day = not (f_idx == 2 or t_idx == 2)
             work_actions.append({
                 'type': '克',
                 'action': '克',
@@ -657,8 +670,12 @@ def detect_relations(
                 'to': f'{PILLAR_NAMES_CN[t_idx]}干({tg})',
                 'from_pos': f'{pillar_keys[f_idx]}_gan',
                 'to_pos': f'{pillar_keys[t_idx]}_gan',
-                'desc': f'{fg}{GAN_WX.get(fg, "")}克{tg}{GAN_WX.get(tg, "")}',
+                'desc': f'{fg}{GAN_WX.get(fg, "")}克{tg}{GAN_WX.get(tg, "")}'
+                        + ('（宾位干相克，不做主功）' if _non_day else ''),
                 'severity': 'normal',
+                # M4：非日柱天干克（宾宾/宾主他干）检出但标 auxiliary，
+                # 与 confirm S2 宾宾过滤同口径提前标注，保护 raw 消费方
+                **({'auxiliary': True, 'non_day_ganke': True} if _non_day else {}),
             })
             work_types.add('制用')
 
@@ -764,6 +781,8 @@ def detect_relations(
     # 日柱为墓库->主动做功；日柱被入墓->被动受制
     # 闭库之墓不收纳：墓库逢合则闭，闭则不能收物入库（见 muku.analyze_muku）
     # 透干引拔：逢冲无透干亦闭（muku.analyze_muku 据天干透出判定开闭）
+    # M4：放开日柱参与限制——非日柱入墓（如李嘉诚亥入辰、蒋介石午入戌）同为
+    # 真实墓库关系，一并检出；主被动/宾宾权重由 confirm S2 过滤判定。
     muku_analysis = analyze_muku(zhis, gans)
     closed_tomb_zhis = {t['zhi'] for t in muku_analysis.get('closed_tombs', [])}
     for i in range(4):
@@ -778,7 +797,8 @@ def detect_relations(
             z2 = zhis[j]
             if not z2:
                 continue
-            if is_entomb(z2, z, zhis) and (i == 2 or j == 2):
+            if is_entomb(z2, z, zhis):  # M4：不再要求日柱参与（i==2 or j==2）
+                _non_day_tomb = not (i == 2 or j == 2)
                 tomb_works.append({
                     'type': '墓用',
                     'action': '墓用',
@@ -786,7 +806,10 @@ def detect_relations(
                     'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
                     'from_pos': f'{pillar_keys[i]}_zhi',
                     'to_pos': f'{pillar_keys[j]}_zhi',
-                    'desc': f'{z2}({ZHI_WX.get(z2, "")})入{z}墓',
+                    'desc': f'{z2}({ZHI_WX.get(z2, "")})入{z}墓'
+                            + ('（宾位入墓，不做主功）' if _non_day_tomb else ''),
+                    # M4：非日柱入墓检出但标 auxiliary（与 confirm S2 同口径提前）
+                    **({'auxiliary': True, 'non_day_tomb': True} if _non_day_tomb else {}),
                 })
                 work_types.add('墓用')
 

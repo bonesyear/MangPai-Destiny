@@ -1075,11 +1075,11 @@ check('天干克(庚克甲)计入passive_control',
           for wa in zg_gk.get('passive_control', [])))
 
 # 天干克(主动)：日甲、时戊（甲木克戊土，非合对）→ from=day_gan 主动做功
+# （M4 后列表或含宾位干克扩展检出，断言用 any 不按列表首位）
 zg_gk2 = analyze_zuogong('甲', '子', '壬', '巳', '癸', '亥', '戊', '午')
 gk2 = [wa for wa in zg_gk2.get('work_actions', [])
        if wa.get('type') == '克' and wa.get('from_pos', '').endswith('_gan')]
-check('天干克主动(甲克戊)', len(gk2) >= 1
-      and gk2[0].get('from_pos') == 'day_gan',
+check('天干克主动(甲克戊)', any(wa.get('from_pos') == 'day_gan' for wa in gk2),
       f"gk2={gk2}")
 check('天干克主动计入active_work',
       any(wa.get('type') == '克' and wa.get('from_pos') == 'day_gan'

@@ -339,6 +339,8 @@ def classify_caifu_view(
     # 4. 官杀当财两式（官杀多且制官杀成立）
     zhi_guan_controlled = False  # 宾官被制（主制宾官）
     for a in wa:
+        if a.get('auxiliary'):
+            continue  # 非做功动作（宾位干克/宾位入墓等 M4 扩展检出）不证"被制"
         if a.get('type') in (_ZHI_CONTROL | _HE_CONTROL):
             to_pos = a.get('to_pos', '')
             from_pos = a.get('from_pos', '')

@@ -158,9 +158,15 @@ def _action_between_cats(
     wa: List[Dict], day_gan: str, gans: List[str], zhis: List[str],
     cat_a: str, cat_b: str, types: Set[str],
 ) -> List[Dict]:
-    """两十神大类柱之间的指定类型动作（双向）。"""
+    """两十神大类柱之间的指定类型动作（双向）。
+
+    只认做功动作（非 auxiliary）——M4 扩展检出（宾位干克/宾位入墓/宾宾合制）
+    为结构事实，不证"被制"做功。
+    """
     out: List[Dict] = []
     for a in wa:
+        if a.get('auxiliary'):
+            continue
         if a.get('type') not in types:
             continue
         fi, ti = _pos_idx(a.get('from_pos', '')), _pos_idx(a.get('to_pos', ''))

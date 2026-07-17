@@ -356,8 +356,12 @@ def analyze_gongliang(
             control_action_count += 1
         if tp in _ZHI_TYPES and t:
             zhi_targets.add(t)
-    # 墓用做功：入墓目标亦属被制方（被墓制）
-    for tw in tomb_works:
+    # 墓用做功：入墓目标亦属被制方（被墓制）。
+    # M4 注记：detect 已放开日柱参与限制（宾位入墓亦检出），confirm S2 将非日柱
+    # 入墓标 auxiliary（global_qi）。本模块功量只认 confirm 判定为真做功之墓用
+    # （非 auxiliary），宾位入墓（如普例3 戌入辰）仅作结构事实，不加点、不入被制方。
+    active_tomb_works = [tw for tw in tomb_works if not tw.get('auxiliary')]
+    for tw in active_tomb_works:
         for fld in ('to_pos', 'entombed_pos', 'pos'):
             v = tw.get(fld, '')
             if v:
@@ -478,9 +482,10 @@ def analyze_gongliang(
                 )
 
     # ── 4. 入墓为功 -> +1（局中有入墓(墓用)做功者算一层功）──
-    if tomb_works:
+    #   只认 confirm 判定之真墓用（非 auxiliary，M4 放开后宾位入墓不计）。
+    if active_tomb_works:
         points += 1
-        reasons.append(f'入墓为功：局中墓用做功{len(tomb_works)}处（+1层）')
+        reasons.append(f'入墓为功：局中墓用做功{len(active_tomb_works)}处（+1层）')
 
     # ── 5. 库源/连墓 -> +1（被制元素之墓库在局，源头得库加一层）──
     #   源文（李嘉诚例）：「亥出自辰，从辰墓中引出，亥水有源头得到一个大的库，
