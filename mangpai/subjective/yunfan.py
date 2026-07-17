@@ -32,7 +32,7 @@ yunfan — 岁运反局（大运/流年引动反局）·主观层
   本模块不反向依赖。
 置信度：中（运岁引动判据为结构启发式，应期精细须结合领域应期模块）。
 """
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 from mangpai.objective.constants import (
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, LIU_PO, XING_PAIRS, AN_HE,
@@ -168,11 +168,11 @@ def _detect_lu_ren_fangg(
     lu = LU.get(day_gan, '')
     if lu and _pair_hit(op_zhi, lu, LIU_CHONG):
         targets.append(f'禄({lu})被冲')
-    # 羊刃（阳干刃位）被冲
-    from mangpai.objective.shensha import _YANG_REN as _YR
-    yr = _YR.get(day_gan, '')
-    if yr and _pair_hit(op_zhi, yr, LIU_CHONG):
-        targets.append(f'羊刃({yr})被冲')
+    # 羊刃（阳干刃位，段氏全刃表：戊取午、未双刃）被冲
+    from mangpai.objective.shensha import _YANG_REN_FULL as _YR
+    for yr in _YR.get(day_gan, []):
+        if yr and _pair_hit(op_zhi, yr, LIU_CHONG):
+            targets.append(f'羊刃({yr})被冲')
     if targets:
         return '、'.join(targets) + '——本护身之禄刃反戈攻身（阴阳逆转）'
     return None
@@ -538,4 +538,37 @@ def analyze_yunfan(
     }
 
 
-__all__ = ['analyze_yunfan']
+def current_fan_slice(
+    yunfan_result: Optional[Dict],
+    current_dayun_gz: str = '',
+    *,
+    include_dayun: bool = True,
+    include_liunian: bool = True,
+) -> Dict:
+    """从 analyze_yunfan 全量结果抽取「当前运岁」反局切片，供方向否决链消费。
+
+    大运反局只保留当前大运柱（gz 匹配 current_dayun_gz；空串=调用方已确认
+    传入列表即当前运，全保留）；流年反局/岁运联动按 include_liunian 取全量
+    （调用方喂入的流年即所断之岁，不再按公历年过滤）。
+
+    设计约束（A1）：切片仅供 caiming/guanming/zhiye 的方向否决链
+    （yongshen.assess_direction_signals）消费；engine 仅在运岁为显式输入时
+    构造切片——自动构造的流年（_auto_liunian_list）仅作「当下」展示锚点，
+    其三岁窗口启发式命中率高，入否决会污染终身财命/官命口径，故不入链。
+    """
+    yf = yunfan_result or {}
+    dayun_fan = list(yf.get('dayun_fan') or [])
+    if include_dayun and current_dayun_gz:
+        dayun_fan = [d for d in dayun_fan if d.get('gz') == current_dayun_gz]
+    if not include_dayun:
+        dayun_fan = []
+    liunian_fan = list(yf.get('liunian_fan') or []) if include_liunian else []
+    liandong = list(yf.get('sui_yun_liandong') or []) if include_liunian else []
+    return {
+        'dayun_fan': dayun_fan,
+        'liunian_fan': liunian_fan,
+        'sui_yun_liandong': liandong,
+    }
+
+
+__all__ = ['analyze_yunfan', 'current_fan_slice']

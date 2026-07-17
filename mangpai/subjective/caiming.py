@@ -846,8 +846,9 @@ def assess_caiming_level(
             sev = '严重' if cap == 1 else '一般'
             adjust = (adjust + '；' if adjust != '持平' else '') + \
                 f'下浮封顶{cap}阶（{sev}凶向：' + '；'.join(ds.get('reasons') or []) + '）'
-        # 富档跟随下浮后的 tier（避免坐牢破财仍标千万-亿级荒谬）
-        if tier_idx < base_level:
+        # 富档跟随下浮后的 tier（避免坐牢破财仍标千万-亿级荒谬）；岁运反局
+        # 命中者即便阶位未动（本在低位），富档亦不再标注——乞丐不标千万级。
+        if tier_idx < base_level or ds.get('suiyun_fanju'):
             wealth_grade = ''
     tier_map = {1: '贫', 2: '小康', 3: '富', 4: '巨富'}
     tier = tier_map.get(tier_idx, '小康')
@@ -876,6 +877,7 @@ def analyze_caiming(
     gongliang_result: Optional[Dict] = None,
     muku_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    yunfan_result: Optional[Dict] = None,
 ) -> Dict:
     """财命综合：财富看法 + 取财方法 + 制不尽当财 + 层级四阶。
 
@@ -883,6 +885,8 @@ def analyze_caiming(
     gongliang_result 缺省时自动调用 gongliang.analyze_gongliang 取四档定性。
     muku_result 缺省时自动调用 muku.analyze_muku 取财库开闭（缺省自调，只读消费）。
     shensha_result: engine 透传的神煞结果（预留，财命尚未直接消费；备后用）。
+    yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1）。
+      岁运反局命中即入凶向否决链（层级封顶/富档抹除），与原局反局同口径。
 
     Returns:
         {
@@ -924,10 +928,11 @@ def analyze_caiming(
             gl = analyze_gongliang(zg, day_gan, gans, zhis)
         except Exception:
             gl = {}
-    # 凶向信号（反局/牢狱/比劫夺财/过河拆桥破财）--缺省自调，供层级封顶
+    # 凶向信号（反局/牢狱/比劫夺财/过河拆桥破财 + 岁运反局 A1）--缺省自调，供层级封顶
     direction = assess_direction_signals(
         day_gan, gans or [], zhis or [],
         relations=relations, gongliang_result=gl,
+        yunfan_result=yunfan_result,
     )
     # 过河拆桥破财由 caifu_view 检出，补入方向信号
     if cv.get('guohe_chaiqiao_type') == '破财':

@@ -500,6 +500,7 @@ def classify_zhiye(
     *,
     relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    yunfan_result: Optional[Dict] = None,
 ) -> Dict:
     """职业象法七类打分定位（多象定一象）。
 
@@ -508,6 +509,8 @@ def classify_zhiye(
       换食伤象/食伤包局→演艺/医生/教师加权（食伤包局配官杀→公检法）。
     消费 objective.xiangfa.get_liushi_ganzhi_xiang 的 person 字段（六十干支组合象
     行业象，如辛酉→法律/外科、戊戌→教师、甲申→交警/司法）作辅证。
+    yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1），
+      军警 gating 的凶向信号源之一（与原局反局同链）。
 
     Returns:
         {
@@ -635,9 +638,11 @@ def classify_zhiye(
     # 军警/武职 gating（P0 B/C）：军警为官命之武职，反局/比劫夺财破财等凶向
     # 命中者不得判武职（坐牢的、破财的、乞丐不开军警车）。须置于象法互证加权
     # 之后，方不被全阳/夹官等再加分覆盖。凶向信号缺省自调（laoyu 过火不计入）。
+    # 岁运反局（A1）经 yunfan_result 透传，与原局反局同链 gating。
     try:
         ds = assess_direction_signals(
             day_gan, gans, zhis, relations=rel,
+            yunfan_result=yunfan_result,
         )
         if ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai'):
             if scores.get('military', 0) > 0:
@@ -683,14 +688,17 @@ def analyze_zhiye(
     *,
     relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    yunfan_result: Optional[Dict] = None,
 ) -> Dict:
     """职业象法综合（analyze_zhiye = classify_zhiye 的对外别名）。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
     shensha_result: engine 透传的神煞结果，优先用传入值、缺省才就地重算。
+    yunfan_result: 「当前运岁」反局切片（A1），军警 gating 凶向信号源。
     """
     return classify_zhiye(day_gan, gans, zhis, relations=relations,
-                          shensha_result=shensha_result)
+                          shensha_result=shensha_result,
+                          yunfan_result=yunfan_result)
 
 
 __all__ = [

@@ -53,13 +53,21 @@ def run_case(case):
         bazi_data['liunian'] = [{'gz': liunian[0] + liunian[1], 'year': liunian[2]}]
     res = MangpaiEngine(bazi_data).compute_all()
     dg = gans[2]
+    # A1：案例显式运岁即「当前运岁」，切片入财命/官命/职业方向否决链
+    # （与 engine 内 wiring 同口径；无运岁的案例切片为空，行为不变）
+    from mangpai.subjective.yunfan import current_fan_slice
+    yf_slice = current_fan_slice(
+        res.get('yunfan') or {},
+        (dayun[0] + dayun[1]) if dayun else '',
+        include_dayun=bool(dayun), include_liunian=bool(liunian),
+    )
     out = {
         'res': res,
         'gl': res.get('gongliang', {}),
-        'cm': analyze_caiming(dg, gans, zhis),
-        'gm': analyze_guanming(dg, gans, zhis),
+        'cm': analyze_caiming(dg, gans, zhis, yunfan_result=yf_slice),
+        'gm': analyze_guanming(dg, gans, zhis, yunfan_result=yf_slice),
         'hy': analyze_hunyin(dg, gans, zhis, gender=gender),
-        'zy': analyze_zhiye(dg, gans, zhis),
+        'zy': analyze_zhiye(dg, gans, zhis, yunfan_result=yf_slice),
         'lq': analyze_liuqin(dg, gans, zhis, gender=gender),
         'yq': None,
     }

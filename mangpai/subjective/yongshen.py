@@ -213,21 +213,29 @@ def assess_direction_signals(
     zhengfan_result: Optional[Dict] = None,
     laoyu_result: Optional[Dict] = None,
     work_actions: Optional[List[Dict]] = None,
+    yunfan_result: Optional[Dict] = None,
 ) -> Dict:
     """聚合「凶向」信号，供 caiming/guanming/zhiye 反哺降档/否决。
 
-    凶向 = 反局(fan) OR 坐牢(risk≥中) OR 比劫夺财(R1) OR 过河拆桥破财。
+    凶向 = 反局(fan，原局反局 OR 当前运岁反局) OR 坐牢(risk≥中) OR 比劫夺财(R1)
+    OR 过河拆桥破财。
+
+    yunfan_result（A1）：「当前运岁」反局切片（yunfan.current_fan_slice 产出，
+    含 dayun_fan/liunian_fan/sui_yun_liandong 三键）。原局本正而运岁引动反局
+    者，其岁为凶（《高级命理学》3.3「变而反局，灾祸立现」）——与原局反局同链
+    消费：财命封顶/官命否决（同受正向官命结构门槛保护）/军警 gating。
 
     Returns:
         {'direction': '吉'|'凶'|'中性',
-         'fanju': bool, 'laoyu_risk': str,
+         'fanju': bool, 'suiyun_fanju': bool, 'laoyu_risk': str,
          'bijiao_duocai': {...}, 'pocai': bool, 'pocai_severe': bool,
-         'guohe_pocai': bool, 'reasons': [str]}
+         'guohe_pocai': bool, 'reasons': [str], 'suiyun_reasons': [str]}
     """
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
-        return {'direction': '中性', 'fanju': False, 'laoyu_risk': '无',
+        return {'direction': '中性', 'fanju': False, 'suiyun_fanju': False,
+                'laoyu_risk': '无',
                 'bijiao_duocai': {}, 'pocai': False, 'pocai_severe': False,
-                'guohe_pocai': False, 'reasons': []}
+                'guohe_pocai': False, 'reasons': [], 'suiyun_reasons': []}
 
     gl = gongliang_result or {}
     # R1：优先读 gongliang 已算得的 pocai_signal；缺省自算
@@ -241,7 +249,28 @@ def assess_direction_signals(
     zf = zhengfan_result or _ensure_zhengfan(day_gan, gans, zhis, relations)
     ly = laoyu_result or _ensure_laoyu(day_gan, gans, zhis, relations)
 
-    fanju = bool(zf and zf.get('type') == 'fan')
+    natal_fanju = bool(zf and zf.get('type') == 'fan')
+
+    # 岁运反局（A1）：当前运/岁反局 + 岁运联动，接入同一否决链。
+    # 流年 fans 内已含岁运联动条目（fans.extend(sui_fans)），故流年段跳过
+    # 「岁运联动」前缀，联动单独列段，避免同一信号双计。
+    suiyun_reasons: List[str] = []
+    sy = yunfan_result or {}
+    for d in (sy.get('dayun_fan') or []):
+        for f in (d.get('fans') or []):
+            suiyun_reasons.append(f"岁运反局·大运{d.get('gz', '')}：{f.get('fan_type', '')}")
+    for d in (sy.get('liunian_fan') or []):
+        for f in (d.get('fans') or []):
+            ft = f.get('fan_type', '')
+            if ft.startswith('岁运联动'):
+                continue
+            suiyun_reasons.append(f"岁运反局·流年{d.get('gz', '')}({d.get('year', '')})：{ft}")
+    for d in (sy.get('sui_yun_liandong') or []):
+        for f in (d.get('liandong') or []):
+            suiyun_reasons.append(f"岁运联动·{d.get('gz', '')}({d.get('year', '')})：{f.get('fan_type', '')}")
+    suiyun_fanju = bool(suiyun_reasons)
+
+    fanju = natal_fanju or suiyun_fanju
     laoyu_risk = ly.get('risk', '无') if ly else '无'
     # 注：laoyu(牢狱)检测在富贵局上系统性过火（如李嘉诚/克林顿/例八皆判 risk=高
     # 而实非牢狱），故仅作信息保留，不计入凶向否决/降档触发，避免误伤正当富贵。
@@ -254,8 +283,13 @@ def assess_direction_signals(
     pocai_severe = (bijiao.get('severity') == 'severe')
 
     reasons: List[str] = []
-    if fanju:
+    if natal_fanju:
         reasons.append(f"反局（{zf.get('configuration', '')}）")
+    if suiyun_fanju:
+        # 岁运反局条目多（一运/岁可命中多类型），截取前 3 条示意见 suiyun_reasons
+        reasons.extend(suiyun_reasons[:3])
+        if len(suiyun_reasons) > 3:
+            reasons.append(f'岁运反局等共{len(suiyun_reasons)}条')
     if bijiao.get('detected'):
         reasons.append(bijiao.get('reason', '比劫夺财破财'))
     if guohe_pocai:
@@ -265,6 +299,7 @@ def assess_direction_signals(
     return {
         'direction': direction,
         'fanju': fanju,
+        'suiyun_fanju': suiyun_fanju,
         'laoyu_risk': laoyu_risk,
         'laoyu_hit': laoyu_hit,
         'bijiao_duocai': bijiao,
@@ -272,4 +307,5 @@ def assess_direction_signals(
         'pocai_severe': pocai_severe,
         'guohe_pocai': guohe_pocai,
         'reasons': reasons,
+        'suiyun_reasons': suiyun_reasons,
     }

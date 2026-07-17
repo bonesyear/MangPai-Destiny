@@ -43,7 +43,7 @@ from mangpai.subjective.hunyin import analyze_hunyin
 from mangpai.subjective.xueli import analyze_xueli
 from mangpai.subjective.laoyu import analyze_laoyu
 from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi
-from mangpai.subjective.yunfan import analyze_yunfan
+from mangpai.subjective.yunfan import analyze_yunfan, current_fan_slice
 from mangpai.subjective.zhiye import analyze_zhiye
 from mangpai.subjective.gongmen_wuzhi import analyze_gongmen_wuzhi
 from mangpai.subjective.liuqin import analyze_liuqin
@@ -427,21 +427,6 @@ class MangpaiEngine:
         gl = result.get('gongliang', {})
         zg = result.get('zuogong', {}) if result.get('zuogong') is not None else {}
 
-        result['caiming'] = self._safe_compute(
-            'caiming', analyze_caiming,
-            self.day_gan, self.gans, self.zhis,
-            relations=relations, gongliang_result=gl,
-            muku_result=result.get('muku'),
-            shensha_result=result.get('shensha'),
-        ) or {}
-
-        result['guanming'] = self._safe_compute(
-            'guanming', analyze_guanming,
-            self.day_gan, self.gans, self.zhis,
-            relations=relations, gongliang_result=gl,
-            shensha_result=result.get('shensha'),
-        ) or {}
-
         # 当前大运/流年干支（大运按当前年龄定位，与 liunian_analysis 之
         # current_dayun 同一「当下」锚点；无锚点时回退首步大运/首流年）
         cur_dy_gan, cur_dy_zhi = '', ''
@@ -459,6 +444,49 @@ class MangpaiEngine:
             gz = (cur_ln_list[0].get('gz', '') if isinstance(cur_ln_list[0], dict) else '')
             if gz and len(gz) >= 2:
                 cur_ln_gan, cur_ln_zhi = gz[0], gz[1]
+
+        # 岁运反局：原局做功数据透传（缺省时 analyze_yunfan 自调 zuogong）。
+        # 前置于 caiming/guanming/zhiye：其方向否决链（A1）消费「当前运岁」切片。
+        result['yunfan'] = self._safe_compute(
+            'yunfan', analyze_yunfan,
+            self.gans, self.zhis, self.day_gan,
+            dayun_list=dy_list,
+            liunian_list=cur_ln_list,
+            current_dayun={'gan': cur_dy_gan, 'zhi': cur_dy_zhi} if cur_dy_gan else None,
+            natal_work_actions=zg.get('work_actions') if zg else None,
+            natal_gong_shen=zg.get('gong_shen') if zg else None,
+            natal_fei_shen=zg.get('fei_shen') if zg else None,
+            natal_work_types=zg.get('work_types') if zg else None,
+            day_he_type=zg.get('day_he_type') if zg else None,
+            kong_wang=self.kong_wang,
+        ) or {}
+
+        # A1 岁运反局切片：仅显式输入的运岁入否决链——大运须 da_yun 实给
+        # （dy_list 非空），流年须外部注入（自动构造的三岁窗口仅作展示锚点，
+        # 启发式命中率高，入否决会污染终身财命/官命口径）。
+        yunfan_slice = current_fan_slice(
+            result['yunfan'],
+            f'{cur_dy_gan}{cur_dy_zhi}' if cur_dy_gan else '',
+            include_dayun=bool(dy_list),
+            include_liunian=bool(cur_ln_list) and not getattr(self, '_auto_liunian_injected', False),
+        )
+
+        result['caiming'] = self._safe_compute(
+            'caiming', analyze_caiming,
+            self.day_gan, self.gans, self.zhis,
+            relations=relations, gongliang_result=gl,
+            muku_result=result.get('muku'),
+            shensha_result=result.get('shensha'),
+            yunfan_result=yunfan_slice,
+        ) or {}
+
+        result['guanming'] = self._safe_compute(
+            'guanming', analyze_guanming,
+            self.day_gan, self.gans, self.zhis,
+            relations=relations, gongliang_result=gl,
+            shensha_result=result.get('shensha'),
+            yunfan_result=yunfan_slice,
+        ) or {}
 
         result['hunyin'] = self._safe_compute(
             'hunyin', analyze_hunyin,
@@ -500,6 +528,7 @@ class MangpaiEngine:
             self.day_gan, self.gans, self.zhis,
             relations=relations,
             shensha_result=result.get('shensha'),
+            yunfan_result=yunfan_slice,
         ) or {}
 
         result['gongmen_wuzhi'] = self._safe_compute(
@@ -514,21 +543,6 @@ class MangpaiEngine:
             self.day_gan, self.gans, self.zhis,
             self.input_data.get('gender', '男'),
             relations=relations,
-        ) or {}
-
-        # 岁运反局：原局做功数据透传（缺省时 analyze_yunfan 自调 zuogong）
-        result['yunfan'] = self._safe_compute(
-            'yunfan', analyze_yunfan,
-            self.gans, self.zhis, self.day_gan,
-            dayun_list=dy_list,
-            liunian_list=cur_ln_list,
-            current_dayun={'gan': cur_dy_gan, 'zhi': cur_dy_zhi} if cur_dy_gan else None,
-            natal_work_actions=zg.get('work_actions') if zg else None,
-            natal_gong_shen=zg.get('gong_shen') if zg else None,
-            natal_fei_shen=zg.get('fei_shen') if zg else None,
-            natal_work_types=zg.get('work_types') if zg else None,
-            day_he_type=zg.get('day_he_type') if zg else None,
-            kong_wang=self.kong_wang,
         ) or {}
 
         # 灾祸（消费 yunfan_result：detect_siwang 取岁运反局联动信号）

@@ -30,10 +30,17 @@ def run_case(name, gans, zhis, gender, year, dayun=None, liunian=None):
 
     res = MangpaiEngine(bazi_data).compute_all()
     dg = gans[2]
-    cm = analyze_caiming(dg, gans, zhis)
-    gm = analyze_guanming(dg, gans, zhis)
+    # A1：案例显式运岁即「当前运岁」，切片入财命/官命/职业方向否决链
+    from mangpai.subjective.yunfan import current_fan_slice
+    yf_slice = current_fan_slice(
+        res.get('yunfan') or {},
+        (dayun[0] + dayun[1]) if dayun else '',
+        include_dayun=bool(dayun), include_liunian=bool(liunian),
+    )
+    cm = analyze_caiming(dg, gans, zhis, yunfan_result=yf_slice)
+    gm = analyze_guanming(dg, gans, zhis, yunfan_result=yf_slice)
     hy = analyze_hunyin(dg, gans, zhis, gender=gender)
-    zy = analyze_zhiye(dg, gans, zhis)
+    zy = analyze_zhiye(dg, gans, zhis, yunfan_result=yf_slice)
     yq = None
     if dayun or liunian:
         yq = infer_comprehensive_yingqi(dg, gans, zhis,

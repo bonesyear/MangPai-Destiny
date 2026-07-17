@@ -526,12 +526,15 @@ def analyze_guanming(
     relations: Optional[Dict] = None,
     gongliang_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    yunfan_result: Optional[Dict] = None,
 ) -> Dict:
     """官命综合：做功组合 + 管财官带帽 + 行业取象 + 层次量化。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
     gongliang_result 缺省时自动调用 gongliang.analyze_gongliang 取四档定性。
     shensha_result: engine 透传的神煞结果（预留，官命尚未直接消费；备后用）。
+    yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1）。
+      岁运反局入凶向否决链，与原局反局同受正向官命结构门槛保护。
 
     Returns:
         {
@@ -578,17 +581,20 @@ def analyze_guanming(
     direction = assess_direction_signals(
         day_gan, gans or [], zhis or [],
         relations=relations, gongliang_result=gl,
+        yunfan_result=yunfan_result,
     )
     is_guanming_raw = bool(combo.get('is_guanming', False))
     all_reasons = direction.get('reasons', [])
     # 反局否决加门槛：反局 + 无正向官命结构 -> 才否决官命。
     # 正向官命结构（官杀有根/官印相生/官带财帽等，见 _has_positive_guanming）任一命中
     # 即保留官命判断，避免反局判据对印带官帽/七杀入墓等正当官命的系统性误否决。
-    # 破财否决（比劫夺财/过河拆桥）不受门槛约束：破财/乞丐本非官命。
+    # 岁运反局（A1）与原局反局同受门槛保护（岁运双冲/三刑可为正当官命之应期触发，
+    # 如厅级例壬午年升）；破财否决（比劫夺财/过河拆桥）不受门槛约束：破财/乞丐本非官命。
     veto_reasons = list(all_reasons)
     if direction.get('fanju') and is_guanming_raw and \
             _has_positive_guanming(day_gan, gans or [], zhis or [], combo, guancai):
-        veto_reasons = [r for r in veto_reasons if not r.startswith('反局')]
+        veto_reasons = [r for r in veto_reasons
+                        if not r.startswith('反局') and not r.startswith('岁运')]
     vetoed = is_guanming_raw and bool(veto_reasons)
     is_guanming = is_guanming_raw and not vetoed
     if vetoed:
