@@ -31,15 +31,14 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.muku import TOMB_MAP as _TOMB_MAP
+from mangpai.objective.shensha import _YANG_REN_FULL
 
 _YANG_GANS = set('甲丙戊庚壬')
 
-# 段氏《段氏理象学》：阳干羊刃位。段氏明载戊土刃在午、未（双刃），
-# 故用多值支持；其余阳干各一刃。
-_YANG_REN: Dict[str, List[str]] = {
-    '甲': ['卯'], '丙': ['午'], '戊': ['午', '未'],
-    '庚': ['酉'], '壬': ['子'],
-}
+# 阳干羊刃位单一事实源：objective.shensha._YANG_REN_FULL（段氏《理象学》
+# 「戊刃在午、未」双刃口径；此前本模块自带双刃副本、 shensha 仅取午，两处
+# 口径冲突，M2 统一为 shensha 全刃表）。
+_YANG_REN: Dict[str, List[str]] = _YANG_REN_FULL
 
 _PILLAR_LABELS = ['年柱', '月柱', '日柱', '时柱']
 
@@ -72,21 +71,25 @@ def _analyze_gan_relations(
     dy_gan: str,
     natal_gans: List[str],
     day_gan: str,
+    month_zhi: str = '',
 ) -> List[Dict]:
-    """分析大运天干与命局天干的关系。"""
+    """分析大运天干与命局天干的关系。
+
+    日干（i==2 的日主自身）跳过：运干与日主的十神定位由 tiyong_import 专管，
+    运干合/克日主不再入 relations（此前此处为死 pass，过滤从未生效——M2 修复）。
+    month_zhi 用于天干合化气的月令验证（见 _check_hua）。
+    """
     relations: List[Dict] = []
     dy_wx = GAN_WX.get(dy_gan, '')
 
     for i, ng in enumerate(natal_gans):
-        if not ng or ng == day_gan and i == 2:
-            pass
-        if not ng:
+        if not ng or (ng == day_gan and i == 2):
             continue
 
         ng_wx = GAN_WX.get(ng, '')
 
         if TIAN_GAN_HE.get(dy_gan) == ng:
-            he_wx = _check_hua(dy_gan, ng)
+            he_wx = _check_hua(dy_gan, ng, month_zhi)
             relations.append({
                 'type': '天干合',
                 'target': ng,
@@ -115,10 +118,18 @@ def _analyze_gan_relations(
     return relations
 
 
-def _check_hua(a: str, b: str) -> str:
-    """检查天干合是否能化（简化版，不验月令）。"""
+def _check_hua(a: str, b: str, month_zhi: str = '') -> str:
+    """检查天干合是否能化（验月令：化气五行须当令方论化）。
+
+    与 zuogong_detect 原局合化 gate 同口径：月令主气五行 == 化气五行，方标
+    化气；否则合而不化（返回 ''）。month_zhi 缺省时保守不标化（旧行为不验
+    月令直接标化气，属口径缺陷——M2 修复）。
+    """
     from mangpai.objective.constants import HUA_YONG_MAP
-    return HUA_YONG_MAP.get((a, b), '')
+    hua_wx = HUA_YONG_MAP.get((a, b), '')
+    if not hua_wx or not month_zhi:
+        return ''
+    return hua_wx if ZHI_WX.get(month_zhi, '') == hua_wx else ''
 
 
 def _analyze_zhi_relations(
@@ -281,22 +292,44 @@ def _analyze_tomb_effect(
 
         elements = TOMB_MAP[nz]
 
+        # 开库触发：冲/刑皆触动墓库（段氏「不冲不刑是墓（死的）」），与
+        # objective.muku 同口径；同一对可既冲又刑（如丑未），合并去重。
+        # 运支与库支相同（伏吟到位/自刑）非开库触发，不计刑。
+        open_kinds: List[str] = []
         if _check_pair(dy_zhi, nz, LIU_CHONG):
-            # 段氏「冲即有用」：冲墓库即开，墓中之物可用；透干为引拔增强，非开关。
+            open_kinds.append('冲')
+        if dy_zhi != nz and _check_pair(dy_zhi, nz, XING_PAIRS):
+            open_kinds.append('刑')
+
+        if open_kinds:
+            # 透干引拔：墓库逢冲/刑须天干透出所收五行方为真开，无透干则虽
+            # 冲/刑亦闭（盲师口传墓库体系，与 muku.analyze_muku 同口径——
+            # 旧版「冲即开库，透干仅增强」与之冲突，M2 统一为冲/刑+透干才开）。
             tou_gan_wx = {GAN_WX.get(g, '') for g in natal_gans if g}
             if extra_gans:
                 tou_gan_wx |= {GAN_WX.get(g, '') for g in extra_gans if g}
             touched = [e for e in elements if e in tou_gan_wx]
-            desc = f'大运{dy_zhi}冲开{nz}墓库（{_PILLAR_LABELS[i]}）'
+            kind_str = '、'.join(open_kinds)
             if touched:
-                desc += f'，{"、".join(touched)}透干引拔增强'
-            opens.append({
-                'tomb_zhi': nz,
-                'pillar': _PILLAR_LABELS[i],
-                'elements': elements,
-                'tou_gan': touched,
-                'desc': desc,
-            })
+                opens.append({
+                    'tomb_zhi': nz,
+                    'pillar': _PILLAR_LABELS[i],
+                    'elements': elements,
+                    'tou_gan': touched,
+                    'open_kind': kind_str,
+                    'desc': f'大运{dy_zhi}{kind_str}开{nz}墓库（{_PILLAR_LABELS[i]}），'
+                            f'{"、".join(touched)}透干引拔而开',
+                })
+            else:
+                closes.append({
+                    'tomb_zhi': nz,
+                    'pillar': _PILLAR_LABELS[i],
+                    'elements': elements,
+                    'tou_gan': [],
+                    'open_kind': kind_str,
+                    'desc': f'大运{dy_zhi}{kind_str}{nz}墓库（{_PILLAR_LABELS[i]}），'
+                            f'无透干引拔，闭而不开',
+                })
 
         if _check_pair(dy_zhi, nz, LIU_HE):
             closes.append({
@@ -575,7 +608,10 @@ def _analyze_pillar_interaction(
     tomb_extra_gans：透干引拔的额外天干（如流年干），纳入墓库开库引拔判定；
     默认 None 保持大运分析既有行为（仅本命天干透干引拔）。
     """
-    gan_relations = _analyze_gan_relations(pillar_gan, natal_gans, day_gan)
+    gan_relations = _analyze_gan_relations(
+        pillar_gan, natal_gans, day_gan,
+        month_zhi=(natal_zhis[1] if len(natal_zhis) > 1 else ''),
+    )
     zhi_relations = _analyze_zhi_relations(pillar_zhi, natal_zhis)
     tomb_effect = _analyze_tomb_effect(pillar_zhi, natal_zhis, natal_gans, tomb_extra_gans)
     tiyong = _analyze_tiyong_import(pillar_gan, day_gan)

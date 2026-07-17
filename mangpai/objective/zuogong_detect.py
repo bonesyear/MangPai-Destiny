@@ -1006,6 +1006,9 @@ def detect_jia_ju(
     zhis = [year_zhi, month_zhi, day_zhi, hour_zhi]
     day_wx = GAN_WX.get(day_gan, '')
     lu_zhi = LU.get(day_gan, '')
+    # 夹刃取主刃位（戊=午），不扩至段氏全刃表（戊午未双刃见
+    # shensha._YANG_REN_FULL）：夹局为原局做功结构判据，扩刃会改变既有
+    # 命例的夹刃检出，保守不扩（M2 注记）。
     ren_zhi = _YANG_REN_MAP.get(day_gan, '')  # 阴干无刃
     # 财五行=我克，官五行=克我
     cai_wx = WX_KE.get(day_wx, '') if day_wx else ''

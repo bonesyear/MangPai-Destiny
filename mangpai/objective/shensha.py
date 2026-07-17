@@ -21,6 +21,16 @@ _YANG_REN: Dict[str, str] = {
     '庚': '酉', '壬': '子',
 }
 
+# 段氏全刃位表（刃位检测单一事实源）。《段氏理象学》：「土之禄刃比较特殊，
+# 与火接近，戊禄在巳，已禄在午，戊刃在午、未」——戊取双刃（午、未），其余
+# 阳干各一刃。_YANG_REN 为主刃位单值表（旧输出契约保留）；刃位检测
+# （dayun 到刃运 / yunfan 刃被冲 / 本模块羊刃 in_pillars）一律用全刃表，
+# 避免「dayun 取午未双刃、shensha 仅午」的口径冲突（M2 统一）。
+_YANG_REN_FULL: Dict[str, List[str]] = {
+    '甲': ['卯'], '丙': ['午'], '戊': ['午', '未'],
+    '庚': ['酉'], '壬': ['子'],
+}
+
 _JIE_SHA: Dict[str, str] = {
     '申': '巳', '子': '巳', '辰': '巳',
     '寅': '亥', '午': '亥', '戌': '亥',
@@ -178,10 +188,16 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'year') 
     result: Dict = {}
 
     if day_gan in _YANG_REN:
-        yr_zhi = _YANG_REN[day_gan]
+        # 段氏全刃位检测：戊取午、未双刃，任一落柱皆计羊刃在局（M2 口径统一）；
+        # 'zhi' 保留主刃位单值（旧输出契约），'zhi_all' 列全刃位。
+        yr_zhis = _YANG_REN_FULL.get(day_gan, [_YANG_REN[day_gan]])
+        in_pillars: List[str] = []
+        for yz in yr_zhis:
+            in_pillars.extend(_find_in_pillars(yz, zhis))
         result['羊刃'] = {
-            'zhi': yr_zhi,
-            'in_pillars': _find_in_pillars(yr_zhi, zhis),
+            'zhi': _YANG_REN[day_gan],
+            'zhi_all': yr_zhis,
+            'in_pillars': in_pillars,
         }
     else:
         result['羊刃'] = {
