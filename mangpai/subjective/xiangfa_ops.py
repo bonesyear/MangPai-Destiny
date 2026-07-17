@@ -1347,14 +1347,281 @@ def analyze_xiangfa_ops(
         'jiexiang': jie,
         'huanxiang': huan,
         'juxiang': ju,
+        'xiangfa_fallback': xiangfa_fallback(day_gan, gans, zhis, relations),
         'all_findings': all_findings,
         'locked_subjects': locked_subjects,
     }
+
+
+# ──────────────────────────────────────────────────────────────────────
+# 象法回退分支（K4）
+# ──────────────────────────────────────────────────────────────────────
+# 理论来源：
+#   《段氏理象学》7960-8000：做功不成立时切象法——
+#     例一 庚己甲己/子卯辰巳：杀星虚透并无做功，应用带象原理，
+#       「庚子年柱之象谓印带杀帽，其印星子水这里表示权力，子通于辰墓，
+#         说明辰是权力之库，甲坐在辰地，所以他拥有权力」；
+#     例二 丁戊戊戊/酉申申午（张之洞）：金重难制效率不高，归于「伤官诀」——
+#       「土金伤官成局，又非常纯粹，配印午火，故得重权」；
+#     例三 壬壬癸甲/午寅卯寅：看不出任何做功，「然有水木伤官成局，局象也纯，
+#       并非发财之命，而是一位高官」。
+#   《段氏理象学》7409 + 《初级命理学》干支互通（2174-2190）：
+#     连体（连根之体不可制，制之伤身体及寿命）；丙戊一家/丁己一家（同禄于巳午，
+#     半通禄为一家看）；半禄关系（丁未、癸丑；乙见辰、丁见戌）。
+#   《高级内容篇》层功法则5案例（辛丑壬辰辛未戊戌：丑未冲+辰戌冲，开两库）：
+#     连墓做功（两墓库相互作用开库）。
+
+# 连体日柱（连根之体，书列 + 干支同气/支本气生干规则并集）
+_LIANTI_PILLARS = {
+    '丁巳', '丙午', '丁未', '丙戌',  # 火（连根/得强根，书：不能被坏）
+    '乙亥', '乙卯', '甲寅', '甲辰', '乙未',  # 连根木
+    '庚申', '辛酉', '辛丑',  # 连根金
+}
+# 半禄关系（同柱）：丁未、癸丑；交叉：乙见辰、丁见戌
+_BANLU_PILLARS = {'丁未', '癸丑'}
+_BANLU_CROSS = {('乙', '辰'), ('丁', '戌')}
+# 一家（同禄）：丙戊同禄于巳、丁己同禄于午 → 半通禄为一家看
+_YIJIA_PAIRS = [('丙', '戊', '巳'), ('丁', '己', '午')]
+
+
+def _pillar_gan_cat(day_wx: str, gan: str) -> str:
+    w = GAN_WX.get(gan, '')
+    if not day_wx or not w:
+        return ''
+    if w == day_wx:
+        return '比劫'
+    if WX_SHENG.get(w) == day_wx:
+        return '印'
+    if WX_SHENG.get(day_wx) == w:
+        return '食伤'
+    if WX_KE.get(day_wx) == w:
+        return '财'
+    if WX_KE.get(w) == day_wx:
+        return '官杀'
+    return ''
+
+
+def xiangfa_fallback(
+    day_gan: str,
+    gans: List[str],
+    zhis: List[str],
+    relations: Optional[Dict] = None,
+    zuogong_result: Optional[Dict] = None,
+) -> Dict:
+    """象法回退分支（K4）：做功不成立时切象法。
+
+    回退激活（fallback_active）：zuogong 无功（work_types 空或 work_level==0）。
+    三分支：印带杀帽 / 伤官诀 / 局象纯；三结构检测（与回退并列录入）：
+    连体 / 连墓做功 / 丙戊一家半禄。
+
+    Returns:
+        {
+          'fallback_active': bool,       # 做功不成立，象法回退激活
+          'yin_dai_sha_mao': [...],      # 印带杀帽（权力象）
+          'shangguan_jue': {...},        # 伤官诀（成局+纯粹+配印->贵）
+          'juxiang_chun': {...},         # 局象纯（主导两行覆盖率）
+          'lianti': {...},               # 连体（连根之体+被制警示）
+          'lianmu_zuogong': [...],       # 连墓做功（两墓库刑冲开库）
+          'yijia_banlu': [...],          # 丙戊一家/丁己一家/半禄
+          'desc': str,
+        }
+    """
+    gans = gans or []
+    zhis = zhis or []
+    out: Dict = {
+        'fallback_active': False,
+        'yin_dai_sha_mao': [],
+        'shangguan_jue': {},
+        'juxiang_chun': {},
+        'lianti': {},
+        'lianmu_zuogong': [],
+        'yijia_banlu': [],
+        'desc': '',
+    }
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        out['desc'] = '四柱不全'
+        return out
+    day_wx = GAN_WX.get(day_gan, '')
+    if not day_wx:
+        out['desc'] = '日干五行不明'
+        return out
+
+    # ── 回退激活：做功不成立（zuogong 无功/无功量），缺省自调 ──
+    zg = zuogong_result
+    if zg is None:
+        try:
+            from mangpai.subjective.zuogong_confirm import analyze_zuogong
+            zg = analyze_zuogong(
+                day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3])
+        except Exception:
+            zg = {}
+    work_types = (zg or {}).get('work_types') or []
+    work_level = (zg or {}).get('work_level') or 0
+    out['fallback_active'] = (not work_types) or work_level == 0
+
+    # ── 1. 印带杀帽：天干七杀坐地支本气印之柱（印=权力，杀帽=权柄之象）──
+    yin_wx = ''
+    for _w, _gen in WX_SHENG.items():
+        if _gen == day_wx:
+            yin_wx = _w
+            break
+    for i in range(4):
+        g, z = gans[i], zhis[i]
+        if not g or not z:
+            continue
+        if _pillar_gan_cat(day_wx, g) == '官杀' and ZHI_WX.get(z) == yin_wx:
+            item = {
+                'pillar': PILLAR_KEYS[i],
+                'gz': f'{g}{z}',
+                'desc': f'{g}{z}印带杀帽（{z}印{g}杀同柱），印=权力，杀帽=权柄之象',
+            }
+            # 印支通墓库 -> 权力之库（例一 子水印通辰墓：辰为权力之库）
+            power_tombs = [tz for tz in zhis if tz and tz != z and yin_wx in TOMB_MAP.get(tz, [])]
+            if power_tombs:
+                item['power_tomb'] = power_tombs[0]
+                item['desc'] += f'；{z}印通{power_tombs[0]}墓，{power_tombs[0]}为权力之库'
+            out['yin_dai_sha_mao'].append(item)
+
+    # ── 2/3. 伤官诀 + 局象纯（同源性，一并算）──
+    # 全局主气五行统计（干 + 支本气，共 8 字）
+    wx_counts: Dict[str, int] = {}
+    for g in gans:
+        w = GAN_WX.get(g, '')
+        if w:
+            wx_counts[w] = wx_counts.get(w, 0) + 1
+    for z in zhis:
+        w = ZHI_WX.get(z, '')
+        if w:
+            wx_counts[w] = wx_counts.get(w, 0) + 1
+    # 局象纯：主导相生两行覆盖率 ≥6/8（例三 水木 7/8）
+    best_pair, best_cnt = None, 0
+    for a, b in WX_SHENG.items():
+        c = wx_counts.get(a, 0) + wx_counts.get(b, 0)
+        if c > best_cnt:
+            best_pair, best_cnt = (a, b), c
+    chun = bool(best_pair) and best_cnt >= 6
+    out['juxiang_chun'] = {
+        'pure': chun,
+        'pair': f'{best_pair[0]}{best_pair[1]}' if best_pair else '',
+        'count': best_cnt,
+        'desc': (f'局象纯：{best_pair[0]}{best_pair[1]}二行{best_cnt}/8字，气势纯一'
+                 if chun else f'局象杂（主导二行{best_cnt}/8字，未达6字）'),
+    }
+    # 伤官诀：食伤同一五行干支主气 ≥3（成局）+ 局象纯 + 配印（印明现）
+    shi_wx = WX_SHENG.get(day_wx, '')
+    sg_cnt = sum(1 for g in gans if GAN_WX.get(g) == shi_wx) + \
+        sum(1 for z in zhis if ZHI_WX.get(z) == shi_wx)
+    sg_chengju = sg_cnt >= 3
+    yin_mingxian = bool(yin_wx) and (
+        any(GAN_WX.get(g) == yin_wx for g in gans)
+        or any(ZHI_WX.get(z) == yin_wx for z in zhis))
+    sg_ok = sg_chengju and chun and yin_mingxian
+    out['shangguan_jue'] = {
+        'detected': sg_ok,
+        'chengju': sg_chengju,
+        'sg_wx': shi_wx,
+        'sg_count': sg_cnt,
+        'pure': chun,
+        'pei_yin': yin_mingxian,
+        'desc': (f'伤官诀：{day_wx}{shi_wx}伤官成局（{sg_cnt}字）又纯粹，配印，'
+                 f'主贵（重权/高官），非做功财命' if sg_ok
+                 else f'伤官诀不成立（成局={sg_chengju} 纯={chun} 配印={yin_mingxian}）'),
+    }
+
+    # ── 4. 连体（连根之体）──
+    day_gz = f'{day_gan}{zhis[2]}'
+    day_zhi_wx = ZHI_WX.get(zhis[2], '')
+    lianti = (day_gz in _LIANTI_PILLARS
+              or day_zhi_wx == day_wx                  # 干支同气
+              or WX_SHENG.get(day_zhi_wx) == day_wx)   # 支本气生干（连根）
+    lianti_hit = {'is_lianti': bool(lianti), 'gz': day_gz, 'attacked': [], 'warning': ''}
+    if lianti:
+        # 连体之字不可制服：日柱为被制方（to_pos=day_*）之冲/克/穿/刑（非辅助）
+        rel = relations or {}
+        for a in (rel.get('work_actions') or []):
+            if a.get('auxiliary'):
+                continue
+            if a.get('type') not in ('冲', '克', '穿', '刑'):
+                continue
+            tp = a.get('to_pos', '')
+            if tp.startswith('day_'):
+                lianti_hit['attacked'].append(a.get('desc', ''))
+        if lianti_hit['attacked']:
+            lianti_hit['warning'] = (
+                f'连体之字不可制服：{day_gz}连根之体被制'
+                f'（{"、".join(lianti_hit["attacked"][:2])}），制之防伤身体及寿命')
+    out['lianti'] = lianti_hit
+
+    # ── 5. 连墓做功：≥2 墓库在局且两墓库相刑冲（开库互制）──
+    tomb_zhis = [z for z in zhis if z and z in TOMB_MAP]
+    if len(tomb_zhis) >= 2:
+        rel = relations or {}
+        for a in (rel.get('work_actions') or []):
+            if a.get('type') not in ('冲', '刑'):
+                continue
+            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            fk, tk = fp.split('_')[0], tp.split('_')[0]
+            if fk in PILLAR_KEYS and tk in PILLAR_KEYS:
+                fz = zhis[PILLAR_KEYS.index(fk)] if fp.endswith('_zhi') else ''
+                tz = zhis[PILLAR_KEYS.index(tk)] if tp.endswith('_zhi') else ''
+                if fz in TOMB_MAP and tz in TOMB_MAP:
+                    out['lianmu_zuogong'].append({
+                        'pair': f'{fz}{tz}',
+                        'type': a.get('type'),
+                        'auxiliary': bool(a.get('auxiliary')),
+                        'desc': f'连墓做功：{fz}{tz}相{a.get("type")}，两库互开（{a.get("desc","")}）',
+                    })
+        if not out['lianmu_zuogong']:
+            out['lianmu_zuogong'].append({
+                'pair': ''.join(tomb_zhis), 'type': '并立', 'auxiliary': True,
+                'desc': f'连墓并立：{"".join(tomb_zhis)}两墓库在局，无刑冲互开（待运岁引动）',
+            })
+
+    # ── 6. 丙戊一家/丁己一家 + 半禄 ──
+    for g1, g2, lu_zhi in _YIJIA_PAIRS:
+        if g1 in gans and g2 in gans:
+            out['yijia_banlu'].append({
+                'kind': '一家', 'pair': f'{g1}{g2}',
+                'desc': f'{g1}{g2}一家（同禄于{lu_zhi}，半通禄为一家看，用{g2}如用{g1}）',
+            })
+    for i in range(4):
+        gz = f'{gans[i]}{zhis[i]}'
+        if gz in _BANLU_PILLARS:
+            out['yijia_banlu'].append({
+                'kind': '半禄', 'pillar': PILLAR_KEYS[i], 'gz': gz,
+                'desc': f'{gz}为半禄关系（{PILLAR_NAMES_CN[i]}柱）',
+            })
+        elif (gans[i], zhis[i]) in _BANLU_CROSS:
+            out['yijia_banlu'].append({
+                'kind': '半禄', 'pillar': PILLAR_KEYS[i], 'gz': gz,
+                'desc': f'{gans[i]}见{zhis[i]}为半禄（{PILLAR_NAMES_CN[i]}柱）',
+            })
+
+    # ── 汇总 ──
+    parts: List[str] = []
+    if out['fallback_active']:
+        parts.append('做功不成立，象法回退激活')
+    if out['yin_dai_sha_mao']:
+        parts.append(out['yin_dai_sha_mao'][0]['desc'])
+    if out['shangguan_jue'].get('detected'):
+        parts.append(out['shangguan_jue']['desc'])
+    if out['juxiang_chun'].get('pure'):
+        parts.append(out['juxiang_chun']['desc'])
+    if out['lianti'].get('warning'):
+        parts.append(out['lianti']['warning'])
+    for lm in out['lianmu_zuogong'][:1]:
+        if not lm.get('auxiliary'):
+            parts.append(lm['desc'])
+    for yj in out['yijia_banlu'][:2]:
+        parts.append(yj['desc'])
+    out['desc'] = '；'.join(parts) if parts else '无象法回退信号'
+    return out
 
 
 __all__ = [
     'gongxiang', 'hexiang', 'huaxiang', 'muxiang',
     'zhixiang', 'daixiang', 'jiexiang',
     'huanxiang', 'juxiang',
+    'xiangfa_fallback',
     'analyze_xiangfa_ops',
 ]
