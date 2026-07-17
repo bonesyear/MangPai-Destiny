@@ -37,6 +37,10 @@ from mangpai.objective.xiangfa import (
     GAN_XIANG, ZHI_XIANG, SHISHEN_XIANG, GONG_WEI_XIANG, SHENSHA_XIANG,
     LIUSHI_GANZHI_XIANG,
 )
+from mangpai.objective.body_parts import (
+    get_gan_body, get_zhi_body, get_pillar_body, get_shishen_body,
+    GAN_BODY, ZHI_BODY, PILLAR_BODY, SHISHEN_BODY,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,4 +101,6 @@ __all__ = [
     'get_gan_xiang', 'get_zhi_xiang', 'get_shishen_xiang',
     'get_gongwei_xiang',
     'GAN_XIANG', 'ZHI_XIANG', 'SHISHEN_XIANG', 'GONG_WEI_XIANG',
+    'get_gan_body', 'get_zhi_body', 'get_pillar_body', 'get_shishen_body',
+    'GAN_BODY', 'ZHI_BODY', 'PILLAR_BODY', 'SHISHEN_BODY',
 ]

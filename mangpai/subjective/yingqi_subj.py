@@ -25,8 +25,8 @@ yingqi_subj - 盲派应期主观推断·主观层（subjective）
   - subjective.liunian（流年-大运互动，可选）
 
 分层位置：subjective/，单向依赖 objective。本模块不反向依赖 engine。
-已知争议：大限年龄区间取书中大限值（1-18/18-35/35-55/55+），与六亲宫位年龄并存
-          （见 objective.yingqi 与 MODULE_ATTRS.md 统一决定）。
+已知争议已收口：大限年龄区间全引擎统一为书中大限值（1-18/18-35/35-55/55+），
+          原六亲宫位口径已废弃（见 objective.yingqi 与 MODULE_ATTRS.md 统一决定）。
 置信度：中
 """
 from typing import Dict, List, Optional, Union

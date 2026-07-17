@@ -36,7 +36,7 @@ mangpai-system/
 │   ├── liunian.py       # 流年盲派分析 ★新增
 │   ├── jiaoyun.py       # 交运时间模块（段氏五行交运表+sxtwl） ★新增
 │   ├── advanced.py      # 高级分析
-│   └── verify_mangpai.py# 客观层全量验证脚本
+│   └── body_parts.py    # 干支身体部位映射表 ★K7新增
 │
 ├── subjective/          ← 主观层：分析解读
 │   ├── __init__.py      # 主观层入口
@@ -53,8 +53,8 @@ mangpai-system/
 ├── tests/
 │   └── test_subjective.py  # 主观层测试
 │
-├── verify_mangpai.py    # 全量验证入口（409 测试通过）
-└── verify_dayun.py      # 大运验证（69 测试通过）
+├── verify_mangpai.py    # 全量验证入口（V7 合并版 432 项，原 objective/verify_mangpai.py 已并入）
+└── verify_dayun.py      # 大运验证（70 测试通过）
 ```
 
 ## 核心模块详细说明
@@ -94,14 +94,14 @@ mangpai-system/
 
 | 文件 | 测试数 | 状态 |
 |------|--------|------|
-| `verify_mangpai.py` | 409 | ✅ 全通过 |
-| `verify_dayun.py` | 69 | ✅ 全通过 |
+| `verify_mangpai.py` | 432（V7 合并版） | ✅ 全通过 |
+| `verify_dayun.py` | 70 | ✅ 全通过 |
 
 ### 待开发模块
 
 | 模块 | 规格文档 | 优先级 |
 |------|----------|--------|
-| `objective/chuangong.py` | `docs/chuangong-spec.md` | 高 |
+| ~~chuangong 串宫压运~~ 已交付 `subjective/chuangong.py`（K7，spec 见 docs） | `docs/chuangong-spec.md` | 已完成 |
 | 全量回归测试 | — | 高 |
 | 贼神捕神（特殊格局） | — | 低 |
 | 命宫胎元 | — | 低 |

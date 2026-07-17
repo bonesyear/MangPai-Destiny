@@ -109,7 +109,7 @@ class TestQishaDangCai:
 class TestPutongCap:
     """普通四柱降档：相生之功封顶一层，相克之制封顶二层。"""
 
-    @pytest.mark.xfail(reason='已->己订正后月干己(财)有效：日支丑藏财+官杀触发'
+    @pytest.mark.xfail(strict=True, reason='已->己订正后月干己(财)有效：日支丑藏财+官杀触发'
                                   '原神用神同制(+2层)，引擎偏高一层；源文标普通一层，'
                                   '待原神用神同制判定细化')
     def test_putong2_xiangsheng_capped_at_1(self):
@@ -133,7 +133,7 @@ class TestSourceRegression:
         (LIU8, 3),
         (LIU9, 3),
         (PUTONG1, 1),
-        pytest.param(PUTONG2, 1, marks=pytest.mark.xfail(
+        pytest.param(PUTONG2, 1, marks=pytest.mark.xfail(strict=True,
             reason='已->己订正后月干己(财)有效，原神用神同制偏高一层，待细化')),
         (PUTONG3, 1),
         (PUTONG4, 2),
@@ -146,7 +146,7 @@ class TestSourceRegression:
     # 蒋介石巳午入戌墓(tomb_works)已检出，达 3 层，不再 xfail。
     # 克林顿（包制围制官杀）/岳飞（包制）经 gongliang 包制 distrust 有条件翻转
     # （zb 净制佐证下采信 bao_zhi + 抑制比劫夺财封顶）已达书层，不再 xfail。
-    @pytest.mark.xfail(reason='乾隆金字塔冲链须党势判定（贼神捕神），本模块偏低一层')
+    @pytest.mark.xfail(strict=True, reason='乾隆金字塔冲链须党势判定（贼神捕神），本模块偏低一层')
     def test_qianlong_4(self):
         assert _run(QIANLONG)['level'] == 4
 

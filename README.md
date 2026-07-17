@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎，49 模块四层架构，919+ 验证用例全绿。
+基于段建业/郝金阳盲派理论的八字命理推演引擎，51 模块四层架构，794 验证用例全绿。
 
 ---
 
@@ -10,17 +10,17 @@
 八字输入 → Foundation（公共基础）→ Objective（确定性检测）→ Subjective（解释性判断）→ Narrative（叙事层）
 
 foundation/objective/    2 模块   干支性情 · 纳音计算（跨流派共享）
-mangpai/objective/      25 模块   排盘 · 做功检测 · 神煞 · 墓库 · 虚实 · 应期
-mangpai/subjective/     22 模块   层功 · 财官婚姻 · 象法 · 岁运反局 · 职业 · 六亲 · 灾祸
+mangpai/objective/      25 模块   排盘 · 做功检测 · 神煞 · 墓库 · 虚实 · 应期 · 身体部位
+mangpai/subjective/     24 模块   层功 · 财官婚姻 · 象法 · 岁运反局 · 职业 · 六亲 · 灾祸 · 诀法 · 串宫
 ```
 
 ## 验证
 
 | 验证 | 用例 | 状态 |
 |------|------|:--:|
-| verify_mangpai | 853 | ✅ |
+| verify_mangpai（V7 合并版） | 432 | ✅ |
 | verify_dayun | 70 | ✅ |
-| pytest | 103 | ✅ |
+| pytest（含属性化测试） | 292 + 3 xfail | ✅ |
 
 ## 三层审计
 

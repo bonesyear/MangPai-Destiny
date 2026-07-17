@@ -1,9 +1,19 @@
 """
-盲派客观层全量验证脚本
+盲派全量验证脚本（V7 合并版）
+
+本脚本由原 mangpai/verify_mangpai.py（361 项）与 mangpai/objective/verify_mangpai.py
+（422 项）合并而成——两脚本大面积重复（§1-21 全同，神煞检查各写一套），
+2026-07 收口为唯一入口，语义去重后并集 432 项：
+  - 保留 objective 版全部检查（含 2a/2b/2c 神煞、15b、22-26 独有节）；
+  - 并入顶层版独有检查：天乙口诀分组 5 项、天乙月支/年月/丙干年支 3 场景、
+    文昌庚干月支 1 场景（华盖两版语义等价，采 objective 版）。
 
 验证项：
 1. 桃花（咸池）查表正确性 + 年支兼看
 2. 驿马查表正确性 + 年支兼看
+2a. 天乙贵人查表正确性 + in_pillars 定位 + 口诀分组
+2b. 文昌查表正确性 + in_pillars 定位
+2c. 华盖查表正确性 + 年支兼看
 3. 墓用 from/to 方向（墓库=from/做功方，入墓方=to/被做功方）
 4. 主动/被动做功分类（被动制 vs 被动合/生）
 5. 穿提示（仅被动穿触发警告）
@@ -12,6 +22,8 @@
 8. 食伤归体
 9. 暗合做功
 10. 克破方向（WX_KE_ME）
+11-26. 见各节标题（做功层次/墓库/冲合害表/反向做功/入墓/空亡/伏吟反吟/
+       禄做功/天干克/透干引拔开库/正反局/合克优先级/土墓/tiyong 键覆盖）
 """
 import sys
 import os
@@ -23,15 +35,12 @@ from mangpai.objective.constants import (
     ZHI_WX, GAN_WX, TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, AN_HE,
     TOMB_MAP, DI_ZHI, LU,
 )
-from mangpai.objective.shensha import (
-    compute_shensha_ext, _TAO_HUA, _YI_MA,
-    _TIAN_YI, _WEN_CHANG, _HUA_GAI,
-)
+from mangpai.objective.shensha import compute_shensha_ext, _TAO_HUA, _YI_MA, _TIAN_YI, _WEN_CHANG, _HUA_GAI
 from mangpai.subjective.zuogong_confirm import analyze_zuogong, assess_work_level
-from mangpai.objective.tiyong import _TI_SHISHEN, _YONG_SHISHEN
+from mangpai.objective.tiyong import _TI_SHISHEN, _YONG_SHISHEN, classify_tiyong
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective.muku import is_entomb
-from mangpai import MangpaiEngine
+from mangpai.objective.muku import is_entomb, analyze_muku, is_gan_entombed, gan_tomb_zhi
+from mangpai import MangpaiEngine, Pillars, analyze_zhengfan
 
 passed = 0
 failed = 0
@@ -121,6 +130,206 @@ check('驿马日支起(子→寅首位)', ss3.get('驿马', {}).get('zhi') == '�
 check('驿马日支起三支(子→寅午戌)', ss3.get('驿马', {}).get('zhis') == ['寅', '午', '戌'],
       f"got {ss3.get('驿马', {}).get('zhis')}")
 check('驿马年支兼看(寅→申首位)', ss3.get('驿马', {}).get('year_ref', {}).get('zhi') == '申')
+
+# ── 2a. 天乙贵人查表 ──
+print('\n── 2a. 天乙贵人查表 ──')
+
+# 甲戊庚牛羊(丑未)、乙己鼠猴乡(子申)、丙丁猪鸡位(亥酉)、
+# 壬癸兔蛇藏(卯巳)、六辛逢虎马(寅午)。按日干起，每干两位贵人。
+ty_expected = {
+    '甲': ['丑', '未'], '戊': ['丑', '未'], '庚': ['丑', '未'],
+    '乙': ['子', '申'], '己': ['子', '申'],
+    '丙': ['亥', '酉'], '丁': ['亥', '酉'],
+    '壬': ['卯', '巳'], '癸': ['卯', '巳'],
+    '辛': ['寅', '午'],
+}
+check('天乙贵人表覆盖10干', len(_TIAN_YI) == 10)
+for gan, expected in ty_expected.items():
+    check(f'天乙贵人 {gan}→{expected}', _TIAN_YI.get(gan) == expected,
+          f'got {_TIAN_YI.get(gan)}')
+
+# 每干两位贵人
+for gan, zhis in _TIAN_YI.items():
+    check(f'天乙贵人 {gan} 两位', len(zhis) == 2, f'got {len(zhis)}')
+
+# compute_shensha_ext 集成：日干甲(贵人丑未)，四柱含丑→in_pillars
+ss_ty = compute_shensha_ext('甲', ['子', '午', '寅', '丑'], reference='day')
+check('天乙贵人 甲→丑未', ss_ty.get('天乙贵人', {}).get('zhis') == ['丑', '未'],
+      f"got {ss_ty.get('天乙贵人', {}).get('zhis')}")
+check('天乙贵人 丑在时柱',
+      ss_ty.get('天乙贵人', {}).get('in_pillars') == ['hour'],
+      f"got {ss_ty.get('天乙贵人', {}).get('in_pillars')}")
+
+# 两位贵人同时在柱
+ss_ty2 = compute_shensha_ext('甲', ['丑', '午', '寅', '未'], reference='day')
+check('天乙贵人 丑未同在柱(年+时)',
+      set(ss_ty2.get('天乙贵人', {}).get('in_pillars', [])) == {'year', 'hour'},
+      f"got {ss_ty2.get('天乙贵人', {}).get('in_pillars')}")
+
+# 无贵人在柱
+ss_ty3 = compute_shensha_ext('甲', ['子', '午', '寅', '卯'], reference='day')
+check('天乙贵人 无贵人在柱',
+      ss_ty3.get('天乙贵人', {}).get('in_pillars') == [],
+      f"got {ss_ty3.get('天乙贵人', {}).get('in_pillars')}")
+
+# 天乙贵人不依赖reference参数（按日干起）
+ss_ty4 = compute_shensha_ext('甲', ['丑', '午', '寅', '未'], reference='year')
+check('天乙贵人 不依赖reference(同结果)',
+      ss_ty4.get('天乙贵人', {}).get('zhis') == ['丑', '未']
+      and set(ss_ty4.get('天乙贵人', {}).get('in_pillars', [])) == {'year', 'hour'},
+      f"got {ss_ty4.get('天乙贵人')}")
+
+# 口诀分组验证（并自原顶层版 §22）：甲戊庚牛羊、乙己鼠猴乡、丙丁猪鸡位、
+# 壬癸兔蛇藏、六辛逢虎马
+check('天乙 甲戊庚同组(丑未)',
+      _TIAN_YI['甲'] == _TIAN_YI['戊'] == _TIAN_YI['庚'] == ['丑', '未'])
+check('天乙 乙己同组(子申)',
+      _TIAN_YI['乙'] == _TIAN_YI['己'] == ['子', '申'])
+check('天乙 丙丁同组(亥酉)',
+      _TIAN_YI['丙'] == _TIAN_YI['丁'] == ['亥', '酉'])
+check('天乙 壬癸同组(卯巳)',
+      _TIAN_YI['壬'] == _TIAN_YI['癸'] == ['卯', '巳'])
+check('天乙 辛独组(寅午)', _TIAN_YI['辛'] == ['寅', '午'])
+
+# 月支/年月柱位场景（并自原顶层版 §22，覆盖 month/year 定位路径）
+ss_ty5 = compute_shensha_ext('甲', ['寅', '丑', '子', '戌'], reference='day')
+check('天乙 丑在月支检测到',
+      ss_ty5.get('天乙贵人', {}).get('in_pillars') == ['month'],
+      f"got {ss_ty5.get('天乙贵人', {}).get('in_pillars')}")
+ss_ty6 = compute_shensha_ext('甲', ['未', '丑', '子', '戌'], reference='day')
+check('天乙 丑未同现(年月)',
+      set(ss_ty6.get('天乙贵人', {}).get('in_pillars', [])) == {'year', 'month'},
+      f"got {ss_ty6.get('天乙贵人', {}).get('in_pillars')}")
+ss_ty7 = compute_shensha_ext('丙', ['亥', '卯', '午', '戌'], reference='day')
+check('天乙 丙贵人亥在年支',
+      ss_ty7.get('天乙贵人', {}).get('in_pillars') == ['year'],
+      f"got {ss_ty7.get('天乙贵人', {}).get('in_pillars')}")
+
+# ── 2b. 文昌查表 ──
+print('\n── 2b. 文昌查表 ──')
+
+# 甲巳乙午丙戊申、丁己酉庚亥辛子、壬寅癸卯。按日干起，每干一位。
+wc_expected = {
+    '甲': '巳', '乙': '午', '丙': '申', '戊': '申',
+    '丁': '酉', '己': '酉', '庚': '亥', '辛': '子',
+    '壬': '寅', '癸': '卯',
+}
+check('文昌表覆盖10干', len(_WEN_CHANG) == 10)
+for gan, expected in wc_expected.items():
+    check(f'文昌 {gan}→{expected}', _WEN_CHANG.get(gan) == expected,
+          f'got {_WEN_CHANG.get(gan)}')
+
+# 丙戊同文昌(申)、丁己同文昌(酉)——火土同长生
+check('丙戊同文昌(申)', _WEN_CHANG['丙'] == _WEN_CHANG['戊'] == '申')
+check('丁己同文昌(酉)', _WEN_CHANG['丁'] == _WEN_CHANG['己'] == '酉')
+
+# compute_shensha_ext 集成：日干甲(文昌巳)，四柱含巳→in_pillars
+ss_wc = compute_shensha_ext('甲', ['子', '午', '寅', '巳'], reference='day')
+check('文昌 甲→巳', ss_wc.get('文昌', {}).get('zhi') == '巳',
+      f"got {ss_wc.get('文昌', {}).get('zhi')}")
+check('文昌 巳在时柱',
+      ss_wc.get('文昌', {}).get('in_pillars') == ['hour'],
+      f"got {ss_wc.get('文昌', {}).get('in_pillars')}")
+
+# 文昌不在柱
+ss_wc2 = compute_shensha_ext('甲', ['子', '午', '寅', '卯'], reference='day')
+check('文昌 不在柱',
+      ss_wc2.get('文昌', {}).get('in_pillars') == [],
+      f"got {ss_wc2.get('文昌', {}).get('in_pillars')}")
+
+# 文昌不依赖reference参数（按日干起）
+ss_wc3 = compute_shensha_ext('甲', ['子', '午', '寅', '巳'], reference='year')
+check('文昌 不依赖reference(同结果)',
+      ss_wc3.get('文昌', {}).get('zhi') == '巳'
+      and ss_wc3.get('文昌', {}).get('in_pillars') == ['hour'],
+      f"got {ss_wc3.get('文昌')}")
+
+# 庚干月支场景（并自原顶层版 §23）
+ss_wc4 = compute_shensha_ext('庚', ['辰', '亥', '申', '子'], reference='day')
+check('文昌 庚→亥', ss_wc4.get('文昌', {}).get('zhi') == '亥',
+      f"got {ss_wc4.get('文昌', {}).get('zhi')}")
+check('文昌 亥在月支检测到',
+      ss_wc4.get('文昌', {}).get('in_pillars') == ['month'],
+      f"got {ss_wc4.get('文昌', {}).get('in_pillars')}")
+
+# ── 2c. 华盖查表 ──
+print('\n── 2c. 华盖查表 ──')
+
+# 寅午戌见戌、申子辰见辰、巳酉丑见丑、亥卯未见未。
+# 三合局墓库位即为华盖。按日柱起（日柱优先），兼看年柱。
+hg_expected = {
+    '寅': '戌', '午': '戌', '戌': '戌',
+    '申': '辰', '子': '辰', '辰': '辰',
+    '巳': '丑', '酉': '丑', '丑': '丑',
+    '亥': '未', '卯': '未', '未': '未',
+}
+check('华盖表覆盖12支', len(_HUA_GAI) == 12)
+for zhi, expected in hg_expected.items():
+    check(f'华盖 {zhi}→{expected}', _HUA_GAI.get(zhi) == expected,
+          f'got {_HUA_GAI.get(zhi)}')
+
+# 验证三合局墓库位
+sanhe_huagai = [
+    (['寅', '午', '戌'], '戌', '火局墓库'),
+    (['申', '子', '辰'], '辰', '水局墓库'),
+    (['巳', '酉', '丑'], '丑', '金局墓库'),
+    (['亥', '卯', '未'], '未', '木局墓库'),
+]
+for members, expected_hg, label in sanhe_huagai:
+    for m in members:
+        check(f'{label}: {m}→{expected_hg}', _HUA_GAI.get(m) == expected_hg)
+
+# 华盖 = 三合局墓库位（与 TOMB_MAP 交叉验证）
+check('华盖=火墓(戌)', _HUA_GAI['寅'] == '戌' and '火' in TOMB_MAP.get('戌', []))
+check('华盖=水墓(辰)', _HUA_GAI['申'] == '辰' and '水' in TOMB_MAP.get('辰', []))
+check('华盖=金墓(丑)', _HUA_GAI['巳'] == '丑' and '金' in TOMB_MAP.get('丑', []))
+check('华盖=木墓(未)', _HUA_GAI['亥'] == '未' and '木' in TOMB_MAP.get('未', []))
+
+# compute_shensha_ext 集成：日支寅(华盖戌)，四柱含戌→in_pillars
+ss_hg = compute_shensha_ext('甲', ['子', '午', '寅', '戌'], reference='day')
+check('华盖日支起(寅→戌)', ss_hg.get('华盖', {}).get('zhi') == '戌',
+      f"got {ss_hg.get('华盖', {}).get('zhi')}")
+check('华盖 reference=day_zhi',
+      ss_hg.get('华盖', {}).get('reference') == 'day_zhi',
+      f"got {ss_hg.get('华盖', {}).get('reference')}")
+check('华盖 戌在时柱',
+      ss_hg.get('华盖', {}).get('in_pillars') == ['hour'],
+      f"got {ss_hg.get('华盖', {}).get('in_pillars')}")
+
+# 年支兼看：年支子(华盖辰)，日支寅(华盖戌)→year_ref
+ss_hg2 = compute_shensha_ext('甲', ['子', '午', '寅', '戌'], reference='day')
+check('华盖年支兼看(子→辰)',
+      ss_hg2.get('华盖', {}).get('year_ref', {}).get('zhi') == '辰',
+      f"got {ss_hg2.get('华盖', {}).get('year_ref', {}).get('zhi')}")
+check('华盖年支兼看 reference=year_zhi',
+      ss_hg2.get('华盖', {}).get('year_ref', {}).get('reference') == 'year_zhi',
+      f"got {ss_hg2.get('华盖', {}).get('year_ref', {}).get('reference')}")
+
+# 华盖不在柱
+ss_hg3 = compute_shensha_ext('甲', ['子', '午', '寅', '卯'], reference='day')
+check('华盖 不在柱',
+      ss_hg3.get('华盖', {}).get('in_pillars') == [],
+      f"got {ss_hg3.get('华盖', {}).get('in_pillars')}")
+
+# 年支=日支时不重复year_ref（华盖相同）
+ss_hg4 = compute_shensha_ext('甲', ['寅', '午', '寅', '戌'], reference='day')
+check('华盖 年支=日支时无year_ref',
+      ss_hg4.get('华盖', {}).get('year_ref') is None,
+      f"got {ss_hg4.get('华盖', {}).get('year_ref')}")
+
+# 年支≠日支但华盖相同→无year_ref
+# 日支=寅(华盖戌)，年支=午(华盖戌)→华盖相同，无year_ref
+ss_hg5 = compute_shensha_ext('甲', ['午', '午', '寅', '戌'], reference='day')
+check('华盖 年支≠日支但华盖相同→无year_ref',
+      ss_hg5.get('华盖', {}).get('year_ref') is None,
+      f"got {ss_hg5.get('华盖', {}).get('year_ref')}")
+
+# 华盖始终按日支起（不随reference变）
+ss_hg6 = compute_shensha_ext('甲', ['子', '午', '寅', '戌'], reference='year')
+check('华盖 不随reference变(仍按日支寅→戌)',
+      ss_hg6.get('华盖', {}).get('zhi') == '戌'
+      and ss_hg6.get('华盖', {}).get('reference') == 'day_zhi',
+      f"got {ss_hg6.get('华盖')}")
 
 # ── 3. 墓用 from/to 方向 ──
 print('\n── 3. 墓用 from/to 方向 ──')
@@ -233,6 +442,14 @@ if chuan_actions:
     if has_active and not has_passive:
         check('主动穿不触发has_severe_harm', not zg7.get('has_severe_harm'),
               f"has_severe_harm={zg7.get('has_severe_harm')}")
+        # 寅巳对同时为刑(pri6)与穿(pri5)，刑去重穿。主动穿(from=day)须被保护不被降级，
+        # 否则穿退出 non_aux → has_active_harm 漏标为 False（被动穿已有对称保护）。
+        chuan_non_aux = [wa for wa in zg7.get('work_actions', [])
+                         if wa.get('type') == '穿' and not wa.get('auxiliary')]
+        check('主动穿被刑去重后仍非辅助', len(chuan_non_aux) >= 1,
+              f"非辅助穿: {chuan_non_aux}")
+        check('主动穿触发has_active_harm', zg7.get('has_active_harm') is True,
+              f"has_active_harm={zg7.get('has_active_harm')}")
 
 # 被动穿：年支穿日支，to_pos=day_zhi → 应触发has_severe_harm
 # 寅巳穿：日支=巳，年支=寅
@@ -578,6 +795,22 @@ check('反向克被无序键合并去重为辅助',
       any(wa.get('type') == '克' and wa.get('auxiliary') for wa in p1_pair),
       f'克未降级: {[w for w in p1_pair if w.get("type")=="克"]}')
 
+# ── 15b. work_types 过滤 auxiliary（S2 降级不虚增 type_count）──
+print('\n── 15b. work_types 过滤 auxiliary ──')
+
+# 申子半合(宾宾 year-month) 与 子丑合(宾宾 month-hour) 均无日柱参与 → S2 降级 auxiliary。
+# 日柱(丙午)有制用(子午冲/午丑穿/丙克庚)。旧实现建阶段 add '合用' 后未剔除降级动作，
+# type_count 虚高（含合用）；修复后 work_types 只取 non_aux → 合用不入、制用入。
+zg_wt = analyze_zuogong('丙', '午', '庚', '申', '壬', '子', '甲', '丑')
+_wt_aux_he = [wa for wa in zg_wt['work_actions']
+              if wa.get('type') in ('半合', '地支合') and wa.get('auxiliary')]
+check('宾宾合用动作被S2降级', len(_wt_aux_he) >= 1,
+      f'降级合用动作: {_wt_aux_he}')
+check('work_types不含降级合用', '合用' not in zg_wt.get('work_types', []),
+      f"work_types={zg_wt.get('work_types')}")
+check('work_types保留日制用', '制用' in zg_wt.get('work_types', []),
+      f"work_types={zg_wt.get('work_types')}")
+
 # ── 16. 四库入墓误判修复（P0-2）──
 print('\n── 16. 四库入墓误判修复（四库走多而入墓）──')
 
@@ -765,6 +998,20 @@ if lu_act:
     check('自坐禄 禄action primary=True', lu_act[0].get('primary') is True)
     check('自坐禄 禄在日支', lu_act[0].get('to_pos') == 'day_zhi',
           f"to_pos={lu_act[0].get('to_pos')}")
+    # 自坐禄 from_pos=day_gan、to_pos=day_zhi 同属 day_：本质是日干凭禄主动做功，
+    # 不应同时计入 active_work 与 passive_work。旧实现被动集合仅看 to_pos 含 day_
+    # → 禄action 双计；修复后被动集合排除已属主动者（from_pos 含 day_）。
+    check('自坐禄 禄action计入active_work',
+          any(wa.get('type') == '禄' for wa in zg_lu.get('active_work', [])),
+          f"active_work={zg_lu.get('active_work')}")
+    check('自坐禄 禄action不计入passive_work',
+          not any(wa.get('type') == '禄' for wa in zg_lu.get('passive_work', [])),
+          f"passive_work={zg_lu.get('passive_work')}")
+    # 禄action 在 active∪passive 中只出现一次（不双计）
+    _lu_in_active = any(wa.get('type') == '禄' for wa in zg_lu.get('active_work', []))
+    _lu_in_passive = any(wa.get('type') == '禄' for wa in zg_lu.get('passive_work', []))
+    check('自坐禄 禄action不双计', _lu_in_active and not _lu_in_passive,
+          f"active={_lu_in_active}, passive={_lu_in_passive}")
 
 # 时禄：日丙午、时壬巳（丙禄巳在时支），无其他做功 → 禄做功
 zg_hlu = analyze_zuogong('丙', '午', '甲', '辰', '丁', '辰', '乙', '巳')
@@ -776,6 +1023,19 @@ check('时禄 禄action 检测到', len(hlu_act) >= 1)
 if hlu_act:
     check('时禄 禄在时支', hlu_act[0].get('to_pos') == 'hour_zhi',
           f"to_pos={hlu_act[0].get('to_pos')}")
+
+# 禄 action 时序：禄 action 追加晚于空亡/长生/天干入墓三个折扣循环，
+# 须补标 efficiency_discount。时禄(丙禄巳在时支)逢空亡(巳) → 禄action 应打折。
+zg_hlu_kw = analyze_zuogong('丙', '午', '甲', '辰', '丁', '辰', '乙', '巳',
+                            kong_wang=['巳'])
+hlu_kw_act = [wa for wa in zg_hlu_kw['work_actions'] if wa.get('type') == '禄']
+check('时禄+空亡 禄action检测到', len(hlu_kw_act) >= 1,
+      f"禄action数={len(hlu_kw_act)}")
+if hlu_kw_act:
+    check('时禄+空亡 禄action补标efficiency_discount',
+          hlu_kw_act[0].get('efficiency_discount') is True
+          and hlu_kw_act[0].get('kong_wang') is True,
+          f"禄action={hlu_kw_act[0]}")
 
 # 禄不在主位（在宾位月柱）且日柱确无做功：primary_work 保持通用禄比 label，无禄action
 # 注：此柱组刻意避开日柱六合/暗合/天干克，以纯化"俱不做功"fallback 的覆盖
@@ -888,157 +1148,324 @@ jiaji_gk = [wa for wa in zg_he.get('work_actions', [])
 check('合对(甲己)不计天干克', len(jiaji_gk) == 0,
       f'误计天干克: {jiaji_gk}')
 
-# ── 22. 天乙贵人（按日干起）──
-print('\n── 22. 天乙贵人（按日干起）──')
+# ── 22. 透干引拔开库判定 ──
+print('\n── 22. 透干引拔开库判定 ──')
 
-ty_expected = {
-    '甲': ['丑', '未'], '戊': ['丑', '未'], '庚': ['丑', '未'],
-    '乙': ['子', '申'], '己': ['子', '申'],
-    '丙': ['亥', '酉'], '丁': ['亥', '酉'],
-    '壬': ['卯', '巳'], '癸': ['卯', '巳'],
-    '辛': ['寅', '午'],
+# 盲师口传：墓库逢冲须天干透出所收五行方为真开；无透干则虽冲亦闭。
+# 辰(水/土)需壬癸或戊己，戌(火)需丙丁，丑(金)需庚辛，未(木)需甲乙。
+
+
+def _tomb_of(muku_res, zhi):
+    for t in muku_res.get('tombs', []):
+        if t.get('zhi') == zhi:
+            return t
+    return None
+
+
+# 辰+戌冲 + 壬(水)透干 → 开库
+mk1 = analyze_muku(['辰', '午', '子', '戌'], ['壬', '丙', '甲', '庚'])
+t1 = _tomb_of(mk1, '辰')
+check('辰逢戌冲+水透干 → 开库', t1 and t1['status'] == '开库',
+      f"got {t1}")
+check('开库 desc含透干引拔', t1 and '透干引拔' in t1.get('desc', ''),
+      f"desc={t1 and t1.get('desc')}")
+check('辰在open_tombs', any(t['zhi'] == '辰' for t in mk1.get('open_tombs', [])))
+
+# 辰+戌冲 + 无水/土透干 → 闭库（虽冲不开）
+mk2 = analyze_muku(['辰', '午', '子', '戌'], ['丙', '丁', '甲', '庚'])
+t2 = _tomb_of(mk2, '辰')
+check('辰逢戌冲+无透干 → 闭库', t2 and t2['status'] == '闭库',
+      f"got {t2}")
+check('闭库 desc含无透干引拔', t2 and '无透干引拔' in t2.get('desc', ''),
+      f"desc={t2 and t2.get('desc')}")
+check('辰在closed_tombs', any(t['zhi'] == '辰' for t in mk2.get('closed_tombs', [])))
+
+# 未+丑冲 + 甲(木)透干 → 开库（午未合并存，冲+透干优先开）
+mk3 = analyze_muku(['未', '午', '子', '丑'], ['甲', '丙', '庚', '辛'])
+t3 = _tomb_of(mk3, '未')
+check('未逢丑冲+木透干 → 开库', t3 and t3['status'] == '开库', f"got {t3}")
+
+# 未+丑冲 + 无木透干 → 闭库
+mk4 = analyze_muku(['未', '午', '子', '丑'], ['丙', '丁', '庚', '辛'])
+t4 = _tomb_of(mk4, '未')
+check('未逢丑冲+无透干 → 闭库', t4 and t4['status'] == '闭库', f"got {t4}")
+
+# 戌+辰冲 + 丙(火)透干 → 开库
+mk5 = analyze_muku(['戌', '午', '子', '辰'], ['丙', '甲', '庚', '壬'])
+t5 = _tomb_of(mk5, '戌')
+check('戌逢辰冲+火透干 → 开库', t5 and t5['status'] == '开库', f"got {t5}")
+
+# 丑+未冲 + 庚(金)透干 → 开库
+mk6 = analyze_muku(['丑', '午', '子', '未'], ['庚', '丙', '甲', '丁'])
+t6 = _tomb_of(mk6, '丑')
+check('丑逢未冲+金透干 → 开库', t6 and t6['status'] == '开库', f"got {t6}")
+
+# Pillars 对象自动取 gans：壬辰年 → 辰逢戌冲+水透干 → 开库
+p_mk = Pillars(year_gan='壬', year_zhi='辰', month_gan='丙', month_zhi='午',
+               day_gan='甲', day_zhi='子', hour_gan='庚', hour_zhi='戌')
+mk7 = analyze_muku(p_mk)
+t7 = _tomb_of(mk7, '辰')
+check('Pillars自动取gans 辰开库', t7 and t7['status'] == '开库', f"got {t7}")
+
+# 合而闭不受透干影响：辰酉合（有壬水透干）仍闭
+mk8 = analyze_muku(['辰', '酉', '子', '午'], ['壬', '丙', '甲', '庚'])
+t8 = _tomb_of(mk8, '辰')
+check('辰酉合(有透干)仍闭', t8 and t8['status'] == '闭库', f"got {t8}")
+check('合闭 desc含合而闭', t8 and '合而闭' in t8.get('desc', ''),
+      f"desc={t8 and t8.get('desc')}")
+
+# 未提供天干（旧签名）→ 逢冲即开（兼容）
+mk9 = analyze_muku(['辰', '午', '子', '戌'])
+t9 = _tomb_of(mk9, '辰')
+check('无gans旧签名 逢冲即开', t9 and t9['status'] == '开库', f"got {t9}")
+
+# 端到端：透干引拔影响墓用做功
+# 日甲辰、年壬亥、月丁午、时庚戌：辰(day)逢戌冲+壬水透干 → 开库 → 亥(四生水)入辰墓
+zg_tg = analyze_zuogong('甲', '辰', '壬', '亥', '丁', '午', '庚', '戌')
+tg_tombs = zg_tg.get('tomb_works', [])
+check('透干开库 → 亥入辰墓产生',
+      any(wa.get('type') == '墓用' and '亥' in wa.get('to', '')
+          and '辰' in wa.get('from', '') for wa in tg_tombs),
+      f"tomb_works={tg_tombs}")
+
+# 同盘但年干壬→丙（无水/土透干）：辰闭库 → 亥不入辰墓
+zg_tg2 = analyze_zuogong('甲', '辰', '丙', '亥', '丁', '午', '庚', '戌')
+tg_tombs2 = zg_tg2.get('tomb_works', [])
+check('无透干闭库 → 亥不入辰墓（抑制）',
+      not any(wa.get('type') == '墓用' and '亥' in wa.get('to', '')
+              and '辰' in wa.get('from', '') for wa in tg_tombs2),
+      f"tomb_works={tg_tombs2}")
+
+# ── 23. 正反局修正（气势扩展 + 无功不为局）──
+print('\n── 23. 正反局修正（气势扩展 + 无功不为局）──')
+
+# 全局气势识别
+# 单向气势：木6 → 木旺成势
+zf_q1 = analyze_zhengfan([], None,
+                         ['甲', '乙', '甲', '乙'], ['寅', '卯', '辰', '未'])
+check('单向气势 木旺成势',
+      zf_q1.get('qishi', {}).get('kind') == '单向'
+      and zf_q1['qishi']['dominant'] == '木',
+      f"qishi={zf_q1.get('qishi')}")
+
+# 两神相生成象：木3火3 → 木火相生成象
+zf_q2 = analyze_zhengfan([], None,
+                         ['甲', '甲', '丙', '戊'], ['寅', '巳', '午', '辰'])
+check('两神相生成象 木火',
+      zf_q2.get('qishi', {}).get('relation') == '生'
+      and zf_q2['qishi']['pair'] == ['木', '火'],
+      f"qishi={zf_q2.get('qishi')}")
+
+# 两神相克成象：木3土3 → 木土成象
+zf_q3 = analyze_zhengfan([], None,
+                         ['甲', '甲', '戊', '丙'], ['寅', '辰', '未', '巳'])
+check('两神相克成象 木土',
+      zf_q3.get('qishi', {}).get('relation') == '克'
+      and zf_q3['qishi']['pair'] == ['木', '土'],
+      f"qishi={zf_q3.get('qishi')}")
+
+# 无气势：五行分散
+zf_q4 = analyze_zhengfan([], None,
+                         ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('五行分散 无气势', zf_q4.get('qishi') is None,
+      f"qishi={zf_q4.get('qishi')}")
+
+# 无做功 → 不论正反
+zf_z1 = analyze_zhengfan([], None,
+                         ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('无做功不论正反',
+      zf_z1['type'] == 'neutral' and '无做功' in zf_z1['configuration'],
+      f"got {zf_z1}")
+
+# 日柱无做功 → 无功不为局（不自动判正局）
+_z2_wa = [{'type': '冲', 'from_pos': 'year_zhi', 'to_pos': 'month_zhi'}]
+zf_z2 = analyze_zhengfan(_z2_wa, None,
+                         ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('日柱无做功 → 无功不为局',
+      zf_z2['type'] == 'neutral' and '无功不为局' in zf_z2['configuration'],
+      f"got {zf_z2}")
+
+# 反局（柱位）：日柱指向时柱，全局指向月柱，方向相背
+_z3_wa = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'},
+          {'type': '冲', 'from_pos': 'year_zhi', 'to_pos': 'month_zhi'}]
+zf_z3 = analyze_zhengfan(_z3_wa, None,
+                         ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('反局(柱位) 方向相背', zf_z3['type'] == 'fan' and zf_z3['configuration'] == '反局',
+      f"got {zf_z3}")
+
+# 反局（气势）：木火相生成象，日庚克时甲(木) → 克破生气势
+_z5_wa = [{'type': '克', 'from_pos': 'day_gan', 'to_pos': 'hour_gan'}]
+zf_z5 = analyze_zhengfan(_z5_wa, None,
+                         ['甲', '丙', '庚', '甲'], ['寅', '巳', '午', '辰'])
+check('反局(气势) 克破木火',
+      zf_z5['type'] == 'fan' and '克破' in zf_z5.get('reason', ''),
+      f"got {zf_z5}")
+
+# 正局（气势顺势）：木火相生，日柱合不克破 → 正局
+_z4_wa = [{'type': '地支合', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}]
+zf_z4 = analyze_zhengfan(_z4_wa, None,
+                         ['甲', '甲', '丙', '戊'], ['寅', '巳', '午', '辰'])
+check('正局(气势顺势)',
+      zf_z4['type'] == 'zheng' and '顺势' in zf_z4['configuration'],
+      f"got {zf_z4}")
+
+# 正局（做功同向）：无气势但全局做功与日柱同柱位
+_z6_wa = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'},
+          {'type': '冲', 'from_pos': 'year_zhi', 'to_pos': 'hour_zhi'}]
+zf_z6 = analyze_zhengfan(_z6_wa, None,
+                         ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('正局(做功同向)',
+      zf_z6['type'] == 'zheng' and '同向' in zf_z6['configuration'],
+      f"got {zf_z6}")
+
+# 局未定：有日柱做功但无气势、无全局做功可判正反（不自动判正局）
+_z7_wa = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}]
+zf_z7 = analyze_zhengfan(_z7_wa, None,
+                         ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('局未定 不自动判正局',
+      zf_z7['type'] == 'neutral' and '局未定' in zf_z7['configuration'],
+      f"got {zf_z7}")
+
+# 端到端：MangpaiEngine 透传 gans/zhis，气势接入正反局
+# 己巳/戊辰/丙午/壬子：火3土3 → 火土相生成象，日丙午做功未克破 → 正局
+_zf_engine = {
+    'bazi': {'year': '己巳', 'month': '戊辰', 'day': '丙午', 'hour': '壬子'},
+    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {},
 }
-check('天乙表覆盖10干', len(_TIAN_YI) == 10)
-for gan, expected in ty_expected.items():
-    check(f'天乙 {gan}→{expected}', _TIAN_YI.get(gan) == expected,
-          f'got {_TIAN_YI.get(gan)}')
-    check(f'天乙 {gan} 两位贵人', len(_TIAN_YI.get(gan, [])) == 2)
+_res_engine = MangpaiEngine(_zf_engine).compute_all()
+_zf_res = _res_engine.get('zhengfan', {})
+check('engine 气势接入 火土相生',
+      _zf_res.get('qishi', {}).get('desc') == '火土相生成象',
+      f"qishi={_zf_res.get('qishi')}")
+check('engine 正局(顺势)',
+      _zf_res.get('type') == 'zheng' and '顺势' in _zf_res.get('configuration', ''),
+      f"got {_zf_res}")
 
-# 口诀分组验证：甲戊庚牛羊、乙己鼠猴乡、丙丁猪鸡位、壬癸兔蛇藏、六辛逢虎马
-check('天乙 甲戊庚同组(丑未)',
-      _TIAN_YI['甲'] == _TIAN_YI['戊'] == _TIAN_YI['庚'] == ['丑', '未'])
-check('天乙 乙己同组(子申)',
-      _TIAN_YI['乙'] == _TIAN_YI['己'] == ['子', '申'])
-check('天乙 丙丁同组(亥酉)',
-      _TIAN_YI['丙'] == _TIAN_YI['丁'] == ['亥', '酉'])
-check('天乙 壬癸同组(卯巳)',
-      _TIAN_YI['壬'] == _TIAN_YI['癸'] == ['卯', '巳'])
-check('天乙 辛独组(寅午)', _TIAN_YI['辛'] == ['寅', '午'])
+# ── 23b. 正反局过滤 auxiliary ──
+print('\n── 23b. 正反局过滤 auxiliary ──')
 
-# 端到端：日干甲（贵人丑未），月支丑→检测到
-ss_ty = compute_shensha_ext('甲', ['寅', '丑', '子', '戌'], reference='day')
-check('天乙 甲贵人=[丑,未]', ss_ty.get('天乙贵人', {}).get('zhis') == ['丑', '未'],
-      f"got {ss_ty.get('天乙贵人', {}).get('zhis')}")
-check('天乙 丑在月支检测到',
-      ss_ty.get('天乙贵人', {}).get('in_pillars') == ['month'],
-      f"got {ss_ty.get('天乙贵人', {}).get('in_pillars')}")
+# 辅助日柱做功应被跳过 → 日柱无实质做功 → 无功不为局
+# 旧实现遍历全量 work_actions，auxiliary 日柱冲仍计入 day_targets → 误判局未定/正局。
+_zf_aux1 = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi',
+             'auxiliary': True}]
+zf_aux1 = analyze_zhengfan(_zf_aux1, None,
+                           ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('auxiliary日柱做功被跳过→无功不为局',
+      zf_aux1['type'] == 'neutral' and '无功不为局' in zf_aux1['configuration'],
+      f"got {zf_aux1}")
 
-# 两位贵人同时出现（年未月丑）
-ss_ty2 = compute_shensha_ext('甲', ['未', '丑', '子', '戌'], reference='day')
-check('天乙 丑未同现(年月)',
-      set(ss_ty2.get('天乙贵人', {}).get('in_pillars', [])) == {'year', 'month'},
-      f"got {ss_ty2.get('天乙贵人', {}).get('in_pillars')}")
+# 辅助宾宾做功不应计入 global_targets → 不触发反局(柱位)
+# 日柱冲时支(hour)，辅助宾宾冲年→月。旧实现把辅助冲计入 global_targets(month)，
+# 与 day(hour) 方向相背 → 误判反局；修复后辅助跳过，无全局做功 → 局未定。
+_zf_aux2 = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'},
+            {'type': '冲', 'from_pos': 'year_zhi', 'to_pos': 'month_zhi',
+             'auxiliary': True}]
+zf_aux2 = analyze_zhengfan(_zf_aux2, None,
+                           ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
+check('auxiliary宾宾做功不计入全局→非反局',
+      zf_aux2['type'] != 'fan' and '局未定' in zf_aux2['configuration'],
+      f"got {zf_aux2}")
 
-# 无贵人地支
-ss_ty3 = compute_shensha_ext('甲', ['寅', '卯', '子', '戌'], reference='day')
-check('天乙 无贵人地支',
-      ss_ty3.get('天乙贵人', {}).get('in_pillars') == [],
-      f"got {ss_ty3.get('天乙贵人', {}).get('in_pillars')}")
+# ── 24. 合克优先级（合克属合不属克）──
+print('\n── 24. 合克优先级（合克属合不属克）──')
 
-# 日干丙（贵人亥酉），年支亥→检测到
-ss_ty4 = compute_shensha_ext('丙', ['亥', '卯', '午', '戌'], reference='day')
-check('天乙 丙贵人亥在年支',
-      ss_ty4.get('天乙贵人', {}).get('in_pillars') == ['year'],
-      f"got {ss_ty4.get('天乙贵人', {}).get('in_pillars')}")
+# 合克属合不属克（《三命通会》：合先于克，以合论不以克论）。地支同时满足合与克
+# （六合中带克的子丑/卯戌/巳申，即合克对）时，优先归类为合而非克——与天干克
+# "合对以合论不计克"统一。旧实现去重优先级 克>地支合 → 合克对以克论（不一致）。
 
-# ── 23. 文昌（按日干起）──
-print('\n── 23. 文昌（按日干起）──')
+# 子丑（六合+土克水，合克对）：日支丑、时支子。地支合应胜出（非辅助），克降辅助。
+zg_hk1 = analyze_zuogong('己', '丑', '甲', '寅', '丙', '午', '庚', '子')
+hk1_pair = [wa for wa in zg_hk1['work_actions']
+            if {wa.get('from_pos'), wa.get('to_pos')} == {'day_zhi', 'hour_zhi'}]
+check('子丑合克: 地支合胜出(非辅助)',
+      any(wa.get('type') == '地支合' and not wa.get('auxiliary') for wa in hk1_pair),
+      f"pair={[w.get('type') for w in hk1_pair]}")
+check('子丑合克: 克降为辅助(以合论不以克论)',
+      not any(wa.get('type') == '克' and not wa.get('auxiliary') for wa in hk1_pair),
+      f"pair={[w.get('type') for w in hk1_pair]}")
+check('子丑合克: 合用入work_types',
+      '合用' in zg_hk1.get('work_types', []),
+      f"work_types={zg_hk1.get('work_types')}")
 
-wc_expected = {
-    '甲': '巳', '乙': '午', '丙': '申', '戊': '申',
-    '丁': '酉', '己': '酉', '庚': '亥', '辛': '子',
-    '壬': '寅', '癸': '卯',
-}
-check('文昌表覆盖10干', len(_WEN_CHANG) == 10)
-for gan, expected in wc_expected.items():
-    check(f'文昌 {gan}→{expected}', _WEN_CHANG.get(gan) == expected,
-          f'got {_WEN_CHANG.get(gan)}')
+# 卯戌（六合+木克土，合克对）：日支戌、时支卯（克方向反向，兼验无序键去重）。
+zg_hk2 = analyze_zuogong('甲', '戌', '丙', '午', '戊', '寅', '庚', '卯')
+hk2_pair = [wa for wa in zg_hk2['work_actions']
+            if {wa.get('from_pos'), wa.get('to_pos')} == {'day_zhi', 'hour_zhi'}]
+check('卯戌合克: 地支合胜出(非辅助)',
+      any(wa.get('type') == '地支合' and not wa.get('auxiliary') for wa in hk2_pair),
+      f"pair={[w.get('type') for w in hk2_pair]}")
+check('卯戌合克: 克降为辅助(反向克被无序键合并去重)',
+      not any(wa.get('type') == '克' and not wa.get('auxiliary') for wa in hk2_pair),
+      f"pair={[w.get('type') for w in hk2_pair]}")
 
-# 口诀验证：丙戊同位(申)、丁己同位(酉)
-check('文昌 丙戊同位(申)', _WEN_CHANG['丙'] == _WEN_CHANG['戊'] == '申')
-check('文昌 丁己同位(酉)', _WEN_CHANG['丁'] == _WEN_CHANG['己'] == '酉')
+# 巳申（合+克+刑+破）：刑仍最高优先级胜出——合克优先级调整不影响多关系对。
+zg_hk3 = analyze_zuogong('丙', '巳', '庚', '申', '戊', '卯', '癸', '丑')
+hk3_pair = [wa for wa in zg_hk3['work_actions']
+            if {_p15_zhi_of(wa.get('from_pos', '')),
+                _p15_zhi_of(wa.get('to_pos', ''))} == {'巳', '申'}]
+hk3_non_aux = [wa for wa in hk3_pair if not wa.get('auxiliary')]
+check('巳申合克+刑破: 刑仍胜出(合克调整无影响)',
+      len(hk3_non_aux) == 1 and hk3_non_aux[0].get('type') == '刑',
+      f"non_aux={[w.get('type') for w in hk3_non_aux]}")
 
-# 端到端：日干甲（文昌巳），时支巳→检测到
-ss_wc = compute_shensha_ext('甲', ['寅', '午', '子', '巳'], reference='day')
-check('文昌 甲→巳', ss_wc.get('文昌', {}).get('zhi') == '巳',
-      f"got {ss_wc.get('文昌', {}).get('zhi')}")
-check('文昌 巳在时支检测到',
-      ss_wc.get('文昌', {}).get('in_pillars') == ['hour'],
-      f"got {ss_wc.get('文昌', {}).get('in_pillars')}")
+# ── 25. 天干入墓土墓（戊寄戌、己寄辰）──
+print('\n── 25. 天干入墓土墓（戊/己墓位严格区分）──')
 
-# 文昌不在柱中
-ss_wc2 = compute_shensha_ext('甲', ['寅', '午', '子', '戌'], reference='day')
-check('文昌 不在柱中',
-      ss_wc2.get('文昌', {}).get('in_pillars') == [],
-      f"got {ss_wc2.get('文昌', {}).get('in_pillars')}")
+# 八干重合区：墓位与十二长生"墓"位重合（甲未/丙戌/庚丑/壬辰）
+check('甲墓在未(八干重合区)', gan_tomb_zhi('甲') == '未')
+check('丙墓在戌(八干重合区)', gan_tomb_zhi('丙') == '戌')
+check('庚墓在丑(八干重合区)', gan_tomb_zhi('庚') == '丑')
+check('壬墓在辰(八干重合区)', gan_tomb_zhi('壬') == '辰')
+# 土墓戊/己分用（《五行精纪》戊寄戌、己寄辰，严格区分戊/己墓位）
+check('戊墓在戌(火土同长生)', gan_tomb_zhi('戊') == '戌')
+check('己墓在辰(水土同长生)', gan_tomb_zhi('己') == '辰')
+check('戊坐戌入墓', is_gan_entombed('戊', '戌'))
+check('己坐辰入墓', is_gan_entombed('己', '辰'))
+check('己坐戌不入墓(己墓已改辰)', not is_gan_entombed('己', '戌'))
+check('戊坐辰不入墓(戊墓在戌)', not is_gan_entombed('戊', '辰'))
 
-# 日干庚（文昌亥），月支亥→检测到
-ss_wc3 = compute_shensha_ext('庚', ['辰', '亥', '申', '子'], reference='day')
-check('文昌 庚→亥', ss_wc3.get('文昌', {}).get('zhi') == '亥',
-      f"got {ss_wc3.get('文昌', {}).get('zhi')}")
-check('文昌 亥在月支检测到',
-      ss_wc3.get('文昌', {}).get('in_pillars') == ['month'],
-      f"got {ss_wc3.get('文昌', {}).get('in_pillars')}")
+# 端到端 M4：天干坐自身墓库地支 → 相关做功动作标 gan_entombed + efficiency_discount
+# 己坐辰(时柱)：辰戌冲涉及时柱辰 → 己入辰墓 → gan_entombed（旧实现己墓在戌，此处漏判）
+zg_t2 = analyze_zuogong('甲', '戌', '丙', '寅', '庚', '午', '己', '辰')
+t2_ent = [wa for wa in zg_t2['work_actions'] if wa.get('gan_entombed')]
+check('己坐辰: 天干入墓动作检测到', len(t2_ent) >= 1, f"actions={t2_ent}")
+check('己坐辰: 涉及时柱(己坐辰)',
+      any('hour' in wa.get('from_pos', '') or 'hour' in wa.get('to_pos', '')
+          for wa in t2_ent),
+      f"actions={t2_ent}")
+# 戊坐戌(时柱)：辰戌冲涉及时柱戌 → 戊入戌墓 → gan_entombed
+zg_t3 = analyze_zuogong('乙', '辰', '丙', '寅', '庚', '午', '戊', '戌')
+t3_ent = [wa for wa in zg_t3['work_actions'] if wa.get('gan_entombed')]
+check('戊坐戌: 天干入墓动作检测到', len(t3_ent) >= 1, f"actions={t3_ent}")
+# 对照：己坐戌不应触发（己墓已改辰，旧实现会误触发）
+zg_t4 = analyze_zuogong('甲', '辰', '丙', '寅', '庚', '午', '己', '戌')
+t4_ent = [wa for wa in zg_t4['work_actions'] if wa.get('gan_entombed')]
+check('己坐戌: 不触发天干入墓(己墓已改辰)', len(t4_ent) == 0, f"actions={t4_ent}")
 
-# ── 24. 华盖（按日柱起，日柱优先，兼看年柱）──
-print('\n── 24. 华盖（按日柱起，日柱优先）──')
+# ── 26. tiyong day_gan 键覆盖（键名区分）──
+print('\n── 26. tiyong day_gan 键覆盖（键名区分）──')
 
-hg_expected = {
-    '寅': '戌', '午': '戌', '戌': '戌',
-    '申': '辰', '子': '辰', '辰': '辰',
-    '巳': '丑', '酉': '丑', '丑': '丑',
-    '亥': '未', '卯': '未', '未': '未',
-}
-check('华盖表覆盖12支', len(_HUA_GAI) == 12)
-for zhi, expected in hg_expected.items():
-    check(f'华盖 {zhi}→{expected}', _HUA_GAI.get(zhi) == expected,
-          f'got {_HUA_GAI.get(zhi)}')
-
-# 华盖=三合局墓库位验证
-# 寅午戌火局→火墓戌；申子辰水局→水墓辰；巳酉丑金局→金墓丑；亥卯未木局→木墓未
-sanhe_huagai = [
-    (['寅', '午', '戌'], '戌', '火'),
-    (['申', '子', '辰'], '辰', '水'),
-    (['巳', '酉', '丑'], '丑', '金'),
-    (['亥', '卯', '未'], '未', '木'),
-]
-for members, expected_hg, wx in sanhe_huagai:
-    # 华盖位应是该五行墓库（TOMB_MAP 键值反向验证）
-    check(f'华盖 {wx}局墓库={expected_hg}',
-          wx in TOMB_MAP.get(expected_hg, []),
-          f'TOMB_MAP[{expected_hg}]={TOMB_MAP.get(expected_hg)}')
-    for m in members:
-        check(f'华盖 {wx}局: {m}→{expected_hg}', _HUA_GAI.get(m) == expected_hg)
-
-# 端到端：日支寅（华盖戌），时支戌→检测到，reference=day_zhi
-ss_hg = compute_shensha_ext('甲', ['申', '午', '寅', '戌'], reference='day')
-check('华盖 日支寅→戌', ss_hg.get('华盖', {}).get('zhi') == '戌',
-      f"got {ss_hg.get('华盖', {}).get('zhi')}")
-check('华盖 reference=day_zhi', ss_hg.get('华盖', {}).get('reference') == 'day_zhi')
-check('华盖 戌在时支检测到',
-      ss_hg.get('华盖', {}).get('in_pillars') == ['hour'],
-      f"got {ss_hg.get('华盖', {}).get('in_pillars')}")
-
-# 日柱优先：日支寅(华盖戌)，年支申(华盖辰)→主取日柱戌，年柱辰入year_ref
-ss_hg2 = compute_shensha_ext('甲', ['申', '午', '寅', '戌'], reference='day')
-check('华盖 日柱优先(戌)', ss_hg2.get('华盖', {}).get('zhi') == '戌')
-check('华盖 年支兼看(申→辰)',
-      ss_hg2.get('华盖', {}).get('year_ref', {}).get('zhi') == '辰',
-      f"got {ss_hg2.get('华盖', {}).get('year_ref')}")
-check('华盖 年支兼看 reference=year_zhi',
-      ss_hg2.get('华盖', {}).get('year_ref', {}).get('reference') == 'year_zhi')
-
-# 年支=日支同三合局（华盖相同）→无year_ref
-ss_hg3 = compute_shensha_ext('甲', ['午', '辰', '寅', '戌'], reference='day')
-check('华盖 年日同局无year_ref',
-      ss_hg3.get('华盖', {}).get('year_ref') is None,
-      f"got {ss_hg3.get('华盖', {}).get('year_ref')}")
-
-# 华盖不在柱中（日支寅→戌，柱中无戌）
-ss_hg4 = compute_shensha_ext('甲', ['申', '子', '寅', '辰'], reference='day')
-check('华盖 戌不在柱中',
-      ss_hg4.get('华盖', {}).get('in_pillars') == [],
-      f"got {ss_hg4.get('华盖', {}).get('in_pillars')}")
+# 真实排盘 shishen 含 day_gan（日主十神）：旧实现 result['day_gan']=day_gan 覆盖
+# 该柱体用分类（verify 用空 shishen={} 测不出）。修复后日主分类保留于
+# result['day_gan']，日干字符存于 result['tiyong_day_gan']，键名区分不冲突。
+shishen_full = {'year_gan': '正财', 'month_gan': '偏印',
+                'day_gan': '日主', 'hour_gan': '食神'}
+ty_full = classify_tiyong(shishen_full, day_gan='甲')
+check('shishen含day_gan: 日主分类保留(非被覆盖)',
+      isinstance(ty_full.get('day_gan'), dict)
+      and ty_full['day_gan'].get('category') == '体'
+      and ty_full['day_gan'].get('shishen') == '日主',
+      f"day_gan={ty_full.get('day_gan')}")
+check('shishen含day_gan: 日干字符存tiyong_day_gan',
+      ty_full.get('tiyong_day_gan') == '甲',
+      f"tiyong_day_gan={ty_full.get('tiyong_day_gan')}")
+check('shishen含day_gan: ti_count含日主(偏印+日主+食神=3体)',
+      ty_full.get('ti_count') == 3 and ty_full.get('yong_count') == 1,
+      f"ti={ty_full.get('ti_count')}, yong={ty_full.get('yong_count')}")
+# 空 shishen 兼容（verify 旧用法）：无 day_gan 柱分类，日干字符仍存 tiyong_day_gan
+ty_empty = classify_tiyong({}, day_gan='甲')
+check('空shishen: tiyong_day_gan仍存日干', ty_empty.get('tiyong_day_gan') == '甲')
+check('空shishen: 无day_gan柱分类', ty_empty.get('day_gan') is None)
 
 # ── 结果汇总 ──
 print('\n' + '=' * 60)

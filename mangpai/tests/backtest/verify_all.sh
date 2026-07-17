@@ -1,10 +1,9 @@
 #!/bin/bash
 # 全量验证 + 回归一键脚本。用法: bash mangpai/tests/backtest/verify_all.sh
 cd "$(dirname "$0")/../../.." || exit 1
-echo "=== 853 checks ==="
+echo "=== verify checks（V7 合并后：verify_mangpai 432 + verify_dayun 70）==="
 echo "verify_mangpai: $(python3 mangpai/verify_mangpai.py 2>&1 | grep 验证结果)"
 echo "verify_dayun:   $(python3 mangpai/verify_dayun.py 2>&1 | grep 验证结果)"
-echo "obj_verify:     $(python3 -c "import sys; sys.path.insert(0,'$PWD'); import runpy; runpy.run_path('$PWD/mangpai/objective/verify_mangpai.py', run_name='__main__')" 2>&1 | grep 验证结果)"
 echo "=== pytest ==="
 python3 -m pytest mangpai/tests/ -q 2>&1 | tail -1
 echo "=== 67 regression (vs baseline) ==="
