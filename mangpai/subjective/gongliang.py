@@ -581,6 +581,73 @@ def analyze_gongliang(
             points += 1
             reasons.append(f'统：{tong[0]}，官杀与财互统摄（+1层）')
 
+    # ── M5 高级篇层功四余项（源文 mangpai-gaoji-ocr.txt 828-872「层功计算之基本法则」）──
+    # 7e. 月令做功 -> +0.5（法则7「月令做功，加半层功：月令为提纲，能量最为强旺。
+    #   若月令直接参与核心做功（为主要功神），则其做功效率因其得时得令而更高」）。
+    #   判定：月令支出现在核心做功动作双方（involved_positions，非辅助制/合/墓）。
+    #   +0.5 为半层加权，不单独跨档（须与他项累加方显），故不设同制门。
+    if day_wx and gans and zhis and len(zhis) > 1:
+        _yue_pos = {'month_zhi', 'month_gan'}
+        if _yue_pos & involved_positions:
+            points += 0.5
+            reasons.append(
+                f'月令做功：月令{zhis[1]}直接参与核心做功，提纲得时得令（+0.5层）'
+            )
+
+    # 7f. 墓库属性 -> +1（法则5「墓库本身，加一层功：墓库参与做功，无论作为体之库
+    #   （比劫库、食伤库）还是用之库（财库、官杀库），其库之属性本身就增加一层功
+    #   的权重」）。去重口径（与带象/统同例，保理象学6章14例不跨书双计）：
+    #   原神用神同制成立时，同制位若为墓库其库性已含于 +2 核心铁律，不再单计；
+    #   入墓为功/制墓库已计者同为墓库之功，亦不重复。仅「墓库参与做功而三者俱未
+    #   计」（如体之库作功神）方独立加层。
+    _tomb_elems_involved: List[str] = []
+    if day_wx and gans and zhis:
+        for pos in (involved_positions | set(gshen)):
+            el = _elem_of(pos, gans, zhis)
+            if el and _is_tomb(el) and el not in _tomb_elems_involved:
+                _tomb_elems_involved.append(el)
+    _rumu_counted = bool(active_tomb_works)   # 入墓为功已计（block 4）
+    _zhiku_counted = any('制墓库' in r for r in reasons)  # 制墓库已计（block 2）
+    if (yuanshen_hit is None and not _rumu_counted and not _zhiku_counted
+            and _tomb_elems_involved):
+        points += 1
+        reasons.append(
+            f'墓库属性：墓库「{"、".join(_tomb_elems_involved)}」参与做功，'
+            f'库之属性加层（+1层）'
+        )
+
+    # 7g. 开库 -> +1（法则5「若再逢刑冲开库，则功上加功」）。
+    #   判定：墓库功已成立（入墓为功或制墓库已计），且该墓库被非辅助刑/冲动作
+    #   开之（日柱参与之刑冲方为真开库做功；宾位冲开仅结构事实，不加点）。
+    if (_rumu_counted or _zhiku_counted) and gans and zhis:
+        _work_tombs: Set[str] = set()
+        for tw in active_tomb_works:
+            el = _elem_of(tw.get('from_pos', ''), gans, zhis)
+            if el and _is_tomb(el):
+                _work_tombs.add(el)
+        if _zhiku_counted:
+            for pos in zhi_targets:
+                el = _elem_of(pos, gans, zhis)
+                if el and _is_tomb(el):
+                    _work_tombs.add(el)
+        _opened = False
+        for wa in non_aux:
+            if wa.get('type') not in ('冲', '刑'):
+                continue
+            for pk in (wa.get('from_pos', ''), wa.get('to_pos', '')):
+                el = _elem_of(pk, gans, zhis)
+                if el and el in _work_tombs:
+                    _opened = True
+                    break
+            if _opened:
+                break
+        if _opened:
+            points += 1
+            reasons.append(
+                f'开库加层：做功墓库「{"、".join(sorted(_work_tombs))}」逢刑冲开库，'
+                f'功上加功（+1层）'
+            )
+
     # ── 7d. 化用成局/从杀格 -> +2（化用成局为高层功量，与做功层次 L4 对齐）──
     #   段氏化用成局（zuogong_confirm 的 Level 4）为高层功量：杀印相生（官杀->印->
     #   日主链）化用成功、官杀五行成党势(≥3字)、日主(比劫)无根从弱(≤2字)，且原神
@@ -683,7 +750,10 @@ def analyze_gongliang(
             reasons.append('制不净：' + jing_note + '，封顶于三层（达不到四层）')
 
     # ── 普通四柱降档（压低分数、封顶低层）──
-    penalty, penalty_note = _assess_penalty(wtypes, non_aux, gshen, fei, control_action_count)
+    penalty, penalty_note = _assess_penalty(
+        wtypes, non_aux, gshen, fei, control_action_count,
+        zb_jing=_zb_jing, yuanshen_hit=yuanshen_hit, hua_chengju=hua_chengju,
+    )
     if penalty:
         reasons.append('普通四柱特征：' + penalty_note)
 
@@ -746,6 +816,27 @@ def analyze_gongliang(
         chain=chain_len, penalty=penalty, yuanshen_hit=yuanshen_hit,
         day_wx_ok=bool(day_wx), boundary=boundary, raw_level=raw_level,
     )
+
+    # ── M5 双轨对账：gongliang.level（富贵量级）vs zuogong.work_level（做功效率）──
+    # 两套体系并行（模块 docstring）：work_level 0-5 层看「做功成立/效率」，
+    # gongliang 1-4 层看「富贵量级」。差≥2 层为视角背离，标冲突供复核（只标注，
+    # 不改任一层数——如普例1 做功效率高而富贵量级被普通四柱降档，即合理背离）。
+    _wl = zg.get('work_level')
+    if isinstance(_wl, int) and _wl > 0:
+        _diff = level - _wl
+        _duizhang = {
+            'work_level': _wl,
+            'gongliang_level': level,
+            'diff': _diff,
+            'conflict': abs(_diff) >= 2,
+        }
+        if abs(_diff) >= 2:
+            _duizhang['note'] = (
+                f'双轨冲突：做功层次L{_wl}（效率视角）与功量L{level}（富贵量级）'
+                f'差{abs(_diff)}层，宜复核（降档/封顶/体系口径差异）'
+            )
+            result['reasons'].append('双轨对账：' + _duizhang['note'])
+        result['work_level_duizhang'] = _duizhang
 
     # 比劫夺财破财方向信号（供 caiming/guanming/zhiye 反哺降档/否决）
     result['pocai_signal'] = pocai_signal
@@ -836,6 +927,10 @@ def _assess_penalty(
     gshen: List[str],
     fei: List[str],
     control_action_count: int,
+    *,
+    zb_jing: str = '',
+    yuanshen_hit: Optional[str] = None,
+    hua_chengju: bool = False,
 ) -> Tuple[Optional[str], str]:
     """判定普通四柱降档原因（源文 6282-6376 三种小功情形）。"""
     wset = set(wtypes)
@@ -855,11 +950,15 @@ def _assess_penalty(
     if wset and '制用' not in wset and (wset & {'生用', '化用', '禄', '合用'}):
         return '相生之功', '仅以相生做功，无制局，功量较小'
 
-    # 二：有气势但气势浪费（功神多而实制少）-> 功小
-    #   注：原拟据「功神占比高而实制少」判气势浪费，但 zuogong 的 work_actions
-    #   对冲/势结构（如 亥冲巳 而实为 火土势制亥）实制检出不足，常致误降档；
-    #   真实制局与气势浪费的区分须依赖贼神捕神/净制(党势-孤立目标)判定，本模块
-    #   尚未实现，故此处不判气势浪费，留待 P0 引擎更新后补。
+    # 二：有气势但气势浪费（做功少）-> 功小（M5：回接 zeishen_bushen 党势判定）
+    #   有气势（成势或功神成党≥3）而实制动作稀缺（控制类动作≤1）、zb 党势判
+    #   净制不成、原神用神同制不成立、非化用成局——方为气势浪费；制局已成
+    #   （zb 净）或同制/化用成立者气势未浪费，不降档。
+    has_qishi = has_chengshi or len(gshen) >= 3
+    if (wset and has_qishi and control_action_count <= 1
+            and zb_jing != '净' and yuanshen_hit is None and not hua_chengju):
+        return '气势浪费', '有气势但气势浪费（功神多而实制少，贼神捕神判净制不成），功小'
+
     return None, ''
 
 
