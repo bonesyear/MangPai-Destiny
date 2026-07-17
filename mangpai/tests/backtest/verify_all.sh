@@ -9,3 +9,5 @@ echo "=== pytest ==="
 python3 -m pytest mangpai/tests/ -q 2>&1 | tail -1
 echo "=== 67 regression (vs baseline) ==="
 python3 mangpai/tests/backtest/regression67.py 2>&1 | grep -E "cat[0-9]|TOTAL|REGRESSION|IMPROVE|无变化"
+echo "=== calib 46 assertions (vs baseline) ==="
+python3 mangpai/tests/calib_assertions.py 2>&1 | grep -E "财命|官命|婚姻|职业|应期|子息|层功|TOTAL|REGRESSION|IMPROVE|无变化"

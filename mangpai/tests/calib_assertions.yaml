@@ -1,0 +1,161 @@
+# calib 金标准断言 — 郝金阳《命理珍宝》10例 × 46项
+# 金标准来源: 《命理珍宝》郝金阳原断 (mangpai/docs/duan-books/mingli-zhenbao-50qi.txt)
+# 矩阵来源: docs/layer3-haojin-yang-audit-20260713.md (36项) + 层功level 10项(郝断富贵程度)
+# runner: mangpai/tests/calib_assertions.py (--write-baseline 按行改写 baseline，保留本注释)
+# 注意: items 必须保持单行 flow 风格 (- {dim: ..., gold: {...}, baseline: X})，且 note 内
+#       禁止半角逗号 (flow mapping 分隔符)，用全角，代替。
+meta:
+  baseline_date: '2026-07-17'
+  baseline_counts: {✅: 28, ⚠️: 10, ❌: 8}
+  rubric: |
+    财命 direction: 破财=summary含凶向标记(破财/比劫夺财/坐牢/牢狱/官非/下浮封顶)或tier=贫 -> ✅,
+      小康 -> ⚠️, 富/巨富无凶向 -> ❌; 凶(因财致祸)=有凶向标记 ✅, tier=贫 ⚠️, 否则 ❌;
+      正向(贫/小康/富/巨富)=tier等级差0 ✅ 差1 ⚠️ 差>=2 ❌, 有凶向标记直接 ❌,
+      magnitude_absurd_if 命中富档则 ✅ 降 ⚠️。
+    官命 direction: is_guanming 不符 ❌; 符 ✅; gold.level 差1 ⚠️ 差>=2 ❌;
+      industry_contains 未命中主行业/summary 则 ✅ 降 ⚠️。
+    应期 commit: conclusion 以「应期成立/真应期成立」开头=commit; 与 gold.commit 一致 ✅ 否则 ❌。
+    层功 level: gold.level 精确(差0 ✅ 差1 ⚠️ 差>=2 ❌) 或 level_min/level_max 区间
+      (区间内 ✅ 出界1档 ⚠️ >=2档 ❌)。
+    婚姻: quality 差/平/好 等级差0 ✅ 差1 ⚠️ 差2 ❌; gold.duohun 不符再降一档。
+    职业: primary 命中 primary_in ✅; 命中 partial_in ⚠️; 空且 allow_empty ✅; 空 ⚠️; 其余 ❌。
+    子息: has_zixi 与 gold 一致 ✅ 否则 ❌。
+    回归定义: 判定比 baseline 差(✅->⚠️/❌, ⚠️->❌)即回归, runner 退出码 1。
+
+cases:
+  - id: zhenbao-01
+    name: 第1期·生孩子/官司/职业
+    gans: [戊, 己, 乙, 丁]
+    zhis: [戌, 未, 巳, 亥]
+    gender: 男
+    year: 1958
+    dayun: [壬, 戌]
+    liunian: [戊, 辰, 1988]
+    items:
+      - {dim: 财命, gold: {direction: 破财, note: 戊辰年破财/不宜投资}, baseline: ❌}
+      - {dim: 官命, gold: {is_guanming: false, note: 普通人有官司}, baseline: ✅}
+      - {dim: 婚姻, gold: {quality: 平, duohun: false, note: 有妻有子}, baseline: ❌}
+      - {dim: 职业, gold: {partial_in: [merchant], note: 烧窑/不正当生意(个体经营)}, baseline: ⚠️}
+      - {dim: 应期, gold: {commit: true, note: 戊辰年应}, baseline: ✅}
+      - {dim: 子息, gold: {has_zixi: true, note: 有子+怀胎}, baseline: ❌}
+      - {dim: 层功, gold: {level_max: 2, note: 普通个体+破财}, baseline: ⚠️}
+
+  - id: zhenbao-04
+    name: 第4期·赔媳妇赔娶媳妇钱
+    gans: [丁, 丙, 庚, 丁]
+    zhis: [未, 午, 申, 丑]
+    gender: 男
+    year: 1967
+    dayun: [癸, 卯]
+    liunian: [戊, 寅, 1998]
+    items:
+      - {dim: 财命, gold: {direction: 破财, note: 赔六万}, baseline: ❌}
+      - {dim: 官命, gold: {is_guanming: false, note: 开车运输普通人}, baseline: ❌}
+      - {dim: 婚姻, gold: {quality: 好, note: 妻好无事}, baseline: ✅}
+      - {dim: 职业, gold: {primary_in: [], note: 司机/运输(无对应职业码)}, baseline: ❌}
+      - {dim: 应期, gold: {commit: true, note: 戊寅年应}, baseline: ✅}
+      - {dim: 层功, gold: {level_max: 2, note: 普通人赔钱}, baseline: ⚠️}
+
+  - id: zhenbao-05
+    name: 第5期·厅级官壬午升丁亥到顶
+    gans: [乙, 庚, 辛, 壬]
+    zhis: [巳, 辰, 卯, 辰]
+    gender: 男
+    year: 1965
+    dayun: [丙, 子]
+    liunian: [壬, 午, 2002]
+    items:
+      - {dim: 官命, gold: {is_guanming: true, level: 4, note: 厅级}, baseline: ⚠️}
+      - {dim: 职业, gold: {primary_in: [], note: 官员(伤官去官)，无对应职业码}, baseline: ❌}
+      - {dim: 应期, gold: {commit: true, note: 壬午年升}, baseline: ✅}
+      - {dim: 层功, gold: {level_min: 3, level_max: 4, note: 厅级官}, baseline: ✅}
+
+  - id: zhenbao-09
+    name: 第9期·乞丐(丙午运讨乞)
+    gans: [壬, 癸, 壬, 丙]
+    zhis: [子, 卯, 子, 午]
+    gender: 男
+    year: 1972
+    dayun: [丙, 午]
+    items:
+      - {dim: 财命, gold: {direction: 贫, magnitude_absurd_if: [百万, 千万, 亿], note: 乞丐}, baseline: ⚠️}
+      - {dim: 官命, gold: {is_guanming: false, note: 乞丐}, baseline: ✅}
+      - {dim: 职业, gold: {allow_empty: true, note: 乞丐无业}, baseline: ✅}
+      - {dim: 应期, gold: {commit: false, note: 仅大运未到应期}, baseline: ✅}
+      - {dim: 层功, gold: {level_max: 1, note: 乞丐}, baseline: ✅}
+
+  - id: zhenbao-10
+    name: 第10期·李凡丁公检法/两次婚/庚辰
+    gans: [壬, 壬, 庚, 辛]
+    zhis: [子, 寅, 辰, 巳]
+    gender: 男
+    year: 1972
+    dayun: [戊, 寅]
+    liunian: [庚, 辰, 2000]
+    items:
+      - {dim: 官命, gold: {is_guanming: true, industry_contains: [公检法, 执法, 司法, 律师], note: 公检法}, baseline: ⚠️}
+      - {dim: 婚姻, gold: {quality: 差, duohun: true, note: 两次婚/庚辰离婚再娶}, baseline: ❌}
+      - {dim: 职业, gold: {primary_in: [lawyer], note: 公检法/律师}, baseline: ✅}
+      - {dim: 应期, gold: {commit: true, note: 戊寅调动/庚辰婚变}, baseline: ✅}
+      - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 公检法职员}, baseline: ✅}
+
+  - id: zhenbao-12
+    name: 第12期·阎锡山半壁天下/勿冒头
+    gans: [癸, 辛, 乙, 丁]
+    zhis: [未, 酉, 酉, 丑]
+    gender: 男
+    year: 1883
+    items:
+      - {dim: 官命, gold: {is_guanming: true, level: 4, note: 半壁天下}, baseline: ✅}
+      - {dim: 职业, gold: {primary_in: [military], note: 军阀/武职}, baseline: ✅}
+      - {dim: 层功, gold: {level: 4, note: 半壁天下=L4极富极贵}, baseline: ✅}
+
+  - id: zhenbao-14a
+    name: 第14期·刘XX名演员卖身/三婚/无子
+    gans: [乙, 丙, 甲, 乙]
+    zhis: [未, 戌, 子, 亥]
+    gender: 女
+    year: 1955
+    items:
+      - {dim: 财命, gold: {direction: 富, note: 卖身起家/靠权赚钱(来路不正)}, baseline: ⚠️}
+      - {dim: 婚姻, gold: {quality: 差, duohun: true, note: 三婚}, baseline: ⚠️}
+      - {dim: 职业, gold: {primary_in: [performer], note: 名演员}, baseline: ✅}
+      - {dim: 子息, gold: {has_zixi: false, note: 不会生育}, baseline: ✅}
+      - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 名演员}, baseline: ✅}
+
+  - id: zhenbao-14b
+    name: 第14期·贪财坐牢
+    gans: [戊, 戊, 戊, 甲]
+    zhis: [戌, 午, 午, 寅]
+    gender: 男
+    year: 1958
+    items:
+      - {dim: 财命, gold: {direction: 凶, note: 贪财坐牢(因财致祸)}, baseline: ⚠️}
+      - {dim: 官命, gold: {is_guanming: false, note: 坐牢非官}, baseline: ✅}
+      - {dim: 职业, gold: {allow_empty: true, note: 坐牢}, baseline: ✅}
+      - {dim: 层功, gold: {level_max: 2, note: 坐牢凶}, baseline: ✅}
+
+  - id: zhenbao-23a
+    name: 第23期·官司输破财/明年转机后年赢
+    gans: [庚, 戊, 壬, 庚]
+    zhis: [戌, 子, 午, 子]
+    gender: 男
+    year: 1970
+    dayun: [辛, 卯]
+    liunian: [己, 卯, 1999]
+    items:
+      - {dim: 财命, gold: {direction: 破财, note: 大破财清家荡产}, baseline: ✅}
+      - {dim: 官命, gold: {is_guanming: false, note: 打官司普通人}, baseline: ✅}
+      - {dim: 职业, gold: {allow_empty: true, note: 普通人}, baseline: ✅}
+      - {dim: 应期, gold: {commit: true, note: 己卯年官司破财}, baseline: ✅}
+      - {dim: 层功, gold: {level_max: 1, note: 清家荡产}, baseline: ✅}
+
+  - id: zhenbao-23b
+    name: 第23期·找二婚妻(大姑娘找不成)
+    gans: [壬, 癸, 壬, 甲]
+    zhis: [子, 卯, 子, 辰]
+    gender: 男
+    year: 1972
+    items:
+      - {dim: 婚姻, gold: {quality: 差, note: 找二婚/破货}, baseline: ✅}
+      - {dim: 层功, gold: {level_max: 2, note: 普通人}, baseline: ⚠️}
