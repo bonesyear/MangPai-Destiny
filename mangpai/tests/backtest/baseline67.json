@@ -133,138 +133,138 @@
  },
  "xf:共象:丁目": {
   "verdict": "⚠️",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:共象:申机器": {
   "verdict": "⚠️",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:合象:建筑设计": {
   "verdict": "⚠️",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:合象:银行行长": {
   "verdict": "⚠️",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:化象:纺织": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:化象:服装": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:墓象:军官": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:墓象:建筑": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:制象:岳飞": {
   "verdict": "⚠️",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:制象:资本运营": {
   "verdict": "⚠️",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:带象:甲子": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:带象:癸巳": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:借象:寅卯": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:借象:戊巳": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:换象:银行行长": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:换象:外贸商": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "xf:局象:公安": {
   "verdict": "⚠️",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:局象:比劫包局": {
   "verdict": "✅",
-  "detail": "findings_nonempty=True"
+  "detail": "ok=True 审计档=✅"
  },
  "cai:禄当财": {
   "verdict": "⚠️",
-  "detail": "ok=False detail=财星当财"
+  "detail": "ok=False 审计档=⚠️ detail=财星当财"
  },
  "cai:伤食当财": {
   "verdict": "⚠️",
-  "detail": "ok=False detail=财统官"
+  "detail": "ok=False 审计档=⚠️ detail=财统官"
  },
  "cai:官杀当财": {
   "verdict": "✅",
-  "detail": "ok=True detail=官统财（官杀当财）"
+  "detail": "ok=True 审计档=✅ detail=官统财（官杀当财）"
  },
  "cai:过河拆桥": {
   "verdict": "✅",
-  "detail": "ok=True detail=过河拆桥·破财"
+  "detail": "ok=True 审计档=✅ detail=过河拆桥·破财"
  },
  "guan:伤食制官杀": {
   "verdict": "✅",
-  "detail": "ok=True detail=True"
+  "detail": "ok=True 审计档=✅ detail=True"
  },
  "guan:劫刃制官杀": {
   "verdict": "✅",
-  "detail": "ok=True detail=True"
+  "detail": "ok=True 审计档=✅ detail=True"
  },
  "guan:财制印": {
   "verdict": "✅",
-  "detail": "ok=True detail=True"
+  "detail": "ok=True 审计档=✅ detail=True"
  },
  "guan:印制伤食": {
-  "verdict": "⚠️",
-  "detail": "ok=True detail=False"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️ detail=False"
  },
  "guan:带帽": {
   "verdict": "✅",
-  "detail": "ok=True detail=True"
+  "detail": "ok=True 审计档=✅ detail=True"
  },
  "guan:公门武职": {
   "verdict": "✅",
-  "detail": "ok=True detail=True"
+  "detail": "ok=True 审计档=✅ detail=True"
  },
  "hunyin:婚差": {
   "verdict": "✅",
-  "detail": "ok=True val=差"
+  "detail": "ok=True 审计档=✅ val=差"
  },
  "hunyin:离婚": {
   "verdict": "✅",
-  "detail": "ok=True val=差"
+  "detail": "ok=True 审计档=✅ val=差"
  },
  "xueli:初中": {
   "verdict": "✅",
-  "detail": "ok=True val=低"
+  "detail": "ok=True 审计档=✅ val=低"
  },
  "xueli:博士": {
   "verdict": "✅",
-  "detail": "ok=True val=高"
+  "detail": "ok=True 审计档=✅ val=高"
  },
  "laoyu:抢劫": {
   "verdict": "✅",
-  "detail": "ok=True val=高"
+  "detail": "ok=True 审计档=✅ val=高"
  },
  "laoyu:受贿": {
   "verdict": "⚠️",
-  "detail": "ok=False val=低"
+  "detail": "ok=False 审计档=⚠️ val=低"
  }
 }

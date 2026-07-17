@@ -108,15 +108,41 @@ CAT3 = [
 ]
 _P2K = {'共象':'gongxiang','合象':'hexiang','化象':'huaxiang','墓象':'muxiang',
         '制象':'zhixiang','带象':'daixiang','借象':'jiexiang','换象':'huanxiang','局象':'juxiang'}
+
+# ── V4 verdict 解冻（cat3-5）──
+# 原冻结口径：verdict 直接取审计时 book_v，引擎现状变化不影响判定（仅 detail 记录）。
+# 解冻后按书结论重算，分两类：
+#   cat4/cat5（书结论已编码为明确期望值 expect_primary/expect_gm/expect_val）：
+#     ok=True  -> ✅（引擎当前命中书结论，如实计入；审计档留痕于 detail「审计档=」）
+#     ok=False -> 维持审计档（⚠️/❌）；审计档=✅ 则 ❌ + 报警
+#   cat3（书结论未完全编码，仅有象法原则键）：审计档为上限，
+#     findings 非空 -> 审计档；空 -> ❌（原则检出丢失），审计档=✅ 另加报警。
+# 报警（ALARM）=「ok=False 且 verdict=✅」组合：审计通过而当前引擎未命中书结论，
+#   引擎回归或审计误判，须人工复核。
+def recompute_verdict(book_v, ok):
+    """cat4/cat5：返回 (verdict, alarm)。"""
+    if ok:
+        return '✅', False
+    if book_v == '✅':
+        return '❌', True
+    return book_v, False
+
+def recompute_verdict_xf(book_v, nonempty):
+    """cat3：审计档为上限，检出丢失才降档。返回 (verdict, alarm)。"""
+    if nonempty:
+        return book_v, False
+    if book_v == '✅':
+        return '❌', True
+    return '❌', False
+
 def judge_cat3(princ, gstr, zstr, book_v):
     gans = list(gstr); zhis = list(zstr)
     r = run(gans, zhis)
     xo = r.get('xiangfa_ops', {})
     key = _P2K[princ]
     findings = xo.get(key, [])
-    # 监控信号：findings 是否非空 + 关键 combo
     nonempty = bool(findings)
-    return book_v, nonempty  # cat3 用审计 verdict + nonempty 监控
+    return recompute_verdict_xf(book_v, nonempty) + (nonempty,)
 
 # ── 类目4: caiming/guanming (10) ──
 # 财命
@@ -176,6 +202,7 @@ def judge_cat5():
 
 def compute():
     out = {}  # key -> (verdict, detail)
+    alarms = []  # V4: ok=False 且 审计verdict=✅ 组合报警
     # cat1
     for name, g, z, bset, cap in CAT1:
         r = zuogong(fg(g), z)
@@ -188,20 +215,28 @@ def compute():
         out[f'gl:{name}'] = (v, f"level={r['level']}(书{blv}) score={r['score']}")
     # cat3
     for princ, name, gs, zs, bv in CAT3:
-        bv2, nonempty = judge_cat3(princ, gs, zs, bv)
-        out[f'xf:{princ}:{name}'] = (bv2, f"findings_nonempty={nonempty}")
+        v, alarm, nonempty = judge_cat3(princ, gs, zs, bv)
+        out[f'xf:{princ}:{name}'] = (v, f"ok={nonempty} 审计档={bv}")
+        if alarm:
+            alarms.append(f'xf:{princ}:{name}')
     # cat4
     for name, bv, ok, detail in judge_cat4():
-        out[name] = (bv, f"ok={ok} detail={detail}")
+        v, alarm = recompute_verdict(bv, ok)
+        out[name] = (v, f"ok={ok} 审计档={bv} detail={detail}")
+        if alarm:
+            alarms.append(name)
     # cat5
     for name, bv, ok, detail in judge_cat5():
-        out[name] = (bv, f"ok={ok} val={detail}")
-    return out
+        v, alarm = recompute_verdict(bv, ok)
+        out[name] = (v, f"ok={ok} 审计档={bv} val={detail}")
+        if alarm:
+            alarms.append(name)
+    return out, alarms
 
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     write_baseline = '--write-baseline' in sys.argv
-    cur = compute()
+    cur, alarms = compute()
     base_path = args[0] if args else DEFAULT_BASELINE
     # 统计
     from collections import Counter
@@ -222,6 +257,11 @@ def main():
             print(f"  {label}: ✅{c.get('✅',0)} ⚠️{c.get('⚠️',0)} ❌{c.get('❌',0)}")
     tot = cnt
     print(f"  TOTAL: ✅{tot.get('✅',0)} ⚠️{tot.get('⚠️',0)} ❌{tot.get('❌',0)}  (n={sum(tot.values())})")
+    # V4：「ok=False 且 审计verdict=✅」组合报警——审计通过而当前引擎未命中书结论
+    if alarms:
+        print(f"\n  🚨 ALARM ({len(alarms)}): 审计档✅ 但当前引擎未命中书结论（引擎回归或审计误判，须人工复核）:")
+        for k in alarms:
+            print(f"    {k}: {cur[k][1]}")
     n_reg = 0
     if base_path and os.path.exists(base_path):
         base = json.load(open(base_path))
