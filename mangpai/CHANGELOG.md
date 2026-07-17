@@ -1,4 +1,63 @@
-# 盲派客观层 2026-07-07 修复记录
+# 盲派客观层 变更记录
+
+## 2026-07-17 第一批 · 安全网 + 止血
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| V1 | 67例回归套件入git | tests/backtest/ |
+| V2 | calib 46项断言化 | tests/calib_assertions.yaml |
+| A2 | 时间锚点修复（current_dayun按年龄定位） | engine.py |
+| N1 | 叙事层校验器（数字回对引擎字段） | narrative.py |
+| N2 | 降温0.7→0.2 + 数字白名单 | prompts/hao_style_fewshot.py |
+| N3 | 5例few-shot重跑（口径跳跃根除） | prompts/hao_style_fewshot.py |
+| A1 | yunfan岁运反局接入方向否决链 | yunfan/yongshen/caiming/guanming/zhiye |
+| M2 | dayun四项缺陷（死pass/戊刃双刃/开库口径/化气验月令） | objective/dayun.py, shensha.py |
+| K2 | zhengfan原局四项（合官位置/时支归主/不可坏/冲合矛盾） | zhengfan.py |
+
+验证：853全绿 + pytest 156 passed + 67例0回归 + calib 3项改进。
+
+## 2026-07-17 第二批 · 方向层体系化
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| M3 | 婚姻加权（宫为主星为辅）+ duohun三检测 + 子息共振 | hunyin.py, liuqin.py |
+| M4 | 柱位漏检补齐（生用/墓用/合制/天干克四放开） | zuogong_detect.py |
+| M5 | gongliang收尾（气势浪费回接+高级篇三项+双轨对账） | gongliang.py |
+| A3 | yongshen升格方向总线（五模块接入direction信号） | yongshen/liunian/zaihuo/hunyin/liuqin/xueli/gongmen_wuzhi |
+| K3 | 授课教程逐章审计（263例断例集） | docs/k3-shouke-jiaocheng-audit-20260717.md |
+| K4 | 象法回退三分支 + 连体/连墓/丙戊一家 | xiangfa_ops.py |
+| V4 | verdict解冻（活算+回归报警） | tests/ |
+
+验证：853全绿 + pytest 156 passed + 67例0回归 + calib 4项改进。
+
+## 2026-07-17 第三期 · 独立模块 + 验证合并
+
+不改核心判定逻辑（zuogong_detect/zuogong_confirm/gongliang 零触碰），
+新模块均不接 engine（同 yunfan/zhiye 模式，仅 __init__ 重导出）。
+
+### K7 新建模块
+
+| 文件 | 说明 |
+|------|------|
+| `subjective/chuangong.py`（新建）| 串宫压运：同支≥2柱成串宫链（2弱串/3强串/4全串），大运/流年压入三型（增强/触发/引入）+冲散/合化/会局 conflict；空亡排除；需求见 docs/chuangong-spec.md |
+| `subjective/juefa.py`（新建）| 诀法层（高级篇ch14）：伤官诀五行喜忌5类（金水喜见官/土金喜佩印怕见官/水木喜财官/木火喜见印/火土看组合，乾隆/张之洞等书例全验）+ 断语22项（15/17/19须yongshen_result防过杀、18须shensha_result、女命项须gender）+ 断句集8域26条可查表子集 + 巾箱字碰字6组 + 日元月令诀言词典（书载6条）|
+| `objective/body_parts.py`（新建）| 干支身体部位映射（ch11.2主表：干主外/支主内 + ch4/中级扩展层 + 宫位身段 + 阴阳三态/五行病机7组合/穿破刑主病），纯数据查表零判断；为身体部位唯一事实源，xiangfa 'body' 保持速记不回写 |
+| 宫位年龄统一 | `xiangfa.GONG_WEI_XIANG` 废弃 1-15/16-30/31-50/50+，全引擎统一大限套（1-18/18-35/35-55/55+），与 `yingqi.DAXIAN_MAP` 同源；MODULE_ATTRS 统一决定已改写 |
+
+### V7 验证体系
+
+| 项 | 说明 |
+|------|------|
+| verify 合并 | `objective/verify_mangpai.py`（422）与顶层（361）大面积重复，合并为唯一 `mangpai/verify_mangpai.py`，语义去重后并集 **432 项**（保留 objective 版全部 + 并入顶层版独有10项：天乙口诀分组5+柱位场景3+文昌庚干2）；旧 objective 副本删除 |
+| xfail 严格化 | test_gongliang.py 3 个 xfail 加 `strict=True`（PUTONG2×2、乾隆冲链） |
+| 属性化测试 | `tests/test_property.py`（新建）：100 随机四柱（60甲子+干支错配应力）+ 极端命例 + 60甲子日柱穷尽；不变量：不崩溃、gongliang.level∈[0,5]、work_level∈[0,5]、十神合法、空亡2支、summary为str、重复计算确定性 |
+
+验证：verify_mangpai 432/432、verify_dayun 70/70、pytest 292 passed + 3 xfailed（0 fail）、
+67例 vs baseline 无变化（0 回归）、calib 46 项 4 IMPROVE 0 REGRESSION。
+
+存疑备案（本期未动）：`gongshen._PILLAR_BODY` 年/时柱身段与书中三处主表颠倒
+（书：年=腿足、时=头面门户；码：年=头颈、时=腿足），另立 bug 单；body_parts.PILLAR_BODY
+已按书主表收录，未回写 gongshen。
 
 ## 2026-07-09 第一批核心能力升级（高级篇补齐）
 
