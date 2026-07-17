@@ -1,0 +1,270 @@
+{
+ "zg:制例一奥纳西斯": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '合用', '生用'] primary=合用 lv=3"
+ },
+ "zg:制例二": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '成势', '生用'] primary=制用 lv=2"
+ },
+ "zg:制例三": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=制用 lv=2"
+ },
+ "zg:化例一": {
+  "verdict": "✅",
+  "detail": "types=['制用', '化用'] primary=化用 lv=3"
+ },
+ "zg:化例二": {
+  "verdict": "✅",
+  "detail": "types=['制用', '化用', '生用'] primary=化用 lv=4"
+ },
+ "zg:化例三中堂": {
+  "verdict": "✅",
+  "detail": "types=['制用', '化用', '合用'] primary=化用 lv=4"
+ },
+ "zg:生例一富婆": {
+  "verdict": "✅",
+  "detail": "types=['制用', '生用'] primary=生用 lv=1"
+ },
+ "zg:生例二经理": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=生用 lv=2"
+ },
+ "zg:生例四企业家": {
+  "verdict": "✅",
+  "detail": "types=['制用', '生用'] primary=生用 lv=1"
+ },
+ "zg:合例一富命": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用'] primary=合用 lv=3"
+ },
+ "zg:合例六两妻": {
+  "verdict": "✅",
+  "detail": "types=['制用', '化用', '合用'] primary=合用 lv=4"
+ },
+ "zg:合例八暗合": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '合用', '生用'] primary=生用 lv=1"
+ },
+ "zg:墓例一经理": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '墓用'] primary=制用 lv=1"
+ },
+ "zg:墓例三电厂官": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '合用', '墓用', '生用'] primary=合用 lv=3"
+ },
+ "zg:墓例四曾国藩": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '墓用', '生用'] primary=生用 lv=2"
+ },
+ "zg:复例一数学家": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '墓用'] primary=制用 lv=3"
+ },
+ "zg:复例二副总": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用'] primary=合用 lv=2"
+ },
+ "zg:复例四老师经商": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=制用 lv=2"
+ },
+ "gl:李嘉诚": {
+  "verdict": "✅",
+  "detail": "level=4(书4) score=100"
+ },
+ "gl:乾隆": {
+  "verdict": "⚠️",
+  "detail": "level=3(书4) score=74"
+ },
+ "gl:克林顿": {
+  "verdict": "✅",
+  "detail": "level=4(书4) score=96"
+ },
+ "gl:蒋介石": {
+  "verdict": "✅",
+  "detail": "level=3(书3) score=70"
+ },
+ "gl:岳飞": {
+  "verdict": "✅",
+  "detail": "level=3(书3) score=78"
+ },
+ "gl:例6": {
+  "verdict": "✅",
+  "detail": "level=2(书2) score=44"
+ },
+ "gl:例7": {
+  "verdict": "✅",
+  "detail": "level=2(书2) score=47"
+ },
+ "gl:例8": {
+  "verdict": "✅",
+  "detail": "level=3(书3) score=72"
+ },
+ "gl:例9": {
+  "verdict": "✅",
+  "detail": "level=3(书3) score=68"
+ },
+ "gl:普例1": {
+  "verdict": "✅",
+  "detail": "level=1(书1) score=0"
+ },
+ "gl:普例2": {
+  "verdict": "⚠️",
+  "detail": "level=2(书1) score=50"
+ },
+ "gl:普例3": {
+  "verdict": "✅",
+  "detail": "level=1(书1) score=9"
+ },
+ "gl:普例4": {
+  "verdict": "✅",
+  "detail": "level=2(书2) score=46"
+ },
+ "gl:普例5": {
+  "verdict": "✅",
+  "detail": "level=2(书2) score=40"
+ },
+ "gl:阎锡山": {
+  "verdict": "⚠️",
+  "detail": "level=4(书3) score=90"
+ },
+ "xf:共象:丁目": {
+  "verdict": "⚠️",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:共象:申机器": {
+  "verdict": "⚠️",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:合象:建筑设计": {
+  "verdict": "⚠️",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:合象:银行行长": {
+  "verdict": "⚠️",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:化象:纺织": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:化象:服装": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:墓象:军官": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:墓象:建筑": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:制象:岳飞": {
+  "verdict": "⚠️",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:制象:资本运营": {
+  "verdict": "⚠️",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:带象:甲子": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:带象:癸巳": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:借象:寅卯": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:借象:戊巳": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:换象:银行行长": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:换象:外贸商": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:局象:公安": {
+  "verdict": "⚠️",
+  "detail": "findings_nonempty=True"
+ },
+ "xf:局象:比劫包局": {
+  "verdict": "✅",
+  "detail": "findings_nonempty=True"
+ },
+ "cai:禄当财": {
+  "verdict": "⚠️",
+  "detail": "ok=False detail=财星当财"
+ },
+ "cai:伤食当财": {
+  "verdict": "⚠️",
+  "detail": "ok=False detail=财统官"
+ },
+ "cai:官杀当财": {
+  "verdict": "✅",
+  "detail": "ok=True detail=官统财（官杀当财）"
+ },
+ "cai:过河拆桥": {
+  "verdict": "✅",
+  "detail": "ok=True detail=过河拆桥·破财"
+ },
+ "guan:伤食制官杀": {
+  "verdict": "✅",
+  "detail": "ok=True detail=True"
+ },
+ "guan:劫刃制官杀": {
+  "verdict": "✅",
+  "detail": "ok=True detail=True"
+ },
+ "guan:财制印": {
+  "verdict": "✅",
+  "detail": "ok=True detail=True"
+ },
+ "guan:印制伤食": {
+  "verdict": "⚠️",
+  "detail": "ok=True detail=False"
+ },
+ "guan:带帽": {
+  "verdict": "✅",
+  "detail": "ok=True detail=True"
+ },
+ "guan:公门武职": {
+  "verdict": "✅",
+  "detail": "ok=True detail=True"
+ },
+ "hunyin:婚差": {
+  "verdict": "✅",
+  "detail": "ok=True val=差"
+ },
+ "hunyin:离婚": {
+  "verdict": "✅",
+  "detail": "ok=True val=差"
+ },
+ "xueli:初中": {
+  "verdict": "✅",
+  "detail": "ok=True val=低"
+ },
+ "xueli:博士": {
+  "verdict": "✅",
+  "detail": "ok=True val=高"
+ },
+ "laoyu:抢劫": {
+  "verdict": "✅",
+  "detail": "ok=True val=高"
+ },
+ "laoyu:受贿": {
+  "verdict": "⚠️",
+  "detail": "ok=False val=低"
+ }
+}
