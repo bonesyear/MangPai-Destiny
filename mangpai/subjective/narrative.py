@@ -367,7 +367,7 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str | None = None) ->
     resp = client.messages.create(
         model=model,
         max_tokens=4096,
-        temperature=0.7,
+        temperature=0.2,  # 低温度抑幻觉（原 0.7 数字漂移大）
         system=system_prompt,
         messages=[{'role': 'user', 'content': user_prompt}],
     )
@@ -380,6 +380,139 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str | None = None) ->
 
 
 # ---------------------------------------------------------------------------
+# N1 生成后校验：断语中的数字/年份回对引擎字段，不存在则标记或拒绝
+# ---------------------------------------------------------------------------
+_CN_NUM = {'零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5,
+           '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+
+
+def _cn_to_int(s: str) -> int | None:
+    """中文小数字转 int（一/两/三/十/十一/二十…≤99），失败 None。"""
+    if not s:
+        return None
+    if s in _CN_NUM:
+        return _CN_NUM[s]
+    if '十' in s:
+        left, _, right = s.partition('十')
+        tens = _CN_NUM.get(left, 1) if left else 1
+        ones = _CN_NUM.get(right, 0) if right else 0
+        if (left and left not in _CN_NUM) or (right and right not in _CN_NUM):
+            return None
+        return tens * 10 + ones
+    return None
+
+
+def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
+    """从引擎结果抽取数字白名单（年份/年龄/计数/金额档），供断语数字回对。
+
+    - years: 结果 JSON 中全部 1800-2099 四位数（出生年/流年年/交运日期等）；
+    - ages: 大运 start_age/end_age 整数 + 当前年龄（当前年−出生年）；
+    - counts: 上下文计数（N步大运/N流年/入墓N处/锁N/命中N法/约N个/work_level/
+      gongliang level/score 等）；
+    - bands: 财命 summary 中的金额档字（百万/千万/亿/百亿/千亿…）。
+    """
+    import json
+    import re
+    from datetime import datetime
+
+    years, ages, counts, bands = set(), set(), set(), set()
+    try:
+        blob = json.dumps(engine_result, ensure_ascii=False, default=str)
+    except Exception:
+        blob = str(engine_result)
+
+    for m in re.finditer(r'(18\d{2}|19\d{2}|20\d{2})', blob):
+        years.add(int(m.group(1)))
+    for m in re.finditer(r'(?:start_age|end_age)["\']?\s*:\s*(\d+(?:\.\d+)?)', blob):
+        ages.add(int(float(m.group(1))))
+    birth_year = (engine_result.get('input') or {}).get('year')
+    if birth_year:
+        try:
+            ages.add(datetime.now().year - int(birth_year))
+        except Exception:
+            pass
+    for pat in (r'(\d+)步大运', r'(\d+)流年', r'入墓(\d+)处', r'锁(\d+)',
+                r'命中(\d+)法', r'约(\d+)个', r'(\d+)岁运联动',
+                r'"(?:work_level|level|score)": (\d+)'):
+        for m in re.finditer(pat, blob):
+            counts.add(int(m.group(1)))
+    cm = engine_result.get('caiming') or {}
+    cm_blob = str(cm.get('summary', '')) + str(cm.get('tier', ''))
+    for m in re.finditer(r'(百亿|千亿|数十亿|千万|百万|十万|亿|万)', cm_blob):
+        bands.add(m.group(1))
+    return {'years': years, 'ages': ages, 'counts': counts, 'bands': bands}
+
+
+def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict[str, Any]:
+    """校验断语中的数字：凡年份/年龄/计数/具体金额，须能在引擎字段中找到出处。
+
+    覆盖：4位/2位年份（93年→1993 归一）、N岁、N次婚/N个孩子（含中文数字）、
+    具体金额（N万/N亿，引擎只出档位不出具体金额，故一律标记）、金额档字
+    （百万级/千万级/亿级须与财命档位同族）。
+
+    Returns:
+      {'ok': bool, 'violations': [{'text','kind','detail'}], 'whitelist': {...}}
+    """
+    import re
+
+    wl = _engine_number_whitelist(engine_result)
+    violations = []
+
+    # 年份：4 位直接对；2 位对任一百家尾数
+    for m in re.finditer(r'(\d{4})年', text):
+        y = int(m.group(1))
+        if 1800 <= y <= 2099 and y not in wl['years']:
+            violations.append({'text': m.group(0), 'kind': 'year',
+                               'detail': f'{y}年不在引擎年份白名单'})
+    for m in re.finditer(r'(?<!\d)(\d{1,2})年', text):
+        yy = int(m.group(1))
+        if not any(y % 100 == yy for y in wl['years']):
+            violations.append({'text': m.group(0), 'kind': 'year',
+                               'detail': f'{m.group(1)}年无对应引擎年份'})
+
+    # 年龄
+    for m in re.finditer(r'(\d{1,2})岁', text):
+        a = int(m.group(1))
+        if a not in wl['ages']:
+            violations.append({'text': m.group(0), 'kind': 'age',
+                               'detail': f'{a}岁不在引擎年龄白名单'})
+
+    # 计数：N次婚/段情/场官司、N个孩子/兄弟/丈夫（阿拉伯+中文数字）
+    num = r'(\d+|[一二两三四五六七八九十]+)'
+    for m in re.finditer(num + r'(?:次|段|场)(?:婚|情|官司|牢狱)', text):
+        n = int(m.group(1)) if m.group(1).isdigit() else _cn_to_int(m.group(1))
+        if n is not None and n not in wl['counts']:
+            violations.append({'text': m.group(0), 'kind': 'count',
+                               'detail': f'{m.group(1)}(次/段/场)不在引擎计数白名单'})
+    for m in re.finditer(num + r'个(?:孩子|兄弟|姐妹|丈夫|老婆|妻子|儿子|女儿)', text):
+        n = int(m.group(1)) if m.group(1).isdigit() else _cn_to_int(m.group(1))
+        if n is not None and n not in wl['counts']:
+            violations.append({'text': m.group(0), 'kind': 'count',
+                               'detail': f'{m.group(1)}个不在引擎计数白名单'})
+
+    # 具体金额：引擎只出档位不出具体金额，一律标记
+    for m in re.finditer(r'(\d+(?:\.\d+)?)\s*(万|亿)(?![级档])', text):
+        violations.append({'text': m.group(0), 'kind': 'amount',
+                           'detail': '具体金额非引擎产出（引擎仅出金额档）'})
+
+    # 金额档字：须与财命档位同族
+    for m in re.finditer(r'(百亿|千亿|数十亿|千万|百万|十万|亿)级', text):
+        if m.group(1) not in wl['bands']:
+            violations.append({'text': m.group(0), 'kind': 'band',
+                               'detail': f'{m.group(1)}级与财命档位不符'})
+
+    return {'ok': not violations, 'violations': violations, 'whitelist': wl}
+
+
+def _format_validation_note(report: Dict[str, Any]) -> str:
+    lines = ['【引擎校验】以下数字未在引擎结论中找到出处（请人工复核，勿直采信）：']
+    for v in report['violations']:
+        lines.append(f"  - 「{v['text']}」({v['kind']}): {v['detail']}")
+    return '\n'.join(lines)
+
+
+
+# ---------------------------------------------------------------------------
 # 主入口
 # ---------------------------------------------------------------------------
 def render_hao_narrative(
@@ -389,6 +522,7 @@ def render_hao_narrative(
     call_llm: bool = True,
     fewshot_examples: list | None = None,
     model: str | None = None,
+    validate: str = 'mark',
 ) -> str:
     """把引擎结构化结论渲染成郝金阳风格的自然语言推演。
 
@@ -402,6 +536,9 @@ def render_hao_narrative(
         供外部接 LLM。默认 True。
       fewshot_examples: 自定义 few-shot 列表覆盖默认 FEWSHOT_EXAMPLES。
       model: 指定 LLM 模型 id，默认取 ANTHROPIC_MODEL 环境变量或 claude-sonnet-5。
+      validate: 生成后数字校验（N1）。'mark'(默认)=断语后附【引擎校验】
+        未出处的数字清单；'reject'=有未出处数字则不出断语，返回拦截说明；
+        'off'=不校验。仅对 LLM 实调路径生效（prompt 降级路径不校验）。
 
     Returns:
       郝金阳口吻的断语文本；LLM 不可用时返回降级 prompt 文本。
@@ -420,7 +557,9 @@ def render_hao_narrative(
         f"【八字】{bazi_line}\n"
         f"【引擎结论】{engine_conclusion}\n"
         f"{question_part}\n\n"
-        f"要求：第二人称直击命主，先断后理、敢下数字、口语化不绕弯；"
+        f"要求：第二人称直击命主，先断后理、口语化不绕弯；"
+        f"凡下数字（年份/岁数/次数/金额），只许下引擎结论中出现的数字，"
+        f"引擎未给的数字不许编造，宁可断方向不断数；"
         f"因果五步（取象→锁定→判条件→应期→结论）每步显式。只输出断语本身。"
     )
 
@@ -428,7 +567,7 @@ def render_hao_narrative(
         return user_prompt
 
     try:
-        return _call_llm(HAO_STYLE_SYSTEM_PROMPT, user_prompt, model=model)
+        text = _call_llm(HAO_STYLE_SYSTEM_PROMPT, user_prompt, model=model)
     except Exception as e:
         # 降级：返回组装好的 prompt，供外部接 LLM；不抛错、不破验证。
         return (
@@ -436,3 +575,15 @@ def render_hao_narrative(
             f"===== SYSTEM =====\n{HAO_STYLE_SYSTEM_PROMPT}\n\n"
             f"===== USER =====\n{user_prompt}"
         )
+
+    # N1 生成后校验：断语数字回对引擎字段
+    if validate != 'off':
+        report = validate_narrative_numbers(text, engine_result)
+        if not report['ok']:
+            if validate == 'reject':
+                return (
+                    '[断语被引擎校验拦截：含引擎结论中无出处的数字，不予输出]\n'
+                    + _format_validation_note(report)
+                )
+            text = text + '\n\n' + _format_validation_note(report)
+    return text
