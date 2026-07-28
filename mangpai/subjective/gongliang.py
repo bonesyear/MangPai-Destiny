@@ -75,7 +75,14 @@ from mangpai.objective.constants import (
 )
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.caiming import classify_caifu_view
-from mangpai.subjective.yongshen import detect_bijiao_duocai
+from mangpai.subjective.yongshen import (
+    detect_bijiao_duocai,
+    detect_caisheng_sha_gongshen,
+    detect_guansha_rumu_xiong,
+    detect_heban_yongshen,
+    detect_jishen_zhiyongshen,
+    detect_shangguan_jianguan,
+)
 
 # ── 四层功 tier 名（段氏富贵量级）──
 _TIER_NAMES: Dict[int, str] = {
@@ -541,6 +548,66 @@ def analyze_gongliang(
             _zb_boost += 1
             reasons.append('层层相制：zb 净制佐证下采信冲链（+1层）')
 
+    # ── 6b. 包局2.6（年时干支/十神包围）-> +1（高级篇2.6 + 层功法则6）──
+    #   法则6「三合、三会局，或干支形成包围之势，将某种五行或十神包裹在内，
+    #   进而制之或化之…增加一层功」。本模块 san_he_formed 仅覆盖三合成势口径；
+    #   高级篇2.6 另载干支/十神包围形态（年与时两柱）：天干包局（年干=时干）、
+    #   地支包局（年支=时支）、干支同包（年柱=时柱，最强）、十神包局（年时
+    #   柱同一十神大类，「此为象之包局，尤为灵验」）。
+    #   吉凶辩证（包局中性）：计入功量须「进而制之或化之」——存在非辅助做功
+    #   （制用/合制/墓用/生）链接包围方（年时）与所包（月日）；「财官印食包
+    #   为吉，杀劫枭伤包则凶」之吉凶向属领域层判读，功量只记包围之势。
+    #   反局破包：年干与时干十神性质相反（官杀×食伤、财×比劫——「年干为
+    #   正官，时干为伤官；年干为正财，时干为劫财…包局力量减弱或破局」），
+    #   干系十神包局不计（支系同字包围不受此限）。
+    #   去重：san_he_formed（法则6三合口径）或 zb 包制已计者不重计。
+    if not san_he_formed and not _zb_bao_counted and day_wx and gans and zhis \
+            and len(gans) == 4 and len(zhis) == 4:
+        _gy, _gh = gans[0], gans[3]
+        _zy, _zh = zhis[0], zhis[3]
+        # (形态名, 包围载体位置集)：制化所包须由包围载体亲自发起/承受
+        _bao_forms: List[Tuple[str, Set[str]]] = []
+        if _gy and _gh and _gy == _gh:
+            _bao_forms.append(('天干包局', {'year_gan', 'hour_gan'}))
+        if _zy and _zh and _zy == _zh:
+            _bao_forms.append(('地支包局', {'year_zhi', 'hour_zhi'}))
+        if _gy and _gh and _zy and _zh and _gy == _gh and _zy == _zh:
+            _bao_forms.append(('干支同包', {'year_gan', 'hour_gan', 'year_zhi', 'hour_zhi'}))
+        # 十神包局（象之包局，「不论干支是否完全相同，只要十神一致」）：
+        # 只取干系（年时干十神同类——书例锚定皆干系，如股票庄家戊/己官杀包局）。
+        # 支系异字同神暂缓：四墓库两两必同五行土（未戌/辰丑…），异字支系
+        # 十神包局过宽（理象学例6 未戌财包误中、与书定层数相悖）；支系包围
+        # 限原文「年支与时支相同」之地支包局。
+        _cat_gy = _shishen_cat(day_wx, GAN_WX.get(_gy, ''))
+        _cat_gh = _shishen_cat(day_wx, GAN_WX.get(_gh, ''))
+        _shishen_bao_gan = _cat_gy if (_cat_gy and _cat_gy == _cat_gh) else ''
+        # 反局破包：年时干十神相克对（官杀×食伤、财×比劫），干系包围破局
+        _OPPOSITE: Set[frozenset] = {frozenset({'官杀', '食伤'}), frozenset({'财', '比劫'})}
+        _po_bao = bool(_cat_gy and _cat_gh
+                       and frozenset({_cat_gy, _cat_gh}) in _OPPOSITE)
+        if _shishen_bao_gan and not _po_bao:
+            _bao_forms.append((f'十神包局（{_shishen_bao_gan}）', {'year_gan', 'hour_gan'}))
+        if _po_bao:
+            _bao_forms = [(n, w) for n, w in _bao_forms if n != '天干包局']
+        if _bao_forms:
+            # 「进而制之或化之」：非辅助做功由包围载体发起/承受，落于所包（月日）
+            _INNER_POS = {'month_gan', 'month_zhi', 'day_gan', 'day_zhi'}
+            _BAO_WORK_TYPES = _CONTROL_TYPES | {'生', '杀印相生'}
+            _hit_forms: List[str] = []
+            for _name, _wing in _bao_forms:
+                for wa in non_aux:
+                    if wa.get('type', '') not in _BAO_WORK_TYPES:
+                        continue
+                    f, t = wa.get('from_pos', ''), wa.get('to_pos', '')
+                    if (f in _wing and t in _INNER_POS) or (t in _wing and f in _INNER_POS):
+                        _hit_forms.append(_name)
+                        break
+            if _hit_forms:
+                points += 1
+                reasons.append(
+                    f'包局2.6：年时{"/".join(_hit_forms)}，包围月日且制化所包（+1层）'
+                )
+
     # ── 7b. 带象 -> +1（高级篇1.4 补齐：干生支之柱为带象，参与做功则其承象计一层）──
     #   源文「干生支之柱为带象，若此带象之字参与做功，则其承载的象（财、官、印）
     #   可直接视为一层功」。去重口径：原神用神同制成立时，制局用神字之象已被 +2
@@ -801,6 +868,100 @@ def analyze_gongliang(
                 '（合杀库/制官杀），段氏「制财得财」之夺财不适用，不封顶'
             )
 
+    # ── 用神方向入层功（根因A·标注级）：R2忌神制用神/R3用神被合绊/N1伤官见官/
+    # N2财生杀攻身/N3官杀入墓 → 附 yongshen_xiong 字段，层数不降 ──
+    # 根因A锚案（第9期官司破财 L4→清家荡产）已由 R1 比劫夺财封顶（severe→L1）
+    # 缓解（现状 L1+财命贫+官命否决）。R2/R3 为扶抑层信号，与做功层存在口径
+    # 冲突（岳飞印制伤食=贵格之功仍命中 R2 印夺食 severe；化例二/墓例一同理），
+    # 硬接降档则书例回退，故只做标注：方向凶向入层功报告，消费方（财命/官命/
+    # 职业）各自的封顶/否决链不变。
+    yongshen_xiong: List[Dict] = []
+    if day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4:
+        for _tag, _rx in (
+            ('忌神制用神', detect_jishen_zhiyongshen(day_gan, gans, zhis, wa_list)),
+            ('用神被合绊', detect_heban_yongshen(day_gan, gans, zhis, wa_list)),
+            ('伤官见官', detect_shangguan_jianguan(day_gan, gans, zhis, wa_list)),
+            ('财生杀攻身', detect_caisheng_sha_gongshen(day_gan, gans, zhis, wa_list)),
+            ('官杀入墓', detect_guansha_rumu_xiong(day_gan, gans, zhis, None)),
+        ):
+            if _rx.get('detected'):
+                yongshen_xiong.append({
+                    'kind': _tag,
+                    'severity': _rx.get('severity') or 'normal',
+                    'reason': _rx.get('reason', ''),
+                })
+        if yongshen_xiong:
+            reasons.append(
+                '用神方向标注：' + '；'.join(
+                    f"{x['kind']}（{x['severity']}）" for x in yongshen_xiong)
+                + '——扶抑层凶向，与做功层口径并列标注，不降层功'
+                '（方向封顶/否决由财命/官命/职业各自消费）'
+            )
+
+    # ── 复合结构协同/矛盾判定（高级篇2.6，标注级，不加点不降层）──
+    # 「一局多功，非富即贵」：复合=两种及以上核心做功方式并存。成格=多功
+    # 协同方向一致（「功神协同方向一，富贵层次自昭昭」）；败格=做功相互矛盾
+    # （合官又伤官见官）、能量内耗（印星制食伤，又食伤生财）、功神被废神破坏
+    # （「若是功神相战克，平生忙碌事难调」）。复合之格局高低已体现于各做功
+    # 子项累加（书无独立加层法则），此处只出协同/矛盾标注，供叙事层消费。
+    fuhe: Dict = {'detected': False, 'types': [], 'synergy': False, 'conflicts': []}
+    _WT5 = [t for t in ('制用', '化用', '生用', '合用', '墓用') if t in wtypes]
+    if len(_WT5) >= 2:
+        fuhe['detected'] = True
+        fuhe['types'] = _WT5
+    _conflicts: List[str] = []
+    if day_wx and gans and zhis and len(gans) == 4:
+        # 矛盾一：合官（合用中含官）又伤官见官（N1 命中）——「合官又伤官见官」
+        if '合用' in _WT5 and any(x['kind'] == '伤官见官' for x in yongshen_xiong):
+            _conflicts.append('合官又伤官见官（意向与行为相悖）')
+        # 矛盾二：印制食伤做功 且 食伤生财做功并存——「能量内耗」
+        _yin_zhi_shi = False
+        _shi_sheng_cai = False
+        for wa in non_aux:
+            t = wa.get('type', '')
+            f, tp = wa.get('from_pos', ''), wa.get('to_pos', '')
+            if t in _ZHI_TYPES and f and tp:
+                fe = _elem_of(f, gans, zhis)
+                te = _elem_of(tp, gans, zhis)
+                if fe and te:
+                    fc = _shishen_cat(day_wx, _wx_of(fe))
+                    tc = _shishen_cat(day_wx, _wx_of(te))
+                    if fc == '印' and tc == '食伤':
+                        _yin_zhi_shi = True
+            if t == '生' and f and tp:
+                fe = _elem_of(f, gans, zhis)
+                te = _elem_of(tp, gans, zhis)
+                if fe and te:
+                    fc = _shishen_cat(day_wx, _wx_of(fe))
+                    tc = _shishen_cat(day_wx, _wx_of(te))
+                    if fc == '食伤' and tc == '财':
+                        _shi_sheng_cai = True
+        if _yin_zhi_shi and _shi_sheng_cai:
+            _conflicts.append('印制食伤又食伤生财（能量内耗）')
+    fuhe['conflicts'] = _conflicts
+    fuhe['synergy'] = bool(fuhe['detected'] and not _conflicts)
+    if fuhe['detected']:
+        reasons.append(
+            '复合结构：' + '/'.join(_WT5) + '并存'
+            + ('，方向一致协同（成格标注）' if fuhe['synergy']
+               else '，然有矛盾内耗：' + '；'.join(_conflicts) + '（败格标注）')
+            + '——高级篇2.6（标注级，不加点）'
+        )
+    elif _conflicts:
+        reasons.append('复合矛盾：' + '；'.join(_conflicts) + '——高级篇2.6（标注级）')
+
+    # ── 从格标注（D类细则·标注级）：strength/cong_ge 消费自 yongshen.classify_strength，
+    # 供领域层对账（财命/官命已各自消费从格豁免，本模块层数不因从格标签变动——
+    # 从格官杀有根不具正向意义（G0 口径）已由 guanming 正向结构门槛承担；
+    # 七杀当财在从格仍计——例八从弱叠七杀当财达三层为书例正面，不动）。──
+    _strength_gl = ''
+    if day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4:
+        try:
+            from mangpai.subjective.yongshen import classify_strength
+            _strength_gl = classify_strength(day_gan, gans, zhis)
+        except Exception:
+            _strength_gl = ''
+
     # ── 分数（层内连续刻画强弱）──
     score = _compute_score(level, raw_level, points, zg, gshen, fei, non_aux,
                            zhi_jing, penalty)
@@ -816,6 +977,13 @@ def analyze_gongliang(
         chain=chain_len, penalty=penalty, yuanshen_hit=yuanshen_hit,
         day_wx_ok=bool(day_wx), boundary=boundary, raw_level=raw_level,
     )
+    if yongshen_xiong:
+        result['yongshen_xiong'] = yongshen_xiong
+    if fuhe.get('detected') or fuhe.get('conflicts'):
+        result['fuhe'] = fuhe
+    if _strength_gl:
+        result['strength'] = _strength_gl
+        result['cong_ge'] = _strength_gl in ('从强', '从弱')
 
     # ── M5 双轨对账：gongliang.level（富贵量级）vs zuogong.work_level（做功效率）──
     # 两套体系并行（模块 docstring）：work_level 0-5 层看「做功成立/效率」，

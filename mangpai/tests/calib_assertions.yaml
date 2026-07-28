@@ -12,6 +12,8 @@ meta:
       小康 -> ⚠️, 富/巨富无凶向 -> ❌; 凶(因财致祸)=有凶向标记 ✅, tier=贫 ⚠️, 否则 ❌;
       正向(贫/小康/富/巨富)=tier等级差0 ✅ 差1 ⚠️ 差>=2 ❌, 有凶向标记直接 ❌,
       magnitude_absurd_if 命中富档则 ✅ 降 ⚠️。
+      P0-a 断语性质选轨: 破财/凶 且案例锚定运岁(流年事件) -> 评 tier/summary(含岁运delta);
+      其余(层级断语+未锚定运岁的破财/凶) -> 评 tier_static/summary_static(原局轨)。
     官命 direction: is_guanming 不符 ❌; 符 ✅; gold.level 差1 ⚠️ 差>=2 ❌;
       industry_contains 未命中主行业/summary 则 ✅ 降 ⚠️。
     应期 commit: conclusion 以「应期成立/真应期成立」开头=commit; 与 gold.commit 一致 ✅ 否则 ❌。
@@ -19,6 +21,7 @@ meta:
       (区间内 ✅ 出界1档 ⚠️ >=2档 ❌)。
     婚姻: quality 差/平/好 等级差0 ✅ 差1 ⚠️ 差2 ❌; gold.duohun 不符再降一档。
     职业: primary 命中 primary_in ✅; 命中 partial_in ⚠️; 空且 allow_empty ✅; 空 ⚠️; 其余 ❌。
+      （M2 增补：allow_empty 与 unemployed 桶同义——「允许空」即金标准认可无正当职业，命中亦 ✅）
     子息: has_zixi 与 gold 一致 ✅ 否则 ❌。
     回归定义: 判定比 baseline 差(✅->⚠️/❌, ⚠️->❌)即回归, runner 退出码 1。
 

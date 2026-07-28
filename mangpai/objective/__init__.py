@@ -26,6 +26,7 @@ from mangpai.objective.biqi import analyze_biqi
 from mangpai.objective.wood_type import analyze_wood_type
 from mangpai.objective.soil_type import analyze_soil
 from mangpai.objective.he_types import classify_he_types
+from mangpai.objective.zihe import detect_zihe
 from mangpai.objective.virtual_solid import analyze_virtual_solid
 from mangpai.objective.gongfei import classify_gongshen
 from mangpai.objective.gongshen import analyze_gongshen

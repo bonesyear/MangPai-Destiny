@@ -10,12 +10,13 @@ zuogong_confirm - 盲派做功引擎·做功成立确认层（subjective）
   生用：食伤泄秀（日干生出食神/伤官，食伤再生财或制杀方为做功）
   化用：杀印相生（官杀->印->日主链，化杀为印、化印为身方为做功）
   成势：三合局成势做功
-做功优先级链（盲派铁律，级联判定主做功）：
-  1. 日干合（合官/合财）-> 有则以合为主做功
-  2. 日干生（食伤泄秀）-> 有则以生出之食伤做功为主
-  2a. 化用（杀印相生）-> 纯杀印链命局以化杀为印做功为主（化用成局高层功量）
-  3. 弃干看支（日支的刑冲破害墓）
-  4. 日干支都不做功 -> 看禄/比劫
+做功优先级链（M9 声明式规则表 + A8 强度加权混合，旧串行链已重构）：
+  规则表（priority 升序）：1. 日干合（合官/合财，争合强度1/单合2）
+  2. 化用成局（杀印相生，坐下印2/月干印3） 3. 生用（食伤泄秀，2）
+  4. 弃干看支（日支刑冲破害墓合，被动1/主动2/穿制让位5）
+  解析器：优先级取首候选；低优先级强度超出在任者 2 则逆袭（化例三/制例三
+  锚例由强度自然复现）；无法强度化之旧语义（坐下印+争合、穿降级无候选）
+  保留硬性否决声明。5. 俱不做功 -> 看禄/比劫（fallback）。
 党势铁律（段氏）：须一方成党势、强方制弱方才算功。日柱所在方党羽数不足
   （孤身无党）者，其制用做功无力，降为辅助（auxiliary）。
 
@@ -604,8 +605,17 @@ def analyze_zuogong(
                     break
 
     # ── 做功优先级链：判定主做功（primary_work）──
-    primary_work: Optional[Dict] = None
-    primary_action: Optional[Dict] = None
+    # M9 声明式规则表 + A8 强度加权混合（旧串行 if-elif 链补丁堆叠已达天花板：
+    # 争合让位/穿让位/入墓让位/合制让位…）。每条规则声明 candidacy（候选条件）、
+    # strength（强度）、vetoes（硬性否决）；解析器按优先级取首候选，低优先级
+    # 候选强度超出在任者 _OVERRIDE_MARGIN（=2）则强度逆袭——串行链为主体、强度
+    # override 为缓冲的混合模型（非纯强度 MAX；纯 MAX 聚合历史回归多例已弃用）。
+    # 锚例映射：化例三（争合1 < 化用月干印3，强度逆袭）、制例三（日干合2 <
+    # 日支穿制5，强度逆袭）由强度解析自然复现；无法由强度表达的旧语义
+    # （坐下印化用(2)+争合(1) margin 不足、穿动作降级致弃干看支无候选）
+    # 保守保留硬性否决声明，行为与旧链全等。
+    _OVERRIDE_MARGIN = 2
+
     # 食伤合制（伤官合杀/食神合官）：非日干天干合中食伤一侧合官杀。食伤既用于
     # 合制，便不再以泄秀做生用--生用应让位于合用/制用（复例四 戊癸合伤官合杀，
     # 不应以辰藏戊制杀之生用夺主功；制例一 乙庚合食伤合官同理，主功在丑未冲制用）。
@@ -652,61 +662,129 @@ def analyze_zuogong(
     # （化例三中堂 己合甲争合，主功在月干丙印化甲杀之化用成局，非争合合用）。
     # 日干合两柱必为同气之争（日干仅合一干），故 he_actions>=2 即争合。
     _zheng_he = len(he_actions) >= 2
-    if he_actions and not _chuan_yields and not (_hua_chengju and _zheng_he):
-        primary_action = he_actions[0]
-        primary_work = {'type': '合用', 'path': '日干合（合财/合官）'}
-    elif _hua_chengju and not _chuan_yields:
-        # 化用成局做主功：印得令透干或坐下印贴身化杀为权（化杀为印、泄官杀生身，
-        # 段氏论为当官之命），为高层功量，优先于食伤泄秀之生用。命局为纯杀印链
-        # （detect 阶段已剔除有非印涉日支制用/墓用之命的化用，此处化用 in types 即
-        # 真化用）。日干合更贴身者仍居其前（化例三 日干合居首）。化用成局须印得力
-        # （月干印/坐下印）：时上印、月令藏印力弱不构成成局，不夺生用主功
-        # （避免误抢自坐禄/天干克 fallback 之命局主功）。
+    # 化用强度：月干印（司令透干）=3；坐下印（日支本气贴身）=2（供规则表消费）
+    _yin_wx_hua = next((wx for wx, prod in WX_SHENG.items() if prod == day_wx), '')
+    _hua_strength = 3 if (len(gans) >= 2 and GAN_WX.get(gans[1], '') == _yin_wx_hua) else 2
+    # 生用候选（旧链口径）：非辅助 + 未入墓 + 穿让位过滤。食伤泄秀之伤官/食神
+    # 若入墓（gan_entombed），泄秀之器受制无力泄秀，生用不当主功，让位予弃干
+    # 看支之制用（制例二 戊日伤官辛入墓，主功在日支寅克丑/戌之制用）。
+    _sheng_qualified = [
+        a for a in sheng_yong_actions
+        if not a.get('auxiliary')
+        and not a.get('gan_entombed')
+        and not (_chuan_yields and a.get('to_pos') == 'day_zhi')
+    ]
+    # 弃干看支候选：日支的刑冲破害墓合（含被动受制/合制）
+    _zhi_actions = [
+        wa for wa in work_actions
+        if not wa.get('auxiliary')
+        and (wa.get('from_pos', '').startswith('day_zhi')
+             or wa.get('to_pos', '').startswith('day_zhi'))
+        and wa.get('action') in ('冲', '克', '穿', '刑', '破', '墓用', '半成势', '合用')
+    ]
+    _active_zhi = [
+        wa for wa in _zhi_actions
+        if wa.get('from_pos', '').startswith('day_zhi')
+    ]
+
+    _ctx = {
+        'he_actions': he_actions, 'zheng_he': _zheng_he,
+        'hua_chengju': _hua_chengju, 'hua_strength': _hua_strength,
+        'chuan_yields': _chuan_yields, 'zhi_actions': _zhi_actions,
+        'has_shi_hezhi': _has_shi_hezhi, 'sheng_qualified': _sheng_qualified,
+        'active_zhi': _active_zhi,
+    }
+
+    def _cand_he(c):
+        if not c['he_actions']:
+            return None
+        return {'type': '合用', 'path': '日干合（合财/合官）',
+                'action': c['he_actions'][0],
+                'strength': 1 if c['zheng_he'] else 2}
+
+    def _cand_hua(c):
+        if not c['hua_chengju']:
+            return None
         hua_actions = [
             wa for wa in work_actions
             if wa.get('type') == '杀印相生' and not wa.get('auxiliary')
         ]
-        primary_action = hua_actions[0]
-        primary_work = {'type': '化用', 'path': '杀印相生（化杀为印·泄官杀生身）'}
-    elif ([a for a in sheng_yong_actions
-           if not a.get('auxiliary')
-           and not a.get('gan_entombed')
-           and not (_chuan_yields and a.get('to_pos') == 'day_zhi')]
-          and not _has_shi_hezhi):
-        # 食伤泄秀之伤官/食神若入墓（gan_entombed），泄秀之器受制无力泄秀，生用
-        # 不当主功，让位予弃干看支之制用（制例二 戊日伤官辛入墓，主功在日支寅克
-        # 丑/戌之制用，非辛泄秀之生用）。未入墓之食伤泄秀仍居其位（生例一/二/四）。
-        primary_action = [a for a in sheng_yong_actions
-                          if not a.get('auxiliary')
-                          and not a.get('gan_entombed')
-                          and not (_chuan_yields and a.get('to_pos') == 'day_zhi')][0]
-        primary_work = {'type': '生用', 'path': '日干生（食伤泄秀）'}
-    else:
-        # 弃干看支：日支的刑冲破害墓合（含被动受制/合制）
-        zhi_actions = [
-            wa for wa in work_actions
-            if not wa.get('auxiliary')
-            and (wa.get('from_pos', '').startswith('day_zhi')
-                 or wa.get('to_pos', '').startswith('day_zhi'))
-            and wa.get('action') in ('冲', '克', '穿', '刑', '破', '墓用', '半成势', '合用')
-        ]
-        if zhi_actions:
-            active_zhi = [
-                wa for wa in zhi_actions
-                if wa.get('from_pos', '').startswith('day_zhi')
+        return {'type': '化用', 'path': '杀印相生（化杀为印·泄官杀生身）',
+                'action': hua_actions[0], 'strength': c['hua_strength']}
+
+    def _cand_sheng(c):
+        if not c['sheng_qualified']:
+            return None
+        return {'type': '生用', 'path': '日干生（食伤泄秀）',
+                'action': c['sheng_qualified'][0], 'strength': 2}
+
+    def _cand_zhi(c):
+        if not c['zhi_actions']:
+            return None
+        pa = (c['active_zhi'] or c['zhi_actions'])[0]
+        _pa = pa.get('action')
+        if _pa == '墓用':
+            ptype, _path = '墓用', '弃干看支（日支墓用做功）'
+        elif _pa == '合用':
+            ptype, _path = '合用', '弃干看支（日支合用做功）'
+        else:
+            ptype, _path = '制用', '弃干看支（日支刑冲破害做功）'
+        strength = 5 if c['chuan_yields'] else (2 if c['active_zhi'] else 1)
+        return {'type': ptype, 'path': _path, 'action': pa, 'strength': strength}
+
+    # 声明式规则表（priority=表序）
+    _PRIMARY_RULES = [
+        {'name': '日干合', 'candidacy': _cand_he,
+         'vetoes': lambda c: (
+             (['坐下印化用(2)与争合(1)强度差不足逆袭，保守否决（旧链语义）']
+              if (c['hua_chengju'] and c['zheng_he'] and c['hua_strength'] <= 2) else [])
+             + (['日支穿制让位（穿动作已降级，弃干看支无候选）']
+                if (c['chuan_yields'] and not c['zhi_actions']) else []))},
+        {'name': '化用成局', 'candidacy': _cand_hua,
+         'vetoes': lambda c: (
+             ['日支穿制让位（穿动作已降级，弃干看支无候选）']
+             if (c['chuan_yields'] and not c['zhi_actions']) else [])},
+        {'name': '生用泄秀', 'candidacy': _cand_sheng,
+         'vetoes': lambda c: (
+             ['食伤合制让位（食伤已用于合制，不做泄秀主功）']
+             if c['has_shi_hezhi'] else [])},
+        {'name': '弃干看支', 'candidacy': _cand_zhi, 'vetoes': lambda c: []},
+    ]
+
+    _candidates: List[Dict] = []
+    for _rule in _PRIMARY_RULES:
+        _c = _rule['candidacy'](_ctx)
+        if _c is None:
+            continue
+        _v = _rule['vetoes'](_ctx)
+        _candidates.append({'rule': _rule['name'], 'vetoed': bool(_v),
+                            'veto_reasons': _v, **_c})
+
+    # A8 混合解析：优先级取首候选；低优先级强度超出在任者 _OVERRIDE_MARGIN 则逆袭
+    primary_work: Optional[Dict] = None
+    primary_action: Optional[Dict] = None
+    _override_fired = False
+    _alive = [c for c in _candidates if not c['vetoed']]
+    if _alive:
+        _winner = _alive[0]
+        for _ch in _alive[1:]:
+            if _ch['strength'] >= _winner['strength'] + _OVERRIDE_MARGIN:
+                _winner = _ch
+                _override_fired = True
+        primary_work = {'type': _winner['type'], 'path': _winner['path']}
+        primary_action = _winner['action']
+        if _candidates:
+            primary_work['candidates'] = [
+                {'rule': c['rule'], 'type': c['type'], 'strength': c['strength'],
+                 'vetoed': c['vetoed'], 'veto_reasons': c['veto_reasons']}
+                for c in _candidates
             ]
-            primary_action = (active_zhi or zhi_actions)[0]
-            _pa_action = primary_action.get('action')
-            if _pa_action == '墓用':
-                ptype = '墓用'
-                _path = '弃干看支（日支墓用做功）'
-            elif _pa_action == '合用':
-                ptype = '合用'
-                _path = '弃干看支（日支合用做功）'
-            else:
-                ptype = '制用'
-                _path = '弃干看支（日支刑冲破害做功）'
-            primary_work = {'type': ptype, 'path': _path}
+            primary_work['resolution'] = {
+                'winner_rule': _winner['rule'],
+                'override_fired': _override_fired,
+                'margin': _OVERRIDE_MARGIN,
+            }
+
     if primary_action is None:
         # 日干支俱不做功 -> 看禄/比劫：查日干禄位是否在主位（日支/时支）。
         # 段氏：禄在主位（自坐禄/时禄）为禄做功；禄在宾位则无主位之禄可凭。

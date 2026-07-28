@@ -27,6 +27,7 @@ from mangpai.objective import (
     analyze_shenshu,
     safe_compute_jiaoyun,
     get_gan_xiang, get_zhi_xiang, get_shishen_xiang, get_gongwei_xiang,
+    detect_zihe,
 )
 from mangpai.objective.bazi_calc import calc_bazi_full
 from mangpai.objective.zuogong_detect import detect_relations
@@ -140,7 +141,16 @@ class MangpaiEngine:
 
         def _pair(entry: Any) -> Optional[Dict[str, str]]:
             gz = entry.get('gz', '') if isinstance(entry, dict) else ''
-            return {'gan': gz[0], 'zhi': gz[1]} if len(gz) >= 2 else None
+            if len(gz) < 2:
+                return None
+            pair: Dict[str, Any] = {'gan': gz[0], 'zhi': gz[1]}
+            # K5：透传起讫年龄（liunian 分看/统看定位大运第几年用）；
+            # 旧消费方只读 gan/zhi，附加键不改变其行为
+            if isinstance(entry, dict):
+                for k in ('start_age', 'end_age'):
+                    if entry.get(k) is not None:
+                        pair[k] = entry[k]
+            return pair
 
         birth_year = self.input_data.get('year')
         age = None
@@ -290,6 +300,12 @@ class MangpaiEngine:
         )
         result['he_types'] = he_val or {'he_types': []}
 
+        # G9 天地合/自合柱检测（48期；柱内干支五合，非柱间做功，
+        # yongshen 从格/R1b、caiming 财绊/日主合财、guanming 康熙型消费）
+        result['zihe'] = self._safe_compute(
+            'zihe', detect_zihe, self.gans, self.zhis,
+        ) or {}
+
         result['virtual_solid'] = self._safe_compute(
             'virtual_solid', analyze_virtual_solid,
             p.day_gan, p.day_zhi,
@@ -387,6 +403,8 @@ class MangpaiEngine:
                     current_dayun=current_dy,
                     natal_fei_shen=fei_shen,
                     kong_wang=self.kong_wang,
+                    gender=self.input_data.get('gender'),
+                    birth_year=self.input_data.get('year'),
                 ) or {}
 
         # 交运时间计算（用年柱纳音五行定交运，大运序列从月柱起）
@@ -497,6 +515,7 @@ class MangpaiEngine:
             relations=relations, gongliang_result=gl,
             shensha_result=result.get('shensha'),
             yunfan_result=yunfan_slice,
+            kong_wang=self.kong_wang,
         ) or {}
 
         result['hunyin'] = self._safe_compute(
@@ -542,6 +561,7 @@ class MangpaiEngine:
             relations=relations,
             shensha_result=result.get('shensha'),
             yunfan_result=yunfan_slice,
+            caiming_result=result.get('caiming'),  # M2 基础职业类目消费财命tier/取财法
         ) or {}
 
         result['gongmen_wuzhi'] = self._safe_compute(

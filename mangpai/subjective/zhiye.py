@@ -37,6 +37,14 @@ zhiye - 盲派职业象法·主观层（subjective）
 已知争议：职业象法为高度解释性归纳（类象+组合启发式，非精确分类器）；多象定一象
           的阈值各师有微调；商人象最宽，须结合五行行业细分。
 置信度：中
+
+M2 基础职业类目（七桶未成象时的第二梯队，段氏《中级》取财方法·体力取财）：
+  「体力取财做功之神应是比肩、劫财与禄神」，做功效率低者「八亿的农民与民工
+  都在这一阶层」——贫/小康 + 功神含比劫（合/冲/穿两端、克/刑/破制方）或
+  禄神当财 + 无工薪/经营/风险路径 -> laborer（农民/工人·体力劳动者，
+  田土参与做功提示农、金参与提示工）；严重破财凶向（比劫夺财 severe）或
+  贫而全局无做功 -> unemployed（无业）。七桶最高分 < 阈值时不再硬塞，
+  输出「未分类」+ 最高分桶名作提示（hint），fallback 升格为合法第一输出。
 """
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -152,6 +160,11 @@ def _ensure_relations(day_gan, gans, zhis, relations):
 def _pos_idx(pos: str) -> int:
     k = pos.split('_')[0]
     return PILLAR_KEYS.index(k) if k in PILLAR_KEYS else -1
+
+
+def _is_zhu_pos(pos: str) -> bool:
+    """主位（日/时柱）判定。"""
+    return pos.split('_')[0] in ('day', 'hour') if pos else False
 
 
 def _action_between_cats(
@@ -312,11 +325,17 @@ def _score_doctor(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
 def _score_teacher(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     score = 0
     ev: List[str] = []
+    # 木火通明（压低共存加分）：段氏口径为「甲乙见丙丁」（天干木火相见）+2；
+    # 仅地支木火共存为弱信号 +1（旧版干支统算 +2，木≥1火≥1 即中，过宽）。
+    gan_wx = [GAN_WX.get(g, '') for g in gans if g]
     cnt = _wx_count(day_gan, gans, zhis)
-    # 木火通明
-    if cnt.get('木', 0) >= 1 and cnt.get('火', 0) >= 1:
+    gan_muhuo = ('木' in gan_wx) and ('火' in gan_wx)
+    if gan_muhuo:
         score += 2
-        ev.append('木火通明（文象）')
+        ev.append('木火通明（甲乙见丙丁，文象）')
+    elif cnt.get('木', 0) >= 1 and cnt.get('火', 0) >= 1:
+        score += 1
+        ev.append('地支木火共存（文象弱信号）')
     # 食伤在门户（时柱）
     if '食伤' in _pillar_cats(day_gan, gans[3], zhis[3]):
         score += 2
@@ -356,16 +375,16 @@ def _score_lawyer(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     if has_jin:
         score += 2 if combo else 1
         ev.append(f'申酉金/辛金（律令法律{"，配对抗组合" if combo else "，弱信号"}）')
-    # 伤官制官/伤官见官
+    # 伤官制官（实克动作，辩护对抗）；共存「伤官见官」不单独加分
+    # （压低共存加分：伤官见官无动作仅为两象并见，段氏取象须做功）
     if _action_between_cats(wa, day_gan, gans, zhis, '食伤', '官杀', {'克'}):
         score += 2
         ev.append('伤官制官（辩护对抗）')
-    elif _has_cat(day_gan, gans, zhis, '食伤') and _has_cat(day_gan, gans, zhis, '官杀'):
-        score += 1
-        ev.append('伤官见官')
-    # 食神制官
+    # 食神制官：食神透干 + 食伤官杀间实有制/合动作（条文制规则）；
+    # 旧版共存即 +1（任一食神干+有官杀），过宽，压低为须做功
     if any(_compute_shishen(day_gan, g) == '食神' for g in gans if g) and \
-       _has_cat(day_gan, gans, zhis, '官杀'):
+       _action_between_cats(wa, day_gan, gans, zhis, '食伤', '官杀',
+                            {'克', '天干合', '地支合'}):
         score += 1
         ev.append('食神制官（条文制规则）')
     # 卯酉冲/卯午破（依律破例，律师 distinctive）
@@ -385,30 +404,107 @@ def _score_lawyer(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
 
 
 def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
+    """商人/经营象（重构：真实做功信号替换共现信号，上限 5→9，阈值 6 可达）。
+
+    旧版全为 co-occurrence（_has_cat 存在即加分），上限 5 < _MIN_SCORE_THRESHOLD=6，
+    merchant 永不能独力成象。重构后只认做功（非辅助动作两端涉财/食伤-财联动/
+    主位合制宾财），共现仅留门户与五行行业辅证：
+      财星入局做功 +2 / 主位合制宾财 +2 / 食伤生财做功 +2 /
+      财印门户 +1 / 官杀当财被制 +1 / 冲财做功（贸易运输）+1 —— 上限 9。
+    """
     score = 0
     ev: List[str] = []
-    # 财星做功
-    if _has_cat(day_gan, gans, zhis, '财'):
-        score += 1
-        ev.append('财星做功')
-    # 财印门户（开店）
+    has_cai = _has_cat(day_gan, gans, zhis, '财')
+    has_shishang = _has_cat(day_gan, gans, zhis, '食伤')
+    non_aux = [a for a in wa if not a.get('auxiliary')]
+
+    def _end_cats(a):
+        fi, ti = _pos_idx(a.get('from_pos', '')), _pos_idx(a.get('to_pos', ''))
+        fa = _pillar_cats(day_gan, gans[fi], zhis[fi]) if fi >= 0 else set()
+        ta = _pillar_cats(day_gan, gans[ti], zhis[ti]) if ti >= 0 else set()
+        return fi, ti, fa, ta
+
+    def _is_duocai_end(pos: str) -> bool:
+        """夺财比劫端：非日干的比劫星（日干本身克财=「我克者财」得财，非夺）。"""
+        i = _pos_idx(pos)
+        if i < 0:
+            return False
+        if pos.endswith('_gan') and PILLAR_KEYS[i] == 'day':
+            return False  # 日干本身
+        return '比劫' in _pillar_cats(day_gan, gans[i], zhis[i])
+
+    def _is_duocai(a) -> bool:
+        """比劫夺财/争财动作（一端夺财比劫、另一端财）——段氏「制财得财」以
+        功神非比劫为前提，夺财做功非经营取财，不入商人象（乞丐/清家荡产之
+        子冲午类动作以此排除）。"""
+        fi, ti, fa, ta = _end_cats(a)
+        if fi < 0 or ti < 0:
+            return False
+        if _is_duocai_end(a.get('from_pos', '')) and '财' in ta:
+            return True
+        if _is_duocai_end(a.get('to_pos', '')) and '财' in fa:
+            return True
+        return False
+
+    # 1. 财星入局做功（非辅助 合/制 动作两端任一柱含财，夺财动作除外）+2——经营之本
+    cai_work = False
+    chong_cai = False  # 冲且涉财（贸易运输）
+    for a in non_aux:
+        t = a.get('type', '')
+        if t not in _HE_TYPES and t not in _ZHI_TYPES:
+            continue
+        if _is_duocai(a):
+            continue
+        fi, ti, fa, ta = _end_cats(a)
+        if '财' in fa or '财' in ta:
+            cai_work = True
+            if t == '冲':
+                chong_cai = True
+    if cai_work:
+        score += 2
+        ev.append('财星入局做功（经营之本）')
+    # 2. 主位合财/制财做功 +2——段氏「财星明现 + 合财/制财做功，商人经营取财」
+    he_or_zhi_cai = False
+    for a in non_aux:
+        t = a.get('type', '')
+        if _is_duocai(a):
+            continue
+        fi, ti, fa, ta = _end_cats(a)
+        if fi < 0 or ti < 0:
+            continue
+        from_pos, to_pos = a.get('from_pos', ''), a.get('to_pos', '')
+        if t in _ZHI_TYPES and '财' in ta and _is_zhu_pos(from_pos) and not _is_zhu_pos(to_pos):
+            he_or_zhi_cai = True  # 主制宾财
+            break
+        if t in _HE_TYPES:
+            if ('财' in fa or '财' in ta) and (_is_zhu_pos(from_pos) or _is_zhu_pos(to_pos)):
+                he_or_zhi_cai = True  # 主位合财（合得他人之财/日主合财）
+                break
+    if he_or_zhi_cai:
+        score += 2
+        ev.append('主位合财/制财做功（商人经营取财）')
+    # 3. 食伤生财做功 +2——食伤柱与财柱联动，或生用「食伤」动作且财明现（贸易/生产）
+    ss_cai = bool(_action_between_cats(non_aux, day_gan, gans, zhis, '食伤', '财',
+                                       _HE_TYPES | _ZHI_TYPES))
+    if not ss_cai and has_cai and has_shishang:
+        ss_cai = any(a.get('type') == '食伤' for a in non_aux)
+    if ss_cai:
+        score += 2
+        ev.append('食伤生财做功（贸易/生产）')
+    # 4. 财印门户（开店，结构象保留）+1
     portal_cats = _pillar_cats(day_gan, gans[3], zhis[3])
     if '财' in portal_cats or '印' in portal_cats:
         score += 1
         ev.append('财/印在时柱门户（开店）')
-    # 食伤生财
-    if _has_cat(day_gan, gans, zhis, '食伤') and _has_cat(day_gan, gans, zhis, '财'):
-        score += 1
-        ev.append('食伤生财（贸易/生产）')
-    # 相冲做功（运输）
-    if any(a.get('type') == '冲' for a in wa):
-        score += 1
-        ev.append('相冲做功（贸易运输）')
-    # 官杀当财被制
+    # 5. 官杀当财被制（大生意）+1
     if _has_cat(day_gan, gans, zhis, '官杀') and \
-       _action_between_cats(wa, day_gan, gans, zhis, '官杀', '食伤', {'克'}):
+       _action_between_cats(non_aux, day_gan, gans, zhis, '官杀', '食伤', {'克'}):
         score += 1
         ev.append('官杀当财被制（大生意）')
+    # 6. 冲财做功（贸易运输）+1
+    if chong_cai:
+        score += 1
+        ev.append('冲财做功（贸易运输）')
     # 五行行业（商人行业细分辅证，不作独立加分——金水既可会计数字亦可化工，
     # 须由其他商人信号定位）
     cnt = _wx_count(day_gan, gans, zhis)
@@ -498,6 +594,115 @@ _CAREER_LABELS = {
     'performer': '演艺/演员',
 }
 
+# M2 基础职业类目（七桶未成象时的第二梯队，段氏《中级》体力取财）
+_BASE_CAREER_LABELS = {
+    'laborer': '农民/工人·体力劳动者',
+    'unemployed': '无业',
+}
+
+_HE_TYPES: Set[str] = {'天干合', '地支合', '暗合', '半合'}
+_ZHI_TYPES: Set[str] = {'冲', '克', '穿', '刑', '破'}
+# 田土（农）/ 金机器（工）细分提示
+_TU_ZHIS: Set[str] = {'丑', '辰', '未', '戌'}
+_JIN_ZHIS: Set[str] = {'申', '酉'}
+
+
+def _classify_base_career(
+    day_gan: str,
+    gans: List[str],
+    zhis: List[str],
+    wa: List[Dict],
+    caiming_result: Optional[Dict],
+    direction: Optional[Dict],
+) -> Dict:
+    """基础职业类目判定（七桶未成象时的第二梯队）。
+
+    段氏《中级》取财方法·体力取财：「体力取财做功之神应是比肩、劫财与禄神」，
+    做功效率低者属「八亿的农民与民工」阶层。判定：
+      - 无业（unemployed）：清家荡产（比劫夺财 severe 且 tier 贫）；或贫而全局
+        无做功；或用神被坏+贫且无体力做功（段氏第50期「用神被坏则是被迫离职
+        下岗」）；
+      - 体力劳动者（laborer）：财命贫/小康 + 比劫参与做功（各类动作两端皆算
+        「参与」，《中级》「官合劫财为制劫财…劫财参与做功，所以是体力劳动者」）
+        或禄神当财，且无工薪/经营/风险路径、非反局。细分提示：田土（丑辰未戌）
+        参与做功→农，金（申酉）参与→工（机器）。
+
+    Returns:
+        {} 或 {'bucket': 'laborer'|'unemployed', 'hint': '农'|'工'|'',
+               'evidence': [str]}
+    """
+    ds = direction or {}
+    cm = caiming_result or {}
+    tier = cm.get('tier', '')
+    views = (cm.get('caifu_view') or {}).get('views') or []
+    methods = (cm.get('qucai_method') or {}).get('methods') or []
+    non_aux = [a for a in wa if not a.get('auxiliary')]
+
+    # ── 无业（unemployed）──
+    # 清家荡产（比劫夺财 severe 且tier贫=荡产至贫，乞丐口径）或贫而全局无做功；
+    # 用神被坏+贫（段氏第50期「下岗或辞职者都是月令之官印出了问题…用神被坏则
+    # 是被迫离职下岗」）且无体力做功者，判无业（有体力活干者落 laborer）。
+    pocai_severe_pin = ds.get('pocai_severe') and tier == '贫'
+    if pocai_severe_pin:
+        return {'bucket': 'unemployed', 'hint': '',
+                'evidence': ['严重破财凶向且荡产至贫（' + '；'.join(ds.get('reasons') or [])[:40]
+                             + '），无业']}
+
+    # 比劫参与做功（段氏：体力取财做功之神应是比肩、劫财与禄神——「参与」含被合制，
+    # 《中级》「官合劫财为制劫财…劫财参与做功，所以是体力劳动者」，故各类动作两端皆算）
+    bijiao_work = False
+    work_zhis: Set[str] = set()
+    for a in non_aux:
+        t = a.get('type', '')
+        if t not in _HE_TYPES and t not in _ZHI_TYPES:
+            continue
+        for pos in (a.get('from_pos', ''), a.get('to_pos', '')):
+            i = _pos_idx(pos)
+            if i < 0:
+                continue
+            work_zhis.add(zhis[i])
+            if '比劫' in _pillar_cats(day_gan, gans[i], zhis[i]):
+                bijiao_work = True
+
+    if tier == '贫' and not non_aux:
+        return {'bucket': 'unemployed', 'hint': '',
+                'evidence': ['财命贫且全局无做功，无业']}
+    if (tier == '贫' and not bijiao_work and ds.get('yongshen_xiong')):
+        return {'bucket': 'unemployed', 'hint': '',
+                'evidence': ['用神被坏+贫（段氏：用神被坏则被迫离职下岗），无业']}
+
+    # ── 体力劳动者（农/工）──
+    # 反局命局为非常态（格局破），不适用正常职业取象，回未分类。
+    if ds.get('fanju'):
+        return {}
+    if tier not in ('贫', '小康'):
+        return {}
+    if {'工薪', '经营', '风险'} & set(methods):
+        return {}
+    lu_tili = '禄神当财' in views
+    # 富屋贫人（段氏高级篇「身弱财旺…反为财所累」，《中级》「富屋贫人，干体力活
+    # 维生，实际是个宾馆服务员」）：身弱扶抑 + 财多（≥2位明现）+ tier 贫 -> 体力。
+    fuwu_pinren = False
+    if tier == '贫':
+        try:
+            from mangpai.subjective.yongshen import classify_strength
+            if str(classify_strength(day_gan, gans, zhis)) == '身弱':
+                fuwu_pinren = (cm.get('caifu_view') or {}).get('cai_count', 0) >= 2
+        except Exception:
+            pass
+    if not (bijiao_work or lu_tili or fuwu_pinren):
+        return {}
+    hint = '农' if work_zhis & _TU_ZHIS else ('工' if work_zhis & _JIN_ZHIS else '农')
+    ev: List[str] = []
+    if bijiao_work:
+        ev.append('功神含比劫（段氏：体力取财做功之神应是比肩、劫财与禄神）')
+    if lu_tili:
+        ev.append('禄神当财，身体力行体力取财')
+    if fuwu_pinren:
+        ev.append('身弱财旺，富屋贫人（段氏：干体力活维生）')
+    ev.append(f'财命{tier}，做功效率低（农民与民工阶层）')
+    return {'bucket': 'laborer', 'hint': hint, 'evidence': ev}
+
 
 def classify_zhiye(
     day_gan: str = '',
@@ -507,6 +712,7 @@ def classify_zhiye(
     relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
+    caiming_result: Optional[Dict] = None,
 ) -> Dict:
     """职业象法七类打分定位（多象定一象）。
 
@@ -517,12 +723,16 @@ def classify_zhiye(
     行业象，如辛酉→法律/外科、戊戌→教师、甲申→交警/司法）作辅证。
     yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1），
       军警 gating 的凶向信号源之一（与原局反局同链）。
+    caiming_result: 财命综合结果（M2 基础职业类目消费 tier/取财法/财看法；
+      缺省时于七桶未成象的 fallback 区自调 analyze_caiming）。
 
     Returns:
         {
           'scores': {career: int}, 'evidence': {career: [str]},
           'liushi_hints': [str], 'xiangfa_corroborate': [str],
           'primary': str, 'primary_label': str, 'desc': str,
+          'hint_bucket': str, 'hint_label': str,  # 未分类时的最高分桶提示
+          'base_career': {...},                    # M2 基础职业类目命中（laborer/unemployed）
         }
     """
     if is_pillars(day_gan):
@@ -641,22 +851,50 @@ def classify_zhiye(
     except Exception:
         pass
 
-    # 军警/武职 gating（P0 B/C）：军警为官命之武职，反局/比劫夺财破财等凶向
-    # 命中者不得判武职（坐牢的、破财的、乞丐不开军警车）。须置于象法互证加权
-    # 之后，方不被全阳/夹官等再加分覆盖。凶向信号缺省自调（laoyu 过火不计入）。
+    # 军警/武职 gating（P0 B/C + M1）：军警为官命之武职，反局/比劫夺财破财
+    # /忌神制用神(R2)/用神被合绊(R3) 等凶向命中者不得判武职（坐牢的、破财的、
+    # 乞丐不开军警车）。须置于象法互证加权之后，方不被全阳/夹官等再加分覆盖。
+    # 凶向信号缺省自调（laoyu 过火不计入）。
     # 岁运反局（A1）经 yunfan_result 透传，与原局反局同链 gating。
+    # M2：ds 提前算好，同时供基础职业类目（无业/体力劳动者）消费。
     try:
         ds = assess_direction_signals(
             day_gan, gans, zhis, relations=rel,
             yunfan_result=yunfan_result,
         )
-        if ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai'):
-            if scores.get('military', 0) > 0:
-                gate = '军警gating（凶向：' + '；'.join(ds.get('reasons') or []) + '）'
-                scores['military'] = 0
-                evidence['military'] = [gate]
     except Exception:
-        pass
+        ds = {}
+    if ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai') \
+            or ds.get('yongshen_xiong') or ds.get('mingju_xiong'):
+        if scores.get('military', 0) > 0:
+            gate = '军警gating（凶向：' + '；'.join(ds.get('reasons') or []) + '）'
+            scores['military'] = 0
+            evidence['military'] = [gate]
+    # merchant gating（P0-c）：严重破财凶向（比劫夺财 severe=清家荡产/乞丐级）
+    # 命局不以经营成象——其「财做功」为夺财交战而非经营取财（段氏制财得财以
+    # 功神非比劫为前提）；一般破财（normal）之经商者不在此限（破财的商人仍是商人）。
+    if ds.get('pocai_severe') and scores.get('merchant', 0) > 0:
+        gate = 'merchant gating（严重破财凶向不以经营成象：' \
+            + '；'.join(ds.get('reasons') or []) + '）'
+        scores['merchant'] = 0
+        evidence['merchant'] = [gate]
+    # 富屋贫人 gating（P0-c）：身弱 + 财明现≥2位 + 无印生身任财——段氏「身弱
+    # 财旺：非但不能得财，反为财所累…富屋贫人，干体力活维生」，此类命合财/制财
+    # 做功为财所累之象而非经营之能，不以商人成象（有印生身任财者不在此限）。
+    if scores.get('merchant', 0) > 0:
+        try:
+            from mangpai.subjective.yongshen import classify_strength as _cs
+            _strength = str(_cs(day_gan, gans, zhis))
+        except Exception:
+            _strength = ''
+        _cai_cnt = sum(1 for i in range(4)
+                       if '财' in _pillar_cats(day_gan, gans[i], zhis[i]))
+        _has_yin = _has_cat(day_gan, gans, zhis, '印')
+        if _strength == '身弱' and _cai_cnt >= 2 and not _has_yin:
+            gate = (f'merchant gating（身弱财旺{_cai_cnt}位无印任财，富屋贫人——'
+                    f'段氏：干体力活维生，不为商）')
+            scores['merchant'] = 0
+            evidence['merchant'] = [gate]
 
     # 多象定一象：取最高分
     primary = max(scores, key=lambda k: scores[k]) if scores else ''
@@ -664,15 +902,45 @@ def classify_zhiye(
     # 最低分阈值：最高分低于阈值时各桶均为弱信号共现、不足成象，fallback
     # 「无明确职业倾向」而非硬塞最像的一桶（乞丐/坐牢/破财等非标命局）。
     fallback_no_clear = bool(scores) and top_score < _MIN_SCORE_THRESHOLD
+    hint_bucket = primary if (fallback_no_clear and primary) else ''
+    hint_label = _CAREER_LABELS.get(hint_bucket, '')
+    base_career: Dict = {}
     if fallback_no_clear or top_score == 0:
         primary = ''
-    primary_label = '无明确职业倾向' if fallback_no_clear else _CAREER_LABELS.get(primary, '')
+        # M2 基础职业类目：行业七桶未成象时，按取财方式+效率落 体力劳动者/无业
+        # （段氏《中级》体力取财=比劫/禄神做功+效率低=农民民工阶层）。
+        # fallback 由「无明确职业倾向」升格为合法第一输出：基础类目命中给类目，
+        # 未命中给「未分类」+ 最高分桶提示（hint），不再硬塞七桶。
+        cm = caiming_result
+        if cm is None:
+            try:
+                from mangpai.subjective.caiming import analyze_caiming
+                cm = analyze_caiming(day_gan, gans, zhis, relations=rel,
+                                     shensha_result=ss, yunfan_result=yunfan_result)
+            except Exception:
+                cm = {}
+        base_career = _classify_base_career(day_gan, gans, zhis, wa, cm, ds)
+        if base_career:
+            primary = base_career['bucket']
+            hint_bucket, hint_label = '', ''  # 已落基础类目，不再给七桶提示
+
+    if primary in _BASE_CAREER_LABELS:
+        primary_label = _BASE_CAREER_LABELS[primary]
+        if base_career.get('hint'):
+            primary_label += f'（象提示：偏{base_career["hint"]}）'
+    elif fallback_no_clear or top_score == 0:
+        primary_label = '未分类'
+    else:
+        primary_label = _CAREER_LABELS.get(primary, '')
 
     desc = f'职业定位：{primary_label or "未明"}'
-    if primary and evidence.get(primary):
+    if primary and primary in _BASE_CAREER_LABELS and base_career.get('evidence'):
+        desc += '（' + '、'.join(base_career['evidence'][:3]) + '）'
+    elif primary and evidence.get(primary):
         desc += '（' + '、'.join(evidence.get(primary, [])[:3]) + '）'
     elif fallback_no_clear:
-        desc += f'（各桶最高分{top_score}<{_MIN_SCORE_THRESHOLD}，弱信号共现不足成象）'
+        desc += (f'（各桶最高分{top_score}<{_MIN_SCORE_THRESHOLD}，弱信号共现不足成象'
+                 + (f'；倾向参考：{hint_label}' if hint_label else '') + '）')
 
     return {
         'scores': scores,
@@ -681,6 +949,9 @@ def classify_zhiye(
         'xiangfa_corroborate': corroborate,
         'primary': primary,
         'primary_label': primary_label,
+        'hint_bucket': hint_bucket,      # 未分类时的最高分桶提示（M2）
+        'hint_label': hint_label,
+        'base_career': base_career,      # M2 基础职业类目命中（laborer/unemployed）
         'fallback_no_clear': fallback_no_clear,
         'min_score_threshold': _MIN_SCORE_THRESHOLD,
         'desc': desc,
@@ -695,16 +966,19 @@ def analyze_zhiye(
     relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
+    caiming_result: Optional[Dict] = None,
 ) -> Dict:
     """职业象法综合（analyze_zhiye = classify_zhiye 的对外别名）。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
     shensha_result: engine 透传的神煞结果，优先用传入值、缺省才就地重算。
     yunfan_result: 「当前运岁」反局切片（A1），军警 gating 凶向信号源。
+    caiming_result: 财命综合结果（M2 基础职业类目消费），缺省 fallback 区自调。
     """
     return classify_zhiye(day_gan, gans, zhis, relations=relations,
                           shensha_result=shensha_result,
-                          yunfan_result=yunfan_result)
+                          yunfan_result=yunfan_result,
+                          caiming_result=caiming_result)
 
 
 __all__ = [

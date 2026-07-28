@@ -211,3 +211,35 @@ class TestBoundaryAnnotation:
     def test_boundary_appears_in_reasons(self):
         r = _run(YUEFEI)
         assert any('边界区' in x and 'L2/L3边界' in x for x in r['reasons'])
+
+
+class TestYongshenXiongAnnotation:
+    """根因A（用神方向入层功）：锚案已由 R1 比劫夺财封顶缓解（第9期 L1+贫），
+    R2/R3 扶抑层凶向与做功层口径冲突（岳飞印制伤食=贵格仍命中 R2 severe），
+    故只做标注级接入——yongshen_xiong 字段入报告，层数不降。"""
+
+    QIGAI = (['壬', '癸', '壬', '丙'], ['子', '卯', '子', '午'])   # 第9期乞丐
+
+    def test_qigai_stays_l1_via_r1_cap(self):
+        # 根因A锚案：R1 比劫夺财 severe 封顶 L1（非历史 bug 的 L4 极富极贵）
+        g, z = self.QIGAI
+        r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
+        assert r['level'] == 1
+        assert r.get('pocai_signal') or any('比劫夺财' in x for x in r['reasons'])
+
+    def test_yuefei_level_not_capped_by_r2(self):
+        # 岳飞 R2 印夺食 severe 命中（扶抑口径），但印制伤食=贵格做功，
+        # 层功不降（L3 保持），仅标注
+        r = _run(YUEFEI)
+        assert r['level'] == 3
+        kinds = [x['kind'] for x in r.get('yongshen_xiong', [])]
+        assert '忌神制用神' in kinds
+
+    def test_annotation_absent_when_no_xiong(self):
+        r = _run(LIJIACHENG)
+        assert not r.get('yongshen_xiong')
+
+    def test_annotation_fields(self):
+        r = _run(YUEFEI)
+        x = r['yongshen_xiong'][0]
+        assert set(x) >= {'kind', 'severity', 'reason'}

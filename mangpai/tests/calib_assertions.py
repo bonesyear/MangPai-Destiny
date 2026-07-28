@@ -70,6 +70,7 @@ def run_case(case):
         'zy': analyze_zhiye(dg, gans, zhis, yunfan_result=yf_slice),
         'lq': analyze_liuqin(dg, gans, zhis, gender=gender),
         'yq': None,
+        'has_yunsui': bool(dayun or liunian),  # P0-a：财命断语性质判别用
     }
     if dayun or liunian:
         out['yq'] = infer_comprehensive_yingqi(
@@ -86,11 +87,20 @@ _XIONG_MARKERS = ['破财', '比劫夺财', '坐牢', '牢狱', '官非', '下�
 _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
 
 
-def judge_caiming(gold, cm):
-    tier = cm.get('tier', '')
-    summary = str(cm.get('summary', ''))
-    has_xiong = any(m in summary for m in _XIONG_MARKERS)
+def judge_caiming(gold, cm, has_yunsui=False):
+    # P0-a 断语性质选轨：破财/凶 且案例锚定运岁（金标准多为「戊辰年破财」式
+    # 流年事件）-> 评含 delta 字段（tier/summary）；其余（层级断语 + 未锚定
+    # 运岁的破财/凶=原局凶向断语）-> 评原局轨（tier_static/summary_static），
+    # 岁运反局 artifact 不再压原局档位。
     d = gold['direction']
+    is_event = d in ('破财', '凶') and has_yunsui
+    if is_event:
+        tier = cm.get('tier', '')
+        summary = str(cm.get('summary', ''))
+    else:
+        tier = cm.get('tier_static') or cm.get('tier', '')
+        summary = str(cm.get('summary_static') or cm.get('summary', ''))
+    has_xiong = any(m in summary for m in _XIONG_MARKERS)
     if d == '破财':
         if has_xiong or tier == '贫':
             return '✅'
@@ -180,6 +190,10 @@ def judge_zhiye(gold, zy):
         return '⚠️'
     if not p:
         return '✅' if gold.get('allow_empty') else '⚠️'
+    # M2：gold.allow_empty（无业/无明确职业）与 unemployed 桶同义——
+    # 「允许空」即金标准认可「无正当职业」，引擎实体化为无业桶应同等计 ✅。
+    if p == 'unemployed' and gold.get('allow_empty'):
+        return '✅'
     return '❌'
 
 
@@ -191,7 +205,8 @@ def judge_zixi(gold, lq):
 
 
 _JUDGES = {
-    '财命': lambda gold, out: judge_caiming(gold, out['cm']),
+    '财命': lambda gold, out: judge_caiming(gold, out['cm'],
+                                            has_yunsui=out.get('has_yunsui', False)),
     '官命': lambda gold, out: judge_guanming(gold, out['gm']),
     '应期': lambda gold, out: judge_yingqi(gold, out['yq']),
     '层功': lambda gold, out: judge_gongliang(gold, out['gl']),

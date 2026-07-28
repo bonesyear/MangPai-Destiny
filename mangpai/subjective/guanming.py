@@ -133,6 +133,7 @@ def classify_guanming_combo(
     gans: List[str],
     zhis: List[str],
     relations: Optional[Dict] = None,
+    kong_wang: Any = None,
 ) -> Dict:
     """官命做功组合判定：制用四类 + 生用化用。
 
@@ -145,6 +146,22 @@ def classify_guanming_combo(
       - 印化官杀（杀印相生，detect_relations type='杀印相生'）
       - 官禄格（官星天干坐其禄位）
       - 印带官帽（xiangfa_ops.daixiang 官杀帽+印身）
+
+    over-fire 收口（G0-G5，段氏书锚，v2 平衡口径）：
+      G0 辅助做功（auxiliary，宾位远隔）不计入官命组合（与 R2 同口径）；
+      G1 劫刃制财属财命域模式（争财/竞争求财），不计入官命组合；
+      G2 杀刃类（劫刃制官杀/官杀制比劫）须杀刃力量相当——「七杀制刃，要杀刃
+         力量相当」（高级篇5.2）：平衡=弱方/强方>=0.5（1v1 即相当，非必双多），
+         悬殊（如官3劫1 官制劫太过=被官管之平民）不成格；从格（从强去杀/从弱
+         杀为用）豁免——悬殊正为去忌/顺势；
+      G3 制官杀得官类（伤食制官杀/劫刃制官杀）：官弱（本气<2）为用神而被制
+         =「伤官制官不为官」（授课 li263），不入官命；官为忌（身弱/从强）或
+         伤官去官格（食伤明现>=3，朱元璋/qi19）者，去官反得官，保留；
+      G4 象法类（官禄格/印带官帽）单独不立官命，须制用组合佐证（真做功）；
+         印化官杀（杀印相生）为化用真功，单独可立；
+      G5 杀刃类另须官杀有制化（食伤制杀/印化杀明现）：「杀先天无制无化，
+         杀为忌，冲开则凶」（郝批初中例），无印无食伤则杀为忌非官命；
+         从格（从强杀本为忌/从弱杀为用）豁免。
 
     Returns:
         {
@@ -184,20 +201,88 @@ def classify_guanming_combo(
     combos: List[str] = []
     details: List[str] = []
 
+    # 官杀/比劫本气力（G2/G3 用：干支主气计数，空亡支不计，日干不计入比劫）
+    _kw_zhis: List[str] = []
+    if kong_wang:
+        if isinstance(kong_wang, list):
+            _kw_zhis = kong_wang
+        elif isinstance(kong_wang, dict):
+            _kw_zhis = kong_wang.get('zhi', kong_wang.get('zhis', [])) or []
+    guan_strength = 0
+    bijie_strength = 0
+    for i in range(4):
+        g_wx = GAN_WX.get(gans[i], '')
+        z_wx = ZHI_WX.get(zhis[i], '') if zhis[i] not in _kw_zhis else ''
+        if g_wx == guan_wx:
+            guan_strength += 1
+        if z_wx == guan_wx:
+            guan_strength += 1
+        if i != 2 and g_wx == day_wx:
+            bijie_strength += 1
+        if z_wx == day_wx:
+            bijie_strength += 1
+
+    # 官杀之制化（G5 用）：明现食伤（制杀）或印（化杀）干支主气。
+    # 郝批（授课·壬子丙午壬辰丁未例）：「辰杀先天无制无化，辰杀为忌，冲开则凶」
+    # ——杀刃组合中杀无制化则为忌，非官命（士卒/牢狱，非军官）。
+    shishang_wx = WX_SHENG.get(day_wx, '')
+    yin_wx = ''
+    for _w, _gen in WX_SHENG.items():
+        if _gen == day_wx:
+            yin_wx = _w
+            break
+    has_shishang = False
+    has_yin = False
+    for i in range(4):
+        if GAN_WX.get(gans[i], '') == shishang_wx or (
+                zhis[i] not in _kw_zhis and ZHI_WX.get(zhis[i], '') == shishang_wx):
+            has_shishang = True
+        if GAN_WX.get(gans[i], '') == yin_wx or (
+                zhis[i] not in _kw_zhis and ZHI_WX.get(zhis[i], '') == yin_wx):
+            has_yin = True
+    sha_you_zhihua = has_shishang or has_yin
+
+    # G2/G3/G5 的方向与格局参数
+    from mangpai.subjective.yongshen import classify_strength
+    strength = classify_strength(day_gan, gans, zhis)
+    cong_ge = strength in ('从强', '从弱')          # 从格（G2/G3/G5 豁免）
+    # 官杀为忌（G3 去官得官保留）：身弱忌克/从强逆势；从弱 subtype 歧义
+    # （从财喜官/从儿忌官），统一由 cong_ge 豁免，不在此列
+    guan_wei_ji = strength in ('身弱', '从强')
+    shishang_strength = sum(
+        1 for i in range(4)
+        if GAN_WX.get(gans[i], '') == shishang_wx
+        or (zhis[i] not in _kw_zhis and ZHI_WX.get(zhis[i], '') == shishang_wx)
+    )
+    # 杀刃平衡（G2：弱方/强方>=0.5 为相当，1v1 即相当非必双多）
+    sharen_balanced = (
+        min(guan_strength, bijie_strength) * 2 >= max(guan_strength, bijie_strength)
+    )
+
     # 制用四类（含反向 + 合制）：遍历制用/合制动作，按 from/to 主气十神大类归类。
     # 段氏制用 = 五行相克（制=克），十神大类间克链双向皆可为功：
     #   伤食制官杀（食伤克官杀）/ 官杀制比劫（官杀克比劫，七杀制羊刃）/
     #   印制伤食（印克食伤）/ 财制印（财克印）/ 劫刃制财（比劫克财）。
     # 合制（合以制之，如伤官合杀、食神合官）同按 from/to 大类匹配，标「合制·」前缀。
+    # guan_pattern=False 者（劫刃制财）属财命域，只记录不计入官命（G1）；
+    # sha_ren=True 者（杀刃类）须杀刃力量相当（G2）；制官杀类须官有力（G3）。
     _CONTROL_PATTERNS = [
-        ('食伤', '官杀', '伤食制官杀', '制官{verb}官，主执法/管理/技术官'),
-        ('比劫', '官杀', '劫刃制官杀', '制杀{verb}权，主军警/武职/竞争掌权'),
-        ('官杀', '比劫', '官杀制比劫', '七杀制羊刃{verb}权，主军警/武职/威权'),
-        ('印', '食伤', '印制伤食', '印制伤官护官，{verb}官，主文职/行政'),
-        ('财', '印', '财制印', '财印相战制用'),
-        ('比劫', '财', '劫刃制财', '劫刃制财{verb}财，主争财/竞争求财'),
+        ('食伤', '官杀', '伤食制官杀', '制官{verb}官，主执法/管理/技术官',
+         {'guan_pattern': True, 'sha_ren': False, 'zhi_guan': True}),
+        ('比劫', '官杀', '劫刃制官杀', '制杀{verb}权，主军警/武职/竞争掌权',
+         {'guan_pattern': True, 'sha_ren': True, 'zhi_guan': True}),
+        ('官杀', '比劫', '官杀制比劫', '七杀制羊刃{verb}权，主军警/武职/威权',
+         {'guan_pattern': True, 'sha_ren': True, 'zhi_guan': False}),
+        ('印', '食伤', '印制伤食', '印制伤官护官，{verb}官，主文职/行政',
+         {'guan_pattern': True, 'sha_ren': False, 'zhi_guan': False}),
+        ('财', '印', '财制印', '财印相战制用',
+         {'guan_pattern': True, 'sha_ren': False, 'zhi_guan': False}),
+        ('比劫', '财', '劫刃制财', '劫刃制财{verb}财，主争财/竞争求财',
+         {'guan_pattern': False, 'sha_ren': False, 'zhi_guan': False}),
     ]
     for a in wa:
+        if a.get('auxiliary'):
+            continue  # G0：辅助做功（宾位远隔）不计入官命组合
         _atype = a.get('type', '')
         is_he = _atype in _HE_CONTROL
         if _atype not in _ZHI_CONTROL and not is_he:
@@ -213,9 +298,43 @@ def classify_guanming_combo(
             '宾制主' if (_is_zhu(to_pos) and not _is_zhu(from_pos)) else '同侧制'
         )
         verb = '得' if direction == '主制宾' else ('失' if direction == '宾制主' else '得（内部）')
-        for pf, pt, pkey, pdesc in _CONTROL_PATTERNS:
+        for pf, pt, pkey, pdesc, pflag in _CONTROL_PATTERNS:
             if f_cat == pf and t_cat == pt:
                 key = ('合制·' if is_he else '') + pkey
+                # G1：劫刃制财属财命域模式，不计入官命组合；
+                # 例外：比劫孤（<=1，不结党非劫夺——参 R1 比劫2柱口径）且官杀
+                # 有根（>=2）者，制财为「我取财」非争财，仍计入（日禄归时贵命例）
+                if not pflag['guan_pattern']:
+                    if bijie_strength <= 1 and guan_strength >= 2:
+                        if key not in combos:
+                            combos.append(key)
+                            details.append(
+                                f'{key}（比劫孤{bijie_strength}不结党、官杀有根'
+                                f'{guan_strength}，制财非劫夺，计入）：'
+                                + pdesc.format(verb=verb))
+                    else:
+                        details.append(f'{key}（财命域模式，不入官命）')
+                    break
+                # G3：官弱（<2）为用神被制=伤官制官不为官；官为忌/从格/伤官去官
+                # 格（食伤>=3）者去官得官，保留
+                if pflag['zhi_guan'] and guan_strength < 2 \
+                        and not guan_wei_ji and not cong_ge and shishang_strength < 3:
+                    details.append(
+                        f'{key}：官杀弱（{guan_strength}）为用神被制，'
+                        '伤官制官不为官，不入官命')
+                    break
+                # G2：杀刃类须力量相当（弱/强>=0.5），从格豁免
+                if pflag['sha_ren'] and not sharen_balanced and not cong_ge:
+                    details.append(
+                        f'{key}：杀刃力量悬殊（官杀{guan_strength}/'
+                        f'比劫{bijie_strength}），制之太过/刃旺无制，不成官格')
+                    break
+                # G5：杀刃类另须官杀有制化（食伤制杀/印化杀明现），从格豁免
+                if pflag['sha_ren'] and not sha_you_zhihua and not cong_ge:
+                    details.append(
+                        f'{key}：杀无制化（无印无食伤），杀为忌非官命'
+                        '（郝批：杀先天无制无化，冲开则凶），不成官格')
+                    break
                 if key not in combos:
                     combos.append(key)
                     act_label = '合制' if is_he else '制用'
@@ -224,6 +343,32 @@ def classify_guanming_combo(
                         + pdesc.format(verb=verb)
                     )
                 break
+
+    # G9 自合柱合制（48期康熙型）：非日柱之激活自合柱，柱上官星干被坐支
+    # 藏干合绊=制（「年干甲被年支午中己合绊了，是制官得官」）。官为忌神
+    # （身弱/从强，guan_wei_ji）者合制得官——与 G3 去官得官同口径；官为
+    # 用神被合绊者失官不录（属 R3 财/官失用域）。自合不并入 zuogong 通用
+    # 合做功源（柱内干支合，非柱间做功），故在此单独检测。
+    try:
+        from mangpai.objective.zihe import detect_zihe
+        _zihe_g = detect_zihe(gans, zhis)
+        for _rec in _zihe_g.get('pillars') or []:
+            if _rec.get('is_day') or not _rec.get('activated'):
+                continue
+            _gi = _rec['idx']
+            if GAN_WX.get(gans[_gi], '') != guan_wx:
+                continue  # 柱上之干非官杀不论
+            if not guan_wei_ji:
+                continue  # 官非忌神（身强官为用/从弱官为喜），合绊失官不录得官
+            key = '合制·自合制官'
+            if key not in combos:
+                combos.append(key)
+                details.append(
+                    f'{key}（{_rec["key_cn"]}柱{_rec["gz"]}自合，{gans[_gi]}官被支中'
+                    f'{_rec["he_shen"]}合绊=制）：官为忌神被合制，制官得官'
+                    f'（48期康熙例：甲被午中己合绊，制官得官，级别省级）')
+    except Exception:
+        pass
 
     # 生用化用
     shengyong: List[str] = []
@@ -248,8 +393,17 @@ def classify_guanming_combo(
             details.append(f'印带官帽：{d.get("desc","")}，有学历任官')
             break
 
-    # 官命成立：任一制用/生用组合命中（且官杀明现或印权在场）
-    is_guanming = bool(combos or shengyong) and (has_guansha or '印化官杀' in shengyong or '印带官帽' in shengyong)
+    # 官命成立：制用组合或印化官杀（化用真功）命中（且官杀明现/印权在场）。
+    # G4：象法类（官禄格/印带官帽）单独不立官命，须制用组合佐证（段氏象法
+    # 须落在做功上，空象无实）——带帽书例（壬寅己酉壬申甲辰）本具印制伤食/
+    # 官杀制比劫做功，不受影响；纯带帽无做功者（如司机例）不立官命。
+    shengyong_core = [s for s in shengyong if s == '印化官杀']
+    xiangfa_only = [s for s in shengyong if s in ('官禄格', '印带官帽')]
+    if xiangfa_only and not combos and not shengyong_core:
+        details.append(
+            f'象法类（{"/".join(xiangfa_only)}）单独无做功组合佐证，不立官命（G4）')
+    is_guanming = bool(combos or shengyong_core) and (
+        has_guansha or bool(shengyong))
 
     return {
         'zhiyong_combos': combos,
@@ -527,6 +681,7 @@ def analyze_guanming(
     gongliang_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
+    kong_wang: Any = None,
 ) -> Dict:
     """官命综合：做功组合 + 管财官带帽 + 行业取象 + 层次量化。
 
@@ -556,7 +711,8 @@ def analyze_guanming(
             zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
         day_gan = p.day_gan
 
-    combo = classify_guanming_combo(day_gan, gans or [], zhis or [], relations)
+    combo = classify_guanming_combo(day_gan, gans or [], zhis or [], relations,
+                                    kong_wang=kong_wang)
     guancai = detect_guancai_daimao(day_gan, gans or [], zhis or [])
     hangye = classify_hangye_xiang(day_gan, gans or [], zhis or [], combo)
 
@@ -575,9 +731,10 @@ def analyze_guanming(
             gl = {}
     level = assess_guanming_level(day_gan, gans or [], zhis or [], gl)
 
-    # ── 官命否决（P0 B 反 over-fire）：反局/牢狱/比劫夺财破财/过河拆桥破财
-    # 任一凶向命中即否决官命（坐牢的、破财的、乞丐不当官）。凶向信号缺省自调
-    # zhengfan/laoyu/R1（engine 未透传 laoyu，calib 直调亦可用）。
+    # ── 官命否决（P0 B 反 over-fire + M1）：反局/牢狱/比劫夺财破财/过河拆桥破财
+    # /忌神制用神(R2)/用神被合绊(R3) 任一凶向命中即否决官命（坐牢的、破财的、
+    # 乞丐不当官）。凶向信号缺省自调 zhengfan/laoyu/R1/R2/R3（engine 未透传
+    # laoyu，calib 直调亦可用）。
     direction = assess_direction_signals(
         day_gan, gans or [], zhis or [],
         relations=relations, gongliang_result=gl,
@@ -589,12 +746,17 @@ def analyze_guanming(
     # 正向官命结构（官杀有根/官印相生/官带财帽等，见 _has_positive_guanming）任一命中
     # 即保留官命判断，避免反局判据对印带官帽/七杀入墓等正当官命的系统性误否决。
     # 岁运反局（A1）与原局反局同受门槛保护（岁运双冲/三刑可为正当官命之应期触发，
-    # 如厅级例壬午年升）；破财否决（比劫夺财/过河拆桥）不受门槛约束：破财/乞丐本非官命。
+    # 如厅级例壬午年升）；忌神制用神/用神被合绊（M1 R2/R3）同属「方向受损」类，
+    # 与反局同受门槛保护（正向结构成立者，用忌小疵不夺其官）；破财否决（比劫夺财/
+    # 过河拆桥）不受门槛约束：破财/乞丐本非官命。
     veto_reasons = list(all_reasons)
-    if direction.get('fanju') and is_guanming_raw and \
+    if (direction.get('fanju') or direction.get('yongshen_xiong')
+            or direction.get('mingju_xiong')) \
+            and is_guanming_raw and \
             _has_positive_guanming(day_gan, gans or [], zhis or [], combo, guancai):
         veto_reasons = [r for r in veto_reasons
-                        if not r.startswith('反局') and not r.startswith('岁运')]
+                        if not r.startswith(('反局', '岁运', '忌神制用神', '用神被合绊',
+                                             '伤官见官', '财生杀', '官杀入墓'))]
     vetoed = is_guanming_raw and bool(veto_reasons)
     is_guanming = is_guanming_raw and not vetoed
     if vetoed:

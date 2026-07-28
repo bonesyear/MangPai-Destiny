@@ -40,6 +40,7 @@ from mangpai.objective.constants import (
 )
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.zhengfan import analyze_zhengfan
+from mangpai.subjective.yongshen import classify_strength, classify_cong_target
 
 # ── 三刑组（寅巳申 / 丑戌未 / 子卯互刑；辰午酉亥自刑）──
 _SANXING_GROUPS = [frozenset('寅巳申'), frozenset('丑戌未'), frozenset('子卯')]
@@ -176,6 +177,108 @@ def _detect_lu_ren_fangg(
     if targets:
         return '、'.join(targets) + '——本护身之禄刃反戈攻身（阴阳逆转）'
     return None
+
+
+def _detect_po_cong(
+    op_gan: str, op_zhi: str,
+    day_gan: str,
+    natal_gans: List[str], natal_zhis: List[str],
+    strength: str, cong_label: str,
+    is_liunian: bool,
+) -> Tuple[List[Dict], List[Dict]]:
+    """破从反局 + 异党合去吉向（G5：22期从格行运规则 + 12期有错必纠）。
+
+    从强侧（自党成势，异党=忌神）：
+      - 破从·忌神通根（凶）：运岁支五行为异党，且原局该五行之干**虚透无本气
+        根**——「八字中原有凶神无制化，在大运中得根主大凶」（12期；qi02
+        从强火局行亥运，癸水忌神通根，家业破尽而亡）。原局无该异党透干者
+        不触发（忌神不现，运支自成气候非「通根」；从格行异党支运为常事，
+        防过火）。
+      - 异党合去（吉向标注，不入凶链）：运岁干为异党而原局有明现干五合之
+        （合去忌神=得忌喜——ans32 丙财忌神被辛合去主得财；li141 癸被戊合
+        去，癸亥运为顶峰）；运岁支六合原局异党支（两忌神合绊主吉，ans32
+        卯戌合绊）同为吉向标注。
+    从弱侧（日主无依托，从其所从）：
+      - 破从·日主得根（凶）：运岁支藏干含日主五行（日主得根有所依而不肯
+        从——22期例6 从官格行戌运丙火得墓库余气根，一生最差）。
+      - 破从·合去日主（凶，仅流年）：流年干与日主五合（22期例8 丙子年丙
+        辛合，辛金被合去，「日主没有了，如何从」，财从他党而破财）。
+
+    Returns: (fans, jis) — fans 入反局凶链，jis 仅吉向标注（suiyun_ji）。
+    """
+    fans: List[Dict] = []
+    jis: List[Dict] = []
+    if strength not in ('从强', '从弱'):
+        return fans, jis
+    dw = GAN_WX.get(day_gan, '')
+    if not dw:
+        return fans, jis
+    yin_wx = ''
+    for w, c in WX_SHENG.items():
+        if c == dw:
+            yin_wx = w
+            break
+    op_name = '流年' if is_liunian else '大运'
+    op_gz = f'{op_gan}{op_zhi}'
+
+    if strength == '从强':
+        yidang = [w for w in ('金', '木', '水', '火', '土') if w not in (dw, yin_wx)]
+        # 破从·忌神通根：运岁支=异党五行 + 原局该五行干虚透且无本气根
+        op_zw = ZHI_WX.get(op_zhi, '')
+        if op_zw and op_zw in yidang:
+            tou_gan = any(GAN_WX.get(g, '') == op_zw for g in natal_gans if g)
+            rooted = any(ZHI_WX.get(z, '') == op_zw for z in natal_zhis if z)
+            if tou_gan and not rooted:
+                fans.append({
+                    'fan_type': f'{op_name}反局·破从(忌神通根)',
+                    'severity': '重',
+                    'reason': f'{op_gz}运岁支{op_zhi}为异党（忌神）之根，原局{op_zw}干'
+                              f'虚透无根今得通根——从强格「凶神无制化，大运中得根主大凶」'
+                              f'（12期；qi02 亥运癸水通根家业破尽）',
+                })
+        # 异党合去（吉向标注）：运岁干为异党 + 原局明现干五合之（合去忌神）
+        op_gw = GAN_WX.get(op_gan, '')
+        if op_gw and op_gw in yidang:
+            he_partner = TIAN_GAN_HE.get(op_gan, '')
+            if he_partner and any(g == he_partner for g in natal_gans if g):
+                jis.append({
+                    'ji_type': f'{op_name}吉向·合去忌神',
+                    'reason': f'{op_gz}运干{op_gan}为异党（忌神），原局{he_partner}合去之'
+                              f'——去忌得忌喜（ans32 丙被辛合去主得财）',
+                })
+        # 运岁支六合原局异党支（两忌神合绊主吉）
+        if op_zhi:
+            for i, nz in enumerate(natal_zhis):
+                if nz and _pair_hit(op_zhi, nz, LIU_HE) \
+                        and ZHI_WX.get(nz, '') in yidang:
+                    jis.append({
+                        'ji_type': f'{op_name}吉向·合绊忌神',
+                        'reason': f'{op_gz}运支{op_zhi}合{PILLAR_KEYS[i]}支{nz}（异党忌神）'
+                                  f'——两忌神合绊主吉（ans32 卯戌合绊）',
+                    })
+                    break
+    else:  # 从弱
+        # 破从·日主得根：运岁支藏干（含余气，22期例6 戌中丁火墓库余气根）含日主五行
+        if op_zhi:
+            from mangpai.objective.canggan import get_canggan_mangpai
+            for cg, _q in get_canggan_mangpai(op_zhi):
+                if GAN_WX.get(cg, '') == dw:
+                    fans.append({
+                        'fan_type': f'{op_name}反局·破从(日主得根)',
+                        'severity': '重',
+                        'reason': f'{op_gz}运岁支{op_zhi}藏{cg}为日主之根，日主得根有所依'
+                                  f'而不肯从——破从（22期例6 从官格戌运丙火得根最差）',
+                    })
+                    break
+        # 破从·合去日主（仅流年）：流年干五合日主，日主被合去
+        if is_liunian and op_gan and TIAN_GAN_HE.get(op_gan) == day_gan:
+            fans.append({
+                'fan_type': '流年反局·破从(合去日主)',
+                'severity': '重',
+                'reason': f'流年干{op_gan}合日主{day_gan}——从格日主被合去，「日主没有了，'
+                          f'如何从」，所从之财从他党（22期例8 丙子年丙辛合破财）',
+            })
+    return fans, jis
 
 
 def _work_mode(work_actions: List[Dict], work_types: List[str], natal_zhis: List[str]) -> Dict:
@@ -464,16 +567,29 @@ def analyze_yunfan(
         natal_zf = {'configuration': '基线判定失败', 'type': 'neutral'}
 
     dayun_fan: List[Dict] = []
+    dayun_ji: List[Dict] = []
+    # G5：从格行运规则（破从/合去忌神）——strength/所从 全运岁共用，一次判得
+    try:
+        _strength = classify_strength(day_gan, natal_gans, natal_zhis)
+        _cong_label = classify_cong_target(
+            day_gan, natal_gans, natal_zhis, _strength).get('label', '')
+    except Exception:
+        _strength, _cong_label = '', ''
     for entry in (dayun_list or []):
         gz = entry.get('gz', '')
         if gz and len(gz) >= 2:
             gan, zhi = gz[0], gz[1]
         else:
             gan, zhi = entry.get('gan', ''), entry.get('zhi', '')
-        if not gan or not zhi:
+        if not (gan or zhi):
             continue
         fans = _detect_dayun_fan(
             gan, zhi, natal_gans, natal_zhis, gshen, fei, work_actions, wtypes, day_gan)
+        # G5 破从/合去（大运级）
+        pc_fans, pc_jis = _detect_po_cong(
+            gan, zhi, day_gan, natal_gans, natal_zhis, _strength, _cong_label,
+            is_liunian=False)
+        fans.extend(pc_fans)
         if fans:
             dayun_fan.append({
                 'order': entry.get('order', len(dayun_fan) + 1),
@@ -481,6 +597,14 @@ def analyze_yunfan(
                 'start_age': entry.get('start_age', 0),
                 'end_age': entry.get('end_age', 0),
                 'fans': fans,
+            })
+        if pc_jis:
+            dayun_ji.append({
+                'order': entry.get('order', len(dayun_ji) + 1),
+                'gz': f'{gan}{zhi}',
+                'start_age': entry.get('start_age', 0),
+                'end_age': entry.get('end_age', 0),
+                'jis': pc_jis,
             })
 
     # ── 当前大运干支（流年岁运联动所需）──
@@ -493,6 +617,7 @@ def analyze_yunfan(
             dy_gan, dy_zhi = current_dayun.get('gan', ''), current_dayun.get('zhi', '')
 
     liunian_fan: List[Dict] = []
+    liunian_ji: List[Dict] = []
     sui_yun_liandong: List[Dict] = []
     for entry in (liunian_list or []):
         gz = entry.get('gz', '')
@@ -500,17 +625,29 @@ def analyze_yunfan(
             gan, zhi = gz[0], gz[1]
         else:
             gan, zhi = entry.get('gan', ''), entry.get('zhi', '')
-        if not gan or not zhi:
+        if not (gan or zhi):
             continue
         fans, liandong = _detect_liunian_fan(
             gan, zhi, natal_gans, natal_zhis, gshen, fei,
             work_actions, wtypes, day_gan, dy_gan, dy_zhi)
+        # G5 破从/合去（流年级：含合去日主）
+        pc_fans, pc_jis = _detect_po_cong(
+            gan, zhi, day_gan, natal_gans, natal_zhis, _strength, _cong_label,
+            is_liunian=True)
+        fans.extend(pc_fans)
         if fans:
             liunian_fan.append({
                 'year': entry.get('year', 0),
                 'gz': f'{gan}{zhi}',
                 'dayun_gz': f'{dy_gan}{dy_zhi}' if dy_gan and dy_zhi else '',
                 'fans': fans,
+            })
+        if pc_jis:
+            liunian_ji.append({
+                'year': entry.get('year', 0),
+                'gz': f'{gan}{zhi}',
+                'dayun_gz': f'{dy_gan}{dy_zhi}' if dy_gan and dy_zhi else '',
+                'jis': pc_jis,
             })
         if liandong:
             sui_yun_liandong.append({
@@ -528,12 +665,16 @@ def analyze_yunfan(
         parts.append(f'{len(liunian_fan)}流年反局')
     if sui_yun_liandong:
         parts.append(f'{len(sui_yun_liandong)}岁运联动(最凶)')
+    if dayun_ji or liunian_ji:
+        parts.append(f'{len(dayun_ji) + len(liunian_ji)}运岁合去忌神(吉向)')
 
     return {
         'natal_zhengfan': natal_zf,
         'dayun_fan': dayun_fan,
         'liunian_fan': liunian_fan,
         'sui_yun_liandong': sui_yun_liandong,
+        'dayun_ji': dayun_ji,      # G5 大运吉向（合去/合绊忌神，标注不入凶链）
+        'liunian_ji': liunian_ji,  # G5 流年吉向（同上）
         'summary': '；'.join(parts),
     }
 
@@ -558,16 +699,22 @@ def current_fan_slice(
     """
     yf = yunfan_result or {}
     dayun_fan = list(yf.get('dayun_fan') or [])
+    dayun_ji = list(yf.get('dayun_ji') or [])
     if include_dayun and current_dayun_gz:
         dayun_fan = [d for d in dayun_fan if d.get('gz') == current_dayun_gz]
+        dayun_ji = [d for d in dayun_ji if d.get('gz') == current_dayun_gz]
     if not include_dayun:
         dayun_fan = []
+        dayun_ji = []
     liunian_fan = list(yf.get('liunian_fan') or []) if include_liunian else []
     liandong = list(yf.get('sui_yun_liandong') or []) if include_liunian else []
+    liunian_ji = list(yf.get('liunian_ji') or []) if include_liunian else []
     return {
         'dayun_fan': dayun_fan,
         'liunian_fan': liunian_fan,
         'sui_yun_liandong': liandong,
+        'dayun_ji': dayun_ji,      # G5 吉向切片（合去/合绊忌神，标注）
+        'liunian_ji': liunian_ji,
     }
 
 
