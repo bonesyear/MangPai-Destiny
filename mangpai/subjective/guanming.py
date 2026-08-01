@@ -37,7 +37,7 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
-    LU, CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
+    LU, CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars, TOMB_MAP,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.zuogong_detect import detect_relations
@@ -162,6 +162,12 @@ def classify_guanming_combo(
       G5 杀刃类另须官杀有制化（食伤制杀/印化杀明现）：「杀先天无制无化，
          杀为忌，冲开则凶」（郝批初中例），无印无食伤则杀为忌非官命；
          从格（从强杀本为忌/从弱杀为用）豁免。
+      G6 官星被制空亡（地支主气官星皆被非辅助硬制且落旬空，日/年旬并参）
+         =官被制空制死，不立官命（李昌镐例「官星被制空亡，故他不入仕途」）；
+      G7 财/财之原神被围制（≥2方非辅助硬制）之支，涉其之官命组合主富不主贵，
+         不入官命（李嘉诚例「主的是富而不是贵」；保尔森例「财与财的原神同时被制」）。
+      另：官杀不透不主气但藏支被制=藏杀被制/制杀得权，与明现同论
+         （慈禧「合局制死丑中杀星主权力」/希特勒「丑入辰墓」/曾国藩「功在墓杀」）。
 
     Returns:
         {
@@ -208,6 +214,35 @@ def classify_guanming_combo(
             _kw_zhis = kong_wang
         elif isinstance(kong_wang, dict):
             _kw_zhis = kong_wang.get('zhi', kong_wang.get('zhis', [])) or []
+
+    # 非辅助制/合制动作之地支被制方（藏杀被制/G6/G7 共用）
+    _zhi_zhi_targets: Set[str] = {
+        a.get('to_pos') for a in wa
+        if not a.get('auxiliary')
+        and (a.get('type') in _ZHI_CONTROL or a.get('type') in _HE_CONTROL)
+    }
+    _zhi_hard_targets: Set[str] = {
+        a.get('to_pos') for a in wa
+        if not a.get('auxiliary') and a.get('type') in _ZHI_CONTROL
+    }
+
+    # 藏杀被制（书锚：慈禧例「亥卯未合局将丑连杀星全部制死…主权力就是帝王」、
+    # 希特勒例「最大的功是丑入辰墓」、曾国藩例「四柱的功在墓杀」）：官杀不透
+    # 天干、不在地支主气，但藏干官杀之支被非辅助制/合制所制——藏杀被制/被收
+    # =制杀得权，与明现同论。
+    if not has_guansha and guan_wx:
+        for i in range(4):
+            if zhis[i] in _kw_zhis or ZHI_WX.get(zhis[i]) == guan_wx:
+                continue
+            if f'{PILLAR_KEYS[i]}_zhi' not in _zhi_zhi_targets:
+                continue
+            if any(GAN_WX.get(cg) == guan_wx
+                   for cg, _ in get_canggan_mangpai(zhis[i])):
+                has_guansha = True
+                details.append(
+                    f'官杀藏{PILLAR_NAMES_CN[i]}支{zhis[i]}被制（藏杀被制='
+                    '制杀得权，与明现同论）')
+                break
     guan_strength = 0
     bijie_strength = 0
     for i in range(4):
@@ -258,6 +293,55 @@ def classify_guanming_combo(
     sharen_balanced = (
         min(guan_strength, bijie_strength) * 2 >= max(guan_strength, bijie_strength)
     )
+
+    # G6 官星被制空亡（书锚：李昌镐例「食神制官组合，未穿制子，官星被制空亡，
+    # 故他不入仕途」）：地支主气官星全部既被非辅助硬制（冲克穿刑破）又落旬空
+    # （日柱/年柱并参——书此例以年柱乙卯旬子丑空论官星空），官被制空制死、
+    # 官不存焉，食伤/技艺立命，不立官命。须≥1 个主气官支方判（防vacuous误火）。
+    # 豁免：官五行之墓库在局者，官被制=被收入墓（墓杀得权，曾国藩例「四柱的
+    # 功在墓杀」；慈禧/希特勒同法理），非制死，不以制空论。
+    guan_zhi_zhikong = False
+    guan_zhi_idxs = [i for i in range(4) if ZHI_WX.get(zhis[i]) == guan_wx]
+    if guan_wx and guan_zhi_idxs:
+        _guan_tombs = {z for z, els in TOMB_MAP.items() if guan_wx in els}
+        if not (_guan_tombs & set(zhis)):
+            try:
+                from mangpai.objective.bazi_calc import get_kong_wang
+                _year_kw = get_kong_wang(gans[0], zhis[0]).get('zhi', [])
+            except Exception:
+                _year_kw = []
+            _kw_all = set(_kw_zhis) | set(_year_kw)
+            if all(f'{PILLAR_KEYS[i]}_zhi' in _zhi_hard_targets
+                   and zhis[i] in _kw_all for i in guan_zhi_idxs):
+                guan_zhi_zhikong = True
+                details.append(
+                    '官星被制空亡（地支主气官星皆被制且落旬空，日/年旬并参）：'
+                    '官被制空制死，不立官命（李昌镐例「故他不入仕途」）')
+
+    # G7 围制财源支（书锚：李嘉诚例「亥财与原神时支被围而制，主的是富而不是
+    # 贵」；保尔森例「财与财的原神同时被制」）：本气为财、或本气为食伤（财之
+    # 原神）且藏干含财之支，被≥2 个非辅助硬制动作所制=围制财源（巨富结构，
+    # 制意在财不在官）；官命组合动作 from/to 涉该支者，主富不主贵，不入官命。
+    # 藏官杀之支（杀库/官库，如丑藏辛）以杀论权不以财论富（慈禧制丑=制杀得权），
+    # 不作财源支。
+    cai_wx = WX_KE.get(day_wx, '')
+    _weizhi_caiyuan: Set[str] = set()
+    if cai_wx:
+        for i in range(4):
+            # 空亡支不跳：李嘉诚例亥落空亡仍以「亥财与原神被围而制」论巨富
+            z_main = ZHI_WX.get(zhis[i], '')
+            _cg = get_canggan_mangpai(zhis[i])
+            if any(GAN_WX.get(g) == guan_wx for g, _ in _cg):
+                continue  # 藏官杀之库以杀论权，非财源支
+            if not (z_main == cai_wx or (
+                    z_main == shishang_wx
+                    and any(GAN_WX.get(g) == cai_wx for g, _ in _cg))):
+                continue
+            pos = f'{PILLAR_KEYS[i]}_zhi'
+            if sum(1 for a in wa
+                   if not a.get('auxiliary') and a.get('type') in _ZHI_CONTROL
+                   and a.get('to_pos') == pos) >= 2:
+                _weizhi_caiyuan.add(pos)
 
     # 制用四类（含反向 + 合制）：遍历制用/合制动作，按 from/to 主气十神大类归类。
     # 段氏制用 = 五行相克（制=克），十神大类间克链双向皆可为功：
@@ -314,6 +398,13 @@ def classify_guanming_combo(
                                 + pdesc.format(verb=verb))
                     else:
                         details.append(f'{key}（财命域模式，不入官命）')
+                    break
+                # G7：涉围制财源支者，制意在财不在官，主富不主贵，不入官命
+                _g7_hit = sorted({from_pos, to_pos} & _weizhi_caiyuan)
+                if _g7_hit:
+                    details.append(
+                        f'{key}：涉围制财源支（{"/".join(_g7_hit)}），'
+                        '财与原神被围制，主富不主贵，不入官命')
                     break
                 # G3：官弱（<2）为用神被制=伤官制官不为官；官为忌/从格/伤官去官
                 # 格（食伤>=3）者去官得官，保留
@@ -372,8 +463,8 @@ def classify_guanming_combo(
 
     # 生用化用
     shengyong: List[str] = []
-    # 印化官杀（杀印相生）
-    if any(a.get('type') == '杀印相生' for a in wa):
+    # 印化官杀（杀印相生）；G0 同口径：辅助做功（auxiliary）不计入官命组合
+    if any(a.get('type') == '杀印相生' and not a.get('auxiliary') for a in wa):
         shengyong.append('印化官杀')
         details.append('印化官杀（杀印相生）：官杀->印->日主，化杀为印，主文职/职权')
     # 官禄格：官星天干坐其禄位地支
@@ -403,7 +494,7 @@ def classify_guanming_combo(
         details.append(
             f'象法类（{"/".join(xiangfa_only)}）单独无做功组合佐证，不立官命（G4）')
     is_guanming = bool(combos or shengyong_core) and (
-        has_guansha or bool(shengyong))
+        has_guansha or bool(shengyong)) and not guan_zhi_zhikong
 
     return {
         'zhiyong_combos': combos,
