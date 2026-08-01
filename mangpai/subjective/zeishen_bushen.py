@@ -442,7 +442,8 @@ def detect_bao_zhi(gans: List[str], zhis: List[str], day_gan: str = ''
 
     wing_wx = _SAN_HE_WINGS.get(frozenset({year_zhi, hour_zhi}))
 
-    for w in shared:
+    for w in sorted(shared):  # sorted：多候选包制制局取定序首中者（M1 复跑确定性，
+        # 土<火<水 按码点序；li003-七次婚姻/qi02-工商局长贪官/qi20-李连英 多候选例）
         # (c) W 克某内柱主气五行
         target_pillar = ''
         target_wx = ''

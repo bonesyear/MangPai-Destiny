@@ -1,5 +1,15 @@
 # 盲派客观层 变更记录
 
+## 2026-08-01 第十四批 · 功量层合批（乾隆金字塔门 + 虚高面诊断）
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| 乾隆金字塔门 | gongliang 新增「金字塔门」：zb 链长≥3 覆盖四支 + 冲边≥2 以冲为骨 + zb 净制 → +1 层；净制采纳扩至金字塔路径。乾隆 xfail 解锁（strict→pass），L3→L4（同制2+七杀1+金字塔1+月令0.5=4.5，净制） | subjective/gongliang.py, tests/test_gongliang.py |
+| M1 存量修复 | zeishen_bushen detect_bao_zhi `sorted(shared)`——批 F 后第 11 处 set 排序化（多候选包制 3 例由 hash 序定制局） | subjective/zeishen_bushen.py |
+| 虚高面诊断 | **虚高 9 例翻转=0**：终档由 caiming 上浮链（官杀当财/制库得财/开财库）决定，非 gongliang 基阶——克链≥3 实证 0 翻转、库源自墓破 zhenbao-05 已回退、不成 cap 假阳否决。**虚高面收敛归 caiming 侧，留待 C 批** | — |
+
+验证：verify 432+70 全绿、pytest **467 passed+2 xfailed**（乾隆解锁，无新增）、盲测财命 57.97%（40✅持平）/仕途 56.06%/职业 40.38% 0 翻转、M1 双 seed 逐字节一致、67例 0 回归（乾隆 ⚠️→✅ level4/书4）、famous+calib 0 新增回归（李嘉诚/保尔森巨富、li002/li200 富全保住）。
+
 ## 2026-08-01 第十三批 · famous 官命 4 例对案修复（误火+漏判共性）
 
 | 项目 | 内容 | 文件 |

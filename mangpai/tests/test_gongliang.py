@@ -2,8 +2,8 @@
 
 与 zuogong_confirm.assess_work_level 并行的另一套体系（1-4 层富贵量级），
 本测试覆盖：输出字段契约、核心铁律（原神用神同制）、制净封顶、普通四柱降档、
-以及源文第6章 14 命例的层数回归（10 例与源文一致；4 例因 zuogong 对入墓/包制/
-冲链检出不足而偏低一层，属已知局限，见模块 docstring）。
+以及源文第6章 14 命例的层数回归（13 例与源文一致；普例2 因已->己订正后
+月干己(财)有效触发原神用神同制偏高一层，属已知局限，见模块 docstring）。
 """
 import sys
 import os
@@ -18,7 +18,7 @@ from mangpai.subjective.gongliang import analyze_gongliang
 # ── 源文第6章命例：(名, 天干[年月日时], 地支[年月日时], 源文层数) ──
 # 大富大贵例
 LIJIACHENG = (['戊', '己', '庚', '丁'], ['辰', '未', '午', '亥'], 4)   # 千亿富翁
-QIANLONG   = (['辛', '丁', '庚', '丙'], ['卯', '酉', '午', '子'], 4)   # 帝王（金字塔，本模块偏低）
+QIANLONG   = (['辛', '丁', '庚', '丙'], ['卯', '酉', '午', '子'], 4)   # 帝王（金字塔冲链党势门已达四层）
 KELINTUN   = (['丙', '丙', '乙', '戊'], ['戌', '申', '丑', '寅'], 4)   # 总统（包制，本模块偏低）
 JIANGJIESHI = (['丁', '庚', '己', '庚'], ['亥', '戌', '巳', '午'], 3)  # 制不净不达四层
 YUEFEI     = (['癸', '乙', '甲', '己'], ['未', '卯', '子', '巳'], 3)   # 省部级
@@ -142,11 +142,12 @@ class TestSourceRegression:
     def test_level_matches_source(self, case, expected):
         assert _run(case)['level'] == expected
 
-    # 以下 3 例因 zuogong 对入墓/包制/冲链检出不足而偏低一层（待贼神捕神 P0 模块）。
+    # 以下例因 zuogong 对入墓/包制/冲链检出不足而偏低一层（待贼神捕神 P0 模块）。
     # 蒋介石巳午入戌墓(tomb_works)已检出，达 3 层，不再 xfail。
     # 克林顿（包制围制官杀）/岳飞（包制）经 gongliang 包制 distrust 有条件翻转
     # （zb 净制佐证下采信 bao_zhi + 抑制比劫夺财封顶）已达书层，不再 xfail。
-    @pytest.mark.xfail(strict=True, reason='乾隆金字塔冲链须党势判定（贼神捕神），本模块偏低一层')
+    # 乾隆金字塔冲链经 7'' 党势门（zb 链长≥3 覆盖四支+冲边≥2 以冲为骨+zb 净制）
+    # 采信冲链并采纳 zb 净制，达 4 层，不再 xfail。
     def test_qianlong_4(self):
         assert _run(QIANLONG)['level'] == 4
 
