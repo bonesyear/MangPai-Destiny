@@ -55,7 +55,14 @@ _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
 # 「当兵转…」为履历非现职）、保卫/保安命中行政岗（ans05 医院保卫科长=
 # 官员非军警），均为粗口径假阳性；zhenbao-12（军阀·武职）凭「军阀」仍
 # 命中，无金标依赖被删词。被删词案例转 unscorable（不入准确率）。
-RUBRIC_VERSION = 'v4-20260801'
+# v5（K3 批12·M4 粗口径二轮）：新增 _ZY_EXCLUDE 语境排除——performer 桶
+# 在 色情业/歌厅/舞厅/歌女 语境下命中作废（段氏：歌厅小姐/歌女=食伤桃花
+# 无工作贱命，属色情业非演艺；li263/qi20「色情业·歌厅小姐」、qi41
+# 「色情业·歌舞厅歌女」gold 皆色情业，桶体系无此桶 → 转 unscorable，
+# 同 v4 被删词处理）；military 桶在 参军 语境下命中作废（履历非现职，
+# 同 v4 删「兵」之理：qi29「农民·曾参军逃出」gold 农民）。歌星/舞蹈家/
+# 将军/军阀等正当命中不受影响（逐例核对 22✅ 零依赖被排除语境）。
+RUBRIC_VERSION = 'v5-20260802'
 
 # P0-a 断语性质判别：流年事件断语（破财/凶 且 文本锚定具体年份/大运 或 案例
 # 喂入运岁——金标准多为「戊辰年破财/赔六万」式流年事件，案例所喂运岁即事件锚点）
@@ -80,6 +87,13 @@ _ZY_RULES = [
     (('农民', '务农', '种地', '种田', '工人', '打工', '民工', '体力'), 'laborer'),
     (('无业', '讨饭', '乞丐', '无正当职业'), 'unemployed'),
 ]
+
+# v5 语境排除：verdict 含下列语境词时，对应桶整桶命中作废（误命中抑制，
+# 逐例依据见 RUBRIC_VERSION v5 注）。粗粒度=verdict 级，语境内无正当共存例。
+_ZY_EXCLUDE = {
+    'performer': ('色情业', '歌厅', '舞厅', '歌女'),
+    'military': ('参军',),
+}
 
 
 def _bazi_data(c):
@@ -149,6 +163,8 @@ def score_caiming(verdict, cm, has_yunsui=False):
 def score_zhiye(verdict, zy):
     buckets = set()
     for kws, bucket in _ZY_RULES:
+        if any(x in verdict for x in _ZY_EXCLUDE.get(bucket, ())):
+            continue  # v5 语境排除：误命中语境下整桶作废（转 unscorable）
         if any(k in verdict for k in kws):
             buckets.add(bucket)
     primary = zy.get('primary', '') or ''

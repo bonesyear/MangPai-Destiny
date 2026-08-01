@@ -1,5 +1,15 @@
 # 盲派客观层 变更记录
 
+## 2026-08-01 第十二批 · 职业桶语境排除（_ZY_EXCLUDE，rubric v5）
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| 职业桶假阳性剔除 | 诊断 95 条职业断语，真阳性 2 类：歌厅/歌女（色情业）误入 performer ×3、参军误入 military ×1。新增 `_ZY_EXCLUDE` 语境排除（v4 同法理转 unscorable）。**qi20 歌厅小姐原 ✅ 系假阳性**（gold 色情业仅凭「歌」撞桶），剔除后 22→21 真 ✅ 全干净，acc 40.0%→**40.38%**（n 变化） | tests/heldout/blind_eval.py |
+| rubric | _ZY_EXCLUDE 逻辑 → v5；新 baseline `snapshots/20260802_g.json` | tests/heldout/blind_eval.py |
+
+验证：verify 432+70 全绿、pytest 466 passed+3 xfailed、盲测职业 40.38%/仕途 56.06%/财命 57.97% 全达标、67例 0 回归（2 改善）、calib 0 回归。
+famous 罗斯切尔德 ❌（merchant 判 teacher）为存量问题（git stash 实证 clean HEAD 即有），留待仕途/职业批。
+
 ## 2026-08-01 第十一批 · 职业维·商业类召回修复（merchant 结构性塌陷）
 
 | 项目 | 内容 | 文件 |
