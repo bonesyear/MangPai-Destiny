@@ -50,7 +50,12 @@ _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
 # v3（K3 批A 凶向在档标注配套）：_XIONG_MARKERS 增「凶向」——引擎全量轨新增
 # 「凶向在档（…）」强制标注（capped=False 也写理由，仅全量轨），破财/凶断语
 # 凭该标注识别凶向；层级断语走静态轨不受影响。
-RUBRIC_VERSION = 'v3-20260801'
+# v4（K3 批A+B·M4 粗口径收窄）：military 桶关键词删 武/兵/保安/保卫——
+# 「武」命中武侠/武职泛文、「兵」命中当兵经历（qi49 安全局：gold 官员，
+# 「当兵转…」为履历非现职）、保卫/保安命中行政岗（ans05 医院保卫科长=
+# 官员非军警），均为粗口径假阳性；zhenbao-12（军阀·武职）凭「军阀」仍
+# 命中，无金标依赖被删词。被删词案例转 unscorable（不入准确率）。
+RUBRIC_VERSION = 'v4-20260801'
 
 # P0-a 断语性质判别：流年事件断语（破财/凶 且 文本锚定具体年份/大运 或 案例
 # 喂入运岁——金标准多为「戊辰年破财/赔六万」式流年事件，案例所喂运岁即事件锚点）
@@ -61,7 +66,7 @@ _EVENT_RE = re.compile(
 
 # 职业 verdict 关键词 -> 职业桶（粗口径；多组命中取并集）
 _ZY_RULES = [
-    (('军', '警', '武', '兵', '公安', '保安', '保卫', '部队', '军阀'), 'military'),
+    (('军', '警', '公安', '部队', '军阀'), 'military'),
     (('公检法', '律师', '法官', '检察', '司法', '法院'), 'lawyer'),
     (('教师', '老师', '教育', '文化', '作家', '编辑', '记者', '文秘', '书画',
       '画家', '文员', '教授'), 'teacher'),
@@ -375,6 +380,8 @@ def main():
         out_path = args.rescore.replace('.json', '') + '_rescore.json'
         json.dump(data, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
         for split, cases in data.items():
+            if split == '_meta':
+                continue
             s = summarize(cases)
             line = '  '.join(
                 f"{d}: {v['✅']}✅/{v['⚠️']}⚠️/{v['❌']}❌ acc={v['acc']}"

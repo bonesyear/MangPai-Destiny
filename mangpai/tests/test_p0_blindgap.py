@@ -255,10 +255,18 @@ class TestMerchantChannel:
         assert r['primary'] == 'unemployed'
 
     def test_fuwu_pinren_gated(self):
-        # 富屋贫人（b67-初中）：身弱财旺无印，merchant gating
+        # 富屋贫人（b67-初中）：身弱财旺无印，比劫全在宾位（年柱壬子）不帮身，
+        # merchant gating
         r = classify_zhiye('壬', ['壬', '丙', '壬', '丁'], ['子', '午', '辰', '未'])
         assert r['scores']['merchant'] == 0
         assert r['primary'] != 'merchant'
+
+    def test_fuwu_pinren_zhuwei_bijiao_exempt(self):
+        # K3 豁免：主位比劫帮身者非富屋贫人（段氏宾主论：主位比劫=自家人帮身
+        # 任财）——qi14 亿万企业家（书例）：日支寅禄+时干甲比，财3位而富，
+        # 不 gate（旧版无印即 gate 误杀）
+        r = classify_zhiye('甲', ['辛', '戊', '甲', '甲'], ['巳', '戌', '寅', '戌'])
+        assert r['scores']['merchant'] > 0
 
     def test_duocai_action_not_counted_as_work(self):
         # 比劫夺财动作（子冲午，日支比劫冲财）不计入「财星入局做功」

@@ -1,5 +1,25 @@
 # 盲派客观层 变更记录
 
+## 2026-08-01 第十一批 · 职业维·商业类召回修复（merchant 结构性塌陷）
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| merchant 结构性塌陷修复 | 日支合财/制财（主位经营取财第一象，段氏「我合财、制宾财得财」）曾被全量误排——merchant 召回结构性塌陷（li213 申子合财误排同此）；暗合按支中藏干本气+中气计（段氏「暗合者，支中藏干相合也」）；群比夺财背景（比劫主气≥4 成群，中级「只有比劫做功，比劫主竞争」）不计经营；财根被坏（劫财冲财=坏财之根）不计；财星入局做功 +2 精细判据（冲=双向商贸流动，7.3「相冲做功…物品交换」；合类须主位端参与+功神端主气非印/官杀/比劫） | subjective/zhiye.py |
+| 测试 | +1 新测试（466 passed） | tests/test_p0_blindgap.py |
+
+验证：verify 432+70 全绿、pytest 466 passed+3 xfailed、67例 0 回归（2 改善保持）、famous **乔布斯 ❌→✅**（商人/经营命中）、calib 0 回归（+5 IMPROVE 保持）。
+留出集盲测：**职业 24.56%→40.0%（14✅→22✅，+15.4pp）**、官命 56.06%（37✅持平）、财命 57.97%（40✅持平）——零回退。
+
+## 2026-08-01 第十批(F) · P3测量卫生三件套 M1复跑确定性+M2分组门禁+M5快照入git
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| M1 复跑确定性 | 10 处 set 迭代序排序化（纯定序不改语义）：gongliang 5 处（strong_positions tie-break/zhi_targets 首中/墓库 join/净制理由 x2）、yunfan 废神列表、zeishen 最长路径平局、hunyin/zaihuo join、zuogong_confirm work_types；双 seed（PYTHONHASHSEED=0 vs 默认）逐字节一致；钉死 li002 原神用神同制 tie-break（adjust 文本变、打分不变，67例/calib 反改善） | subjective/gongliang.py, yunfan.py, zeishen_bushen.py, hunyin.py, zaihuo.py, zuogong_confirm.py |
+| M2 分组门禁 | blind_eval 汇总增财命 verdict 首词分组表（巨富/富/小康/平/贫/破财/凶 各自 n/✅/⚠️/❌/acc），eval 与 diff 报告均附 | tests/heldout/blind_eval.py |
+| M5 快照入 git | snapshots/ 目录 + .gitignore 例外；快照附 _meta（git sha/rubric 版本/备注）；blind_eval 增 --baseline（eval+diff 一条龙）与 --note；存 20260801_p2（批C基线）与 20260801_f（本批后基线）；--diff 增「文本抖动」段（score 不变但 engine 字段变，>0 即卫生失败，单边缺失案例不计） | tests/heldout/blind_eval.py, .gitignore, snapshots/ |
+
+验证：verify 432+70 全绿、pytest 465 passed+3 xfailed、留出集财命 57.97%/官命 56.06%/职业 24.56% 与批C完全一致、双 seed 逐字节一致、67例 0 回归（2 改善）、famous 23 0 回归、calib 0 回归。
+
 ## 2026-08-01 第九批 · K3财命50%攻坚 批C（P2束5项，收官）
 
 | 项目 | 内容 | 文件 |

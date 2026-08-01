@@ -49,7 +49,7 @@ M2 基础职业类目（七桶未成象时的第二梯队，段氏《中级》�
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
-    GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
+    GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME, TOMB_MAP,
     PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
@@ -425,13 +425,22 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
         return fi, ti, fa, ta
 
     def _is_duocai_end(pos: str) -> bool:
-        """夺财比劫端：非日干的比劫星（日干本身克财=「我克者财」得财，非夺）。"""
+        """夺财比劫端（主气判据）：干端=该干本身为比劫（日干本身克财=「我克者
+        财」得财，非夺）；支端=支本气为比劫。同柱干/藏干余气不作夺财之神——
+        段氏制财得财以做功主气为功神（同 P1 制尽判据「只排主位藏干不排主位
+        透干」之主气粒度）。旧版以整柱 _pillar_cats 判：日支端因日干=比肩恒
+        为夺财端，日支合财/制财（主位经营取财第一象，段氏「我合财、制宾财
+        得财」）被全量误排，merchant 召回结构性塌陷（li213 申子合财误排同此）。
+        """
         i = _pos_idx(pos)
         if i < 0:
             return False
-        if pos.endswith('_gan') and PILLAR_KEYS[i] == 'day':
-            return False  # 日干本身
-        return '比劫' in _pillar_cats(day_gan, gans[i], zhis[i])
+        if pos.endswith('_gan'):
+            if PILLAR_KEYS[i] == 'day':
+                return False  # 日干本身
+            return _cat(_compute_shishen(day_gan, gans[i])) == '比劫'
+        cg = get_canggan_mangpai(zhis[i])
+        return bool(cg) and _cat(_compute_shishen(day_gan, cg[0][0])) == '比劫'
 
     def _is_duocai(a) -> bool:
         """比劫夺财/争财动作（一端夺财比劫、另一端财）——段氏「制财得财」以
@@ -446,7 +455,70 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
             return True
         return False
 
-    # 1. 财星入局做功（非辅助 合/制 动作两端任一柱含财，夺财动作除外）+2——经营之本
+    def _act_cats(a):
+        """动作层十神（当事人主气粒度）：干动作（天干合/干克）只看两端干，
+        支动作只看两端支本气——同柱携带之支/干非动作当事人，柱级十神
+        （_pillar_cats 含藏干中气）判财/功神皆过宽（P0-c 旧版过触之源）。
+        日干位记为 {'日主'}（日主=我，做功第一主体，非同比劫）。"""
+        fi, ti = _pos_idx(a.get('from_pos', '')), _pos_idx(a.get('to_pos', ''))
+        if fi < 0 or ti < 0:
+            return fi, ti, set(), set()
+
+        def _one(pos, i):
+            if pos == 'day_gan':
+                return {'日主'}
+            if pos.endswith('_gan'):
+                return {_cat(_compute_shishen(day_gan, gans[i]))} - {''}
+            cg = get_canggan_mangpai(zhis[i])
+            if not cg:
+                return set()
+            if a.get('type') == '暗合':
+                # 暗合=支中藏干相合（段氏「暗合者，支中藏干相合也」）——当事人
+                # 即藏干（本气+中气），非独本气（寅丑暗合=己癸辛与甲丙戊之合，
+                # 丑中癸财乃正当事人）
+                return {_cat(_compute_shishen(day_gan, g)) for g, _ in cg[:2]} - {''}
+            return {_cat(_compute_shishen(day_gan, cg[0][0]))} - {''}
+
+        return fi, ti, _one(a.get('from_pos', ''), fi), _one(a.get('to_pos', ''), ti)
+
+    # 群比夺财背景（比劫主气数 = 透干比劫[非日干] + 四支本气比劫，≥4 成群）：
+    # 《中级》「只有比劫做功，比劫主竞争」（运动员/争夺之象，非经营取财）——
+    # 群比环伺下 日主/比劫 制财为争夺、财自身发动之制亦难自保（财处被夺之
+    # 地，做功非经营），皆不计（P0-c「制财得财以功神非比劫为前提」之延伸）。
+    _bj_qi = sum(1 for i, g in enumerate(gans)
+                 if g and PILLAR_KEYS[i] != 'day'
+                 and _cat(_compute_shishen(day_gan, g)) == '比劫')
+    _bj_qi += sum(1 for z in zhis
+                  if get_canggan_mangpai(z)
+                  and _cat(_compute_shishen(day_gan, get_canggan_mangpai(z)[0][0])) == '比劫')
+    qunbi_duocai = _bj_qi >= 4
+
+    # 财根被坏（段氏「财星太弱，财根被破…想赚钱又得不到钱」）：财本气之支被
+    # 比劫主气之支冲（劫财冲财=坏财之根，非 7.3「相冲做功…物品交换」之贸易
+    # 流动），被坏之财所在支的动作不以经营做功论（其做功为财之挣扎，虚功）。
+    cai_root_broken: Set[str] = set()
+    for a in non_aux:
+        if a.get('type') != '冲':
+            continue
+        fi, ti, fa, ta = _act_cats(a)
+        if fi < 0:
+            continue
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        if '比劫' in fa and '财' in ta and tp.endswith('_zhi'):
+            cai_root_broken.add(tp)
+        if '比劫' in ta and '财' in fa and fp.endswith('_zhi'):
+            cai_root_broken.add(fp)
+
+    # 1. 财星入局做功 +2——经营之本。动作层涉财（当事人主气见财）+ 方向/功神
+    #    判据（段氏主宾论 + 《高级》7.3「经营做功之神：伤官、食神、财星」）：
+    #      冲：双向（7.3「相冲做功…主商贸往来，象物品交换」，财参与即流动）；
+    #      合类：须主位端参与、主位功神端主气非印/官杀/比劫（印主文化取财、
+    #            官杀合财非经营[官杀当财须食伤制之]、比劫主合为夺）、且财在
+    #            对面（我合宾财/财来就我）或日时互合己财——己财被宾位合走
+    #            （合绊）非我得财；
+    #      制类（克/穿/刑/破）：须主位发动（宾位发动=财被外制/财坏印，非我
+    #            得财做功）；群比局中 日主/比劫/财 发动之制为争夺（群比夺财、
+    #            财难自保），不计。
     cai_work = False
     chong_cai = False  # 冲且涉财（贸易运输）
     for a in non_aux:
@@ -455,30 +527,76 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
             continue
         if _is_duocai(a):
             continue
-        fi, ti, fa, ta = _end_cats(a)
-        if '财' in fa or '财' in ta:
+        fi, ti, fa, ta = _act_cats(a)
+        if fi < 0 or ('财' not in fa and '财' not in ta):
+            continue
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        if fp in cai_root_broken or tp in cai_root_broken:
+            continue  # 财根被坏，做功为虚
+        if t == '冲':
             cai_work = True
-            if t == '冲':
-                chong_cai = True
+            chong_cai = True
+        elif t in _HE_TYPES:
+            zhu_f, zhu_t = _is_zhu_pos(fp), _is_zhu_pos(tp)
+            for zc, oc, zc_zhu, oc_zhu, zc_pos in (
+                    (fa, ta, zhu_f, zhu_t, fp), (ta, fa, zhu_t, zhu_f, tp)):
+                if not zc_zhu:
+                    continue
+                # 功神不净：印/官杀；比劫在宾位端为夺，在日支端为日主坐根
+                # （我之身，合制宾财=制财得财，同信号8《理象学》复例四判据）
+                if {'印', '官杀'} & zc or ('比劫' in zc and zc_pos != 'day_zhi'):
+                    continue
+                if '财' in oc or ('财' in zc and oc_zhu):
+                    cai_work = True
+                    break
+        else:  # 克/穿/刑/破：主位发动方为我得财之制
+            if not _is_zhu_pos(fp):
+                continue
+            if qunbi_duocai and {'日主', '比劫', '财'} & fa:
+                continue  # 群比夺财：争夺非经营
+            cai_work = True
     if cai_work:
         score += 2
         ev.append('财星入局做功（经营之本）')
-    # 2. 主位合财/制财做功 +2——段氏「财星明现 + 合财/制财做功，商人经营取财」
+    # 2. 主位合财/制财做功 +2——段氏「财星明现 + 合财/制财做功，商人经营取财」。
+    #    方向判据（段氏主宾论「我合/制他人之财方为己得」）：财须在宾位端
+    #    （己财被宾合=财被合走/合绊，非我得），或日主自合财（财来就我）；
+    #    主位功神端主气限 食伤/财/日主（印主文化、官杀合财非经营、比劫为夺）。
     he_or_zhi_cai = False
     for a in non_aux:
         t = a.get('type', '')
+        if t not in _HE_TYPES and t not in _ZHI_TYPES:
+            continue
         if _is_duocai(a):
             continue
-        fi, ti, fa, ta = _end_cats(a)
-        if fi < 0 or ti < 0:
+        fi, ti, fa, ta = _act_cats(a)
+        if fi < 0:
             continue
-        from_pos, to_pos = a.get('from_pos', ''), a.get('to_pos', '')
-        if t in _ZHI_TYPES and '财' in ta and _is_zhu_pos(from_pos) and not _is_zhu_pos(to_pos):
-            he_or_zhi_cai = True  # 主制宾财
-            break
-        if t in _HE_TYPES:
-            if ('财' in fa or '财' in ta) and (_is_zhu_pos(from_pos) or _is_zhu_pos(to_pos)):
-                he_or_zhi_cai = True  # 主位合财（合得他人之财/日主合财）
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        if fp in cai_root_broken or tp in cai_root_broken:
+            continue  # 财根被坏，做功为虚
+        zhu_f, zhu_t = _is_zhu_pos(fp), _is_zhu_pos(tp)
+        if t in _ZHI_TYPES:
+            # 主制宾财：主位发动、财在宾位端、功神端主气净
+            if zhu_f and not zhu_t and '财' in ta and not ({'印', '官杀', '比劫'} & fa):
+                if qunbi_duocai and {'日主', '比劫'} & fa:
+                    continue  # 群比夺财
+                he_or_zhi_cai = True
+                break
+        elif t in _HE_TYPES:
+            for zc, oc, zc_zhu, oc_zhu, zc_pos in (
+                    (fa, ta, zhu_f, zhu_t, fp), (ta, fa, zhu_t, zhu_f, tp)):
+                if not zc_zhu:
+                    continue  # 须主位端参与
+                if {'印', '官杀'} & zc or ('比劫' in zc and zc_pos != 'day_zhi'):
+                    continue  # 主位功神端不净（日支坐根之比劫除外，同信号8判据）
+                if '财' in oc:  # 主位功神合宾财（含日主合财干=财来就我）
+                    he_or_zhi_cai = True
+                    break
+                if '财' in zc and oc_zhu:  # 日时互合，己财在坐下/门户
+                    he_or_zhi_cai = True
+                    break
+            if he_or_zhi_cai:
                 break
     if he_or_zhi_cai:
         score += 2
@@ -505,6 +623,53 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     if chong_cai:
         score += 1
         ev.append('冲财做功（贸易运输）')
+    # 6b. 自坐财库 +1（结构辅证，同门户）——《高级》6.3「戌为火库，若局中火为
+    #     财，则戌为财库，象意银行、金库、仓库」+ 案例七「财库包局，银行工作」：
+    #     日支为日主财星之库（库 mapping 复用 objective.TOMB_MAP），坐下与财
+    #     为伴，财藏库而旺者多以经营/金融成象。
+    _day_zhi = zhis[PILLAR_KEYS.index('day')]
+    _cai_wx = WX_KE.get(GAN_WX.get(day_gan, ''), '')
+    if _cai_wx and _cai_wx in TOMB_MAP.get(_day_zhi, []):
+        score += 1
+        ev.append(f'自坐财库（{_day_zhi}为{_cai_wx}财之库，象意银行/金库）')
+    # 7. 内食神格（办厂/生产经营）+2——段氏《高级》7.2「尤以内食神（地支食神）为典型，
+    #    主企业内部生产、创造」「内食神格：地支食神做功，或食神生财，主实体企业、
+    #    生产经营」（7.3 商人口诀：内食神格厂生产）。内食神=食神为地支本气且不透干
+    #    （透干为外食神主口才技艺，不在此象）。
+    if not any(_compute_shishen(day_gan, g) == '食神' for g in gans if g):
+        inner = [z for z in zhis
+                 if get_canggan_mangpai(z)
+                 and _compute_shishen(day_gan, get_canggan_mangpai(z)[0][0]) == '食神']
+        if inner:
+            score += 2
+            ev.append(f'内食神格（{"".join(inner)}藏食神本气不透，办厂/生产经营）')
+    # 8. 坐根制财（制财得财）+2——《段氏理象学》复例四：「丁巳日之巳合制年上
+    #    财星，卯木助巳火之力，地支是制财之功…下海经商，应巳申之合取财，发
+    #    财数百万」。日支本气比劫=日主坐根（我之身，非宾位他人之劫——宾主
+    #    论同 K3 富屋贫人主位比劫豁免），其 合/刑/穿/克 宾位财本气之支为
+    #    主位制宾财之正格（夺财判据所排乃宾位比劫夺财与冲财争夺[子冲午类]，
+    #    不排日主坐根之合制；冲不在此列，冲财仍归争夺）。
+    _day_i = PILLAR_KEYS.index('day')
+    _day_cg = get_canggan_mangpai(zhis[_day_i])
+    if _day_cg and _cat(_compute_shishen(day_gan, _day_cg[0][0])) == '比劫':
+        for a in non_aux:
+            t = a.get('type', '')
+            if t not in _HE_TYPES and t not in {'克', '刑', '穿', '破'}:
+                continue
+            fi, ti, fa, ta = _act_cats(a)
+            if fi < 0:
+                continue
+            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            if fp == 'day_zhi' and tp.endswith('_zhi') and not _is_zhu_pos(tp) \
+                    and '财' in ta and tp not in cai_root_broken:
+                score += 2
+                ev.append('坐根制财（日支为根合制宾财，制财得财）')
+                break
+            if tp == 'day_zhi' and fp.endswith('_zhi') and not _is_zhu_pos(fp) \
+                    and '财' in fa and fp not in cai_root_broken:
+                score += 2
+                ev.append('坐根制财（日支为根合制宾财，制财得财）')
+                break
     # 五行行业（商人行业细分辅证，不作独立加分——金水既可会计数字亦可化工，
     # 须由其他商人信号定位）
     cnt = _wx_count(day_gan, gans, zhis)
@@ -881,6 +1046,10 @@ def classify_zhiye(
     # 富屋贫人 gating（P0-c）：身弱 + 财明现≥2位 + 无印生身任财——段氏「身弱
     # 财旺：非但不能得财，反为财所累…富屋贫人，干体力活维生」，此类命合财/制财
     # 做功为财所累之象而非经营之能，不以商人成象（有印生身任财者不在此限）。
+    # K3：主位比劫帮身者豁免——段氏宾主论：主位（日/时柱）比劫=自家人帮身
+    # 任财（财多身弱，比劫帮身为福），宾位比劫=他人竞争者不帮身。富屋贫人以
+    # 「身弱无主位帮扶不能任财」为前提（qi14 亿万企业家：日支寅禄帮身，财3位
+    # 而富；b67-初中：比劫全在宾位年柱，仍为富屋贫人）。
     if scores.get('merchant', 0) > 0:
         try:
             from mangpai.subjective.yongshen import classify_strength as _cs
@@ -890,14 +1059,27 @@ def classify_zhiye(
         _cai_cnt = sum(1 for i in range(4)
                        if '财' in _pillar_cats(day_gan, gans[i], zhis[i]))
         _has_yin = _has_cat(day_gan, gans, zhis, '印')
-        if _strength == '身弱' and _cai_cnt >= 2 and not _has_yin:
-            gate = (f'merchant gating（身弱财旺{_cai_cnt}位无印任财，富屋贫人——'
+        _has_bijiao = False
+        for _i in (PILLAR_KEYS.index('day'), PILLAR_KEYS.index('hour')):
+            _cats = _pillar_cats(day_gan, gans[_i], zhis[_i])
+            if PILLAR_KEYS[_i] == 'day':
+                _cats = _cats - {_cat(_compute_shishen(day_gan, gans[_i]))}  # 日干自身不算帮身
+            if '比劫' in _cats:
+                _has_bijiao = True
+                break
+        if _strength == '身弱' and _cai_cnt >= 2 and not _has_yin and not _has_bijiao:
+            gate = (f'merchant gating（身弱财旺{_cai_cnt}位无印无比劫任财，富屋贫人——'
                     f'段氏：干体力活维生，不为商）')
             scores['merchant'] = 0
             evidence['merchant'] = [gate]
 
-    # 多象定一象：取最高分
-    primary = max(scores, key=lambda k: scores[k]) if scores else ''
+    # 多象定一象：取最高分。同分决胜（K3，段氏 7.3 总则「先定取财方式：先断其
+    # 属于经营、风险、智力、体力、工薪中哪一类…再精确定位」+ 引言「象法为宗」）：
+    #   非常规象（performer/military，桃花/羊刃神煞驱动，象法最切）> 取财方式层
+    #   （merchant=经营取财）> 行业桶（accountant/doctor/teacher/lawyer，保持原序）。
+    _tie_pri = ('performer', 'military', 'merchant', 'accountant', 'doctor',
+                'teacher', 'lawyer')
+    primary = max(scores, key=lambda k: (scores[k], -_tie_pri.index(k))) if scores else ''
     top_score = scores[primary] if scores else 0
     # 最低分阈值：最高分低于阈值时各桶均为弱信号共现、不足成象，fallback
     # 「无明确职业倾向」而非硬塞最像的一桶（乞丐/坐牢/破财等非标命局）。
