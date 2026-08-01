@@ -336,16 +336,27 @@ def _assess_caixing_path(
     # 失用——该干为财者财被合绊（ans12-下岗穷命 壬戌时，戌逢辰冲激活，
     # 壬财被戌中丁合绊，「想赚钱又得不到钱」）。日柱自合不在此列（日主
     # 自合=日主合财/合官做功，见下方 hecai_work）。
+    # 豁免（48期「财来就我」）：支中合神与日主同五行者（日主/比劫=我方），
+    # 财星被我方合入=财合日主、反为得财，不论合绊失用，视同合财做功
+    # （li263 戊日主年柱癸巳：巳中戊合癸财=财来就我；li128 己日主月柱
+    # 癸巳同例）。合神非我方者（壬戌之丁火合壬财）仍论绊。
+    _cailai_jiuwo = False
     try:
         from mangpai.objective.zihe import detect_zihe
         _zihe = detect_zihe(gans, zhis)
-        for pos in _zihe.get('ban_gan_positions') or []:
-            _pk = pos.split('_')[0]
-            _gi = PILLAR_KEYS.index(_pk) if _pk in PILLAR_KEYS else -1
-            if _gi >= 0 and GAN_WX.get(gans[_gi], '') == cai_wx and _gi in mingxian_gan:
-                _zg = gans[_gi] + zhis[_gi]
-                heban.append(f'{PILLAR_NAMES_CN[_gi]}干{gans[_gi]}（财）坐{_zg}自合柱，'
-                             f'被支中藏干合绊失用（48期天地合）')
+        for _prec in _zihe.get('pillars') or []:
+            if _prec.get('is_day') or not _prec.get('activated'):
+                continue
+            _gi = _prec.get('idx', -1)
+            if not (_gi >= 0 and GAN_WX.get(gans[_gi], '') == cai_wx
+                    and _gi in mingxian_gan):
+                continue
+            if GAN_WX.get(_prec.get('he_shen', ''), '') == day_wx:
+                _cailai_jiuwo = True
+                continue
+            _zg = gans[_gi] + zhis[_gi]
+            heban.append(f'{PILLAR_NAMES_CN[_gi]}干{gans[_gi]}（财）坐{_zg}自合柱，'
+                         f'被支中藏干合绊失用（48期天地合）')
     except Exception:
         _zihe = {}
     for i in range(3):
@@ -395,7 +406,7 @@ def _assess_caixing_path(
         if other and _is_zhu(other[0]):
             hecai_work = True
             break
-    out['hecai_work'] = hecai_work
+    out['hecai_work'] = hecai_work or _cailai_jiuwo
 
     # G9 日主自合合财（48期「日主因合而从支」）：日主坐激活自合柱且支中
     # 合神为财者（戊子/甲午/壬午/丙戌/壬戌型日主），日主合财=直接承载财富
@@ -1005,6 +1016,19 @@ def detect_zhibujin_dangcai(
     }
 
 
+def _zeishen_jingzhi(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
+    """贼神捕神净制判定（段氏理象学）：净=贼神原神俱制、制之干净，量级同制尽。
+
+    zhibujin 封顶富的豁免判据——软依赖 zeishen_bushen，异常一律按不净（封顶）。
+    """
+    try:
+        from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
+        r = analyze_zeishen_bushen(day_gan, gans, zhis)
+        return bool((r.get('zeishen_bushen') or {}).get('jing_zhi') == '净')
+    except Exception:
+        return False
+
+
 def assess_caiming_level(
     day_gan: str, gans: List[str], zhis: List[str],
     gongliang_result: Optional[Dict] = None,
@@ -1189,12 +1213,28 @@ def assess_caiming_level(
     # 财源上浮
     if (has_guancai or has_zhibujin) and tier_idx < 4 and not cong_cai_pin:
         tier_idx += 1
-        adjust = '上浮（官杀当财量级高）'
+        # zhibujin（制不尽当财）量级低于制尽得权（段氏做功量级口径：制尽方得
+        # 全权，制不尽量级不足）——独力上浮封顶「富」，不到巨富；官统财/财统官/
+        # 过河拆桥·富格（制尽路径）上浮不在此限。
+        # 豁免（贼神捕神净制，段氏理象学主线）：净制=贼神原神俱制、制之干净，
+        # 量级同制尽，纵 zbj 口径判「不尽」亦可达巨富——李嘉诚/保尔森书锚
+        # 「财与财的原神同时被制，财富级别可见一斑」；不净者（原神残存）模块
+        # 自注「封顶三层」，与封顶富同口径。
+        if has_zhibujin and not has_guancai and tier_idx > 3:
+            if _zeishen_jingzhi(day_gan, gans or [], zhis or []):
+                adjust = '上浮（官杀当财量级高；贼神捕神净制，量级同制尽）'
+            else:
+                tier_idx = 3
+                adjust = '上浮（官杀当财量级高；制不尽量级不足，封顶富）'
+        else:
+            adjust = '上浮（官杀当财量级高）'
     elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin:
         tier_idx -= 1
         adjust = '下浮（禄/食伤当财量级有限）'
-    # 制尽/破财调整
-    if guohe_pocai and tier_idx > 1:
+    # 制尽/破财调整（-1 去重）：方向信号已携带过河拆桥破财时由下方凶向封顶链
+    # 统一处理（封顶小康），此处不再重复 -1——双计会把本在 cap 上的档再压一阶，
+    # 且封顶链「下浮封顶」文本因档已低于 cap 不再触发（凶向标记丢失）。
+    if guohe_pocai and tier_idx > 1 and not ds.get('guohe_pocai'):
         tier_idx -= 1
         adjust = (adjust + '；' if adjust != '持平' else '') + '下浮（过河拆桥破财）'
     # 开财库上浮（墓中之财复出主大发）
@@ -1447,6 +1487,15 @@ def analyze_caiming(
 
     caiku = cv.get('caiku', [])
     summary = _assemble_summary(level)
+    # 凶向在档强制标注（仅全量轨）：凶向命中但档位本已在封顶之下（capped=False，
+    # 未触发「下浮封顶」文本）时，全量轨 summary 仍携带凶向理由——流年事件断语
+    # （破财/凶）评分依赖全量轨凶向标记。严禁写入静态轨（P0-a 假阳陷阱：原局
+    # 层级断语评 summary_static，静态轨误入凶向词会把 ⚠️ 误杀 ❌）。
+    if (direction.get('fanju') or direction.get('pocai') or direction.get('guohe_pocai')
+            or direction.get('yongshen_xiong') or direction.get('mingju_xiong')) \
+            and '下浮封顶' not in (level.get('desc') or ''):
+        _xr = '；'.join(direction.get('reasons') or [])
+        summary += f'；凶向在档（{_xr}）' if _xr else '；凶向在档'
     summary_static = _assemble_summary(level_static)
 
     return {

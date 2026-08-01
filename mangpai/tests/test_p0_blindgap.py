@@ -53,14 +53,17 @@ class TestTierStaticYunsuiDelta:
 
     def test_suiyun_cap_only_in_full_track(self):
         """岁运反局切片：全量轨封顶、原局轨不动——原局断语不再被 artifact 压档。"""
+        # 注：本造为 zhibujin（制不尽当财）独力上浮——K3 批A 起按「制不尽量级
+        # 不足」封顶「富」不到巨富（制尽路径如官统财/过河拆桥·富格不在此限），
+        # 原局档 巨富->富 为预期口径变更，双轨语义不变。
         cm = analyze_caiming('庚', self.GANS, self.ZHIS,
                              yunfan_result=self.FAKE_SLICE)
-        assert cm['tier_static'] == '巨富'      # 原局档不受岁运反局影响
+        assert cm['tier_static'] == '富'        # 原局档不受岁运反局影响
         assert cm['tier'] == '小康'             # 全量轨被岁运反局封顶
         d = cm['yunsui_delta']
         assert d and d['suiyun_fanju'] is True
         assert d['capped'] is True
-        assert d['tier_static'] == '巨富' and d['tier_final'] == '小康'
+        assert d['tier_static'] == '富' and d['tier_final'] == '小康'
 
     def test_static_summary_free_of_suiyun_markers(self):
         """原局轨 summary 不含岁运文本（评分器凶向标记不吃 artifact）。"""
