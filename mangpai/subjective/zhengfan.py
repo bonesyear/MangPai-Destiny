@@ -248,6 +248,12 @@ def analyze_zhengfan(
             return bool(_guan_wx) and _pos_element(from_pos, gans, zhis) == _guan_wx
         return False
 
+    # 日柱主动做功存在性（R-a 门控）：非辅助动作由 day_gan/day_zhi 发起≥1
+    _day_has_active_work = any(
+        not wa.get('auxiliary') and wa.get('from_pos', '') in ('day_gan', 'day_zhi')
+        for wa in work_actions
+    )
+
     for wa in work_actions:
         if wa.get('auxiliary'):
             continue  # 辅助动作不计入正反局做功方向（全局气势/正反局只看实质做功）
@@ -258,7 +264,18 @@ def analyze_zhengfan(
             target = to_pos if 'day' in from_pos else from_pos
             if target and 'day' not in target:
                 day_targets.append(target)
-                if not _k25_skip(wa, from_pos, to_pos):
+                # R-a（P2 推广）：日主受克（克动作以 day_gan 为目标）不计入
+                # 反局（五行方向）之日柱做功指向——「日柱做功」主语是日柱
+                # 主动做功，日主被克为受方非做功（K2-5「官杀克日主非日柱
+                # 做功（日主为受方）」之一般化：K2-5 限于合年/月官，此处
+                # 推广至一切日主受克；li101 红线复验——其反局由杀印相生/
+                # 申克卯木等余证维持，不受本推广影响）。限日柱另有主动做功
+                # 者方适用（有功论功、无功论受：日柱纯受动之局——如戊午日
+                # 寅午戌不入局三戊造（14期贪财坐牢），日主受杀克即局之主要
+                # 动态，仍计入方向判据）。day_targets 全量仍供「无功不为局」。
+                if not _k25_skip(wa, from_pos, to_pos) and not (
+                        wa.get('type') == '克' and to_pos == 'day_gan'
+                        and _day_has_active_work):
                     day_fan_targets.append(target)
             elif target:
                 # target 也是 day 位置（日干合日支等罕见情况），跳过
@@ -362,6 +379,16 @@ def analyze_zhengfan(
             _pos_element(t, gans, zhis) for t in day_fan_targets
         }
         day_elems.discard('')
+        # K2-6 单向旺势同党豁免（P2，理象学制例一奥纳西斯锚）：全局单向旺
+        # 成势（qishi.dominant）时，日柱做功指向五行为气势本行（==dominant）
+        # 或原神（生dominant）者，与气势同党——势内之功非相背（巳午未火与
+        # 燥土成势，日支未冲丑制库、未午合皆势内之功，书判巨富正局），
+        # 不计入相克判据；泄势/克势/被势克之指向照常计入（保守不豁免——
+        # li101 红线复验：申克卯木（木）/杀印相生（土）等指向犹在，反局不动）。
+        if qishi and qishi.get('kind') == '单向' and qishi.get('dominant'):
+            _dq = qishi['dominant']
+            day_elems = {de for de in day_elems
+                         if not (de == _dq or WX_SHENG.get(de) == _dq)}
         if global_main_elem and day_elems:
             ke_global = any(
                 WX_KE.get(de) == global_main_elem

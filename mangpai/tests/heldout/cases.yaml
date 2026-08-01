@@ -998,7 +998,6 @@
   gender: 女
   verdicts:
     婚姻: 差·嫁厅长家儿子但夫有情人
-    财命: 贫·娘家家境很差
   source: shouke-li050:3676
   raw_quote: 答：此造以卯禄为用神，亥为喜神，故会嫁的好夫（从农村嫁给厅长家儿子）。年月之未、辛、寅、甲都为忌神，故家境很差。亥为夫，与寅合，故夫的情人多。
 - id: shouke-li054-掌兵权大贵
@@ -1468,7 +1467,7 @@
     month: 己未
     day: 己亥
     hour: 辛未
-  dayun: 癸亥
+  dayun: 壬戌
   liunian: 庚辰
   gender: 男
   verdicts:

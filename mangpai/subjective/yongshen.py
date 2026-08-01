@@ -1354,6 +1354,14 @@ def assess_direction_signals(
     n1 = detect_shangguan_jianguan(day_gan, gans, zhis, work_actions)
     n2 = detect_caisheng_sha_gongshen(day_gan, gans, zhis, work_actions)
     n3 = detect_guansha_rumu_xiong(day_gan, gans, zhis, relations)
+    # N4：官非牢狱复合（段氏牢狱五法「命中占其一即有牢狱之象，占多者灾重」
+    # 收口——五法单式泛火严重，laoyu 聚合 risk 在富贵局系统性过火，故仅以
+    # 「最特异两法俱中」为官非牢狱凶向：魁罡逢冲官（庚辰/壬辰/庚戌/戊戌日
+    # 逢刑冲官杀，高级篇 ch11）∧ 枭神夺食（食伤做功之神被夺，失去自由坐牢，
+    # 中级牢狱专辑法三）。全库命中面实测仅 4 例（li094/ans31 两牢狱金标在内，
+    # famous23 与 trainset 零命中），方入凶向链。缺省自调 laoyu（与 ly 同链，
+    # 不重复计算——见下方 laoyu_result 处理，此处先置 None 待 ly 就绪后补判）。
+    n4: Dict = {'detected': False, 'severity': 'normal', 'reason': ''}
     mingju_xiong = bool(n1.get('detected')) or bool(n2.get('detected')) \
         or bool(n3.get('detected'))
     # severe 预留（当前三式俱 normal——凶向标记供「因财致祸/官非」断语，
@@ -1362,6 +1370,16 @@ def assess_direction_signals(
 
     zf = zhengfan_result or _ensure_zhengfan(day_gan, gans, zhis, relations)
     ly = laoyu_result or _ensure_laoyu(day_gan, gans, zhis, relations)
+
+    # N4 补判（ly 就绪后）：魁罡逢冲官 ∧ 枭神夺食 两法俱中 = 占多灾重之
+    # 官非牢狱（判据与命中面见上方 N4 注释；severity 同 N1/N2/N3 俱 normal）。
+    if ly:
+        _kg = (ly.get('kuigang') or {})
+        _xd = (ly.get('xiao_duo_shi') or {})
+        if _kg.get('laoyu_signal') and _xd.get('xiao_duo_shi'):
+            n4 = {'detected': True, 'severity': 'normal',
+                  'reason': '官非牢狱·魁罡逢冲官兼枭神夺食（段氏牢狱五法占多灾重）'}
+            mingju_xiong = True
 
     natal_fanju = bool(zf and zf.get('type') == 'fan')
 
@@ -1420,7 +1438,7 @@ def assess_direction_signals(
         reasons.append(r2.get('reason', '忌神制用神'))
     if r3.get('detected'):
         reasons.append(r3.get('reason', '用神被合绊'))
-    for n in (n1, n2, n3):
+    for n in (n1, n2, n3, n4):
         if n.get('detected'):
             reasons.append(n.get('reason', '原局凶向'))
 
@@ -1445,7 +1463,8 @@ def assess_direction_signals(
         'shangguan_jianguan': n1,          # N1 伤官见官为忌
         'caisheng_sha_gongshen': n2,       # N2 财生杀攻身（severe）
         'guansha_rumu': n3,                # N3 官杀入墓为忌
-        'mingju_xiong': mingju_xiong,      # 原局级凶向三式任一命中
+        'guanfei_laoyu': n4,               # N4 官非牢狱复合（魁罡逢冲官∧枭神夺食）
+        'mingju_xiong': mingju_xiong,      # 原局级凶向四式任一命中
         'mingju_xiong_severe': mingju_xiong_severe,
         'cong_target': cong_target,        # G5 从格所从分类（标注/消费两用）
         'gan_xiji': gan_xiji,              # G1 十干喜忌月令标注（辅助票）

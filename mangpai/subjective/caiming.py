@@ -52,7 +52,7 @@ from typing import Dict, List, Optional, Set
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME, TIAN_GAN_HE,
     LU, CANG_GAN_MANGPAI, TOMB_MAP, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
-    SAN_HE, BAN_HE,
+    SAN_HE, BAN_HE, LIU_CHONG, XING_PAIRS,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.binzhu import analyze_binzhu
@@ -213,6 +213,82 @@ def _ensure_muku(gans: List[str], zhis: List[str], muku_result: Optional[Dict]) 
         return {}
 
 
+def _tomb_chong_xing_open(zhi: str, zhis: List[str]) -> bool:
+    """墓库支是否被他支冲/刑触动（动库，不论透干引拔）。
+
+    段氏「不冲不刑是墓（死的）」之逆——逢冲/刑则库动而非死墓；
+    《中级》「丑未冲开一点点」明示冲开无须透干（透干引拔管库中余气
+    「引出方有用」，是另一层：全开出尽 vs 动而不尽）。
+    """
+    for z in zhis:
+        if not z or z == zhi:
+            continue
+        if (z, zhi) in LIU_CHONG or (zhi, z) in LIU_CHONG \
+                or (z, zhi) in XING_PAIRS or (zhi, z) in XING_PAIRS:
+            return True
+    return False
+
+
+def _detect_zhiku_decai(
+    day_gan: str, gans: List[str], zhis: List[str],
+    muku_result: Optional[Dict] = None,
+) -> Dict:
+    """制库得财（《段氏理象学》制例一，奥纳西斯书锚）。
+
+    月令墓库被主位（日/时）支冲/刑而开（muku 判开库=透干引拔，库物出而
+    可用），且库中藏干同含「财」与「财之原神（食伤）」——书「丑未冲，
+    主位之未杀库制月令丑土，月令之财与财的原神被制」「开库的同时将库
+    中的伤官与财星全制服了，所以能成巨富」：财与原神同库俱制 = 净制
+    （量级同制尽），为制尽级财命定式，非禄/食伤当财之量级有限路径。
+
+    判据（四要件俱备方立，宁窄勿滥）：
+      1. 月令支为墓库（提纲得令之库，量级大）；
+      2. 被主位（日支/时支）冲或刑（主位制宾库，主得之）；
+      3. muku 判开库（透干引拔，库中之物出而可用）；
+      4. 库藏干同含财与食伤（财与原神同库，冲制则俱制=净制）。
+
+    Returns:
+        {'found': bool, 'tomb': str, 'detail': str}
+    """
+    out = {'found': False, 'tomb': '', 'detail': ''}
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        return out
+    day_wx = GAN_WX.get(day_gan, '')
+    cai_wx = WX_KE.get(day_wx, '')       # 财五行（我克）
+    yuan_wx = WX_SHENG.get(day_wx, '')   # 财之原神=食伤五行（我生）
+    month_zhi = zhis[1] if len(zhis) > 1 else ''
+    if not (cai_wx and yuan_wx and month_zhi and month_zhi in TOMB_MAP):
+        return out
+    # 要件2：主位（日/时）支冲/刑月令库
+    opener = ''
+    for z in (zhis[2], zhis[3]):
+        if z and ((z, month_zhi) in LIU_CHONG or (month_zhi, z) in LIU_CHONG
+                  or (z, month_zhi) in XING_PAIRS or (month_zhi, z) in XING_PAIRS):
+            opener = z
+            break
+    if not opener:
+        return out
+    # 要件3：muku 判开库（透干引拔）
+    mu = _ensure_muku(gans, zhis, muku_result)
+    opened = any(t.get('zhi') == month_zhi and t.get('status') == '开库'
+                 for t in (mu.get('tombs') or []))
+    if not opened:
+        return out
+    # 要件4：库藏干同含财与食伤（财与原神同库）
+    ku_gans = {cg for cg, _q in get_canggan_mangpai(month_zhi)}
+    has_cai_in_ku = any(GAN_WX.get(cg, '') == cai_wx for cg in ku_gans)
+    has_yuan_in_ku = any(GAN_WX.get(cg, '') == yuan_wx for cg in ku_gans)
+    if not (has_cai_in_ku and has_yuan_in_ku):
+        return out
+    out['found'] = True
+    out['tomb'] = month_zhi
+    out['detail'] = (f'月令{month_zhi}库藏财（{cai_wx}）与原神食伤（{yuan_wx}），'
+                     f'主位{opener}冲/刑开库，开库同制财与原神俱制——'
+                     f'制库得财，量级同制尽（理象学制例一奥纳西斯「月令之财与财的'
+                     f'原神被制…有四层功量，所以成巨富」）')
+    return out
+
+
 def _detect_caiku(
     day_gan: str, gans: List[str], zhis: List[str], muku_result: Optional[Dict],
 ) -> List[Dict]:
@@ -289,7 +365,8 @@ def _assess_caixing_path(
         }
     """
     out: Dict = {'has_yuanshen': False, 'zhuwei_cai': False, 'fucai': False,
-                 'heban': [], 'rumu': [], 'hecai_work': False, 'blockers': []}
+                 'heban': [], 'rumu': [], 'hecai_work': False, 'blockers': [],
+                 'rumu_bankai': False}
     day_wx = GAN_WX.get(day_gan, '')
     cai_wx = WX_KE.get(day_wx, '')
     if not cai_wx or len(gans) != 4 or len(zhis) != 4:
@@ -432,6 +509,13 @@ def _assess_caixing_path(
             continue
         if tomb_status.get(tz) == '开库':
             continue  # 开库发财，非阻
+        if tz and _tomb_chong_xing_open(tz, zhis):
+            # 冲/刑动库半开（《中级》「丑未冲开一点点」「不冲不刑是墓」）：
+            # 库逢冲/刑则动而非死墓，财不死藏——不论「收藏难取」之阻；
+            # 唯无透干引拔则财未全出（理象学「墓中余气透干引出方有用，
+            # 不透干也无用」），记 rumu_bankai——基阶不压、升档不升。
+            out['rumu_bankai'] = True
+            continue
         rumu.append(rel.get('relation', f'{fz}入{tz}墓'))
     if rumu:
         out['blockers'].append('财星入墓未开（' + '；'.join(rumu) + '），财被收藏难取')
@@ -954,6 +1038,21 @@ def classify_qucai_method(
     if jieyang_zhi_cai and '风险' not in methods:
         methods.append('风险')
         details.append('劫刃制财，风险求财')
+    # 枭神生劫·不劳而获（标注级，不抢主取、不定档）：段氏诀「枭神生劫不劳
+    # 而获」（11期贱命无赖「一生靠劫取他人财为生」），同诀系于虎应造
+    # 「靠绊大款为生，也为个劳而获」（甲丁丙甲/寅卯寅午，同为枭透劫财明现）
+    # ——枭神（偏印）透干生劫财，劫财得枭生则有源，靠劫取/合绊（绊大款）
+    # 他人之财为生，即合绊取财/不劳而获型。判据：偏印透干 + 劫财明现
+    # （透干或支本气）。仅作取财性质识别（methods 尾位标注），不参与定档
+    # ——档位仍由功量/财源主线判定（ans12 已批损失面与批B R3 豁免口径不动）。
+    _xiao_tou = any(_compute_shishen(day_gan, g) == '偏印' for g in gans if g)
+    _jiecai_mx = any(_compute_shishen(day_gan, g) == '劫财' for g in gans if g) or \
+        any(_compute_shishen(day_gan, get_canggan_mangpai(z)[0][0]) == '劫财'
+            for z in zhis if z)
+    if _xiao_tou and _jiecai_mx and '不劳而获' not in methods:
+        methods.append('不劳而获')
+        details.append('枭神生劫，不劳而获——劫财得枭生有源，靠劫取/合绊'
+                       '他人之财为生（段氏诀「枭神生劫不劳而获」，绊大款/依附取财型）')
     # 制官得官（非官杀当财）-> 工薪
     if zhi_guan_for_gong and '官统财（官杀当财）' not in views and '财统官' not in views and '工薪' not in methods:
         methods.append('工薪')
@@ -1088,6 +1187,10 @@ def assess_caiming_level(
         pass
     has_lu_or_shishang = any(v in views for v in ('禄神当财', '伤食当财'))
     guohe_pocai = caifu_view.get('guohe_chaiqiao_type') == '破财'
+    # 制库得财（理象学制例一）：月令墓库被主位冲/刑开，库中财与原神同制
+    # ——制尽级财命定式，量级同制尽（书锚=奥纳西斯船王巨富）。
+    has_zhiku = _detect_zhiku_decai(day_gan, gans or [], zhis or [],
+                                    muku_result).get('found', False)
     # 财库开闭（已由 classify_caifu_view 据传入 muku_result 检出，亦可直接读 caiku）
     has_open_caiku = bool(caifu_view.get('has_open_caiku'))
     # 财星源头/路径（M2：贫富三要素——原神/主位定浮实，合绊/入墓定阻通）
@@ -1219,8 +1322,17 @@ def assess_caiming_level(
         if _pts > 0 and gl.get('penalty') != '无功':
             tier_idx = 2
             adjust = '基阶校准（一层功=小富小贵，百万级非贫）'
+    # 制库得财直判 floor 富（P2，trainset b67-制例一奥纳西斯锚：船王巨富
+    # 旧判贫——局无明财落禄/伤食当财被 -1 下浮；书锚=月令之财与财的原神
+    # 同库被制，净制量级同制尽，与过河拆桥·富格同级财命定式）：基阶不落
+    # 富下，抗功量层低估；升档走下方财源 +1（仅 +1 不越级）。凶向封顶链
+    # 在下方收尾，不受此 floor 影响（同富格口径：floor 只抗低估不抗方向）。
+    if has_zhiku and tier_idx < 3 and not cong_cai_pin:
+        tier_idx = 3
+        adjust = (adjust + '；' if adjust != '持平' else '') + \
+            '制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富'
     # 财源上浮
-    if (has_guancai or has_zhibujin) and tier_idx < 4 and not cong_cai_pin:
+    if (has_guancai or has_zhibujin or has_zhiku) and tier_idx < 4 and not cong_cai_pin:
         tier_idx += 1
         # P1-4 财统官 3->4 须财量级证据（段氏「官多财少，财可统官」+ 量级口径）：
         # 财统官以少财统多官，财之量级本疑——财无原神或不归主位（浮财统官）
@@ -1251,6 +1363,9 @@ def assess_caiming_level(
             else:
                 tier_idx = 3
                 adjust = '上浮（官杀当财量级高；制不尽量级不足，封顶富）'
+        elif has_zhiku and not (has_guancai or has_zhibujin):
+            adjust = (adjust + '；' if adjust != '持平' else '') + \
+                '上浮（制库得财，开库同制财与原神，量级同制尽）'
         else:
             adjust = '上浮（官杀当财量级高）'
     elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin:
@@ -1280,9 +1395,11 @@ def assess_caiming_level(
     #   升档：财有原神（食伤明现生财）+ 财为我所及（财在主位，或合财做功——日主
     #     合财=直接承载、主位合宾财=合得他人之财）+ 无合绊/入墓阻断 -> 财有源头
     #     且路径畅通，段氏「有财则伤食是其原神，可以当投资之财」，上浮一阶。
-    #     两道抑制：凶向命中者财源已断不升（避免升后触发封顶文本徒增凶向标记）；
+    #     三道抑制：凶向命中者财源已断不升（避免升后触发封顶文本徒增凶向标记）；
     #     身弱财旺（段氏高级篇「身弱财旺：非但不能得财，反为财所累…富屋贫人」）
-    #     不升——财多身弱无源可任，原神流通亦难致富。
+    #     不升——财多身弱无源可任，原神流通亦难致富；冲/刑动库半开之财
+    #     （rumu_bankai：无透干引拔，财未全出，「不透干也无用」）不升——
+    #     半开不死藏（不压），亦不足以升档大发（不升）。
     #   降档（封顶小康，段氏高级篇「身旺财弱：不发大财，但也不缺钱花，属于小康
     #     或普通富裕」——浮财/路径受阻=财能量小、难取，难富而未必要贫）：
     #     浮财（无原神且不在主位）/财被合绊/财入墓未开，任一命中封顶小康。
@@ -1313,6 +1430,7 @@ def assess_caiming_level(
         cai_reachable = bool(cxp.get('zhuwei_cai') or cxp.get('hecai_work'))
         if (not blocked and not ds_xiong and not shenruo_caiwang
                 and cxp.get('has_yuanshen') and cai_reachable
+                and not cxp.get('rumu_bankai')
                 and tier_idx < 4 and not floor_applied):
             tier_idx += 1
             adjust = (adjust + '；' if adjust != '持平' else '') + \
@@ -1533,6 +1651,17 @@ def analyze_caiming(
         _xr = '；'.join(direction.get('reasons') or [])
         summary += f'；凶向在档（{_xr}）' if _xr else '；凶向在档'
     summary_static = _assemble_summary(level_static)
+    # 官非牢狱（N4 复合）静态轨标注：N4=魁罡逢冲官∧枭神夺食，原局定性信号
+    # （非岁运 artifact），其「凶」断语（走私坐牢/为财坐牢）多评原局轨
+    # （summary_static）——全量轨「凶向在档」标注够不到。N4 命中面极窄
+    # （全库实测 4 例，无层级断语财命），静态轨标注不重开 P0-a 假阳陷阱
+    # （岁运反局等仍严禁入静态轨）。档位已被压者（下浮封顶文本携理由）
+    # 不重复标注。
+    if (direction_natal.get('guanfei_laoyu') or {}).get('detected') \
+            and '官非牢狱' not in summary_static:
+        summary_static += ('；官非牢狱在档（'
+                           + (direction_natal['guanfei_laoyu'].get('reason')
+                              or '魁罡逢冲官兼枭神夺食') + '）')
 
     return {
         'caifu_view': cv,
