@@ -230,7 +230,6 @@ class TestPoCongYun:
         ln_types = [f['fan_type'] for d in r['liunian_fan'] for f in d['fans']]
         assert any('破从(合去日主)' in t for t in ln_types)
 
-    @pytest.mark.xfail(reason="K3 interrupted: 破从检测未完全接入yunfan")
     def test_congruo_degen_pocong(self):
         """22期例6 型（从官格）：行日主墓库/本气根运 -> 破从（日主得根）。"""
         # 癸乙丙丙/酉丑子申（22期例6，从官）：戌运，戌中丁火=日主余气根
@@ -284,7 +283,6 @@ class TestCongErTier:
         cm = analyze_caiming('戊', ['庚', '戊', '戊', '庚'], ['子', '寅', '申', '申'])
         assert cm['tier_static'] == '富'
 
-    @pytest.mark.xfail(reason="K3 interrupted: 从儿格基阶校准未完成")
     def test_cong_er_no_cai_no_floor(self):
         """从儿无财不升（儿不生儿，不流通）：从儿格但局无明财，保持原档。"""
         # 癸日，卯卯亥丑辛辛癸癸=从强非从弱不适用；构造从弱从儿无财：

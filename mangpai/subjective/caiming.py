@@ -1139,6 +1139,8 @@ def assess_caiming_level(
     # 从弱所从=食伤（从儿）：食伤成势（干支主气≥3）且局有明财（儿又生儿，
     # 食伤生财流通）者，从儿得财——基阶不落下富（qi50 诊所效益极好、
     # li213 董竹君从儿企业家）。凶向命中者不升（同从财格口径）。
+    # 「明财」门控：限天干透财/支本气财——藏干中气财非明现，不能任
+    # 「儿又生儿」之流通；从儿无财者儿不生儿、不流通，基阶不升（22期）。
     if strength == '从弱' and not ds_xiong and not cong_cai_pin:
         try:
             from mangpai.subjective.yongshen import classify_cong_target
@@ -1149,7 +1151,11 @@ def assess_caiming_level(
             _ss_wx_c = WX_SHENG.get(GAN_WX.get(day_gan, ''), '')
             _ss_cnt = sum(1 for g in (gans or []) if GAN_WX.get(g) == _ss_wx_c) + \
                       sum(1 for z in (zhis or []) if ZHI_WX.get(z) == _ss_wx_c)
-            if _ss_cnt >= 3 and (caifu_view or {}).get('cai_count', 0) >= 1:
+            _cai_wx_ce = WX_KE.get(GAN_WX.get(day_gan, ''), '')
+            _ming_cai = bool(_cai_wx_ce) and (
+                any(GAN_WX.get(g, '') == _cai_wx_ce for g in (gans or [])) or
+                any(ZHI_WX.get(z, '') == _cai_wx_ce for z in (zhis or []) if z))
+            if _ss_cnt >= 3 and _ming_cai:
                 tier_idx = max(tier_idx, 3)
                 adjust = (adjust + '；' if adjust != '持平' else '') + \
                     '从儿格食伤成势且有财流通（儿又生儿），基阶不落下富'

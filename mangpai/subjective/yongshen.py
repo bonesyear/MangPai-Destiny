@@ -250,9 +250,12 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
             sum(1 for z in zhis if ZHI_WX.get(z) == wx)
         yidang_shi = max(yidang_shi, n)
     # G9：日主自合柱者，合局化势计入成势闸（48期例2 亥卯半合化木，官势实3
-    # 而主气仅2——日主既已自合失扶，所从之势按合局后五行量）。仅自合日主
-    # 适用此宽口径，非自合局维持主气计数（防两停误判从）。
-    if st.get('day_zihe'):
+    # 而主气仅2——日主既已自合失扶，所从之势按合局后五行量）。
+    # G5 扩展（22期例6）：异党数量占优（selfc<conc，非两停）者同用化势
+    # 宽口径——例6 从官格 癸乙丙丙/酉丑子申，异党5:3，酉丑半合金则金实3
+    # 成势（主气仅2），从官。两停局（selfc==conc，生例一富婆水木各半）
+    # 维持主气计数，防两停误判从。
+    if st.get('day_zihe') or selfc < conc:
         from mangpai.objective.constants import SAN_HE as _SH2, BAN_HE as _BH2
         zhi_wx_eff = [ZHI_WX.get(z, '') for z in zhis]
         for _he, _wx in _SH2.items():
