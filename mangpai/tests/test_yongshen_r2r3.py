@@ -7,8 +7,9 @@
     「癸酉运枭神夺食，子死于非命」；岳飞书例 子忌制巳寿元星=凶而贵存）；
   R3：段氏「紧贴相合为绊…谁都无法发挥作用」；受害方口径同 he_types
     合克/合伤/闭气；忌神受绊为吉不触发（李嘉诚未午合）；做功参与抑制
-    （冲/穿入局者合不能绊——奥纳西斯未入丑未冲不论绊；森田健戌仅单向
-    克亥，仍论「卯戌合绊，戌根失去力量」）。
+    （冲/穿入局者合不能绊——奥纳西斯未入丑未冲不论绊）；合化出喜用豁免
+    （P1：化气属喜用类且≠受害方本行则向化非绊——森田健卯戌合化火=印，
+    段氏「需行火运生扶日主则好」；化气==本行仍论绊，子丑/庚乙两测锁定）。
 """
 import pytest
 
@@ -87,14 +88,15 @@ class TestR2JishenZhiyongshen:
 # ───────────────────── R3 用神被合绊 ─────────────────────
 
 class TestR3HebanYongshen:
-    def test_r3_morita_ken_detected(self):
-        """森田健 辛戊己癸/卯戌亥酉：身弱，卯戌合绊戌（比劫用神、日主根）。
-        戌仅单向克亥（不入冲/穿），不享做功参与抑制 -> 命中（书例明文）。"""
+    def test_r3_morita_ken_huaqi_exempt(self):
+        """森田健 辛戊己癸/卯戌亥酉：身弱，卯戌合绊戌（比劫用神、日主根）——
+        然卯戌合化火=印（喜用类且≠戌本行），合化出喜用豁免（P1 R3 精化：
+        段氏论此造「需行火运生扶日主则好」，合之化气正是其所喜，非绊凶）。
+        合绊事实仍计入身弱判定（戌根失力），不再双重计入凶向；
+        化气==受害方本行者仍论绊（见 zichou/gan_he 两测）。"""
         r = detect_heban_yongshen('己', ['辛', '戊', '己', '癸'],
                                   ['卯', '戌', '亥', '酉'])
-        assert r['detected'] and r['severity'] == 'normal'
-        assert any('戌' in h for h in r['hits'])
-        assert '用神被合绊' in r['reason']
+        assert not r['detected']
 
     def test_r3_onassis_suppressed_by_chong(self):
         """奥纳西斯 乙己己庚/巳丑未午：从强，未午合但未入丑未冲做功
@@ -215,10 +217,12 @@ class TestDirectionAggregate:
         assert brief['yongshen_xiong'] is False
 
     def test_caiming_capped_by_r3(self):
-        """森田健（R3卯戌合绊戌根）-> 财命封顶小康下（层级不过3）。"""
+        """化例三中堂（R3子丑合绊丑根，化气土==丑本行不豁免）-> 财命封顶小康下。
+        （旧锚森田健：卯戌合化火=印，P1 合化出喜用豁免后 R3 不命中、不再封顶，
+        其造 gold=富·壬申癸酉年发财，b67 trainset 锚。）"""
         from mangpai.subjective.caiming import analyze_caiming
-        cm = analyze_caiming('己', ['辛', '戊', '己', '癸'],
-                             ['卯', '戌', '亥', '酉'])
+        cm = analyze_caiming('己', ['甲', '丙', '己', '甲'],
+                             ['子', '寅', '丑', '子'])
         assert cm['tier'] in ('贫', '小康')
 
     def test_guanming_positive_structure_protects_r3(self):

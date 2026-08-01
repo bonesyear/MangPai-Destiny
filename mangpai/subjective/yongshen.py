@@ -44,7 +44,7 @@
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
-    GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE,
+    GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE, HUA_YONG_MAP,
 )
 
 # 十神大类 <-> 日干五行
@@ -670,6 +670,17 @@ _LIUHE_VICTIMS: Dict[frozenset, frozenset] = {
     frozenset('午未'): frozenset('未'),
 }
 
+# 地支六合化气（合化方向，R3 合化豁免用）：子丑化土、寅亥化木、卯戌化火、
+# 辰酉化金、巳申化水、午未化土。天干五合化气用 constants.HUA_YONG_MAP。
+_LIUHE_HUAQI: Dict[frozenset, str] = {
+    frozenset('子丑'): '土',
+    frozenset('寅亥'): '木',
+    frozenset('卯戌'): '火',
+    frozenset('辰酉'): '金',
+    frozenset('巳申'): '水',
+    frozenset('午未'): '土',
+}
+
 _YANG_GANS = set('甲丙戊庚壬')
 _PK4 = ['year', 'month', 'day', 'hour']
 _PK4_CN = ['年', '月', '日', '时']
@@ -1012,15 +1023,20 @@ def detect_heban_yongshen(
 
     判定：扶抑定用忌（中和/不明不定，不触发）；扫原局**紧贴**（相邻柱）合：
       - 地支六合：受害方（_LIUHE_VICTIMS，合克/合伤/闭气之被伤侧）十神为
-        用神 -> 命中（森田健 卯戌合绊戌根 正例；受害方为忌神=忌神被绊吉，
+        用神 -> 命中（化例三中堂 子丑合绊丑根 正例；受害方为忌神=忌神被绊吉，
         不触发，如 李嘉诚 未午合）；
       - 天干五合：互绊（合即双方失去原性），但只判他干紧贴（年干×月干）；
         日干参与之合属 zuogong「合用」做功层（合财/合官），不在此论。
     **做功参与抑制**：受绊方若同时参与非辅助**冲/穿**（from/to 任一），则该神
     已入局交战、未「失去原性」，合不能废其用——不触发（段氏「相冲可破局破合…
     相合与相冲兼论」之义；奥纳西斯 未午合而未入丑未冲做功，段氏论巨富不论绊）。
-    克/刑/破不参与抑制：克为单向施力，被克非入局、克他亦不证其用——森田健
-    戌虽克亥，段氏仍论「卯戌合绊，戌根失去力量」。
+    克/刑/破不参与抑制：克为单向施力，被克非入局、克他亦不证其用。
+    **合化出喜用豁免（P1）**：合之化气五行属喜用类且异于受害方本行者，合非
+    「绊住失用」而是「向化喜用」，不论凶绊（森田健 卯戌合化火=印——段氏论
+    此造「卯戌合绊，戌根失去力量」是说身弱，又明文「需行火运生扶日主则好」，
+    合之化气正是其所喜；合绊计入身弱后不再双重计入凶向，其造 gold=富）。
+    化气仍为受害方本行者合仅是绊（qi03 寅亥合化木、寅本木，「故不吉」），
+    化出忌神者更不豁免。
     严重度：命中≥2处 -> severe。
 
     Returns:
@@ -1063,6 +1079,15 @@ def detect_heban_yongshen(
     ys, js = _yongshen_cats(strength)
     cong_hequ_exempt = strength in ('从强', '从弱')
 
+    def _huaqi_exempt(huaqi: str, victim_wx: str) -> bool:
+        """合化出喜用豁免（P1 R3 精化）：合之化气五行属喜用类且异于受害方
+        本行者，合非「绊住失用」而是「向化喜用」——受害方经合转化为喜用
+        之气，不论凶绊（森田健卯戌合化火=印，段氏明文「需行火运生扶日主
+        则好」；下岗财会丁壬合化木=印；li002 丙辛合化水=财）。
+        化气仍为受害方本行者，合仅是绊住本字（qi03 寅亥合化木、寅本木，
+        段氏明文「喜神被合绊，故不吉」）；化出忌神者更不豁免。"""
+        return bool(huaqi) and huaqi != victim_wx and _wx_cat(dw, huaqi) in ys
+
     def _ji_isolated(wx: str) -> bool:
         """忌神五行孤立（明现≤1：透干或支主气）：孤立者被合去即成净
         （段氏「合去」=去除——ans30 壬财孤立，丁合去之则忌神净；乙财两见
@@ -1086,6 +1111,9 @@ def detect_heban_yongshen(
                     if cong_hequ_exempt and pcat in js \
                             and _ji_isolated(ZHI_WX.get(partner, '')):
                         continue  # 从格异党孤立合去=吉（忌神被合去成净），不论绊
+                    if _huaqi_exempt(_LIUHE_HUAQI.get(frozenset(a + b), ''),
+                                     ZHI_WX.get(z, '')):
+                        continue  # 合化出喜用（化气≠本行且属喜用类），不论凶绊
                     hits.append(f'{a}{b}合绊 {_PK_CN[j]}支{z}({cat}为用神受绊)')
     # ── 天干五合（他干紧贴=年干×月干，互绊）──
     # 日主争合抑制：受害方若为月干且与日主五合（日主合用=我取之用——该神
@@ -1106,6 +1134,8 @@ def detect_heban_yongshen(
                     if _wx_cat(dw, GAN_WX.get(partner_g, '')) in js \
                             and _ji_isolated(GAN_WX.get(partner_g, '')):
                         continue  # 从格异党孤立合去=吉，不论绊
+                if _huaqi_exempt(HUA_YONG_MAP.get((g0, g1), ''), GAN_WX.get(g, '')):
+                    continue  # 合化出喜用（化气≠本行且属喜用类），不论凶绊
                 hits.append(f'{g0}{g1}合 {_PK_CN[j]}干{g}({cat}为用神受绊)')
 
     detected = bool(hits)

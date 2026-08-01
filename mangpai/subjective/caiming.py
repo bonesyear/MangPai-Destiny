@@ -709,8 +709,17 @@ def _is_zhi_jin(
         破财（中级篇口径）。
     工程化启发式：以「官杀明现位俱为制用/合制目标（无残存）」为制尽判据；
     成势制尽须贼神捕神/净制模块判党势，此处保守以位置覆盖度兜底，可能偏宽。
+
+    制尽判据重修（P1，trainset b67 实锤锚）：主位（日/时）支中**藏干**官
+    不计「残存同党」——藏而不透之官附于主位（日支/时支本中气所藏，如日支
+    财支中气藏官=财之附属），非宾官夺财之党；主位**透干**官杀明现有力，
+    仍计残存（qi05 时干癸杀透干，制不尽成立）。b67 森田健（辛戊己癸/卯戌
+    亥酉）：日支亥中气甲（官）被旧判据计为残存 -> 误判制不尽破财（gold
+    富·壬申癸酉年发财）；修法后宾官卯俱被月戌合制 -> 制尽富格。
     """
     mingxian = _guan_mingxian_positions(day_gan, gans, zhis, guan_wx)
+    mingxian = {p for p in mingxian
+                if not (p.endswith('_zhi') and _pos_pillar(p) in ('day', 'hour'))}
     if not mingxian:
         return False
     controlled = _controlled_guan_positions(wa, gans, zhis, guan_wx)
@@ -1213,6 +1222,22 @@ def assess_caiming_level(
     # 财源上浮
     if (has_guancai or has_zhibujin) and tier_idx < 4 and not cong_cai_pin:
         tier_idx += 1
+        # P1-4 财统官 3->4 须财量级证据（段氏「官多财少，财可统官」+ 量级口径）：
+        # 财统官以少财统多官，财之量级本疑——财无原神或不归主位（浮财统官）
+        # 者量级不足，纵统官成立升档亦封顶「富」不到巨富；财有原神且归主位
+        # （贫富三要素之浮实判据：财有源头且为我所及），或贼神捕神净制
+        # （量级同制尽）者，方证财量级可任巨富。官统财（财多官少，财量级
+        # 自证）与过河拆桥·富格（制尽路径）不在此限。
+        _caitongguan = ('财统官' in views
+                        and '官统财（官杀当财）' not in views
+                        and not any(v.startswith('过河拆桥·富格') for v in views))
+        if _caitongguan and tier_idx > 3:
+            _cai_liangji = bool(cxp.get('has_yuanshen') and cxp.get('zhuwei_cai'))
+            if _cai_liangji or _zeishen_jingzhi(day_gan, gans or [], zhis or []):
+                adjust = '上浮（官杀当财量级高；财有原神且归主位/净制，财量级可任）'
+            else:
+                tier_idx = 3
+                adjust = '上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）'
         # zhibujin（制不尽当财）量级低于制尽得权（段氏做功量级口径：制尽方得
         # 全权，制不尽量级不足）——独力上浮封顶「富」，不到巨富；官统财/财统官/
         # 过河拆桥·富格（制尽路径）上浮不在此限。
@@ -1220,7 +1245,7 @@ def assess_caiming_level(
         # 量级同制尽，纵 zbj 口径判「不尽」亦可达巨富——李嘉诚/保尔森书锚
         # 「财与财的原神同时被制，财富级别可见一斑」；不净者（原神残存）模块
         # 自注「封顶三层」，与封顶富同口径。
-        if has_zhibujin and not has_guancai and tier_idx > 3:
+        elif has_zhibujin and not has_guancai and tier_idx > 3:
             if _zeishen_jingzhi(day_gan, gans or [], zhis or []):
                 adjust = '上浮（官杀当财量级高；贼神捕神净制，量级同制尽）'
             else:
@@ -1231,6 +1256,15 @@ def assess_caiming_level(
     elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin:
         tier_idx -= 1
         adjust = '下浮（禄/食伤当财量级有限）'
+    # 过河拆桥·富格直判 floor 富（P1，trainset b67 锚）：富格=制尽净制、制官
+    # 得财之财命定式（高级篇），纵功量层低估（无功/一层功）亦不落贫/小康下；
+    # 升档仍走上方官杀当财 +1（仅 +1 不越级）。凶向封顶链在下方收尾，不受
+    # 此 floor 影响（真凶向命中者仍封顶——floor 只抗功量低估，不抗方向）。
+    if (caifu_view.get('guohe_chaiqiao_type') == '富格'
+            and tier_idx < 3 and not cong_cai_pin):
+        tier_idx = 3
+        adjust = (adjust + '；' if adjust != '持平' else '') + \
+            '过河拆桥富格直判（制尽净制，制官得财定式），基阶不落下富'
     # 制尽/破财调整（-1 去重）：方向信号已携带过河拆桥破财时由下方凶向封顶链
     # 统一处理（封顶小康），此处不再重复 -1——双计会把本在 cap 上的档再压一阶，
     # 且封顶链「下浮封顶」文本因档已低于 cap 不再触发（凶向标记丢失）。
@@ -1477,7 +1511,9 @@ def analyze_caiming(
         s += f'；生财路径：{path}'
         if lv.get('blockers'):
             s += '；阻因：' + '、'.join(lv['blockers'])
-        if cv.get('guohe_chaiqiao'):
+        # 破财信号文本仅属「制不尽」分键：富格（制尽净制，制官得财）非破财，
+        # 无条件下挂会把「破财」标记词泄入 summary 误杀评分（qi41 富格泄漏）。
+        if cv.get('guohe_chaiqiao_type') == '破财':
             s += '；伴过河拆桥破财信号'
         if zbj.get('found'):
             s += '；制不尽当财（残存官杀作财看）'

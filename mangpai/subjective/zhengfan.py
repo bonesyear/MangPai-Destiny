@@ -17,7 +17,7 @@ zhengfan — 盲派正局/反局
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
-    PILLAR_KEYS, GAN_WX, ZHI_WX, WX_SHENG, WX_KE,
+    PILLAR_KEYS, GAN_WX, ZHI_WX, WX_SHENG, WX_KE, WX_KE_ME,
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP,
 )
 
@@ -226,7 +226,27 @@ def analyze_zhengfan(
 
     # 提取日柱做功的 target 柱位（日干合、日支冲克等均计入）
     day_targets: List[str] = []
+    day_fan_targets: List[str] = []  # K2-5 精化后仍计入反局（五行方向）的日柱指向
     global_targets: List[str] = []
+
+    # K2-5 合年/月干官精化（管理、控制别人=官为我所用）：日主合年/月干官者，
+    # 官杀系统为日主所用（管理权，《中高级》「如是日主合年、月上的官，则意思
+    # 不一样了」）——「日主合官」之合与「官杀克日主」（身旺得官之制=授权，
+    # 非相背）不再作为反局（五行方向）之日柱做功指向；日柱另有他类做功
+    # （日支冲穿制、泄秀生财等）指向相克者，仍照常判反。合时干官（被官控制，
+    # 官即日主意向）不在此豁免；官杀克日主非「日柱做功」（日主为受方），
+    # 仅在合年/月官（官为我用结构）下排除，避免全局放宽（li101 反局不动）。
+    _k25_exempt = he_guan_pos in ('year', 'month')
+    _guan_wx = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '') if day_gan else ''
+
+    def _k25_skip(wa: Dict, from_pos: str, to_pos: str) -> bool:
+        if not _k25_exempt:
+            return False
+        if wa.get('type') == '天干合':
+            return {from_pos, to_pos} == {'day_gan', f'{he_guan_pos}_gan'}
+        if wa.get('type') == '克' and to_pos == 'day_gan':
+            return bool(_guan_wx) and _pos_element(from_pos, gans, zhis) == _guan_wx
+        return False
 
     for wa in work_actions:
         if wa.get('auxiliary'):
@@ -238,6 +258,8 @@ def analyze_zhengfan(
             target = to_pos if 'day' in from_pos else from_pos
             if target and 'day' not in target:
                 day_targets.append(target)
+                if not _k25_skip(wa, from_pos, to_pos):
+                    day_fan_targets.append(target)
             elif target:
                 # target 也是 day 位置（日干合日支等罕见情况），跳过
                 pass
@@ -334,8 +356,10 @@ def analyze_zhengfan(
             target_counts[t] = target_counts.get(t, 0) + 1
         global_main_target = max(target_counts, key=target_counts.get)
         global_main_elem = _pos_element(global_main_target, gans, zhis)
+        # K2-5：反局方向证据用精化后的 day_fan_targets（合年/月官之合官、
+        # 官杀克日主已排除）；day_targets 仍全量供「无功不为局」判定。
         day_elems = {
-            _pos_element(t, gans, zhis) for t in day_targets
+            _pos_element(t, gans, zhis) for t in day_fan_targets
         }
         day_elems.discard('')
         if global_main_elem and day_elems:
