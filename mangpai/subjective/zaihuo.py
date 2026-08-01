@@ -541,7 +541,7 @@ def detect_siwang(
         jue_zhis = _jue_zhis_of_wx(swx) if swx else set()
         present = set(z for z in zhis if z)
         if jue_zhis & present:
-            mu_jue_kong.append(f'寿元星（{swx}）见绝地{"".join(jue_zhis & present)}')
+            mu_jue_kong.append(f'寿元星（{swx}）见绝地{"".join(sorted(jue_zhis & present))}')
 
         # 4. 寿元星/禄落空亡
         for i in shouyuan_pillars:

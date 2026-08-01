@@ -661,7 +661,7 @@ def detect_guan_caimen(
                 if zv in star_zhis:
                     locked.add(zv)
     if locked:
-        factors.append(f'配偶星支{"".join(locked)}被合锁，{door}闭')
+        factors.append(f'配偶星支{"".join(sorted(locked))}被合锁，{door}闭')
 
     return {'is_guanmen': bool(factors), 'factors': factors}
 

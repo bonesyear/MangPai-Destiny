@@ -153,7 +153,7 @@ def _detect_jishen_fufu(
     for ow in (GAN_WX.get(op_gan, ''), ZHI_WX.get(op_zhi, '')):
         if not ow:
             continue
-        for fw in fei_wxs:
+        for fw in sorted(fei_wxs):  # sorted：out 文本列表定序，复跑确定
             if WX_SHENG.get(ow) == fw:
                 out.append(f'运{ow}生废神{fw}——忌神得运生助，反客为主')
     return out

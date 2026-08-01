@@ -1059,7 +1059,7 @@ def analyze_zuogong(
     _chengshi_primary = (primary_action is not None
                          and primary_action.get('type') == '三合局')
     level_result = assess_work_level(
-        list(work_types), non_aux, len(tomb_works), day_he_type,
+        sorted(work_types), non_aux, len(tomb_works), day_he_type,
         active_work_count=len(active_work),
         passive_work_count=len(passive_work),
         passive_control_count=len(passive_control),

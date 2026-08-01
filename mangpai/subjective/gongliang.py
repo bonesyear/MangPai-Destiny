@@ -431,7 +431,7 @@ def analyze_gongliang(
     yuanshen_pos: Optional[str] = None
     if day_wx and gans and zhis and strong_positions:
         candidates: List[Tuple[str, str, str]] = []  # (pos, yong, yuan)
-        for pos in strong_positions:
+        for pos in sorted(strong_positions):  # sorted：稳定 sort 平局序，复跑确定
             elem = _elem_of(pos, gans, zhis)
             if not elem:
                 continue
@@ -463,7 +463,7 @@ def analyze_gongliang(
     #   保守判定：须三合成势(成势制库)且墓库为制用目标(to_pos of 冲克穿刑破)。
     #   无成势时墓库被冲克多为偶然（如例七寅克戌），不计制墓库，避免误加。
     if san_he_formed and day_wx and gans and zhis:
-        for pos in zhi_targets:
+        for pos in sorted(zhi_targets):  # sorted：首个命中即 break，理由文本须定序
             elem = _elem_of(pos, gans, zhis)
             if elem and _is_tomb(elem):
                 points += 2
@@ -669,7 +669,7 @@ def analyze_gongliang(
     #   计」（如体之库作功神）方独立加层。
     _tomb_elems_involved: List[str] = []
     if day_wx and gans and zhis:
-        for pos in (involved_positions | set(gshen)):
+        for pos in sorted(involved_positions | set(gshen)):  # sorted：join 文本定序
             el = _elem_of(pos, gans, zhis)
             if el and _is_tomb(el) and el not in _tomb_elems_involved:
                 _tomb_elems_involved.append(el)
@@ -1067,7 +1067,7 @@ def _assess_zhi_jing(
     yongshen = {c for c in ('财', '官杀') if c in involved_cats}
 
     # (2) 透干原神未被制
-    for c in yongshen:
+    for c in sorted(yongshen):  # sorted：首个返回理由文本定序（财/官杀俱在时）
         yuan = yuan_map.get(c)
         if not yuan:
             continue
@@ -1076,7 +1076,7 @@ def _assess_zhi_jing(
                 return '不净', f'用神「{c}」之原神「{yuan}」透干({gpos})未被净制'
 
     # (3) 同党废神残存
-    for c in yongshen:
+    for c in sorted(yongshen):
         if c in fei_cats:
             return '不净', f'用神「{c}」有同党废神残存未制'
 

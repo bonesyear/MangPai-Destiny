@@ -18,6 +18,10 @@
   python3 blind_eval.py --out /tmp/after.json            # 评估当前引擎
   python3 blind_eval.py --out /tmp/after.json --trainset-only
   python3 blind_eval.py --diff /tmp/before.json /tmp/after.json   # 前后对比报告
+  python3 blind_eval.py --out snapshots/YYYYMMDD_x.json --baseline snapshots/上一批.json
+  #   ↑ M5：评估+存快照（附 _meta: git sha/rubric 版本）并与基线快照 diff 一条龙
+  # 确定性门禁（M1）: PYTHONHASHSEED=0 与默认 seed 各跑一次，输出须逐字节一致；
+  #   diff/基线报告末尾「文本抖动」段 >0 即卫生失败。
 """
 import argparse
 import json
@@ -212,6 +216,107 @@ def summarize(data):
 _ORDER = {'✅': 0, '⚠️': 1, '❌': 2}
 
 
+# ── M5 快照工具：_meta（git sha/rubric 版本/备注）溯源，加载时剥离 ──
+def _git_sha():
+    try:
+        import subprocess
+        r = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
+                           capture_output=True, text=True, cwd=_REPO)
+        return r.stdout.strip()
+    except Exception:
+        return ''
+
+
+def _load_snapshot(path):
+    """读快照并剥离 _meta（meta 仅溯源，不参与 summarize/diff/rescore）。"""
+    data = json.load(open(path, encoding='utf-8'))
+    return data, data.pop('_meta', None)
+
+
+def _print_meta(tag, m):
+    if m:
+        print(f"[{tag}·meta] git={m.get('git_sha', '')} "
+              f"rubric={m.get('rubric_version', '')} {m.get('note', '')}")
+
+
+# ── M2 分组门禁：财命按 verdict 首词分组（口径同 score_caiming 的 d 解析）──
+_GROUP_ORDER = ['巨富', '富', '小康', '平', '贫', '破财', '凶']
+
+
+def summarize_groups(data):
+    groups = {}
+    for e in data.values():
+        v = (e.get('verdict_labels') or {}).get('财命')
+        s = (e.get('scores') or {}).get('财命')
+        if v is None or s is None:
+            continue
+        g = v.split('·')[0].split('/')[0].split('，')[0].strip()
+        groups.setdefault(g, Counter())[s] += 1
+    return {g: {'n': sum(c.values()), '✅': c.get('✅', 0), '⚠️': c.get('⚠️', 0),
+                '❌': c.get('❌', 0),
+                'acc': round(c.get('✅', 0) / sum(c.values()), 4)}
+            for g, c in groups.items()}
+
+
+def _print_groups(label, data):
+    g = summarize_groups(data)
+    if not g:
+        return
+    keys = [k for k in _GROUP_ORDER if k in g] + sorted(
+        k for k in g if k not in _GROUP_ORDER)
+    print(f'[{label}·财命分组] ' + '  '.join(
+        f"{k} n={g[k]['n']} {g[k]['✅']}✅/{g[k]['⚠️']}⚠️/{g[k]['❌']}❌ acc={g[k]['acc']}"
+        for k in keys))
+
+
+# ── M1 文本抖动：score 全不变但 engine 字段有差异（复跑确定性门禁，>0 即失败）──
+def _jitter(before, after):
+    out = []
+    for cid in sorted(set(before) | set(after)):
+        if cid not in before or cid not in after:
+            continue  # 单边缺失=新增/移除案例，非文本抖动（非对称快照对比 artifact）
+        b, a = before.get(cid, {}), after.get(cid, {})
+        if (b.get('scores') or {}) != (a.get('scores') or {}):
+            continue
+        eb, ea = b.get('engine') or {}, a.get('engine') or {}
+        if eb == ea:
+            continue
+        keys = sorted(k for k in set(eb) | set(ea) if eb.get(k) != ea.get(k))
+        out.append((cid, keys, eb, ea))
+    return out
+
+
+def _print_diff(before, after):
+    for name, data in (('BEFORE', before), ('AFTER', after)):
+        for split in ('heldout', 'trainset'):
+            s = summarize(data.get(split, {}))
+            line = '  '.join(
+                f"{d}: {v['✅']}✅/{v['⚠️']}⚠️/{v['❌']}❌ acc={v['acc']}"
+                for d, v in s.items() if v['n'])
+            print(f'[{name}][{split}] {line}')
+            _print_groups(f'{name}][{split}', data.get(split, {}))
+    print('\n=== 翻转明细（heldout + trainset）===')
+    for split in ('heldout', 'trainset'):
+        flips = diff(before.get(split, {}), after.get(split, {}))
+        print(f'\n--- {split}: {len(flips)} 条翻转 ---')
+        for f in flips:
+            arrow = {1: '↓变差', 2: '↓↓变差', -1: '↑改善', -2: '↑↑改善'}.get(
+                f['delta'], '·换档')
+            print(f"  [{f['dim']}] {f['id']}  断语={f['verdict'][:40]}  "
+                  f"引擎:{f['engine']}  打分:{f['score']} {arrow}")
+    print('\n=== 文本抖动（score 不变但 engine 字段变；>0 即卫生失败）===')
+    total = 0
+    for split in ('heldout', 'trainset'):
+        jit = _jitter(before.get(split, {}), after.get(split, {}))
+        total += len(jit)
+        print(f'--- {split}: {len(jit)} 条 ---')
+        for cid, keys, eb, ea in jit:
+            print(f'  {cid} 字段={keys}')
+            for k in keys:
+                print(f'    {k}: {str(eb.get(k))[:60]} -> {str(ea.get(k))[:60]}')
+    print(f'文本抖动合计: {total}')
+
+
 def diff(before, after):
     """前后快照对比：翻转明细（打分变化 + 引擎裸值变化）。"""
     flips = []
@@ -247,11 +352,17 @@ def main():
     ap.add_argument('--rescore', metavar='SNAPSHOT',
                     help='用当前 _ZY_RULES 重评既有快照的职业维（rubric 扩展后重设基线用；'
                          '只依赖快照内 engine 裸值与断语，不重跑引擎）')
+    ap.add_argument('--baseline', metavar='SNAPSHOT',
+                    help='评估完成后与该基线快照做 diff（M5：snapshots/ 内最新基线）')
+    ap.add_argument('--note', default='',
+                    help='写入快照 _meta 的备注（如验证状态），防拿错基线')
     args = ap.parse_args()
 
     if args.rescore:
         data = json.load(open(args.rescore, encoding='utf-8'))
         for split, cases in data.items():
+            if split == '_meta':
+                continue
             for e in cases.values():
                 v = (e.get('verdict_labels') or {}).get('职业')
                 if v is None:
@@ -273,24 +384,11 @@ def main():
         return
 
     if args.diff:
-        before = json.load(open(args.diff[0], encoding='utf-8'))
-        after = json.load(open(args.diff[1], encoding='utf-8'))
-        for name, data in (('BEFORE', before), ('AFTER', after)):
-            for split in ('heldout', 'trainset'):
-                s = summarize(data.get(split, {}))
-                line = '  '.join(
-                    f"{d}: {v['✅']}✅/{v['⚠️']}⚠️/{v['❌']}❌ acc={v['acc']}"
-                    for d, v in s.items() if v['n'])
-                print(f'[{name}][{split}] {line}')
-        print('\n=== 翻转明细（heldout + trainset）===')
-        for split in ('heldout', 'trainset'):
-            flips = diff(before.get(split, {}), after.get(split, {}))
-            print(f'\n--- {split}: {len(flips)} 条翻转 ---')
-            for f in flips:
-                arrow = {1: '↓变差', 2: '↓↓变差', -1: '↑改善', -2: '↑↑改善'}.get(
-                    f['delta'], '·换档')
-                print(f"  [{f['dim']}] {f['id']}  断语={f['verdict'][:40]}  "
-                      f"引擎:{f['engine']}  打分:{f['score']} {arrow}")
+        before, mb = _load_snapshot(args.diff[0])
+        after, ma = _load_snapshot(args.diff[1])
+        _print_meta('BEFORE', mb)
+        _print_meta('AFTER', ma)
+        _print_diff(before, after)
         return
 
     result = {}
@@ -303,10 +401,20 @@ def main():
             f"{d}: {v['✅']}✅/{v['⚠️']}⚠️/{v['❌']}❌ acc={v['acc']}"
             for d, v in s.items() if v['n'])
         print(f'[{split}] n={len(data)}  {line}')
+        _print_groups(split, data)
     if args.out:
-        json.dump(result, open(args.out, 'w', encoding='utf-8'),
+        payload = dict(result)
+        payload['_meta'] = {'git_sha': _git_sha(),
+                            'rubric_version': RUBRIC_VERSION,
+                            'note': args.note}
+        json.dump(payload, open(args.out, 'w', encoding='utf-8'),
                   ensure_ascii=False, indent=1)
         print(f'(saved -> {args.out})')
+    if args.baseline:
+        before, mb = _load_snapshot(args.baseline)
+        _print_meta('baseline', mb)
+        print(f'\n=== vs 基线 {args.baseline} ===')
+        _print_diff(before, result)
 
 
 if __name__ == '__main__':

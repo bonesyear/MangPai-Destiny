@@ -3,6 +3,7 @@ output/
 _kang*
 *.json
 !mangpai/tests/backtest/baseline67.json
+!mangpai/tests/**/snapshots/*.json
 
 # Python
 __pycache__/

@@ -319,7 +319,7 @@ def _longest_path(edges: List[Tuple[str, str, str]]) -> Tuple[List[str], List[Tu
             path_nodes.pop()
             path_edges.pop()
 
-    for start in nodes:
+    for start in sorted(nodes):  # sorted：最长路径平局取先见者，起点须定序
         _dfs(start, [start], [])
     return best_nodes, best_edges
 
