@@ -2,8 +2,8 @@
 
 与 zuogong_confirm.assess_work_level 并行的另一套体系（1-4 层富贵量级），
 本测试覆盖：输出字段契约、核心铁律（原神用神同制）、制净封顶、普通四柱降档、
-以及源文第6章 14 命例的层数回归（13 例与源文一致；普例2 因已->己订正后
-月干己(财)有效触发原神用神同制偏高一层，属已知局限，见模块 docstring）。
+以及源文第6章 14 命例的层数回归（14 例与源文一致；普例2 经同制实制佐证
+（合族单独不支撑同制）+ 日干无功弃之不看（日主自克非制）细化后达书层）。
 """
 import sys
 import os
@@ -109,9 +109,6 @@ class TestQishaDangCai:
 class TestPutongCap:
     """普通四柱降档：相生之功封顶一层，相克之制封顶二层。"""
 
-    @pytest.mark.xfail(strict=True, reason='已->己订正后月干己(财)有效：日支丑藏财+官杀触发'
-                                  '原神用神同制(+2层)，引擎偏高一层；源文标普通一层，'
-                                  '待原神用神同制判定细化')
     def test_putong2_xiangsheng_capped_at_1(self):
         r = _run(PUTONG2)
         assert r['level'] == 1
@@ -133,8 +130,7 @@ class TestSourceRegression:
         (LIU8, 3),
         (LIU9, 3),
         (PUTONG1, 1),
-        pytest.param(PUTONG2, 1, marks=pytest.mark.xfail(strict=True,
-            reason='已->己订正后月干己(财)有效，原神用神同制偏高一层，待细化')),
+        (PUTONG2, 1),
         (PUTONG3, 1),
         (PUTONG4, 2),
         (PUTONG5, 2),
