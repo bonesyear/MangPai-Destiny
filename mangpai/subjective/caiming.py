@@ -1332,7 +1332,13 @@ def assess_caiming_level(
         adjust = (adjust + '；' if adjust != '持平' else '') + \
             '制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富'
     # 财源上浮
-    if (has_guancai or has_zhibujin or has_zhiku) and tier_idx < 4 and not cong_cai_pin:
+    # C批收敛一（零财 guard，与 classify_caifu_view 财统官 guard 同锚）：
+    # 段氏「官多财少，财可统官」以财在局为前提——零财之局官杀当财不成立
+    # （《中级》己酉戊辰壬申癸卯造：辰被卯穿「坏了，不为官了」，以伤官当财），
+    # 制不尽残杀当财同属官杀当财诸式，零财者不带上浮，落回禄/伤食当财口径。
+    _zbj_ok = has_zhibujin and (caifu_view or {}).get('cai_count', 0) >= 1
+    _liangji_cap = False  # 封顶富（量级不足）标记：后续上浮链（开财库）不得翻越
+    if (has_guancai or _zbj_ok or has_zhiku) and tier_idx < 4 and not cong_cai_pin:
         tier_idx += 1
         # P1-4 财统官 3->4 须财量级证据（段氏「官多财少，财可统官」+ 量级口径）：
         # 财统官以少财统多官，财之量级本疑——财无原神或不归主位（浮财统官）
@@ -1349,6 +1355,7 @@ def assess_caiming_level(
                 adjust = '上浮（官杀当财量级高；财有原神且归主位/净制，财量级可任）'
             else:
                 tier_idx = 3
+                _liangji_cap = True
                 adjust = '上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）'
         # zhibujin（制不尽当财）量级低于制尽得权（段氏做功量级口径：制尽方得
         # 全权，制不尽量级不足）——独力上浮封顶「富」，不到巨富；官统财/财统官/
@@ -1357,13 +1364,27 @@ def assess_caiming_level(
         # 量级同制尽，纵 zbj 口径判「不尽」亦可达巨富——李嘉诚/保尔森书锚
         # 「财与财的原神同时被制，财富级别可见一斑」；不净者（原神残存）模块
         # 自注「封顶三层」，与封顶富同口径。
-        elif has_zhibujin and not has_guancai and tier_idx > 3:
+        elif _zbj_ok and not has_guancai and tier_idx > 3:
             if _zeishen_jingzhi(day_gan, gans or [], zhis or []):
                 adjust = '上浮（官杀当财量级高；贼神捕神净制，量级同制尽）'
             else:
                 tier_idx = 3
+                _liangji_cap = True
                 adjust = '上浮（官杀当财量级高；制不尽量级不足，封顶富）'
-        elif has_zhiku and not (has_guancai or has_zhibujin):
+        # C批收敛二：过河拆桥·富格独力上浮（无官统财/财统官）封顶「富」——
+        # 富格书锚（b67 trainset）直判 floor 富（P1），段氏巨富诸例皆净制
+        # （李嘉诚/保尔森「财与财的原神同时被制」）或制库（奥纳西斯四层功量），
+        # 无富格独力至巨富书锚；净制者量级同制尽，不在此限（同 zbj 豁免口径）。
+        elif (any(v.startswith('过河拆桥·富格') for v in views)
+                and '官统财（官杀当财）' not in views and '财统官' not in views
+                and tier_idx > 3):
+            if _zeishen_jingzhi(day_gan, gans or [], zhis or []):
+                adjust = '上浮（官杀当财量级高；贼神捕神净制，量级同制尽）'
+            else:
+                tier_idx = 3
+                _liangji_cap = True
+                adjust = '上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）'
+        elif has_zhiku and not (has_guancai or _zbj_ok):
             adjust = (adjust + '；' if adjust != '持平' else '') + \
                 '上浮（制库得财，开库同制财与原神，量级同制尽）'
         else:
@@ -1387,7 +1408,10 @@ def assess_caiming_level(
         tier_idx -= 1
         adjust = (adjust + '；' if adjust != '持平' else '') + '下浮（过河拆桥破财）'
     # 开财库上浮（墓中之财复出主大发）
-    if has_open_caiku and tier_idx < 4:
+    # C批收敛三：开库大发须财有原神（段氏「有财则伤食是其原神，可以当投资之
+    # 财」——财无原神=浮财无源，纵开库复出亦弱而难发，30期ans29书文「水弱
+    # 被制无原神所以会穷」即此）；量级封顶（封顶富）者不开（封顶不得翻越）。
+    if has_open_caiku and tier_idx < 4 and not _liangji_cap and cxp.get('has_yuanshen'):
         tier_idx += 1
         adjust = (adjust + '；' if adjust != '持平' else '') + '上浮（开财库，墓中之财复出主大发）'
     # 财星当财路径的源头/阻通调整（M2）：官杀当财/制不尽当财者财源非财星、

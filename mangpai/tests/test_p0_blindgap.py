@@ -40,23 +40,26 @@ def _wa(dg, gans, zhis):
 class TestTierStaticYunsuiDelta:
     """caiming 双轨输出：tier_static + yunsui_delta。"""
 
-    GANS = ['丁', '丙', '庚', '丁']
-    ZHIS = ['未', '午', '申', '丑']
+    # C批换造：旧造丁丙庚丁/未午申丑（zhenbao-04）为零财局——C批零财 guard
+    # （《中级》零财之局官杀当财不成立）起 zbj 不带上浮，原局档落小康，
+    # 不再满足「原局档>封顶」的双轨演示前提；换 li001-乙亥发财造
+    # （财统官封顶富：原局档富、全量轨岁运反局封顶小康），双轨语义不变。
+    GANS = ['辛', '戊', '甲', '丁']
+    ZHIS = ['卯', '戌', '申', '卯']
     FAKE_SLICE = {'dayun_fan': [{'gz': '癸卯', 'fans': [{'fan_type': '测试反局'}]}]}
 
     def test_no_yunfan_delta_none(self):
         """无运岁输入：yunsui_delta=None，tier == tier_static。"""
-        cm = analyze_caiming('庚', self.GANS, self.ZHIS)
+        cm = analyze_caiming('甲', self.GANS, self.ZHIS)
         assert cm['yunsui_delta'] is None
         assert cm['tier'] == cm['tier_static']
         assert cm['summary_static'] == cm['summary']
 
     def test_suiyun_cap_only_in_full_track(self):
         """岁运反局切片：全量轨封顶、原局轨不动——原局断语不再被 artifact 压档。"""
-        # 注：本造为 zhibujin（制不尽当财）独力上浮——K3 批A 起按「制不尽量级
-        # 不足」封顶「富」不到巨富（制尽路径如官统财/过河拆桥·富格不在此限），
-        # 原局档 巨富->富 为预期口径变更，双轨语义不变。
-        cm = analyze_caiming('庚', self.GANS, self.ZHIS,
+        # 注：本造为财统官杀当财独力上浮——K3 批A 起按「财统官须财量级支撑」
+        # 封顶「富」不到巨富（财有原神且归主位/净制者不在此限），双轨语义不变。
+        cm = analyze_caiming('甲', self.GANS, self.ZHIS,
                              yunfan_result=self.FAKE_SLICE)
         assert cm['tier_static'] == '富'        # 原局档不受岁运反局影响
         assert cm['tier'] == '小康'             # 全量轨被岁运反局封顶
@@ -67,14 +70,14 @@ class TestTierStaticYunsuiDelta:
 
     def test_static_summary_free_of_suiyun_markers(self):
         """原局轨 summary 不含岁运文本（评分器凶向标记不吃 artifact）。"""
-        cm = analyze_caiming('庚', self.GANS, self.ZHIS,
+        cm = analyze_caiming('甲', self.GANS, self.ZHIS,
                              yunfan_result=self.FAKE_SLICE)
         assert '岁运' not in cm['summary_static']
         assert '下浮封顶' not in cm['summary_static']
         assert '岁运' in cm['summary']  # 全量轨保留
 
     def test_level_static_dict_present(self):
-        cm = analyze_caiming('庚', self.GANS, self.ZHIS,
+        cm = analyze_caiming('甲', self.GANS, self.ZHIS,
                              yunfan_result=self.FAKE_SLICE)
         assert cm['level_static']['tier'] == cm['tier_static']
 
