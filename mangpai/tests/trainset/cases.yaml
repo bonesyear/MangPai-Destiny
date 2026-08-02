@@ -1,6 +1,7 @@
 # 训练侧案例集（已用于校准/修引擎，可安全使用）
 # calib10 = calib_assertions.yaml 金标准10例的简单格式镜像；
 # b67-*  = regression67.py 67例中出自这两本书的书例（已用于修引擎）。
+# reg67-* / famous-* = G1 扩容（2026-08-02）：regression67/famous_cases 转录，见文件末尾批注。
 - id: zhenbao-12
   name: zhenbao-12-阎锡山
   bazi:
@@ -448,3 +449,886 @@
   raw_quote: "蒋介石：丁庚己庚\n\n                  亥戌巳午\n\n          己土得势（归禄）而有金水之病。\n\n          袁世凯：己癸丁丁\n\n                 末酉巳未\n\
     \n          丁火得势而有金水之病。\n\n          梁启超：癸甲丙癸\n\n                  酉寅午已\n\n          丙火得势而有金水之病。\n\n          普金：壬己丙甲\n\
     \n                辰酉戌午\n\n          丙火得势而有金水之病，辰酉合，病神自去。行甲寅运得权。\n\n          周恩来：戊甲丁癸"
+# ── G1 扩容（2026-08-02）：reg67-* = regression67.py 书例转录（47例，戊巳无书明文断语不转）；
+#    famous-* = famous_cases.py 名人金标转录（21例，李嘉诚撞 b67-李嘉诚、慈禧撞 heldout 不转）。
+#    断语只录书明文；source = 书:行号（lixiangxue/yanjiu/zhongji/gaoji = docs/duan-books/ 文本）。
+- id: reg67-丁目
+  name: reg67-丁目
+  bazi:
+    year: 丁酉
+    month: 辛亥
+    day: 乙酉
+    hour: 丁亥
+  gender: 男
+  verdicts:
+    健康: "凶·三岁眼盲不能视物"
+  source: zhongji:2185
+  raw_quote: "丁表目，时上也为目，故丁火食神为眼睛，支见亥，丁被克合坏，故三岁眼盲，不能视物。"
+- id: reg67-乾隆
+  name: reg67-乾隆
+  bazi:
+    year: 辛卯
+    month: 丁酉
+    day: 庚午
+    hour: 丙子
+  gender: 男
+  verdicts:
+    官命: "是·帝王"
+  source: lixiangxue:6180
+  raw_quote: "乾隆命局之贵并非因为地支子午卯酉全现，而是在于做功的功量层次高。命局没有形成一方之势，他的做功是通过一级一级相制形成金字塔形的权力结构。…天下的财官与军队，全让他管理了，所以是帝王。"
+- id: reg67-伤食当财
+  name: reg67-伤食当财
+  bazi:
+    year: 己酉
+    month: 戊辰
+    day: 壬申
+    hour: 癸卯
+  gender: 女
+  verdicts:
+    财命: "富·几百万家业"
+  source: lixiangxue:7409
+  raw_quote: "此造金与湿土成势，意在制卯木，卯申合制，是印星制伤官的组合。伤官卯木这里当财看，所以是个发财的命，有几百万家业。"
+- id: reg67-例6副省级
+  name: reg67-例6副省级
+  bazi:
+    year: 乙未
+    month: 丙戌
+    day: 甲子
+    hour: 甲戌
+  gender: 男
+  verdicts:
+    官命: "是·副省级"
+    职业: "官员·执法部门"
+  source: lixiangxue:6254
+  raw_quote: "此造做功也是靠子未穿，年未透出羊刃，是属执法部门之高官。因没有羊刃入墓之功，所以比岳飞少一层功。两层功量官可至厅级，如果行运配合好可以至副省级。事实上是一位副省级的高官。"
+- id: reg67-例7厅级
+  name: reg67-例7厅级
+  bazi:
+    year: 丙申
+    month: 戊戌
+    day: 戊寅
+    hour: 甲寅
+  gender: 男
+  verdicts:
+    官命: "是·厅级"
+    职业: "官员"
+  source: lixiangxue:6276
+  raw_quote: "主位的杀星表示权力，参与了做功，所以是个官员。申金及申中之水被制，两层功量，是个厅级官员。"
+- id: reg67-例8数十亿
+  name: reg67-例8数十亿
+  bazi:
+    year: 壬寅
+    month: 戊申
+    day: 丙申
+    hour: 壬辰
+  gender: 男
+  verdicts:
+    财命: "巨富·数十亿富翁"
+  source: lixiangxue:6288
+  raw_quote: "此造主位坐财，申辰一党，申去制寅，财星做功，制寅是两层功；申中壬水七杀透出，杀星当财富看时其级别比财星高一级，所以此造有三层功，数十亿富翁。"
+- id: reg67-例9金融矿业
+  name: reg67-例9金融矿业
+  bazi:
+    year: 壬寅
+    month: 戊申
+    day: 癸巳
+    hour: 庚申
+  gender: 男
+  verdicts:
+    财命: "巨富·数十亿"
+    职业: "金融与矿产"
+  source: lixiangxue:6300
+  raw_quote: "局中寅申相冲，两申制寅，是财与财的原神被制，再加两层功量，共三层功，从事金融与矿产业，资产数十亿之巨。"
+- id: reg67-公安
+  name: reg67-公安
+  bazi:
+    year: 戊申
+    month: 丙辰
+    day: 乙丑
+    hour: 戊寅
+  gender: 男
+  verdicts:
+    官命: "是·警局为官"
+    职业: "公安"
+  source: lixiangxue:9535
+  raw_quote: "阳包阴局，地支阳气虽然欠足，但天干阳盖阴，局象上看，是阳胜阴局，寅作公门，故能在警局为官。"
+- id: reg67-军官师级
+  name: reg67-军官师级
+  bazi:
+    year: 己卯
+    month: 辛未
+    day: 戊辰
+    hour: 甲寅
+  gender: 男
+  verdicts:
+    官命: "是·师级"
+    职业: "军官"
+  source: lixiangxue:3137
+  raw_quote: "寅卯入未墓（多而墓之），未为七杀之墓，就是权力中心之意，而未土在四柱中又是羊刃，羊刃又有军队的意思，说明他是个军官。未入辰墓，自己控制着军队。实际正是，此人是军中师级干部。"
+- id: reg67-制例二
+  name: reg67-制例二
+  bazi:
+    year: 丙午
+    month: 辛丑
+    day: 戊寅
+    hour: 壬戌
+  gender: 女
+  verdicts:
+    财命: "富·数千万"
+    职业: "国际贸易"
+  source: lixiangxue:6594
+  raw_quote: "此造地支寅午戌合成火局，制月令辛丑。丙辛合制，三合局之中神又在宾位，制伤官之力主要来自于宾位，虽也是富命，但远不如前者。搞国际贸易发家，数千万资产。"
+- id: reg67-劫刃制官杀
+  name: reg67-劫刃制官杀
+  bazi:
+    year: 甲申
+    month: 丁卯
+    day: 甲申
+    hour: 甲子
+  gender: 男
+  verdicts:
+    官命: "是·公安系统"
+    职业: "公安"
+  source: zhongji:3833
+  raw_quote: "甲木日主坐七杀，卯申合，合了羊刃，七杀做了功制了羊刃。七杀主聪明才智，七杀合羊刃为公安系统，申金在坐下，是腰上挎枪之意。羊刃主枪，申金为屁股，相合所以为带枪的。老婆儿子都是做公安的。"
+- id: reg67-化例一
+  name: reg67-化例一
+  bazi:
+    year: 壬寅
+    month: 丙午
+    day: 戊寅
+    hour: 乙卯
+  dayun: 庚戌
+  gender: 男
+  verdicts:
+    官命: "是·当官的命"
+    应期: "戌运丢官失职下海经商"
+  source: lixiangxue:6625
+  raw_quote: "此造官杀比较重，月令丙午这一柱贴身，泄官杀生自己，化七杀为我所用，所以是个当官的命。…戌运印星入墓，丢官失职，下海经商。"
+- id: reg67-化例二
+  name: reg67-化例二
+  bazi:
+    year: 戊申
+    month: 壬戌
+    day: 丙寅
+    hour: 壬辰
+  dayun: 丙寅
+  gender: 男
+  verdicts:
+    官命: "是·国营企业董事长"
+    职业: "企业家·国营企业"
+    应期: "丙寅大运升职"
+  source: lixiangxue:6650
+  raw_quote: "此造时逢旺杀，坐下寅木印星能化杀生身，但遇年上财星冲坏印星，虽有公职，但不是公务员，是一家国营企业董事长。行丙寅大运，升职。"
+- id: reg67-博士
+  name: reg67-博士
+  bazi:
+    year: 甲寅
+    month: 甲戌
+    day: 辛亥
+    hour: 甲午
+  gender: 男
+  verdicts:
+    学历: "高·数学博士"
+  source: zhongji:5572
+  raw_quote: "这个八字的功主要是杀星成局，合制伤官。伤官主头脑，智力，合杀而有用，故能成材。读至博士学位。…戍为数学，亥为数字，是故为数学博士。"
+- id: reg67-印制伤食市长
+  name: reg67-印制伤食市长
+  bazi:
+    year: 乙未
+    month: 丁亥
+    day: 甲午
+    hour: 丙子
+  gender: 男
+  verdicts:
+    官命: "是·市长"
+    职业: "官员·市长"
+  source: lixiangxue:7395
+  raw_quote: "此造木火有势，日时子午冲，为伤官星制印。四柱无官，印主权力，所以此造是个官员，中年行南方火运，能制印星，升任市长。"
+- id: reg67-受贿
+  name: reg67-受贿
+  bazi:
+    year: 戊戌
+    month: 丙辰
+    day: 壬申
+    hour: 戊申
+  dayun: 辛酉
+  liunian: 癸未
+  gender: 男
+  verdicts:
+    官命: "是·市政府办公室主任"
+    职业: "官员·政府办公室"
+    应期: "癸未年受贿入狱判9年"
+  source: zhongji:5797
+  raw_quote: "七杀无制就是一种犯罪结构，又坐财库，有牢狱之灾的象征。…此人是温岭市政府办公室主任，因受贿42万元于癸未年入狱判9年。"
+- id: reg67-合例一富命
+  name: reg67-合例一富命
+  bazi:
+    year: 庚子
+    month: 丙戌
+    day: 壬申
+    hour: 丁未
+  gender: 男
+  verdicts:
+    财命: "富·数千万"
+    职业: "房地产"
+  source: lixiangxue:6807
+  raw_quote: "此造壬申日，合丁未财星，身强财也旺，财星合身，是为富命，从事房地产开发，发财数千万元。"
+- id: reg67-合例八暗合
+  name: reg67-合例八暗合
+  bazi:
+    year: 丙申
+    month: 甲午
+    day: 乙卯
+    hour: 甲申
+  gender: 男
+  verdicts:
+    官命: "是·最高人民法院副院长"
+    职业: "官员·法院"
+  source: lixiangxue:6909;zhongji:3701
+  raw_quote: "年上申金被丙午火围制，伤官制官为功。被制的官星合到主位，所以是个当官命。／此人乙木坐禄合时上正官，原局没有七杀混杂，所以官职高。…此人是最高人民法院副院长。"
+- id: reg67-合例六两妻
+  name: reg67-合例六两妻
+  bazi:
+    year: 己酉
+    month: 丁卯
+    day: 庚戌
+    hour: 己卯
+  gender: 男
+  verdicts:
+    财命: "富"
+    婚姻: "差·两个老婆同时存在"
+  source: lixiangxue:6873
+  raw_quote: "日支合财，两个财往身上合，富的意思。这个命还有个特点：有两个老婆，两个财都合妻宫，这两个老婆同时存在。其中一个老婆是月令卯，是他的同学，而且是离过婚的，因为有卯酉冲，离婚后跟他一起过。"
+- id: reg67-墓例一经理
+  name: reg67-墓例一经理
+  bazi:
+    year: 己未
+    month: 癸酉
+    day: 壬寅
+    hour: 庚子
+  gender: 男
+  verdicts:
+    职业: "经理·企业经理人"
+  source: lixiangxue:6926
+  raw_quote: "寅木食神墓于未，寅是他主位的食神，表示他本人的才华，入于官墓，说明他的才华被官方所用，寅为内食神，主企业，所以他是个企业的经理人。"
+- id: reg67-墓例三电厂官
+  name: reg67-墓例三电厂官
+  bazi:
+    year: 壬寅
+    month: 己酉
+    day: 丁丑
+    hour: 己酉
+  gender: 男
+  verdicts:
+    官命: "是·官员"
+    职业: "官员·管理大电厂"
+  source: lixiangxue:6961
+  raw_quote: "丑是财库，两酉入库，不为拱局，是墓用结构，意思是自己控制着很大的财产。…实际他是个官员，管理很大的电厂。"
+- id: reg67-曾国藩乙未
+  name: reg67-曾国藩乙未
+  bazi:
+    year: 乙未
+    month: 己亥
+    day: 丙辰
+    hour: 己亥
+  gender: 男
+  verdicts:
+    官命: "是·官至极品"
+  source: lixiangxue:6972
+  raw_quote: "丙坐支辰土收两亥入墓，亥为七杀加印，此墓之功量很大，加之又有两伤官如同两盖一样，将两亥盖入墓中，故能官至极品之贵。"
+- id: reg67-复例一数学家
+  name: reg67-复例一数学家
+  bazi:
+    year: 壬午
+    month: 辛亥
+    day: 庚辰
+    hour: 丁亥
+  gender: 男
+  verdicts:
+    职业: "数学家·计算数学专家"
+  source: lixiangxue:6993
+  raw_quote: "食神为思想之意，官星太弱，这里指荣誉之意；辰土将这些思想汇集在一块，所以一定是位学者或科学家。实际此人是一位数学家。"
+- id: reg67-复例四老师经商
+  name: reg67-复例四老师经商
+  bazi:
+    year: 戊申
+    month: 丙辰
+    day: 丁巳
+    hour: 癸卯
+  dayun: 庚申
+  gender: 男
+  verdicts:
+    财命: "富·数百万"
+    职业: "教师→经商"
+    应期: "庚申财运下海经商发财数百万"
+  source: lixiangxue:6937
+  raw_quote: "所以此命有两个不同的功，也主两个不同的职业。命主行食神运当老师十余年，行庚申财运下海经商，应巳申之合取财，发财数百万。"
+- id: reg67-外贸商
+  name: reg67-外贸商
+  bazi:
+    year: 壬子
+    month: 丙午
+    day: 己巳
+    hour: 辛未
+  gender: 女
+  verdicts:
+    财命: "富·发财千万"
+    职业: "贸易·海外贸易"
+  source: lixiangxue:2683;7484
+  raw_quote: "原局子午相冲，财星冲禄，这个冲可以表示财物交换，故她是个做贸易的。／此造是火土之势，去壬子水财星，印旺去财，功很大，是为富命。做海外贸易，发财千万。"
+- id: reg67-官杀当财
+  name: reg67-官杀当财
+  bazi:
+    year: 辛卯
+    month: 庚子
+    day: 丙申
+    hour: 丁酉
+  dayun: 未
+  gender: 男
+  verdicts:
+    财命: "富·数百万"
+    应期: "未运发财数百万"
+  source: lixiangxue:2564
+  raw_quote: "申子半合水局，局中金之气归于水，子水为官星，在这里表示财富。行未运，穿制子水，发财数百万。"
+- id: reg67-寅卯借妻宫
+  name: reg67-寅卯借妻宫
+  bazi:
+    year: 庚寅
+    month: 己丑
+    day: 丁卯
+    hour: 癸卯
+  liunian: 甲戌
+  gender: 男
+  verdicts:
+    婚姻: "差·两次婚姻第一个妻被杀"
+    应期: "甲戌年死妻"
+  source: zhongji:2615
+  raw_quote: "此造卯为妻宫，寅与卯同样的五行属性，那寅也为妻宫，这样庚金就是妻星，八字中出现多个妻宫与妻星，就是有好几次婚姻。此造第一个妻死，后再娶。…两次婚姻…甲戌年死妻，被杀。"
+- id: reg67-带帽银行副处
+  name: reg67-带帽银行副处
+  bazi:
+    year: 壬寅
+    month: 己酉
+    day: 壬申
+    hour: 甲辰
+  dayun: 甲辰
+  liunian: 甲申
+  gender: 男
+  verdicts:
+    官命: "是·银行副处级"
+    职业: "银行"
+    应期: "甲申年丢官"
+  source: zhongji:4077
+  raw_quote: "此造主位的印去制宾位的寅木，印为权力在主位，此人是银行副处级干部。…印戴官帽，甲己合去了官帽子为把官帽子摘了，甲辰运甲申年丢官。"
+- id: reg67-建筑设计
+  name: reg67-建筑设计
+  bazi:
+    year: 壬子
+    month: 癸丑
+    day: 丙寅
+    hour: 戊戌
+  gender: 男
+  verdicts:
+    官命: "是·国家公务员"
+    职业: "建筑设计"
+  source: lixiangxue:3679
+  raw_quote: "此造寅为印是工作，寅又是公门、机关，故可断为公务员；戊戌为食神，有思想之意，戊戌又有建筑的含义，可表示建筑设计，故他是个国家公务员，从事建筑设计。"
+- id: reg67-普例1普通人
+  name: reg67-普例1普通人
+  bazi:
+    year: 丙戌
+    month: 戊戌
+    day: 辛巳
+    hour: 癸巳
+  gender: 男
+  verdicts:
+    官命: "否·普通人"
+  source: lixiangxue:6340
+  raw_quote: "此造有火与燥土之势，势实在太大，但所做的功仅仅是制时干之癸水。所幸有巳入戌墓之功，能有工作单位，难以成大贵。虽谈吐风雅，但也只是个普通人。"
+- id: reg67-普例2小职权
+  name: reg67-普例2小职权
+  bazi:
+    year: 壬子
+    month: 己酉
+    day: 乙丑
+    hour: 丁丑
+  gender: 女
+  verdicts:
+    官命: "是·小职权"
+  source: lixiangxue:6352
+  raw_quote: "再看主位丑土与七杀酉金相拱，成三合局之半局，其表达的意思是自己要入官场，是辅佐他人之职。这也是做功，是相生之功，但功不算大，故能有小职权。"
+- id: reg67-普例3收入较高
+  name: reg67-普例3收入较高
+  bazi:
+    year: 庚戌
+    month: 庚辰
+    day: 癸未
+    hour: 丁巳
+  gender: 男
+  verdicts:
+    财命: "小康·收入较高"
+  source: lixiangxue:6365
+  raw_quote: "专看日支未土，未土受时上财星之生，意思是外边的财要生到他家里，故是个有钱的命。但这种相生效率都比较低，故是个普通人，收入较高而已。"
+- id: reg67-普例4千万
+  name: reg67-普例4千万
+  bazi:
+    year: 壬子
+    month: 甲辰
+    day: 庚午
+    hour: 辛巳
+  gender: 女
+  verdicts:
+    财命: "富·富有千万"
+    应期: "行至水运富有千万"
+  source: lixiangxue:6379
+  raw_quote: "此造坐下官星，被子水伤官所制…如运行得好，有两层功量，行至水运，富有千万。"
+- id: reg67-普例5酒店主管
+  name: reg67-普例5酒店主管
+  bazi:
+    year: 壬子
+    month: 甲辰
+    day: 庚寅
+    hour: 己卯
+  gender: 女
+  verdicts:
+    财命: "小康·高工资"
+    职业: "酒店主管·管理餐饮"
+  source: lixiangxue:6400
+  raw_quote: "她适合管理餐饮。事实上是一家大酒店的主管。命局虽有两层功，但所管理酒店是别人的资产…她本人的财富只是靠相生所得，赚取高工资而已。"
+- id: reg67-服装
+  name: reg67-服装
+  bazi:
+    year: 癸卯
+    month: 丁巳
+    day: 癸丑
+    hour: 癸亥
+  gender: 女
+  verdicts:
+    职业: "服装生意·开门店"
+  source: lixiangxue:3432
+  raw_quote: "此造是做服装生意的，开有几个门店。从命局中看，卯木生巳火成财，卯为织物，卯生巳，其象为织物加工成漂亮的服装，巳亥冲，也主交易，以此取财。"
+- id: reg67-比劫包局争夫
+  name: reg67-比劫包局争夫
+  bazi:
+    year: 庚戌
+    month: 乙酉
+    day: 庚申
+    hour: 乙酉
+  gender: 女
+  verdicts:
+    婚姻: "差·争夫难成婚"
+  source: gaoji:9655
+  raw_quote: "比劫包局夹夫妻宫，如同丈夫（官星）被一群女人（比劫）包围、争夺。婚姻必然痛苦不堪，竞争激烈，难以稳定。实际命主婚姻极其不顺，多次恋爱均被他人横刀夺爱，至今难成婚。"
+- id: reg67-生例一富婆
+  name: reg67-生例一富婆
+  bazi:
+    year: 辛亥
+    month: 庚子
+    day: 庚寅
+    hour: 己卯
+  gender: 女
+  verdicts:
+    财命: "富·富有千万"
+    应期: "甲运移民外国"
+  source: lixiangxue:6682
+  raw_quote: "此造主位临财，宾位伤官、食神，宾来生主，财源不绝。故为富婆命，行至财运，与夫创业发迹，富有千万。甲运合己，合到门户，移民外国。"
+- id: reg67-生例二经理
+  name: reg67-生例二经理
+  bazi:
+    year: 癸巳
+    month: 甲子
+    day: 癸卯
+    hour: 癸亥
+  gender: 女
+  verdicts:
+    职业: "经理·国有商业企业"
+  source: lixiangxue:6692
+  raw_quote: "虽然是替公家做事，但自己有职务，曾任一家国有商业企业经理。"
+- id: reg67-甲子地矿局长
+  name: reg67-甲子地矿局长
+  bazi:
+    year: 癸巳
+    month: 甲子
+    day: 戊午
+    hour: 癸亥
+  dayun: 庚申
+  gender: 男
+  verdicts:
+    官命: "是·县地矿局局长"
+    职业: "官员·地矿局"
+    应期: "庚申运掌财权/己运免职"
+  source: zhongji:2494
+  raw_quote: "月令的财很大，午亥合，制了主位的印，是管财的官，是县地矿局局长，庚申运当的…己运甲己合，己是劫，又旺，一合，被免职了，官被别人当了。"
+- id: reg67-申机器工人
+  name: reg67-申机器工人
+  bazi:
+    year: 辛卯
+    month: 丙申
+    day: 辛巳
+    hour: 丙申
+  dayun: 壬辰
+  liunian: 癸酉
+  gender: 男
+  verdicts:
+    官命: "否·命平常不贵"
+    职业: "工人·管机器运转"
+    应期: "癸酉年下岗/戊寅年上岗"
+  source: zhongji:1257;2203
+  raw_quote: "此造是合用官星，但官星无力又被他合，故命平常不贵。…到壬辰运之癸酉流年…财与工作都没有了，故此年下岗在家。…在戊寅年上岗，重新有了工作。／他是个管机器运转的人，这么一想，就明白他是个工人。实际正是。"
+- id: reg67-癸巳管财官
+  name: reg67-癸巳管财官
+  bazi:
+    year: 辛丑
+    month: 辛卯
+    day: 丙寅
+    hour: 癸巳
+  dayun: 丁亥
+  liunian: 戊寅
+  gender: 男
+  verdicts:
+    官命: "是·管理财的官"
+    婚姻: "差·两个老婆桃花多"
+    应期: "丁亥运戊寅年升副职"
+  source: zhongji:2506;2623
+  raw_quote: "癸与丑是半通禄的关系，丑是财库，可以肯定，他是个管理财的官。实际正是。…丁亥运是副职的意思…戊寅年升的。／卯为夫妻宫的副宫，故为两个老婆。桃花很多。"
+- id: reg67-离婚
+  name: reg67-离婚
+  bazi:
+    year: 癸丑
+    month: 辛酉
+    day: 戊午
+    hour: 丁巳
+  liunian: 庚辰
+  gender: 女
+  verdicts:
+    婚姻: "差·两次婚姻"
+    应期: "庚辰年离婚/壬午年再婚"
+  source: zhongji:4704
+  raw_quote: "但夫宫午却穿倒了夫星，说明第一次婚姻要失败。结果2000年庚辰年离婚，2002年壬午年第二次婚姻。…两次之后就不结了。"
+- id: reg67-纺织车间主任
+  name: reg67-纺织车间主任
+  bazi:
+    year: 辛卯
+    month: 辛丑
+    day: 丙辰
+    hour: 甲午
+  gender: 女
+  verdicts:
+    官命: "是·刺绣厂车间主任"
+    职业: "刺绣厂·纺织"
+  source: lixiangxue:2999
+  raw_quote: "这是盲师夏仲奇一断例，断她为制衣厂或刺绣厂的小官。事实上她是刺绣厂的一个车间主任。…卯象征布，卯午之破就是将布破开的意思，辛是针，破了再缝，就是她的职业。"
+- id: reg67-财制印刑警
+  name: reg67-财制印刑警
+  bazi:
+    year: 丁未
+    month: 己酉
+    day: 癸巳
+    hour: 丁巳
+  dayun: 己酉
+  liunian: 辛巳
+  gender: 男
+  verdicts:
+    官命: "是·刑警队长"
+    职业: "刑警·公检法"
+    应期: "己酉运提升/辛巳年又提升"
+  source: zhongji:3931
+  raw_quote: "刑警队长。此造火土成气势制了酉金印星，酉印上戴了官帽子，己酉一个象，印代表权力，此人当官。…行己酉运提升，辛巳年又提升。"
+- id: reg67-资本运营
+  name: reg67-资本运营
+  bazi:
+    year: 丁未
+    month: 癸丑
+    day: 丙子
+    hour: 壬辰
+  dayun: 酉
+  gender: 男
+  verdicts:
+    财命: "巨富·亿万巨富"
+    应期: "酉运亿万巨富"
+  source: lixiangxue:7720
+  raw_quote: "日支与月柱、时柱构成水与湿土党，丑未冲，财库制比劫及印库，用来制体，反向做功，功量很大。行酉运，亿万巨富。"
+- id: reg67-银行行长央行
+  name: reg67-银行行长央行
+  bazi:
+    year: 庚辰
+    month: 乙酉
+    day: 癸卯
+    hour: 庚申
+  gender: 男
+  verdicts:
+    官命: "是·中央银行行长"
+    职业: "银行·金融官员"
+  source: lixiangxue:7419
+  raw_quote: "庚申是印，主权力之意，所以应是金融方面的官员，实际是中央银行行长。此造金纯粹，制得又干净，所以是大官。"
+- id: reg67-银行行长分行
+  name: reg67-银行行长分行
+  bazi:
+    year: 乙巳
+    month: 戊子
+    day: 癸卯
+    hour: 庚申
+  dayun: 甲申
+  gender: 男
+  verdicts:
+    官命: "是·地市分行行长"
+    职业: "银行"
+    应期: "甲申运升职"
+  source: lixiangxue:3515
+  raw_quote: "庚申主收之象，卯是财之原神，表示钱的源头，也主放之象。卯申合收与放结合，表示银行。甲申运，是升职之大运，现是地市分行行长。"
+- id: famous-李世民
+  name: famous-李世民
+  bazi:
+    year: 戊午
+    month: 乙丑
+    day: 戊午
+    hour: 壬戌
+  gender: 男
+  verdicts:
+    官命: "是·帝王之命"
+  source: yanjiu:10368
+  raw_quote: "书：戌刑开丑伤官库「制尽月令」得帝位；「本造为去金水结构，能有四层功者，当为帝王之命」。"
+- id: famous-汉武帝
+  name: famous-汉武帝
+  bazi:
+    year: 乙酉
+    month: 癸未
+    day: 己巳
+    hour: 甲戌
+  gender: 男
+  verdicts:
+    官命: "是·伟大君主"
+  source: yanjiu:10273
+  raw_quote: "时辰推定（书注：定为戌时比较合命）。书：取格阳制阴，年上食神被制是谓四柱之功；伟大君主。"
+- id: famous-唐明皇
+  name: famous-唐明皇
+  bazi:
+    year: 乙酉
+    month: 乙酉
+    day: 戊寅
+    hour: 戊午
+  gender: 男
+  verdicts:
+    官命: "是·一代明君"
+  source: yanjiu:10482
+  raw_quote: "时辰推定（推其为午时）。书：伤官配印，两酉绝乙有功，再配印制服伤官；一代明君。"
+- id: famous-曾国藩
+  name: famous-曾国藩
+  bazi:
+    year: 辛未
+    month: 己亥
+    day: 丙辰
+    hour: 己亥
+  gender: 男
+  verdicts:
+    官命: "是·清朝救命恩人"
+  source: yanjiu:10556
+  raw_quote: "书：土包局，「四柱的功在墓杀」，太平洪水收墓人；打败太平天国，清朝救命恩人（官）。"
+- id: famous-王阳明
+  name: famous-王阳明
+  bazi:
+    year: 壬辰
+    month: 辛亥
+    day: 癸亥
+    hour: 癸亥
+  gender: 男
+  verdicts:
+    官命: "是·中进士平宁王之乱"
+  source: yanjiu:10863
+  raw_quote: "书：「原局亥入辰墓，是本局之功」；中进士出仕，平宁王之乱建奇功（官）。"
+- id: famous-希特勒
+  name: famous-希特勒
+  bazi:
+    year: 己丑
+    month: 戊辰
+    day: 丙寅
+    hour: 丁酉
+  gender: 男
+  verdicts:
+    官命: "是·纳粹德国元首"
+  source: yanjiu:13204
+  raw_quote: "书：多重做功，「最大的功是丑入辰墓」；纳粹德国元首（官）。"
+- id: famous-辛普森
+  name: famous-辛普森
+  bazi:
+    year: 丁亥
+    month: 丁未
+    day: 己丑
+    hour: 甲戌
+  gender: 男
+  verdicts:
+    应期: "08年入狱判33年"
+  source: yanjiu:11179
+  raw_quote: "时辰推定（书：时辰是推定的）。书：木火燥土有势制金水；「牢狱之灾在此运难免」，08年判33年。"
+- id: famous-阿炳
+  name: famous-阿炳
+  bazi:
+    year: 癸巳
+    month: 辛酉
+    day: 己未
+    hour: 丙寅
+  gender: 男
+  verdicts:
+    职业: "演艺·民间艺人"
+  source: yanjiu:11430
+  raw_quote: "时辰推定（推丙寅时）。书：民间艺人/二十世纪最伟大音乐家之一，街头卖艺（演艺）。"
+- id: famous-李昌镐
+  name: famous-李昌镐
+  bazi:
+    year: 乙卯
+    month: 癸未
+    day: 丙子
+    hour: 戊子
+  gender: 男
+  verdicts:
+    官命: "否·不入仕途"
+  source: yanjiu:11507
+  raw_quote: "书：食神制官组合，未穿制子，官星被制空亡，「故他不入仕途」（非官）。"
+- id: famous-帕瓦罗蒂
+  name: famous-帕瓦罗蒂
+  bazi:
+    year: 乙亥
+    month: 丙戌
+    day: 辛酉
+    hour: 癸巳
+  gender: 男
+  verdicts:
+    职业: "演艺·歌唱家"
+  source: yanjiu:12495
+  raw_quote: "时辰推定。书：金水伤官喜见官，癸水制巳为功（戊合癸不能制巳则凶）；天才歌唱家（演艺）。"
+- id: famous-迈克尔杰克逊
+  name: famous-迈克尔杰克逊
+  bazi:
+    year: 戊戌
+    month: 庚申
+    day: 戊寅
+    hour: 戊午
+  gender: 男
+  verdicts:
+    职业: "演艺·流行音乐之王"
+  source: yanjiu:12570
+  raw_quote: "生时准确（1958-08-29 12:13）。书：流行音乐之王，影响遍及全球（演艺）。"
+- id: famous-牛顿
+  name: famous-牛顿
+  bazi:
+    year: 壬午
+    month: 壬子
+    day: 庚子
+    hour: 庚辰
+  gender: 男
+  verdicts:
+    职业: "科学家·经典物理学奠基人"
+  source: yanjiu:11768
+  raw_quote: "书：「牛顿四柱以伤官制官作为他命局做功的核心点」；牛顿作为经典物理学的奠基人。"
+- id: famous-戴安娜
+  name: famous-戴安娜
+  bazi:
+    year: 辛丑
+    month: 甲午
+    day: 乙未
+    hour: 丙戌
+  gender: 女
+  verdicts:
+    婚姻: "差·婚姻不幸"
+  source: yanjiu:2723
+  raw_quote: "时辰传记记载（傍晚）。书：婚姻不幸，经历背叛痛苦出轨，夫宫相冲夫星远（婚姻差）。"
+- id: famous-王亚樵
+  name: famous-王亚樵
+  bazi:
+    year: 己丑
+    month: 丙寅
+    day: 辛酉
+    hour: 壬辰
+  gender: 男
+  verdicts:
+    官命: "否·黑道暗杀"
+  source: yanjiu:13198
+  raw_quote: "时辰推定（非辰即巳，作者与赵宇认同辰时）。书：年上丑主黑社会，从事黑道暗杀（非官）。"
+- id: famous-巴菲特
+  name: famous-巴菲特
+  bazi:
+    year: 庚午
+    month: 甲申
+    day: 壬子
+    hour: 壬寅
+  gender: 男
+  verdicts:
+    财命: "巨富·股神世界首富级"
+    职业: "商人·股神"
+  source: yanjiu:11640
+  raw_quote: "时辰推定（推其为寅时）。书：子午冲制财，寅申冲制财与财之原神；股神，世界首富级（巨富/商人）。"
+- id: famous-保尔森
+  name: famous-保尔森
+  bazi:
+    year: 乙未
+    month: 戊子
+    day: 己酉
+    hour: 甲戌
+  gender: 男
+  verdicts:
+    财命: "巨富·三百亿美元"
+  source: yanjiu:11838
+  raw_quote: "时辰推定（推其为戌时）。书：未穿制子戌穿制酉，「财与财的原神同时被制，财富级别可见一斑」；08金融危机掘金三百亿美元（巨富）。"
+- id: famous-索罗斯
+  name: famous-索罗斯
+  bazi:
+    year: 庚午
+    month: 甲申
+    day: 甲午
+    hour: 辛未
+  gender: 男
+  verdicts:
+    财命: "巨富·伟大投机家"
+  source: yanjiu:11830
+  raw_quote: "时辰推定（推其为未时）。书：原局制七杀申金，制之干净功力十足；伟大投机家，创造财富神话（巨富）。"
+- id: famous-马云
+  name: famous-马云
+  bazi:
+    year: 甲辰
+    month: 甲戌
+    day: 丁酉
+    hour: 戊申
+  gender: 男
+  verdicts:
+    财命: "巨富·阿里巴巴创始人"
+    职业: "商人·互联网"
+  source: yanjiu:12137
+  raw_quote: "时辰推定（推其为申时）。书：创造财富最快最多的一位，阿里巴巴创始人，互联网传奇（巨富/商人）。"
+- id: famous-罗斯切尔德
+  name: famous-罗斯切尔德
+  bazi:
+    year: 甲子
+    month: 丙寅
+    day: 己丑
+    hour: 辛未
+  gender: 男
+  verdicts:
+    财命: "巨富·金融帝国创始人"
+    职业: "商人·银行家"
+  source: yanjiu:12756
+  raw_quote: "时辰推定（作者推出）。书：官统财，官入库库逢冲，「财之原神用神同制」；最庞大金融帝国创始人（巨富/银行家）。"
+- id: famous-坤沙
+  name: famous-坤沙
+  bazi:
+    year: 甲戌
+    month: 戊辰
+    day: 甲寅
+    hour: 丙寅
+  gender: 男
+  verdicts:
+    财命: "巨富·世界毒王"
+  source: yanjiu:13027
+  raw_quote: "四柱为易友提供（生日存1933/1934两说），作者断后确信。书：「木火成党制辰中之水…做功非常大」，「这个命会非常富有」；世界毒王（巨富）。"
+- id: famous-乔布斯
+  name: famous-乔布斯
+  bazi:
+    year: 乙未
+    month: 戊寅
+    day: 丙辰
+    hour: 庚寅
+  gender: 男
+  verdicts:
+    职业: "商人·苹果创始人"
+  source: yanjiu:12011
+  raw_quote: "时辰推定（我推其为寅时）。书：苹果创始人，个人电脑之父，26岁成百万富翁（商人/企业家）。"
