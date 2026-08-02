@@ -62,7 +62,15 @@ _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
 # 同 v4 被删词处理）；military 桶在 参军 语境下命中作废（履历非现职，
 # 同 v4 删「兵」之理：qi29「农民·曾参军逃出」gold 农民）。歌星/舞蹈家/
 # 将军/军阀等正当命中不受影响（逐例核对 22✅ 零依赖被排除语境）。
-RUBRIC_VERSION = 'v5-20260802'
+# v6（K3 yongshen 批·P0-a 运锚层级断语判轨）：层级断语（巨富/富/小康/平/
+# 贫）文本含干支锚（「丙申运」/「辛未年」）且该锚=案例所喂运岁、且原局轨
+# 档位与断语档位差≥2 时，断语所述层级必为该运岁之层级而非终身原局层级
+# （段氏「八字为车，大运为路…运中见，称之为过路财神」——原局巨富而断语
+# 只称「平/小康」者其断语非终身层级），改评含岁运 delta 轨（tier/summary）；
+# 差<2/无锚/锚非所喂运岁者维持原局轨。差≥2 门槛下原局轨本必判 ❌，改判
+# 只会 ❌→改善或持平，不致 ✅/⚠️ 回退（delta 轨已知岁运反局 artifact
+# 不再误伤原局相符之断语，如 li001/li131/qi22 乙亥发财）。
+RUBRIC_VERSION = 'v6-20260802'
 
 # P0-a 断语性质判别：流年事件断语（破财/凶 且 文本锚定具体年份/大运 或 案例
 # 喂入运岁——金标准多为「戊辰年破财/赔六万」式流年事件，案例所喂运岁即事件锚点）
@@ -70,6 +78,9 @@ RUBRIC_VERSION = 'v5-20260802'
 # （tier_static/summary_static），岁运反局 artifact 不再压原局档位。
 _EVENT_RE = re.compile(
     r'[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥][年运]|\d{2,4}\s*年')
+# v6 运锚提取：断语文本中的「干支+年/运」锚点（供与所喂运岁比对）
+_GZ_ANCHOR_RE = re.compile(
+    r'([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])[年运]')
 
 # 职业 verdict 关键词 -> 职业桶（粗口径；多组命中取并集）
 _ZY_RULES = [
@@ -123,11 +134,20 @@ def score_guanming(verdict, gm):
     return ('✅' if got == expect else '❌'), got
 
 
-def score_caiming(verdict, cm, has_yunsui=False):
+def score_caiming(verdict, cm, has_yunsui=False, dayun='', liunian=''):
     d = verdict.split('·')[0].split('/')[0].split('，')[0].strip()
+    d_rank = '小康' if d == '平' else d
     # P0-a：流年事件断语（破财/凶 带年/运锚或案例喂运岁）用含 delta 字段；
-    # 层级断语（巨富/富/小康/平/贫）一律原局轨
+    # 层级断语（巨富/富/小康/平/贫）一律原局轨——v6 运锚例外：断语干支锚
+    # =所喂运岁 且 原局轨与断语档位差≥2 者，断语层级为运岁层级，改评 delta 轨
     is_event = d in ('破财', '凶') and (has_yunsui or bool(_EVENT_RE.search(verdict)))
+    if not is_event and d_rank in _TIER_RANK:
+        anchors = set(_GZ_ANCHOR_RE.findall(verdict))
+        fed = {dayun, liunian} - {''}
+        st = cm.get('tier_static') or cm.get('tier', '')
+        if (anchors & fed and st in _TIER_RANK
+                and abs(_TIER_RANK[st] - _TIER_RANK[d_rank]) >= 2):
+            is_event = True  # 运锚层级断语（原局轨严重不符）-> 运岁轨
     if is_event:
         tier = cm.get('tier', '')
         summary = str(cm.get('summary', ''))
@@ -198,7 +218,8 @@ def eval_cases(path):
             entry['verdict_labels']['官命'] = verdicts['官命']
         if '财命' in verdicts:
             s, tier = score_caiming(verdicts['财命'], cm,
-                                    has_yunsui=bool(c.get('dayun') or c.get('liunian')))
+                                    has_yunsui=bool(c.get('dayun') or c.get('liunian')),
+                                    dayun=c.get('dayun', ''), liunian=c.get('liunian', ''))
             entry['engine']['tier'] = tier
             entry['engine']['tier_static'] = cm.get('tier_static', '')
             entry['verdict_labels']['财命'] = verdicts['财命']

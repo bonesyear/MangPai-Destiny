@@ -611,6 +611,12 @@ def detect_jishen_zhiyongshen(
     # 尽失，无可用之理」（从强三金印众，巳财孤犯众印），不论忌神制用神。
     js_mx = _mingxian_cat_count(day_gan, gans, zhis, js_cat)
     ys_mx = _mingxian_cat_count(day_gan, gans, zhis, ys_cat)
+    if strength in ('从强', '从弱'):
+        # 从格看势以主气论（22期成势闸同口径：异党单五行干支主气≥3 方有势）：
+        # 中/余气藏干不成势，难破格——忌神孤众之判按主气（透干/支本气）计。
+        # qi40 从儿格：巳中戊印仅中气藏干（巳又被两亥冲去），实惟丑印一柱
+        # 孤立犯众水（土荡自败），不论印夺食，书判「家道丰盈」。
+        js_mx = _zhuqi_cat_count(day_gan, gans, zhis, js_cat)
     if js_mx <= 1 and ys_mx >= 2:
         return {'detected': False, 'kind': None, 'severity': None,
                 'reason': f'孤忌犯众用：{js_cat}明现仅{js_mx}柱而{ys_cat}{ys_mx}柱，'
@@ -651,6 +657,21 @@ def detect_jishen_zhiyongshen(
         'severity': severity, 'strength': strength,
         'hits': hits, 'reason': reason,
     }
+
+
+def _zhuqi_cat_count(
+    day_gan: str, gans: List[str], zhis: List[str], cat: str,
+) -> int:
+    """十神大类主气柱数（透干/支本气；藏干中余气不计——从格看势口径）。"""
+    dw = GAN_WX.get(day_gan, '')
+    n = 0
+    for i in range(4):
+        if i < len(gans) and gans[i] and _wx_cat(dw, GAN_WX.get(gans[i], '')) == cat:
+            n += 1
+            continue
+        if i < len(zhis) and zhis[i] and _wx_cat(dw, ZHI_WX.get(zhis[i], '')) == cat:
+            n += 1
+    return n
 
 
 # 地支六合受害方（R3 用）：与 objective.he_types 合克/合伤/闭气口径一致。
@@ -1079,6 +1100,21 @@ def detect_heban_yongshen(
     ys, js = _yongshen_cats(strength)
     cong_hequ_exempt = strength in ('从强', '从弱')
 
+    # G9 财合日主豁免（48期自合柱 + 《授课教程》例134 戊子日）：日支为激活
+    # 自合柱且支中合神为财者，日主合财=财为我所合得（视同合财做功——该财正
+    # 承载日主取用，未「失去原性」），邻支六合不能夺其用：例134 子丑合书
+    # 明读「丑土不克水」——受绊失能者是克财之比劫（忌神侧），日支自合之财
+    # 不失用（身旺财旺发财）。与 caiming G9 日主自合合财升档同口径。
+    _day_cai_zihe = False
+    try:
+        from mangpai.objective.zihe import detect_zihe
+        _dzh = detect_zihe(gans, zhis).get('day_zihe')
+        _day_cai_zihe = bool(
+            _dzh and _dzh.get('activated')
+            and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == '财')
+    except Exception:
+        pass
+
     def _huaqi_exempt(huaqi: str, victim_wx: str) -> bool:
         """合化出喜用豁免（P1 R3 精化）：合之化气五行属喜用类且异于受害方
         本行者，合非「绊住失用」而是「向化喜用」——受害方经合转化为喜用
@@ -1103,6 +1139,8 @@ def detect_heban_yongshen(
         for j, z in ((i, a), (i + 1, b)):
             if z in victims and f'{_PK[j]}_zhi' not in engaged:
                 cat = _wx_cat(dw, ZHI_WX.get(z, ''))
+                if j == 2 and _day_cai_zihe and cat == '财':
+                    continue  # G9 财合日主：日支自合之财已合入我身，邻合不夺其用
                 if cat in ys:
                     partner = zhis[i + 1] if j == i else zhis[i]
                     pcat = _wx_cat(dw, ZHI_WX.get(partner, ''))

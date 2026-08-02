@@ -1300,6 +1300,8 @@ def assess_caiming_level(
     # 日主坐激活自合柱、支中合神为财者，日主合财=财为我所合得（视同合财
     # 做功）；身强能担且财明现≥2（财旺）者上浮一阶（例133 戊子日身旺财旺，
     # 房地产倒卖发财）。身弱合财=财多身累不升；凶向命中者不升。
+    _g9_up = False  # G9 已升标记：财源上浮与 G9 同源（财为我所及+有原神），
+                    # 一事不二升（例134 身旺财旺自合合财=富，非巨富），防叠加
     if not ds_xiong and not cong_ge and strength == '身强':
         try:
             from mangpai.objective.zihe import detect_zihe
@@ -1311,6 +1313,7 @@ def assess_caiming_level(
             if (GAN_WX.get(_dz2.get('he_shen', ''), '') == _cai_wx_g9
                     and (caifu_view or {}).get('cai_count', 0) >= 2 and tier_idx < 4):
                 tier_idx += 1
+                _g9_up = True
                 adjust = (adjust + '；' if adjust != '持平' else '') + \
                     '上浮（日主自合合财，48期「日主因合而从支」，财为我合得）'
 
@@ -1455,7 +1458,7 @@ def assess_caiming_level(
         if (not blocked and not ds_xiong and not shenruo_caiwang
                 and cxp.get('has_yuanshen') and cai_reachable
                 and not cxp.get('rumu_bankai')
-                and tier_idx < 4 and not floor_applied):
+                and tier_idx < 4 and not floor_applied and not _g9_up):
             tier_idx += 1
             adjust = (adjust + '；' if adjust != '持平' else '') + \
                 '上浮（财有原神且为我所及，源头畅通）'
