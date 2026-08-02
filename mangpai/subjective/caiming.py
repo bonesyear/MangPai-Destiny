@@ -243,7 +243,7 @@ def _detect_zhiku_decai(
 
     判据（四要件俱备方立，宁窄勿滥）：
       1. 月令支为墓库（提纲得令之库，量级大）；
-      2. 被主位（日支/时支）冲或刑（主位制宾库，主得之）；
+      2. 被主位（日支/时支）冲或刑（主位制宾库，主得之；自刑伏吟不论）；
       3. muku 判开库（透干引拔，库中之物出而可用）；
       4. 库藏干同含财与食伤（财与原神同库，冲制则俱制=净制）。
 
@@ -259,11 +259,15 @@ def _detect_zhiku_decai(
     month_zhi = zhis[1] if len(zhis) > 1 else ''
     if not (cai_wx and yuan_wx and month_zhi and month_zhi in TOMB_MAP):
         return out
-    # 要件2：主位（日/时）支冲/刑月令库
+    # 要件2：主位（日/时）支冲/刑月令库（自刑伏吟不论——段氏开库须他支冲/刑
+    # 「丑未冲开一点点」、丑戌未三刑；辰辰/午午/酉酉/亥亥自刑即伏吟，主重复
+    # 痛苦而非开库，与 _tomb_chong_xing_open 排同支口径对齐。qi07 辰辰自刑
+    # 过冲实证：书判「平·发财后赔光欠债」，自刑开库直推巨富 overshoot）
     opener = ''
     for z in (zhis[2], zhis[3]):
-        if z and ((z, month_zhi) in LIU_CHONG or (month_zhi, z) in LIU_CHONG
-                  or (z, month_zhi) in XING_PAIRS or (month_zhi, z) in XING_PAIRS):
+        if z and z != month_zhi and (
+                (z, month_zhi) in LIU_CHONG or (month_zhi, z) in LIU_CHONG
+                or (z, month_zhi) in XING_PAIRS or (month_zhi, z) in XING_PAIRS):
             opener = z
             break
     if not opener:
@@ -1422,6 +1426,10 @@ def assess_caiming_level(
     #   升档：财有原神（食伤明现生财）+ 财为我所及（财在主位，或合财做功——日主
     #     合财=直接承载、主位合宾财=合得他人之财）+ 无合绊/入墓阻断 -> 财有源头
     #     且路径畅通，段氏「有财则伤食是其原神，可以当投资之财」，上浮一阶。
+    #     升档量级上限「富」（巨富档校准，第十七批）：投资/经营之财量级至富；
+    #     巨富档须制级锚（制尽/净制/制库），各有专支上浮（官杀当财 +1 豁免链、
+    #     制库得财 +1），财源上浮不越巨富。li128 实证：base3 财源上浮 3->4
+    #     过冲，书判「丙申运做地产生意很有钱」=富非巨富。
     #     三道抑制：凶向命中者财源已断不升（避免升后触发封顶文本徒增凶向标记）；
     #     身弱财旺（段氏高级篇「身弱财旺：非但不能得财，反为财所累…富屋贫人」）
     #     不升——财多身弱无源可任，原神流通亦难致富；冲/刑动库半开之财
@@ -1458,7 +1466,7 @@ def assess_caiming_level(
         if (not blocked and not ds_xiong and not shenruo_caiwang
                 and cxp.get('has_yuanshen') and cai_reachable
                 and not cxp.get('rumu_bankai')
-                and tier_idx < 4 and not floor_applied and not _g9_up):
+                and tier_idx < 3 and not floor_applied and not _g9_up):
             tier_idx += 1
             adjust = (adjust + '；' if adjust != '持平' else '') + \
                 '上浮（财有原神且为我所及，源头畅通）'
