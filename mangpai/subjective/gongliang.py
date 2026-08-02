@@ -502,6 +502,16 @@ def analyze_gongliang(
     #   再加一层功量」。须原神用神同制成立(真实制局)方计，被制元素之墓库在局即此。
     #   同制位为墓库时其藏干原神/用神出自同类墓库亦属引出（zhenbao-05 厅级官：
     #   辰中癸水原神出自另一辰水库），不按自墓排除。
+    #   同源去重（K3 base3 批）：被制元素已计「入墓为功」（元素入该墓=被收藏）
+    #   者，同一元素-墓库对不得再以「出自墓库=源头得库」重计——引出(李嘉诚)与
+    #   入墓(收藏)为同一墓对之相反读法，入墓在案者源头说自相矛盾（qi15-伤官
+    #   当财造：亥入辰墓已 +1，又以辰为亥之库源 +1，同一辰亥对双计）。
+    _entombed_pairs: Set[Tuple[str, str]] = set()  # (入墓元素, 墓库元素)
+    for _tw in active_tomb_works:
+        _te = _elem_of(_tw.get('to_pos', ''), gans, zhis) if gans and zhis else ''
+        _tb = _elem_of(_tw.get('from_pos', ''), gans, zhis) if gans and zhis else ''
+        if _te and _tb:
+            _entombed_pairs.add((_te, _tb))
     if yuanshen_hit and yuanshen_pos and day_wx and gans and zhis:
         ys_elem = _elem_of(yuanshen_pos, gans, zhis)
         if ys_elem:
@@ -509,7 +519,8 @@ def analyze_gongliang(
             for pk in PILLAR_KEYS:
                 idx = PILLAR_KEYS.index(pk)
                 z = zhis[idx] if idx < len(zhis) else ''
-                if z and _is_tomb(z) and ys_wx in _tomb_wx(z):
+                if (z and _is_tomb(z) and ys_wx in _tomb_wx(z)
+                        and (ys_elem, z) not in _entombed_pairs):
                     points += 1
                     reasons.append(
                         f'库源/连墓：制局目标「{ys_elem}({ys_wx})」之墓库「{z}」在局，'
@@ -527,7 +538,11 @@ def analyze_gongliang(
     # ── 7. 层层相制 -> +1（乾隆式金字塔逐级相制，保守判定）──
     #   仅认有向「克」链（克方->被克方方向明确）≥2 级。冲为互向、其势方向须
     #   党势判定（属贼神捕神/净制模块），本模块不臆断，故不计入链。
-    chain_len = _chain_length(non_aux)
+    #   入墓惰性（K3 base3 批）：入墓之物不做功（审计 P1 既定原则，源文「入墓
+    #   则失去作用」）——已入墓元素不能再主动克他字充当中继，其出边不入链
+    #   （qi15-伤官当财造：亥入辰墓在案，亥克午之边惰性，辰→亥→午链不成立）。
+    _entombed_pos: Set[str] = {tw.get('to_pos', '') for tw in active_tomb_works}
+    chain_len = _chain_length(non_aux, inert=_entombed_pos)
     if chain_len >= 2:
         points += 1
         reasons.append(f'层层相制：克链长{chain_len}级，逐级相制（+1层）')
@@ -1160,20 +1175,22 @@ def _assess_penalty(
 
 
 # ── 层层相制链长（保守：仅认有向「克」链）──
-def _chain_length(non_aux: List[Dict]) -> int:
+def _chain_length(non_aux: List[Dict], inert: Optional[Set[str]] = None) -> int:
     """计算有向「克」链最长长度（A克B、B克C、C克D -> 3）。
 
     仅取 type='克'（克方->被克方方向明确）建图求最长简单路径边数。
     冲为互向、其势方向须党势(贼神捕神)判定，本模块不臆断，故不计入链。
     乾隆式金字塔(子制午、午制酉、酉制卯)多为冲/势结构，克链未必覆盖，
     属已知局限（见模块 docstring）。
+    inert: 惰性位置（入墓之物不做功）——其出边不入链（被克入边保留）。
     """
+    inert = inert or set()
     edges: Dict[str, Set[str]] = {}
     for wa in non_aux:
         if wa.get('type') != '克':
             continue
         f, t = wa.get('from_pos', ''), wa.get('to_pos', '')
-        if f and t and f != t:
+        if f and t and f != t and f not in inert:
             edges.setdefault(f, set()).add(t)
 
     best = 0
