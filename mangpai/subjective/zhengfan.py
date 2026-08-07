@@ -358,10 +358,17 @@ def analyze_zhengfan(
         ym_rel = _pair_rel(zhis[0], zhis[1])
         dh_rel = _pair_rel(zhis[2], zhis[3])
         if (ym_rel, dh_rel) in (('冲', '合'), ('合', '冲')):
-            fan_reason = (
-                f'年月{zhis[0]}{zhis[1]}相{ym_rel}、日时{zhis[2]}{zhis[3]}相{dh_rel}，'
-                f'冲合做功方式自相矛盾，八字自乱{he_note}'
-            )
+            # 冲合联网守卫（中级冲合并见/贪合忘冲锚，K3 批1）：冲对与合对共享
+            # 支字者，两种关系同属一个做功网络（同链制化/合解冲），非两党自乱
+            # ——真反局=四支全异、主宾两党一边冲一边合（zgj-财反局苦力书明文
+            # 「财星反局主大凶」：申巳合 vs 子午冲四支全异=真阳锚）；共享支者
+            # 如两申制寅+巳申合（reg67-例9书明文三层功数十亿）、酉卯冲+戌卯合
+            # （合例六书明文日支合财「富的意思」）皆同链做功，不判反局。
+            if not ({zhis[0], zhis[1]} & {zhis[2], zhis[3]}):
+                fan_reason = (
+                    f'年月{zhis[0]}{zhis[1]}相{ym_rel}、日时{zhis[2]}{zhis[3]}相{dh_rel}，'
+                    f'冲合做功方式自相矛盾，八字自乱{he_note}'
+                )
 
     # 反局（五行方向）：日柱做功目标五行 vs 全局做功主要目标五行，相克即相背。
     #   比和（同五行）/相生为同向、顺势，不判反局；五行信息缺失则不论。
@@ -375,10 +382,42 @@ def analyze_zhengfan(
         global_main_elem = _pos_element(global_main_target, gans, zhis)
         # K2-5：反局方向证据用精化后的 day_fan_targets（合年/月官之合官、
         # 官杀克日主已排除）；day_targets 仍全量供「无功不为局」判定。
-        day_elems = {
-            _pos_element(t, gans, zhis) for t in day_fan_targets
-        }
-        day_elems.discard('')
+        # 「相克须做功指向成立」（K3 批1，旧 any 相克口径 6/6 假阳收敛）：
+        # 相背证据限日柱制式做功（克/冲/穿/刑/破）所指向的五行——生合化泄、
+        # 杀印相生等和合之功与全局主指向相克者，为做功内部自然生克，不构
+        # 相背；日主（day_gan）之克恒为克财（我克者为财），克财=求财之意，
+        # 亦不构相背。
+        #   锚：理象学资本运营例书明文「反向做功，功量很大…亿万巨富」、
+        #   复例四书明文「此命有两个不同的功」、yx-富富有百万例书明文
+        #   「戊喜见甲为财富」——此类盘日柱做功指向常含 2-3 个五行，
+        #   旧 any(相克) 几乎必中（6/6 全假阳）。
+        #   真阳边界：日柱受制式做功之指向与全局相背仍照常判反
+        #   （li101 穷命红线复验：申克卯木（印制食伤）之制式指向犹在，
+        #   反局不动）。
+        day_elems: Set[str] = set()
+        for wa in work_actions:
+            if wa.get('auxiliary'):
+                continue
+            if wa.get('type') not in ('克', '冲', '穿', '刑', '破'):
+                continue
+            fp, tp = wa.get('from_pos', ''), wa.get('to_pos', '')
+            if 'day' in fp:
+                if fp == 'day_gan':
+                    continue  # 日主之克=克财求财，不构相背
+                ev_pos = tp  # 日柱主动制：证据=被制者五行
+            elif 'day' in tp:
+                if _k25_skip(wa, fp, tp):
+                    continue
+                if (wa.get('type') == '克' and tp == 'day_gan'
+                        and _day_has_active_work):
+                    continue  # R-a：有功论功无功论受（同 day_fan_targets 口径）
+                ev_pos = fp  # 日柱受制：证据=制者五行
+            else:
+                continue  # 非日柱之制
+            if ev_pos and 'day' not in ev_pos:
+                elem = _pos_element(ev_pos, gans, zhis)
+                if elem:
+                    day_elems.add(elem)
         # K2-6 单向旺势同党豁免（P2，理象学制例一奥纳西斯锚）：全局单向旺
         # 成势（qishi.dominant）时，日柱做功指向五行为气势本行（==dominant）
         # 或原神（生dominant）者，与气势同党——势内之功非相背（巳午未火与

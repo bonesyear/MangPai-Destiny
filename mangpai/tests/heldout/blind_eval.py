@@ -70,7 +70,14 @@ _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
 # 差<2/无锚/锚非所喂运岁者维持原局轨。差≥2 门槛下原局轨本必判 ❌，改判
 # 只会 ❌→改善或持平，不致 ✅/⚠️ 回退（delta 轨已知岁运反局 artifact
 # 不再误伤原局相符之断语，如 li001/li131/qi22 乙亥发财）。
-RUBRIC_VERSION = 'v6-20260802'
+# v7（K3 294批1·B3）：破财/凶断语一律评全量轨（tier/summary）——「凶向
+# 在档」强制标注仅写全量轨（caiming.py P0-a 防静态轨误杀设计），静态轨
+# 对破财/凶断语结构性不可见其应得凶向（gj-财党杀攻身：引擎已正确检出
+# 财生杀攻身 severe，静态轨按设计不可见致凶漏判❌）。无岁运时 tier 与
+# tier_static 同值（level/level_static 仅岁运反局分叉），改动对破财/凶
+# 单调：has_xiong 只增不减、档位不变，无 ✅/⚠️ 回退风险；层级断语判轨
+# 不变（v6 运锚例外照旧）。
+RUBRIC_VERSION = 'v7-20260807'
 
 # P0-a 断语性质判别：流年事件断语（破财/凶 且 文本锚定具体年份/大运 或 案例
 # 喂入运岁——金标准多为「戊辰年破财/赔六万」式流年事件，案例所喂运岁即事件锚点）
@@ -137,10 +144,11 @@ def score_guanming(verdict, gm):
 def score_caiming(verdict, cm, has_yunsui=False, dayun='', liunian=''):
     d = verdict.split('·')[0].split('/')[0].split('，')[0].strip()
     d_rank = '小康' if d == '平' else d
-    # P0-a：流年事件断语（破财/凶 带年/运锚或案例喂运岁）用含 delta 字段；
-    # 层级断语（巨富/富/小康/平/贫）一律原局轨——v6 运锚例外：断语干支锚
-    # =所喂运岁 且 原局轨与断语档位差≥2 者，断语层级为运岁层级，改评 delta 轨
-    is_event = d in ('破财', '凶') and (has_yunsui or bool(_EVENT_RE.search(verdict)))
+    # P0-a：流年事件断语（破财/凶）一律用含 delta 全量轨字段（v7：凶向在档
+    # 标注仅全量轨可见，无岁运时 tier 与静态同值、改动单调）；层级断语
+    # （巨富/富/小康/平/贫）一律原局轨——v6 运锚例外：断语干支锚=所喂运岁
+    # 且原局轨与断语档位差≥2 者，断语层级为运岁层级，改评 delta 轨
+    is_event = d in ('破财', '凶')
     if not is_event and d_rank in _TIER_RANK:
         anchors = set(_GZ_ANCHOR_RE.findall(verdict))
         fed = {dayun, liunian} - {''}

@@ -98,19 +98,30 @@ def test_hour_zhi_yong_can_be_damaged():
 
 # ── 4. 年月 vs 日时冲合矛盾 ──
 
-def test_chong_he_contradiction_fan():
-    """年月冲+日时合（合例六两妻：酉卯冲+戌卯合）→ 反局。"""
+def test_chong_he_shared_branch_no_fan():
+    """年月冲+日时合但共享支字（合例六两妻：酉卯冲+戌卯合，共享卯）→ 同链
+    做功非自乱，不判反局（书明文日支合财「富的意思」，旧口径假阳）。"""
     wa = [{'type': '地支合', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}]
     zf = analyze_zhengfan(wa, None, ['己', '丁', '庚', '己'], ['酉', '卯', '戌', '卯'])
-    assert zf['type'] == 'fan'
-    assert '冲合' in (zf.get('reason') or '') or '矛盾' in (zf.get('reason') or '')
+    assert zf['type'] != 'fan'
+    assert '矛盾' not in (zf.get('reason') or '')
 
 
-def test_he_chong_contradiction_fan():
-    """年月合+日时冲（例9型：寅申冲/巳申合 之镜像——巳申合年月+申寅冲日时）→ 反局。"""
+def test_he_chong_shared_branch_no_fan():
+    """年月合+日时冲但共享支字（例9型：巳申合/申寅冲，共享申——两申制寅
+    同一条制链，书明文数十亿）→ 不判反局（旧口径假阳）。"""
     wa = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}]
     zf = analyze_zhengfan(wa, None, ['甲', '丙', '戊', '庚'], ['巳', '申', '申', '寅'])
+    assert zf['type'] != 'fan'
+
+
+def test_chong_he_disjoint_fan():
+    """年月合+日时冲且四支全异（zgj-财反局苦力：申巳合 vs 子午冲）→ 主宾
+    两党一边合一边冲，八字自乱 → 反局（书明文「财星反局主大凶」真阳锚）。"""
+    wa = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}]
+    zf = analyze_zhengfan(wa, None, ['戊', '丁', '戊', '戊'], ['申', '巳', '子', '午'])
     assert zf['type'] == 'fan'
+    assert '冲合' in (zf.get('reason') or '') or '矛盾' in (zf.get('reason') or '')
 
 
 def test_same_mode_no_contradiction():
@@ -120,3 +131,28 @@ def test_same_mode_no_contradiction():
     zf = analyze_zhengfan(wa, None, ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
     # 不因 K2-4 判反（既有 柱位/五行 规则可能判反，但 reason 不含矛盾注记）
     assert '矛盾' not in (zf.get('reason') or '')
+
+
+# ── 5. 五行相背「相克须做功指向成立」（K3 批1）──
+
+def test_wuxiang_li101_redline_still_fan():
+    """li101 穷命红线（K2-6 复验锚）：癸卯 癸亥 壬申 戊午——申克卯木（印制
+    食伤）为日柱制式做功指向，与全局主指向（戊土）相克 → 反局不动。"""
+    zf = _zf(['癸', '癸', '壬', '戊'], ['卯', '亥', '申', '午'])
+    assert zf['type'] == 'fan'
+
+
+def test_wuxiang_ricai_qiucai_no_fan():
+    """日主克财=求财之意不构相背（yx-富富有百万：戊申 壬戌 戊午 甲寅，
+    书明文「戊喜见甲为财富」判富，旧 any 相克口径假阳）→ 不判反局。"""
+    zf = _zf(['戊', '壬', '戊', '甲'], ['申', '戌', '午', '寅'])
+    assert zf['type'] != 'fan'
+    assert '五行相克相背' not in (zf.get('reason') or '')
+
+
+def test_wuxiang_shenghe_gong_no_fan():
+    """生合化泄等和合之功不构相背（reg67-复例四：戊申 丙辰 丁巳 癸卯，
+    书明文「此命有两个不同的功」发财数百万，旧口径假阳）→ 不判反局。"""
+    zf = _zf(['戊', '丙', '丁', '癸'], ['申', '辰', '巳', '卯'])
+    assert zf['type'] != 'fan'
+    assert '五行相克相背' not in (zf.get('reason') or '')
