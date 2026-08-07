@@ -370,7 +370,7 @@ def _assess_caixing_path(
     """
     out: Dict = {'has_yuanshen': False, 'zhuwei_cai': False, 'fucai': False,
                  'heban': [], 'rumu': [], 'hecai_work': False, 'blockers': [],
-                 'rumu_bankai': False}
+                 'rumu_bankai': False, 'cai_zhonggong': []}
     day_wx = GAN_WX.get(day_gan, '')
     cai_wx = WX_KE.get(day_wx, '')
     if not cai_wx or len(gans) != 4 or len(zhis) != 4:
@@ -388,11 +388,41 @@ def _assess_caixing_path(
     if not (mingxian_gan or mingxian_zhi):
         return out  # 无明现财，财源路径不成立（禄/食伤/官杀当财路径另行判定）
 
+    # 原神口径（294批2 A6 对照书锚裁定）：中气藏干可算原神，不收窄——
+    # 收窄实证必破书锚：cj-巨富庄家（原神=未中乙中气×2，书明文巨富）、
+    # ans37a-女强人理财（寅中丙中气，书明文富）、reg67-普例3（中气原神+开财库，
+    # 书明文小康收入较高）皆赖中气原神成立。A6 四例（cj-贫一生受穷/cj-足球/
+    # gj-合财反贫/cj-种地）根因不在此：前二=gongliang 藏干同制口径（横切1批），
+    # 合财反贫=N2 会局杀漏检（A10），种地=印夺食未入链（R2 族，半C备案）。
     out['has_yuanshen'] = any('食伤' in p and p['食伤'] in _MINGXIAN for p in prom)
     out['zhuwei_cai'] = bool((mingxian_gan | mingxian_zhi) & {2, 3})
     out['fucai'] = (not out['has_yuanshen']) and (not out['zhuwei_cai'])
     if out['fucai']:
         out['blockers'].append('财星无原神且不在主位（浮财无源，财来财去不聚）')
+
+    # 财众攻（A5 财统官量级判据）：本气财支被≥2个不同柱支冲/穿/破——寡不敌众，
+    # 财弱不能统官（书锚：gj-合财小康「财弱，故不发大财」双子破酉财；cj-平辛辛
+    # 苦苦「想要制财也制不了」双巳冲亥财；zj-护士长「无一方之势」巳破+亥穿申财）。
+    # 真阳对照（不计众攻）：reg67-例8 两申财仅一寅来冲、cj-巨富庄家巳财仅申一方
+    # 合刑破——财方得众或敌单者财不弱。合/刑不论（合可做功、刑含自刑伏吟歧义）。
+    # 财支取本气口径（同 cai_count；透干柱之支仍算——支自身被攻与干透不透无关）。
+    zhonggong: List[str] = []
+    for i, z in enumerate(zhis):
+        if not z or ZHI_WX.get(z, '') != cai_wx:
+            continue
+        pk_i = f'{PILLAR_KEYS[i]}_zhi'
+        attackers: Set[str] = set()
+        for a in wa:
+            if a.get('auxiliary') or a.get('type', '') not in ('冲', '穿', '破'):
+                continue
+            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            if tp == pk_i and fp:
+                attackers.add(fp)
+            elif fp == pk_i and tp:
+                attackers.add(tp)
+        if len(attackers) >= 2:
+            zhonggong.append(f'{PILLAR_NAMES_CN[i]}支{z}（财）遭{len(attackers)}方冲破穿，寡不敌众')
+    out['cai_zhonggong'] = zhonggong
 
     # 冲/穿做功参与抑制（同 R3：已入局交战之财未失去原性，不论绊）；
     # 合做功抑制：同一合对若被 zuogong 检为非辅助「合用/合制」做功，则该合为
@@ -1350,16 +1380,19 @@ def assess_caiming_level(
         # P1-4 财统官 3->4 须财量级证据（段氏「官多财少，财可统官」+ 量级口径）：
         # 财统官以少财统多官，财之量级本疑——财无原神或不归主位（浮财统官）
         # 者量级不足，纵统官成立升档亦封顶「富」不到巨富；财有原神且归主位
-        # （贫富三要素之浮实判据：财有源头且为我所及），或贼神捕神净制
-        # （量级同制尽）者，方证财量级可任巨富。官统财（财多官少，财量级
-        # 自证）与过河拆桥·富格（制尽路径）不在此限。
+        # （贫富三要素之浮实判据：财有源头且为我所及）方证财量级可任巨富。
+        # 官统财（财多官少，财量级自证）与过河拆桥·富格（制尽路径）不在此限。
+        # 294批2：净制腿移除——净制证官杀侧制之干净、不证财之量级，财统官
+        # 之瓶颈在财不在官（zj-图书管理员书明文「为何不是大富贵…不能大富」：
+        # 贼捕净制在档仍不能大富）。贼捕净制巨富锚（李嘉诚/保尔森）走 zbj/
+        # 富格路径净制豁免（下方分支保留），不经此门，不受影响。
         _caitongguan = ('财统官' in views
                         and '官统财（官杀当财）' not in views
                         and not any(v.startswith('过河拆桥·富格') for v in views))
         if _caitongguan and tier_idx > 3:
             _cai_liangji = bool(cxp.get('has_yuanshen') and cxp.get('zhuwei_cai'))
-            if _cai_liangji or _zeishen_jingzhi(day_gan, gans or [], zhis or []):
-                adjust = '上浮（官杀当财量级高；财有原神且归主位/净制，财量级可任）'
+            if _cai_liangji:
+                adjust = '上浮（官杀当财量级高；财有原神且归主位，财量级可任）'
             else:
                 tier_idx = 3
                 _liangji_cap = True
@@ -1399,6 +1432,17 @@ def assess_caiming_level(
     elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin:
         tier_idx -= 1
         adjust = '下浮（禄/食伤当财量级有限）'
+    # 294批2 A5 收敛：财统官须财能任统——明现财支遭≥2方冲/穿/破（寡不敌众，
+    # 财弱/制不了）者统官无功，官杀当财量级主张不成立，纵基阶巨富亦封顶富。
+    # 书锚：gj-合财小康「财弱，故不发大财」、cj-平辛辛苦苦「想要制财也制不了」、
+    # zj-护士长「无一方之势」。真阳锚（例8/庄家/盖茨/巨富制好后）财方得众或
+    # 敌单，不触此顶。官统财（财多官少，财量级自证）不适用。
+    if ('财统官' in views and '官统财（官杀当财）' not in views
+            and cxp.get('cai_zhonggong') and tier_idx > 3):
+        tier_idx = 3
+        _liangji_cap = True
+        adjust = ('上浮封顶（财统官而' + '；'.join(cxp['cai_zhonggong'])
+                  + '，财弱不能统官，官杀当财量级不成立，封顶富）')
     # 过河拆桥·富格直判 floor 富（P1，trainset b67 锚）：富格=制尽净制、制官
     # 得财之财命定式（高级篇），纵功量层低估（无功/一层功）亦不落贫/小康下；
     # 升档仍走上方官杀当财 +1（仅 +1 不越级）。凶向封顶链在下方收尾，不受
