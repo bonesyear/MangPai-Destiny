@@ -1702,3 +1702,2316 @@
     职业: "公检法·警察"
   source: gaoji:2401
   raw_quote: "案例三（墓官杀，公安执法）：坤造癸丑乙丑庚申庚辰。格局：庚金日主，月时两庚比肩。年月双丑土为正印库…日支申金禄神。时支辰土水库。实际此造，双丑土印库入时支辰土水库。丑为阴土，辰为阳土。阳库（辰）收阴库（丑），有制阴得阳之象。层次：墓用结构，阳库制阴库。实际为警察。后于己丑运，丑到墓到…庚寅年庚金绝地，肺病（庚申）墓绝同见而亡。"
+# cj-* / yx-* = G3 扩容（2026-08-07 收官批）：初级命理学(chuji)/理象学研究版(yanjiu,含附录博客文粹)转录，断语只录书明文。
+# 去重备查：8字撞 heldout 32 例禁入（含两书唯一明文「小康生活而已」坤造 甲寅辛未乙亥己卯=shouke-li050）、撞 trainset 86 例跳过、异盘剔除 1（李昌镐 己未辛未丙子戊子，famous 版为 乙卯癸未丙子戊子）。
+# 小康 5 条均为判档（书无明文「小康」二字，取「非大富非贫」书明文落小康档）：yx-木匠(在农村有小富)/cj-足球(收入很高)/yx-小康生活富裕(生活富裕)/yx-中医(比较有钱)/cj-教授(收入还可以,书明言不是发大财的)。
+# 备查矿存 80 条（仅婚姻/健康/应期/六亲/学历/子女断语或为预测性断语，无可评维度，未转录）。
+- id: cj-书记
+  name: cj-书记
+  bazi:
+    year: 癸巳
+    month: 丁巳
+    day: 甲戌
+    hour: 己巳
+  dayun: 壬申
+  gender: 乾
+  verdicts:
+    官命: 是·癸水成贼神，喜大运行金水运，行癸丑与壬申运升地委副书记
+  source: chuji:380
+  raw_quote: 癸水成贼神，喜大运行金水运，行癸丑与壬申运升地委副书记（运岁：行癸丑与壬申运升地委副书记）
+- id: cj-财政部长
+  name: cj-财政部长
+  bazi:
+    year: 戊申
+    month: 甲寅
+    day: 辛卯
+    hour: 癸巳
+  gender: 乾
+  verdicts:
+    官命: 是·所以是个管财的大官。
+    应期: 卜文：辰运坐牢，庚申运文化大革命坐牛棚。
+  source: chuji:858;chuji:4768;yanjiu:7591
+  raw_quote: 举一些发大财的例子 / 所以是个管财的大官。 / 卜文：辰运坐牢，庚申运文化大革命坐牛棚。 / 事实上，命主曾任国家财政部长。（注：书明注(薄一波)；该例列于「发大财的例子」节首）
+- id: cj-巨富庄家
+  name: cj-巨富庄家
+  bazi:
+    year: 戊申
+    month: 己未
+    day: 癸巳
+    hour: 己未
+  liunian: 辛巳
+  gender: 乾
+  verdicts:
+    财命: 巨富·大富命资产数十亿
+    职业: 搞股票的。一个庄家
+    应期: 行亥运反局，今年乙酉年坐牢
+  source: chuji:884;chuji:4782;yanjiu:7186;yanjiu:14018
+  raw_quote: 这是个大富命。现资产数十亿元 / 搞股票的。一个庄家 / 行亥运反局，今年乙酉年坐牢 / 发大财。戌运辛巳年发大财。是炒股的庄家。发财十来个亿 / 壬戌运之戌运发财数亿元。是做股票的庄家。 / 今年坐牢了（癸亥运乙酉年） / 事实上命主曾是一位超级庄家，最高时资产曾有数十亿人民币。 / 超级庄家 / L总是一个超级富翁，据传在金融行业是数得上的人物，在股海能翻云覆雨，股市里常说的庄家、主力，就是指像他这样的人物。 / 五年大运壬戌之戌运，积累数十亿资产！这在中国也算是一个奇迹。 / 大运转人癸亥运，是一个反局大运，不仅不会再有发展，还恐怕难以保全。我们建议他最好出国去，不要再在国内搞事情了，怕搞不好惹官司。 / 我说：最多做到2004年，到2004年之后就不能再做了。 / 直到2005年，听说他与其公司高管们全被公安抓捕，听说是非法集资罪，到现在还没有结案。（运岁：戌运辛巳年、壬午年发大财；行亥运反局，乙酉年坐牢）
+- id: cj-巨富制尽
+  name: cj-巨富制尽
+  bazi:
+    year: 乙巳
+    month: 丙戌
+    day: 辛亥
+    hour: 戊戌
+  dayun: 壬午
+  gender: 乾
+  verdicts:
+    财命: 巨富·制财与财原神制尽发财数亿
+    官命: 否·这个可不是当官的
+  source: chuji:908
+  raw_quote: 制去财与财的原神是发大财的，这个八字制了财和财的原神（亥中含财）。制尽了，就成了贼神和捕神的原理，到了壬午运发财数亿 / 这个可不是当官的（运岁：壬午运发财数亿）
+- id: cj-处级非总统级
+  name: cj-处级非总统级
+  bazi:
+    year: 丁亥
+    month: 壬子
+    day: 庚辰
+    hour: 壬午
+  gender: 乾
+  verdicts:
+    官命: 是·制去官与官的原神是当大官的。所以此人是当大官的
+  source: chuji:987;chuji:5550;yanjiu:5502
+  raw_quote: 制去官与官的原神是当大官的。所以此人是当大官的 / 但不是总统级的，但大运不好，所以只当了个处级干部。没赶上走火运 / 当官的命，水的力量太旺，火势弱，所以效率稍低些，不是很高。行运至火地，官至正处不升。 / 所以其官职不大，最大是正处级。
+- id: cj-周恩来
+  name: cj-周恩来
+  bazi:
+    year: 戊戌
+    month: 甲寅
+    day: 丁卯
+    hour: 甲辰
+  gender: 乾
+  verdicts:
+    官命: 是·因为辰为官杀库，所以力量不弱，当的官就大，上面丁亥造因为火太…
+  source: chuji:1017;chuji:5665;yanjiu:7813
+  raw_quote: 因为辰为官杀库，所以力量不弱，当的官就大，上面丁亥造因为火太弱了。所以官小 / 辰为杀库，意思是官的集团，所以他就是管理官僚集团的大官，国务院总理。 / 所以他能统领群僚，任朝中宰相。（注：书明注(周总理)）
+- id: cj-厅长
+  name: cj-厅长
+  bazi:
+    year: 戊子
+    month: 癸亥
+    day: 庚戌
+    hour: 丙子
+  dayun: 戊辰
+  liunian: 壬午
+  gender: 乾
+  verdicts:
+    官命: 是·辰运壬午年升副省级官。辰运庚辰年升山西省公安厅厅长
+  source: chuji:1056
+  raw_quote: 辰运壬午年升副省级官。辰运庚辰年升山西省公安厅厅长（运岁：戊辰运的辰运：壬午年升副省级官，庚辰年升山西省公安厅厅长）
+- id: cj-种地
+  name: cj-种地
+  bazi:
+    year: 壬寅
+    month: 乙巳
+    day: 乙亥
+    hour: 壬午
+  gender: 乾
+  verdicts:
+    财命: 贫·干什么赔钱只好种地
+    职业: 农民·种地(原搞艺术)
+  source: chuji:1180
+  raw_quote: 此人上搞艺术的，吹拉弹唱样样会 / 但干什么都赔钱。什么都不成，只好去种地
+- id: cj-平财不大
+  name: cj-平财不大
+  bazi:
+    year: 壬子
+    month: 丙午
+    day: 壬辰
+    hour: 己酉
+  gender: 乾
+  verdicts:
+    财命: 平·财不大(技术求财)
+    官命: 否·应是有官职的，但此人不当官
+    职业: 是搞技术的。以技术求财的
+  source: chuji:1195
+  raw_quote: 是搞技术的。以技术求财的 / 但财制不干净，所以财不大 / 应是有官职的，但此人不当官
+- id: cj-1209
+  name: cj-1209
+  bazi:
+    year: 甲辰
+    month: 戊辰
+    day: 壬辰
+    hour: 甲辰
+  gender: 乾
+  verdicts:
+    官命: 是·所以有个小官，要是地支上的杀制了那可就是大官了
+  source: chuji:1209
+  raw_quote: 所以有个小官，要是地支上的杀制了那可就是大官了 / 官只有短暂的一年。普通人，到戌运会好一些（运岁：走金水运见不了贼神，官只有短暂一年）
+- id: cj-贫穷命一生无作
+  name: cj-贫穷命一生无作
+  bazi:
+    year: 癸丑
+    month: 己未
+    day: 丙辰
+    hour: 甲午
+  gender: 乾
+  verdicts:
+    财命: 贫·穷命一生无作为靠父母吃饭
+    婚姻: 无妻儿
+  source: chuji:1236;yanjiu:6477
+  raw_quote: 是个穷命，一生无作为。无所事事，无工作，靠父母吃口饭而已 / 无妻儿 / 伤合印，伤主技术，表示有偏门的技术。没有功 / 故是个穷命，一生没有什么作为，无妻无子，无所事事。 / 无妻无子
+- id: cj-1331
+  name: cj-1331
+  bazi:
+    year: 戊戌
+    month: 甲子
+    day: 甲子
+    hour: 庚午
+  gender: 乾
+  verdicts:
+    官命: 是·子为印，去印得权。印代表权利。是个当官的
+  source: chuji:1331
+  raw_quote: 子为印，去印得权。印代表权利。是个当官的
+- id: cj-正处级化杀
+  name: cj-正处级化杀
+  bazi:
+    year: 戊申
+    month: 甲子
+    day: 甲寅
+    hour: 丙寅
+  gender: 乾
+  verdicts:
+    官命: 是·这种结构就是当官的。化杀得权。是个正处级干部
+    应期: 庚午大运，庚透出，杀无制，官没了，庚午运退休了。
+  source: chuji:1362;chuji:4612;yanjiu:7000
+  raw_quote: 这种结构就是当官的。化杀得权。是个正处级干部 / 表示自己得到了杀（羊刃合杀），此运也能当官。 / 戊辰大运，申子辰三合局，为化用作功方式到了，当官了，又升。 / 庚午大运，庚透出，杀无制，官没了，庚午运退休了。 / 卜文：戊辰运估计能做到省级，现在是处级。 / 卯申暗合就是自己合到杀的意思，此运也能当官，是合用做功。
+- id: cj-处级
+  name: cj-处级
+  bazi:
+    year: 乙巳
+    month: 辛巳
+    day: 乙酉
+    hour: 戊子
+  liunian: 癸未
+  gender: 乾
+  verdicts:
+    官命: 是·官大不了，为正处级干部，走丑运当官
+    应期: 此人癸未、甲申两年不好，未年子未穿了印而丢了工作，申年巳申合到宾位，…
+  source: chuji:1375
+  raw_quote: 官大不了，为正处级干部，走丑运当官 / 此人癸未、甲申两年不好，未年子未穿了印而丢了工作，申年巳申合到宾位，没事干。乙酉年杀到能当官。他辛巳年升的官（运岁：走丑运当官；癸未年丢工作；甲申年没事干；辛巳年升官；乙酉年能当官）
+- id: cj-1395
+  name: cj-1395
+  bazi:
+    year: 癸卯
+    month: 辛酉
+    day: 乙酉
+    hour: 丁丑
+  gender: 乾
+  verdicts:
+    官命: 否·墓又不开，所以不当官
+    职业: 餐饮·国外开餐馆
+    六亲: 杀冲禄，代表了母亲之凶，其母去外国后死于车祸
+  source: chuji:1395
+  raw_quote: 年月七杀冲禄为背主离乡，到国外发展去了。禄是吃喝、财之意，到国外开餐馆了 / 墓又不开，所以不当官 / 杀冲禄，代表了母亲之凶，其母去外国后死于车祸
+- id: cj-中医
+  name: cj-中医
+  bazi:
+    year: 丙申
+    month: 丙申
+    day: 丙辰
+    hour: 丁酉
+  dayun: 辛丑
+  gender: 乾
+  verdicts:
+    财命: 平·无大财不主财
+    职业: 此人是有名的中医，又精通周易
+    健康: 此人双腿有问题，卜文：双腿也有残
+  source: chuji:1465
+  raw_quote: 此人是有名的中医，又精通周易 / 这个人无大财，此八字不主财。辛丑运之前都不太好。现行辛丑运开始好转，壬寅运制了印将好 / 此人双腿有问题，卜文：双腿也有残（运岁：辛丑运之前不太好，辛丑运开始好转，壬寅运将好）
+- id: cj-1493
+  name: cj-1493
+  bazi:
+    year: 己酉
+    month: 戊辰
+    day: 丙辰
+    hour: 丙申
+  dayun: 乙丑
+  gender: 乾
+  verdicts:
+    职业: 此人是做汽车修理工作的
+  source: chuji:1493
+  raw_quote: 此人是做汽车修理工作的 / 乙丑运，酉丑合财又丑入辰墓到主位。故财运好 / 甲子运，甲己合，把伤合了，不干汽车修理工作了。到子运，申子辰三合局，财化官了，相当于官统财，所以又有事做了（运岁：乙丑运财运好；甲子运不干汽车修理，子运又有事做）
+- id: cj-巨富制好后发财两
+  name: cj-巨富制好后发财两
+  bazi:
+    year: 乙巳
+    month: 乙酉
+    day: 戊子
+    hour: 甲寅
+  dayun: 壬午
+  gender: 乾
+  verdicts:
+    财命: 巨富·制好后发财两个亿
+  source: chuji:1590
+  raw_quote: 原局杀没有制好，财也没有制好，午运制好了，发财两个亿（运岁：壬午运(午运)发财两个亿）
+- id: cj-处级-2
+  name: cj-处级-2
+  bazi:
+    year: 甲午
+    month: 己巳
+    day: 己丑
+    hour: 丁卯
+  gender: 坤
+  verdicts:
+    官命: 是·合身，肯定是个官，是个文化类的官，正处级干部
+    健康: 丑午穿，得严重心脏病
+  source: chuji:1618;yanjiu:4249
+  raw_quote: 合身，肯定是个官，是个文化类的官，正处级干部 / 此造是一个政府官员 / 且贪了不少钱财，因包得很严未被查出 / 丑午穿，得严重心脏病
+- id: cj-富发财上千万
+  name: cj-富发财上千万
+  bazi:
+    year: 丁酉
+    month: 戊申
+    day: 庚午
+    hour: 丙戌
+  gender: 乾
+  verdicts:
+    财命: 富·发财上千万
+    健康: 庚金见禄禄被制，受制一般为凶，受伤…禄到就是寿到了，死了
+  source: chuji:1666
+  raw_quote: 所以有辰运发财上千万，辰运一过就不行了，但一生也够过了 / 庚金见禄禄被制，受制一般为凶，受伤…禄到就是寿到了，死了（运岁：辰运发财上千万，辰运一过就不行）
+- id: cj-1687
+  name: cj-1687
+  bazi:
+    year: 辛巳
+    month: 辛丑
+    day: 庚申
+    hour: 庚辰
+  gender: 乾
+  verdicts:
+    官命: 否·此人既不当官又不发财
+    职业: 以前有过工作，但后来没了工作无事做
+    健康: 身体也不好
+  source: chuji:1687
+  raw_quote: 此人既不当官又不发财 / 以前有过工作，但后来没了工作无事做 / 身体也不好
+- id: cj-主席
+  name: cj-主席
+  bazi:
+    year: 乙未
+    month: 癸未
+    day: 辛未
+    hour: 癸巳
+  dayun: 庚辰
+  liunian: 癸亥
+  gender: 乾
+  verdicts:
+    官命: 是·此人是当官的，辛生了癸，癸合了巳，巳与未一党，巳又生未，官制…
+    应期: 行卯运的戌年升了官，戊透干也升，卯也升
+  source: chuji:1751
+  raw_quote: 此人是当官的，辛生了癸，癸合了巳，巳与未一党，巳又生未，官制了食，官在这里有功，所以是当官的 / 行卯运的戌年升了官，戊透干也升，卯也升 / 走庚辰运的癸亥年当秘书，走己卯运（己克癸，卯是乙的根）的丙寅年（官到了）当副处级干部，戊辰年（戊癸合制癸）又升副处长，庚午年（乙庚合制庚，午又是官到了，午未合到主位）升正处，走戊寅运（此运好了）乙亥年（亥卯拱局，又巳亥冲制了亥）又升了，辛巳年（辛为自己，巳为自己坐着官到了）升至正厅级，现任山西省科协主席（运岁：庚辰运癸亥年当秘书；己卯运丙寅年副处级；戊辰年升副处长；庚午年升正处；戊寅运乙亥年又升；辛巳年升正厅级；卯运戌年升官）
+- id: cj-装修
+  name: cj-装修
+  bazi:
+    year: 甲辰
+    month: 丙寅
+    day: 壬寅
+    hour: 甲辰
+  dayun: 庚午
+  gender: 乾
+  verdicts:
+    财命: 富·做装修发财几百万
+    职业: 食神生财，要用。做自由职业的多。食生财，做企业的，午运前一塌…
+  source: chuji:1826
+  raw_quote: 食神生财，要用。做自由职业的多。食生财，做企业的，午运前一塌糊涂，午运前就上班没什么钱，庚午运之午运开始发财，午运做装修发财 / 财到了，合到了财，有几百万。近几年的事，01年左右吧（运岁：庚午运之午运开始发财（01年左右），做装修发财）
+- id: cj-农民
+  name: cj-农民
+  bazi:
+    year: 庚寅
+    month: 庚辰
+    day: 癸未
+    hour: 癸亥
+  gender: 乾
+  verdicts:
+    职业: 所以做功不大，此人是个农民。（亥比劫生食，比劫做功是体力劳动…
+  source: chuji:1852
+  raw_quote: 所以做功不大，此人是个农民。（亥比劫生食，比劫做功是体力劳动者，农民，寅就是庄稼）
+- id: cj-科学家
+  name: cj-科学家
+  bazi:
+    year: 辛亥
+    month: 壬辰
+    day: 乙酉
+    hour: 丁亥
+  gender: 乾
+  verdicts:
+    职业: 是年轻的科学家。美国的博士学位
+    学历: 年上辛亥为杀印相生，为杀被印化主学历，不为当官，学历很高
+    健康: 辰酉合有毛病，主身体不好
+  source: chuji:1915
+  raw_quote: 年上辛亥为杀印相生，为杀被印化主学历，不为当官，学历很高 / 是年轻的科学家。美国的博士学位 / 辰酉合有毛病，主身体不好
+- id: cj-厅级
+  name: cj-厅级
+  bazi:
+    year: 丙戌
+    month: 癸巳
+    day: 丁酉
+    hour: 己酉
+  dayun: 戊戌
+  gender: 乾
+  verdicts:
+    官命: 是·行戊戌运，戊癸合，戊为巳，把癸制了，戌到制酉，此运升官，是副…
+  source: chuji:1944
+  raw_quote: 行戊戌运，戊癸合，戊为巳，把癸制了，戌到制酉，此运升官，是副厅级干部，是深圳市南山区区长（运岁：戊戌运升官，副厅级）
+- id: cj-副市长
+  name: cj-副市长
+  bazi:
+    year: 甲午
+    month: 癸酉
+    day: 戊子
+    hour: 丁巳
+  dayun: 戊寅
+  gender: 乾
+  verdicts:
+    官命: 是·换象为日主带了杀帽子。是当官的
+  source: chuji:2008
+  raw_quote: 换象为日主带了杀帽子。是当官的 / 行戊寅运，戊为日主到了，寅为甲的禄，等于自己坐着七杀，所以此运当了副市长 / 日主合财，说明他是贪官，贪财（运岁：戊寅运当副市长）
+- id: cj-处级-3
+  name: cj-处级-3
+  bazi:
+    year: 甲午
+    month: 癸酉
+    day: 辛卯
+    hour: 己亥
+  gender: 乾
+  verdicts:
+    官命: 是·甲午为带象，杀带财帽，说明他是管财的官，是财政局的副局长，副…
+  source: chuji:2027
+  raw_quote: 甲午为带象，杀带财帽，说明他是管财的官，是财政局的副局长，副处级干部
+- id: cj-财务总监
+  name: cj-财务总监
+  bazi:
+    year: 丁未
+    month: 丙午
+    day: 辛未
+    hour: 甲午
+  gender: 坤
+  verdicts:
+    职业: 此人很有能力，管理跨国海外公司的大企业的财务总监，很有权利
+  source: chuji:2043
+  raw_quote: 此人很有能力，管理跨国海外公司的大企业的财务总监，很有权利
+- id: cj-校长
+  name: cj-校长
+  bazi:
+    year: 壬寅
+    month: 庚戌
+    day: 丙午
+    hour: 辛卯
+  gender: 坤
+  verdicts:
+    官命: 是·为什么级别不高呢？因为庚金无制
+    职业: 说明是学校、教育行业。三合局中神在坐下，肯定为正职，是学校的…
+  source: chuji:2057;yanjiu:3526
+  raw_quote: 说明是学校、教育行业。三合局中神在坐下，肯定为正职，是学校的校长 / 为什么级别不高呢？因为庚金无制 / 实际她是一位中学校长
+- id: cj-2075
+  name: cj-2075
+  bazi:
+    year: 戊申
+    month: 甲寅
+    day: 乙巳
+    hour: 辛巳
+  dayun: 庚戌
+  liunian: 庚辰
+  gender: 坤
+  verdicts:
+    职业: 实际此人是民生银行的一个主任
+    应期: 走庚戌运，庚辰年不吉，非常不顺。因原局要制官，不喜庚金透出合身。辰为…
+  source: chuji:2075
+  raw_quote: 实际此人是民生银行的一个主任 / 走庚戌运，庚辰年不吉，非常不顺。因原局要制官，不喜庚金透出合身。辰为水库，又晦了巳火。好象家里也是父亲生病，破财（运岁：庚戌运庚辰年不吉、破财、父亲生病）
+- id: cj-2097
+  name: cj-2097
+  bazi:
+    year: 癸卯
+    month: 甲寅
+    day: 丙戌
+    hour: 庚子
+  gender: 坤
+  verdicts:
+    官命: 是·癸卯带象，为当文化类的官
+    职业: 很有才能很有文化。写了好几本书。在当地非常有名气
+    婚姻: 此人婚姻无问题的。丈夫也是当官的
+  source: chuji:2097
+  raw_quote: 癸卯带象，为当文化类的官 / 很有才能很有文化。写了好几本书。在当地非常有名气 / 此人婚姻无问题的。丈夫也是当官的 / 实际为政府的一个县级干部
+- id: cj-2206
+  name: cj-2206
+  bazi:
+    year: 乙巳
+    month: 戊子
+    day: 丁巳
+    hour: 庚戌
+  dayun: 壬辰
+  gender: 坤
+  verdicts:
+    官命: 否·此人不当官？因为是女命。（此造女命不为当官，因夫宫巳火做功，…
+    六亲: 婚后夫成了亿万富翁，此女是旺命
+    婚姻: 夫宫制夫星好婚姻
+    应期: 行壬辰运，大发。
+  source: chuji:2206;yanjiu:5640
+  raw_quote: 此人不当官？因为是女命。（此造女命不为当官，因夫宫巳火做功，巳火透天干戊土为丈夫，丈夫合制子水，为丈夫发财。如果是男命就为官了。） / 婚后夫成了亿万富翁，此女是旺命 / 夫宫制夫星好婚姻 / 凡夫宫制夫星者，能制得住都为好婚姻，表示丈夫听她的话，故此造会找个好丈夫。 / 故夫赚大钱，数亿资产。 / 行壬辰运，大发。（运岁：壬辰大运，辰为水库，冲开水库夫发大财）
+- id: cj-老板
+  name: cj-老板
+  bazi:
+    year: 己酉
+    month: 丙寅
+    day: 丁卯
+    hour: 癸卯
+  gender: 坤
+  verdicts:
+    职业: 是酒楼老板，占四成股份
+  source: chuji:2217;yanjiu:5676
+  raw_quote: 是酒楼老板，占四成股份 / 她是一家酒店女老板，她占此酒店的四成股份。
+- id: cj-平辛辛苦苦挣钱
+  name: cj-平辛辛苦苦挣钱
+  bazi:
+    year: 乙巳
+    month: 辛巳
+    day: 戊辰
+    hour: 癸亥
+  liunian: 戊寅
+  gender: 乾
+  verdicts:
+    财命: 平·辛辛苦苦挣钱
+    官命: 否·禄上坐官可不是当官的
+    职业: 此人也是搞易学的，伤官高露的人，人性不好
+    婚姻: 婚姻不好，戊寅年离婚了，寅运寅年了巳禄，年月上的禄与日主一体，寅亥一…
+  source: chuji:2277
+  raw_quote: 想要制财也制不了，只能是辛辛苦苦地挣钱 / 禄上坐官可不是当官的 / 婚姻不好，戊寅年离婚了，寅运寅年了巳禄，年月上的禄与日主一体，寅亥一合，老婆跟人跑了 / 此人也是搞易学的，伤官高露的人，人性不好 / 做梦都想当官，就是当不了（运岁：戊寅年离婚）
+- id: cj-妓女
+  name: cj-妓女
+  bazi:
+    year: 壬寅
+    month: 辛亥
+    day: 己未
+    hour: 丙寅
+  liunian: 辛巳
+  gender: 坤
+  verdicts:
+    财命: 贫·卖身的穷命
+    职业: 只能靠卖身挣点吃饭钱。无正当工作
+    婚姻: 一生无婚姻。即无婚姻又无财
+    健康: 而且腿脚也不好，且寿短。未运辛巳年死于肾病
+  source: chuji:2334
+  raw_quote: 这是夏老师断过的一个命。说是卖身的穷命 / 一生无婚姻。即无婚姻又无财 / 只能靠卖身挣点吃饭钱。无正当工作 / 而且腿脚也不好，且寿短。未运辛巳年死于肾病 / 是个妓女，只能靠卖身挣点吃饭钱（运岁：未运辛巳年死于肾病）
+- id: cj-教授
+  name: cj-教授
+  bazi:
+    year: 甲辰
+    month: 丙子
+    day: 己未
+    hour: 戊辰
+  gender: 乾
+  verdicts:
+    财命: 小康·收入还可以(教授,有点钱)
+    婚姻: 为月令的财被坐支穿说明此人一生与婚姻无缘，因坐下是妻宫，穿子财就是女…
+  source: chuji:2375;chuji:3674
+  raw_quote: 为月令的财被坐支穿说明此人一生与婚姻无缘，因坐下是妻宫，穿子财就是女人无法进入他的家里 / 此造是制财结构，财还是可以的，教授，收入还可以。子不入墓，甲己合，甲坐辰财库，有点钱 / 男命月令的财被妻宫穿，主一生与婚姻无缘。但不代表一生无钱花。或者是结就离，最终是无 / 穿了月令财主日主与财星无缘，没有婚姻 / 不是没钱（因甲己合,甲下坐财库,当然有钱了）。甲己合官，坐下财库，有地位，财运可以。 / 甲己合了，如无甲己合，一无是处，挣工资的，也不是发大财的。（注：「教授」疑为职业断语，书原文夹于财断语中，照录）
+- id: cj-平财弱财少
+  name: cj-平财弱财少
+  bazi:
+    year: 丙午
+    month: 辛卯
+    day: 丁卯
+    hour: 丙午
+  dayun: 壬辰
+  liunian: 丙辰
+  gender: 乾
+  verdicts:
+    财命: 平·财弱财少
+    六亲: 财在月上代表父亲，丙辛一合，父早死。第一步大运壬辰运，丙辰年，丙到合…
+    应期: 整个午运中就发了两年的财：庚辰年得了1000万韩元；辛巳年得了400…
+  source: chuji:2675;chuji:4710;yanjiu:7140
+  raw_quote: 劫合财，合财得财，但财弱，所以财也少 / 财在月上代表父亲，丙辛一合，父早死。第一步大运壬辰运，丙辰年，丙到合去辛，卯辰穿了父宫，星宫全坏，此年父去逝 / 午运中只有庚辰年发1000万韩元、辛巳年得了4000万韩元。只有这两年发财。 / 这个发财没有百万，1000万韩元约合人民币30万元。 / 所以是靠合伙求财，而且此财得的非常容易，不用自己费劲，是别人替他发财。 / 所以他本人并无大的财命。 / 整个午运中就发了两年的财：庚辰年得了1000万韩元；辛巳年得了4000万韩元（总计相当于30万人民币）。 / 他靠的是合伙求财，而且他这个财得的很容易（运岁：第一步大运壬辰运丙辰年父去逝）
+- id: cj-组织部宣传
+  name: cj-组织部宣传
+  bazi:
+    year: 丁未
+    month: 壬子
+    day: 乙丑
+    hour: 戊寅
+  gender: 乾
+  verdicts:
+    职业: 此人是搞政治理论的，是组织部搞宣传教育工作的
+  source: chuji:2815
+  raw_quote: 此人是搞政治理论的，是组织部搞宣传教育工作的 / 寅丑合，羊刃和了官杀库，原来是公安部门
+- id: cj-财务总监-2
+  name: cj-财务总监-2
+  bazi:
+    year: 己酉
+    month: 辛丑
+    day: 己亥
+    hour: 丙寅
+  gender: 乾
+  verdicts:
+    官命: 否·就不得财了。不当官了，也不发财了，管财务了，是财务总监
+  source: chuji:2968
+  raw_quote: 就不得财了。不当官了，也不发财了，管财务了，是财务总监
+- id: cj-破财己卯年破大财
+  name: cj-破财己卯年破大财
+  bazi:
+    year: 辛亥
+    month: 壬辰
+    day: 壬戌
+    hour: 癸卯
+  liunian: 己卯
+  gender: 乾
+  verdicts:
+    财命: 破财·己卯年破大财
+  source: chuji:2985;chuji:4029
+  raw_quote: 以前有点钱，己卯年破了大财。因原局就有卯戌合卯辰穿，卯年穿辰闭戌，命也 / 这有合为什么发财卜文：辰戌冲好，卯戌合坏了，先好后坏（运岁：己卯年破大财）
+- id: cj-富财墓喜冲发大
+  name: cj-富财墓喜冲发大
+  bazi:
+    year: 甲辰
+    month: 甲戌
+    day: 戊子
+    hour: 壬子
+  gender: 乾
+  verdicts:
+    财命: 富·财墓喜冲发大财
+  source: chuji:3185
+  raw_quote: 是发大财的。若无辰土绝对不会发财。 / 财墓喜冲，这是发财命。宾位财库冲开肯定是发财命，但是自已发还是别人发呢？这命就是看象，是自已发财。
+- id: cj-县长
+  name: cj-县长
+  bazi:
+    year: 戊戌
+    month: 壬戌
+    day: 辛亥
+    hour: 甲午
+  dayun: 丙寅
+  gender: 乾
+  verdicts:
+    官命: 是·大运丙寅，当县长。
+    应期: 丁卯运，丁运丁壬合，保护了壬水，（合绊，不参与原局作用）丢官罢职了。
+    健康: 死在了酉年，穿禄了。禄被戌穿，被枪毙。
+  source: chuji:3224;yanjiu:2592
+  raw_quote: 说明财官双得。 / 大运丙寅，当县长。 / 丁卯运，丁运丁壬合，保护了壬水，（合绊，不参与原局作用）丢官罢职了。 / 戊辰运被枪毙了。 / 死在了酉年，穿禄了。禄被戌穿，被枪毙。 / 所以他是个官员 / 然壬水伤官被戊戌所克，最后被官方所杀（运岁：丙寅运当县长；丁卯运丢官罢职；戊辰运被枪毙，死在酉年）
+- id: cj-老总
+  name: cj-老总
+  bazi:
+    year: 癸卯
+    month: 丙辰
+    day: 戊申
+    hour: 甲子
+  gender: 乾
+  verdicts:
+    官命: 否·一当官就有麻烦(故为大企业老总)
+    职业: 他很有能力，是大企业的老总。
+  source: chuji:3258
+  raw_quote: 说明他一当官就有麻烦。 / 他很有能力，是大企业的老总。
+- id: cj-包工头
+  name: cj-包工头
+  bazi:
+    year: 壬寅
+    month: 辛亥
+    day: 丁丑
+    hour: 癸卯
+  dayun: 壬卯
+  gender: 乾
+  verdicts:
+    财命: 富·包工头发财数千万
+    官命: 否·所以不当官，壬主管理与控制，不主官。
+  source: chuji:3296
+  raw_quote: 走壬卯运，发财。 / 所以不当官，壬主管理与控制，不主官。 / 故此运用不正当手段取财，他是建筑市的包工头。 / 木土行业，发财数千万。包工头，不当官（运岁：壬卯运发财；丙辰运不正当手段取财；丁巳大运发财数千万）
+- id: cj-校长-2
+  name: cj-校长-2
+  bazi:
+    year: 壬寅
+    month: 己酉
+    day: 癸酉
+    hour: 乙卯
+  dayun: 甲寅
+  gender: 乾
+  verdicts:
+    官命: 是·此人当官，印在主位作功代表文化行业，食也主文类行业。故此人是…
+    应期: 甲寅运，甲己合，摘了官帽，不当官了。
+  source: chuji:3502;yanjiu:4174
+  raw_quote: 此人当官，印在主位作功代表文化行业，食也主文类行业。故此人是学校的校长。 / 甲寅运，甲己合，摘了官帽，不当官了。 / 此造原为中学校长，后来因为跟学校学生发生不正当关系被免职（运岁：甲寅运摘官帽不当官）
+- id: cj-巨富刑开财库成亿
+  name: cj-巨富刑开财库成亿
+  bazi:
+    year: 乙未
+    month: 己卯
+    day: 丁丑
+    hour: 庚戌
+  dayun: 甲戌
+  gender: 乾
+  verdicts:
+    财命: 巨富·刑开财库成亿万富翁
+    学历: 没文化，因丁弱化不了印。
+  source: chuji:3516
+  raw_quote: 原局丑逢刑冲就是发财的命，行甲戌运，刑开财库发大财。成亿万富翁。 / 没文化，因丁弱化不了印。（运岁：甲戌运刑开财库发大财；子运不吉）（注：书称「豆腐佬传奇」）
+- id: cj-厅级-2
+  name: cj-厅级-2
+  bazi:
+    year: 乙未
+    month: 壬午
+    day: 甲子
+    hour: 甲戌
+  gender: 乾
+  verdicts:
+    官命: 是·是掌兵权的官。但午未合，闭了羊刃库，不是弄刀枪为刀枪入库。
+  source: chuji:3660;yanjiu:7393
+  raw_quote: 是掌兵权的官。但午未合，闭了羊刃库，不是弄刀枪为刀枪入库。 / 是个军政委，师级干部，不拿枪的官。 / 是军官，但不拿枪，因午未合了，武职，是武警部队中的厅级干部。 / 实际此命是个大校级军官。
+- id: cj-县长-2
+  name: cj-县长-2
+  bazi:
+    year: 甲申
+    month: 辛未
+    day: 戊子
+    hour: 丙辰
+  gender: 乾
+  verdicts:
+    官命: 是·此人为副县长（甲被三合局带到了位，被日主得到），子水为正，但…
+  source: chuji:3684
+  raw_quote: 此人为副县长（甲被三合局带到了位，被日主得到），子水为正，但原局子未穿把正的穿偏了，故为副职。 / 是个县长。本来中神得正位为正县长，但子未穿，偏了，就是副县长。卜文：管工业的副县长（注：书标「郝金阳断一辈子当不了正职」）
+- id: cj-县长-3
+  name: cj-县长-3
+  bazi:
+    year: 戊戌
+    month: 辛酉
+    day: 丙申
+    hour: 丁酉
+  liunian: 壬戌
+  gender: 乾
+  verdicts:
+    官命: 是·是个官员，运至亥子丑北方水地升到县长，01年当县长。
+    六亲: 食在年上为母亲，被穿倒，早逝之象。亥运，水盛，壬戌年，戌母到位，被原…
+  source: chuji:3694;yanjiu:7854
+  raw_quote: 食在年上为母亲，被穿倒，早逝之象。亥运，水盛，壬戌年，戌母到位，被原局酉穿倒，此年母去逝。 / 是个官员，运至亥子丑北方水地升到县长，01年当县长。 / 母亲和奶奶都早死。 / 所以是个官员。大运行亥子丑北方水地，升县长。（运岁：亥运壬戌年母逝；亥子丑运升县长，01年当县长）
+- id: cj-中医李阳波
+  name: cj-中医李阳波
+  bazi:
+    year: 丙戌
+    month: 辛丑
+    day: 丁酉
+    hour: 丁未
+  dayun: 丙午
+  liunian: 辛未
+  gender: 乾
+  verdicts:
+    职业: 此人是非常有名的中医大夫
+    应期: 行丙午运，午为日主见禄，午未合禄本是吉，但不喜丑午穿禄，辛未年，丑午…
+    健康: 此年寿到。
+  source: chuji:3921
+  raw_quote: 行丙午运，午为日主见禄，午未合禄本是吉，但不喜丑午穿禄，辛未年，丑午穿坏了禄 / 此年寿到。 / 此人是非常有名的中医大夫 / 早亡，才40来岁。此人是李阳波。刘立宏的老师。（运岁：丙午运辛未年寿终）（注：李阳波）
+- id: cj-贫穷命悲惨
+  name: cj-贫穷命悲惨
+  bazi:
+    year: 丙子
+    month: 戊戌
+    day: 丁丑
+    hour: 丁未
+  gender: 坤
+  verdicts:
+    财命: 贫·穷命悲惨
+    婚姻: 满盘的火土都来克夫星，所以夫早亡。
+    健康: 比劫主手足，代表自己也伤残。克夫的命呀。
+  source: chuji:3941
+  raw_quote: 满盘的火土都来克夫星，所以夫早亡。 / 比劫主手足，代表自己也伤残。克夫的命呀。 / 为何穷命一个如此悲惨？（注：4011行OCR作「丙戌丁丁」）
+- id: cj-3981
+  name: cj-3981
+  bazi:
+    year: 癸卯
+    month: 丙辰
+    day: 丙午
+    hour: 甲午
+  gender: 乾
+  verdicts:
+    职业: 此人做家具装饰的。
+    六亲: 原局被辰穿主父有问题，父早亡
+    健康: 卯午破，比肩为手足，自己腿有问题，带残。
+  source: chuji:3981;yanjiu:3407
+  raw_quote: 此人做家具装饰的。 / 原局被辰穿主父有问题，父早亡 / 卯午破，比肩为手足，自己腿有问题，带残。 / 此造做装演生意发财 / 局中卯午相破，是肢体有过血光受伤之意，事实上他小时候腿受伤落残疾
+- id: cj-市长
+  name: cj-市长
+  bazi:
+    year: 丙午
+    month: 辛丑
+    day: 己未
+    hour: 辛未
+  gender: 乾
+  verdicts:
+    官命: 是·这是郝金阳生前断过的最大的官，天津市市长，1950年出生的
+    应期: 行辰运，丑入辰墓，保护了丑，又晦了火局，坏了功神，坐了牢。盲师诀：伤…
+  source: chuji:4197
+  raw_quote: 这是郝金阳生前断过的最大的官，天津市市长，1950年出生的 / 行辰运，丑入辰墓，保护了丑，又晦了火局，坏了功神，坐了牢。盲师诀：伤食入墓无自由，主坐牢。（运岁：辰运坐牢）
+- id: cj-处级-4
+  name: cj-处级-4
+  bazi:
+    year: 癸巳
+    month: 乙卯
+    day: 己巳
+    hour: 己巳
+  gender: 乾
+  verdicts:
+    官命: 是·此人是副处级干部。为什么是副职？因为卯木能化尽，但乙木化不尽…
+  source: chuji:4289
+  raw_quote: 此人是副处级干部。为什么是副职？因为卯木能化尽，但乙木化不尽。
+- id: cj-雍正
+  name: cj-雍正
+  bazi:
+    year: 戊午
+    month: 甲子
+    day: 丁酉
+    hour: 壬寅
+  gender: 乾
+  verdicts:
+    官命: 是·贵在有甲木和寅木，印星来化旺官杀。有印来生身。所以此命贵。
+  source: chuji:4312
+  raw_quote: 贵在有甲木和寅木，印星来化旺官杀。有印来生身。所以此命贵。（注：书标「清雍正皇帝」）
+- id: cj-贫一生受穷
+  name: cj-贫一生受穷
+  bazi:
+    year: 甲寅
+    month: 戊辰
+    day: 戊子
+    hour: 癸丑
+  dayun: 己巳
+  gender: 乾
+  verdicts:
+    财命: 贫·一生受穷
+    应期: 行己巳运时，坐牢，一坐十几年
+  source: chuji:4402
+  raw_quote: 穷人。一生受穷 / 行己巳运时，坐牢，一坐十几年（运岁：己巳运坐牢十几年）
+- id: cj-纪检
+  name: cj-纪检
+  bazi:
+    year: 癸巳
+    month: 壬戌
+    day: 庚申
+    hour: 乙酉
+  gender: 乾
+  verdicts:
+    官命: 是·此人为纪检干部。专门查处当官的。
+  source: chuji:4424;yanjiu:6857
+  raw_quote: 此人为纪检干部。专门查处当官的。 / 实际此人是一位纪检干部。
+- id: cj-经理
+  name: cj-经理
+  bazi:
+    year: 壬辰
+    month: 壬寅
+    day: 己丑
+    hour: 戊辰
+  gender: 乾
+  verdicts:
+    职业: 为一私企的经理，并有股份。原为国企厂长，后成了私企的厂长。
+  source: chuji:4511;yanjiu:6901
+  raw_quote: 为一私企的经理，并有股份。原为国企厂长，后成了私企的厂长。 / 暗合官星，官星带财，为国有企业之官。到晚年，又应丑人辰墓，戊为劫财，别人的企业，给别人打工，或合伙经营。劫财墓自己的丑，别人大自己小，所以现在是私企经理，并入有股份。
+- id: cj-戴笠
+  name: cj-戴笠
+  bazi:
+    year: 丁酉
+    month: 乙巳
+    day: 丙戌
+    hour: 丁酉
+  dayun: 辛丑
+  liunian: 丙戌
+  gender: 乾
+  verdicts:
+    官命: 是·它是个将军啊
+    职业: 特务·军统头子戴笠
+    应期: 庚运，乙庚合，制不了金了，丙戌年，飞机失事遇难。
+    健康: 穿了食神死不到枕头上（指凶死，不得善终）。
+  source: chuji:4726;yanjiu:2845
+  raw_quote: 辛丑运财星到，正好被他制，是他最辉煌的大运。 / 庚运，乙庚合，制不了金了，丙戌年，飞机失事遇难。 / 穿了食神死不到枕头上（指凶死，不得善终）。 / 它是个将军啊 / 庚子大运庚透无制，合走了乙木，所以庚子运凶死 / 戴笠是特务头子，以暗杀为职业（运岁：辛丑运最辉煌；庚子运（庚运）丙戌年飞机失事遇难）（注：书标「戴笠」）
+- id: cj-装璜
+  name: cj-装璜
+  bazi:
+    year: 壬寅
+    month: 癸丑
+    day: 己未
+    hour: 己巳
+  dayun: 丙辰
+  gender: 乾
+  verdicts:
+    财命: 富·几百万资产
+    职业: 是搞装璜的（土木行业）。
+    应期: 行丙辰大运，丙运要用火，但火虚透不起作用，辰又为湿土，丑也入了辰库，…
+  source: chuji:4742
+  raw_quote: 行丙辰大运，丙运要用火，但火虚透不起作用，辰又为湿土，丑也入了辰库，制不了丑了，此运不但不好，破财不说，还要坐牢 / 丁丑运的丁运第一年，马上发财 / 到目前为止财运一直很好。现在才44岁。已经几百万资产，为什么没有千万，因原局没有制干净。估计到己未运肯定是千万到亿万富翁。 / 是搞装璜的（土木行业）。（运岁：丙辰运破财坐牢；丁丑运发财）
+- id: cj-富二十年发财运
+  name: cj-富二十年发财运
+  bazi:
+    year: 甲午
+    month: 戊辰
+    day: 丙午
+    hour: 甲午
+  gender: 坤
+  verdicts:
+    财命: 富·二十年发财运
+    官命: 否·官杀制不干净当财看，所以不是当官的。
+  source: chuji:4834;yanjiu:7209
+  raw_quote: 走了20年发财运。 / 官杀制不干净当财看，所以不是当官的。 / 大运行至亥子水运，引出辰中之水，被原局中火制之，此二十年发财。行戌运比劫带库冲入辰中，制辰中官杀，发财更大。（运岁：亥子水运发20年财）
+- id: cj-国务院总理
+  name: cj-国务院总理
+  bazi:
+    year: 戊辰
+    month: 壬戌
+    day: 癸巳
+    hour: 壬戌
+  dayun: 戊辰
+  gender: 乾
+  verdicts:
+    官命: 是·是透出戊癸合，是管理财的大官。戊辰运升至国务院总理。
+  source: chuji:4885
+  raw_quote: 是透出戊癸合，是管理财的大官。戊辰运升至国务院总理。（运岁：戊辰运升国务院总理）（注：书标「李鹏」）
+- id: cj-富发财
+  name: cj-富发财
+  bazi:
+    year: 丁未
+    month: 壬子
+    day: 丙辰
+    hour: 丁酉
+  dayun: 戊申
+  gender: 乾
+  verdicts:
+    财命: 富·发财(格局不是很高)
+  source: chuji:4931
+  raw_quote: 官杀制比劫，戊申运，戊＝丙，申子辰会官杀局制劫财，发财。 / 官杀制比劫，没有制好，发财了。戊申运，会成官杀局，把劫制了，发财。这个发财格局不是很高。（运岁：戊申运发财）
+- id: cj-4937
+  name: cj-4937
+  bazi:
+    year: 癸酉
+    month: 丁巳
+    day: 辛卯
+    hour: 辛卯
+  gender: 乾
+  verdicts:
+    官命: 是·官制比劫，中央政治局委员
+  source: chuji:4937
+  raw_quote: 官制比劫，中央政治局委员 / 制了但未制尽，是中央政治局委员。
+- id: cj-部长
+  name: cj-部长
+  bazi:
+    year: 己卯
+    month: 己巳
+    day: 辛亥
+    hour: 甲午
+  dayun: 甲子
+  gender: 乾
+  verdicts:
+    官命: 是·行甲子运的子运还是处长，子运开始升官，从组织部长升到省委副书…
+  source: chuji:5040;yanjiu:7317
+  raw_quote: 行甲子运的子运还是处长，子运开始升官，从组织部长升到省委副书记，又到人大。行癸亥运，为亥到了，升至省部级干部。目前刚退下了。 / 制之干净成贼神捕神，行癸亥运升至省部级之职。（运岁：甲子运子运升官；癸亥运升省部级）
+- id: cj-富海外贸易发财
+  name: cj-富海外贸易发财
+  bazi:
+    year: 壬子
+    month: 丙午
+    day: 己巳
+    hour: 己巳
+  dayun: 壬寅
+  gender: 坤
+  verdicts:
+    财命: 富·海外贸易发财上千万
+  source: chuji:5204
+  raw_quote: 是发财的命，制财得财。做海外贸易。发财上千万。 / 行癸卯、壬寅运发财。全是自己的财，她一个人的公司（运岁：癸卯、壬寅运发财）
+- id: cj-贫一生不富穷命
+  name: cj-贫一生不富穷命
+  bazi:
+    year: 丁酉
+    month: 辛亥
+    day: 丙戌
+    hour: 戊子
+  gender: 乾
+  verdicts:
+    财命: 贫·一生不富穷命
+    婚姻: 前后两个老婆。
+  source: chuji:5268;yanjiu:7531
+  raw_quote: 一生不富，穷命。而且日主合财，老想挣钱。但就是挣不来。 / 前后两个老婆。 / 但局中金水有势，去之不得，所以一生不富。
+- id: cj-县长-4
+  name: cj-县长-4
+  bazi:
+    year: 丙午
+    month: 辛丑
+    day: 戊寅
+    hour: 丁巳
+  dayun: 乙巳
+  gender: 乾
+  verdicts:
+    官命: 是·地支七杀作功当官，乙巳运升县委副书记。
+  source: chuji:5354;yanjiu:7609
+  raw_quote: 地支七杀作功当官，乙巳运升县委副书记。 / 但丙的作用不大，官不会太大。 / 七杀做功，故是个当官的命。行乙巳运，升县长。（运岁：乙巳运升县委副书记）
+- id: cj-工薪
+  name: cj-工薪
+  bazi:
+    year: 壬子
+    month: 癸丑
+    day: 壬寅
+    hour: 辛亥
+  gender: 坤
+  verdicts:
+    财命: 平·工薪阶层(所发财不大)
+  source: chuji:5366;yanjiu:7619
+  raw_quote: 但所发财并不大，工薪阶层。 / 但因这种合效率较低，所以，此造虽然是比劫制财的局，但所发财并不大，工薪阶层。
+- id: cj-撒切尔
+  name: cj-撒切尔
+  bazi:
+    year: 乙丑
+    month: 丙戌
+    day: 庚午
+    hour: 辛巳
+  gender: 坤
+  verdicts:
+    官命: 是·力量很大，大贵命，是英国前首相撒切尔夫人。
+  source: chuji:5488
+  raw_quote: 力量很大，大贵命，是英国前首相撒切尔夫人。（注：撒切尔夫人）
+- id: cj-富火运发财数百
+  name: cj-富火运发财数百
+  bazi:
+    year: 乙巳
+    month: 丙戌
+    day: 丁未
+    hour: 庚戌
+  gender: 乾
+  verdicts:
+    财命: 富·火运发财数百万
+  source: chuji:5518
+  raw_quote: 但戌中辛偏弱，做的工不大，财不大。到火运发财数百万。（运岁：火运（午、未运）发财数百万）
+- id: cj-5536
+  name: cj-5536
+  bazi:
+    year: 戊申
+    month: 辛酉
+    day: 丙申
+    hour: 庚寅
+  gender: 乾
+  verdicts:
+    官命: 是·故能掌重权，当大官，是元朝丞相铁木尔，一品大元
+    健康: 腿有问题，是瘸丞相。
+  source: chuji:5536;yanjiu:7664
+  raw_quote: 故能掌重权，当大官，是元朝丞相铁木尔，一品大元 / 腿有问题，是瘸丞相。 / 效率很高，故能掌重权，是元朝帖木儿丞相。（注：元朝丞相铁木尔（帖木儿））
+- id: cj-平糊口养家
+  name: cj-平糊口养家
+  bazi:
+    year: 辛丑
+    month: 丁酉
+    day: 癸酉
+    hour: 戊午
+  gender: 乾
+  verdicts:
+    财命: 平·糊口养家(开出租车)
+    职业: 不是个贵八字，开出租车的。普通人而已。
+  source: chuji:5579;yanjiu:7730
+  raw_quote: 不是个贵八字，开出租车的。普通人而已。 / 功小，行南方火运，开出租车，糊口养家。 / 糊口养家
+- id: cj-公安
+  name: cj-公安
+  bazi:
+    year: 辛丑
+    month: 丁酉
+    day: 癸酉
+    hour: 己未
+  gender: 乾
+  verdicts:
+    官命: 是·与上造同一天未时有一人，是公安分局局长
+  source: chuji:5591
+  raw_quote: 与上造同一天未时有一人，是公安分局局长
+- id: cj-富五旬起发财寿
+  name: cj-富五旬起发财寿
+  bazi:
+    year: 己巳
+    month: 辛未
+    day: 丙午
+    hour: 丁酉
+  dayun: 乙丑
+  gender: 乾
+  verdicts:
+    财命: 富·五旬起发财寿至九旬
+  source: chuji:5611;yanjiu:7752
+  raw_quote: 中年不发财。运至丑运（乙丑），年过五旬，开始发业，直到癸亥运，寿至九旬都一直发财。 / 惜中年运行火木大运，＂贼神＂多＂捕神＂少又行＂捕神＂运，所以未能发财。直至丑运已五旬，开始立业发财，至癸亥运寿至儿旬。（运岁：乙丑运年过五旬开始发财，直到癸亥运）
+- id: cj-处级-5
+  name: cj-处级-5
+  bazi:
+    year: 壬寅
+    month: 甲辰
+    day: 庚寅
+    hour: 戊寅
+  dayun: 戊申
+  gender: 乾
+  verdicts:
+    财命: 富·申运发财
+    官命: 是·当官的命，也是捕旺贼弱，功不是很高
+  source: chuji:5631;yanjiu:7776
+  raw_quote: 当官的命，也是捕旺贼弱，功不是很高 / 财制的印是管财的官。 / 行至戊申运之申运，申冲财，又拱辰土，开始发财。处级干部。 / 财星制印的格局，是当官的命。但此造辰之土性较弱，制之能量不算大，所以官职不大。因他是管财的官，行申运冲财，开始发财。（运岁：戊申运之申运开始发财）
+- id: cj-邓小平
+  name: cj-邓小平
+  bazi:
+    year: 甲辰
+    month: 壬申
+    day: 戊子
+    hour: 己未
+  gender: 乾
+  verdicts:
+    官命: 是·所以他不仅是军事家，而且是政治家。
+    六亲: 唯一不好就是不利妻与子。实际是大儿子伤残，早年克妻。
+  source: chuji:5690
+  raw_quote: 所以他不仅是军事家，而且是政治家。 / 唯一不好就是不利妻与子。实际是大儿子伤残，早年克妻。（注：书标「邓小平」，时辰是推的）
+- id: cj-尚书
+  name: cj-尚书
+  bazi:
+    year: 庚寅
+    month: 戊子
+    day: 甲寅
+    hour: 丙寅
+  dayun: 乙未
+  gender: 乾
+  verdicts:
+    官命: 是·戊子为财来制印，印主权，所以可当官。行至甲午乙未运，官至尚书…
+    健康: 此人高寿。
+  source: chuji:5725;yanjiu:7862
+  raw_quote: 戊子为财来制印，印主权，所以可当官。行至甲午乙未运，官至尚书。 / 此人高寿。 / 运行甲午、乙未运，冲制、穿制子水，仕至尚书。（运岁：甲午乙未运官至尚书）
+- id: cj-运动员
+  name: cj-运动员
+  bazi:
+    year: 甲寅
+    month: 辛未
+    day: 乙亥
+    hour: 癸未
+  gender: 坤
+  verdicts:
+    职业: 所以用比劫作功，是运动员。曾是中国网球冠军，后做网球教练。
+  source: chuji:5777
+  raw_quote: 所以用比劫作功，是运动员。曾是中国网球冠军，后做网球教练。
+- id: cj-足球
+  name: cj-足球
+  bazi:
+    year: 丙辰
+    month: 乙未
+    day: 辛未
+    hour: 丁酉
+  gender: 乾
+  verdicts:
+    财命: 小康·收入很高
+    职业: 是足球明星。是国家队球员。
+  source: chuji:5793
+  raw_quote: 说明他收入很高 / 是足球明星。是国家队球员。
+- id: cj-齐达内
+  name: cj-齐达内
+  bazi:
+    year: 壬子
+    month: 丙午
+    day: 乙酉
+    hour: 戊寅
+  gender: 乾
+  verdicts:
+    职业: 运动员·足球球星齐达内
+  source: chuji:5807
+  raw_quote: 这是法国著名球星齐达内。（注：齐达内）
+- id: cj-武术
+  name: cj-武术
+  bazi:
+    year: 辛酉
+    month: 丁酉
+    day: 庚子
+    hour: 壬午
+  gender: 坤
+  verdicts:
+    职业: 女子武术全国冠军。
+    应期: 局中两个羊刃，擅常使双剑，2000年在武术比赛中夺冠。
+  source: chuji:5823
+  raw_quote: 女子武术全国冠军。 / 局中两个羊刃，擅常使双剑，2000年在武术比赛中夺冠。（运岁：2000年武术比赛夺冠）
+- id: cj-演员
+  name: cj-演员
+  bazi:
+    year: 乙亥
+    month: 丁亥
+    day: 丙辰
+    hour: 戊戌
+  gender: 乾
+  verdicts:
+    官命: 否·说明自己不能当官。
+    职业: 是个名人，所以是著名的评书演员。
+  source: chuji:5843
+  raw_quote: 说明自己不能当官。 / 是个名人，所以是著名的评书演员。（注：书标「单田芳的八字」）
+- id: cj-演员-2
+  name: cj-演员-2
+  bazi:
+    year: 庚子
+    month: 己卯
+    day: 辛酉
+    hour: 癸巳
+  gender: 坤
+  verdicts:
+    职业: 实际是个演员，演过许多影视剧，深受观众喜爱。
+  source: chuji:5871
+  raw_quote: 实际是个演员，演过许多影视剧，深受观众喜爱。（注：书标「吕丽萍」）
+- id: cj-歌唱家
+  name: cj-歌唱家
+  bazi:
+    year: 丙午
+    month: 丙申
+    day: 甲辰
+    hour: 丙寅
+  gender: 坤
+  verdicts:
+    官命: 是·食制杀说明有职务，天干透丙克申，丙又主名气，在军中有军衔
+    职业: 宋祖英的八字。
+  source: chuji:5889;yanjiu:4900
+  raw_quote: 宋祖英的八字。 / 食制杀说明有职务，天干透丙克申，丙又主名气，在军中有军衔 / 是著名歌手，且在军中有较高的军衔 / 此造为一著名歌唱家 / 火克金主声音，故为优秀的歌唱家（注：宋祖英）
+- id: cj-唱戏
+  name: cj-唱戏
+  bazi:
+    year: 甲午
+    month: 甲戌
+    day: 丁酉
+    hour: 壬寅
+  gender: 乾
+  verdicts:
+    职业: 梅兰芳的八字。木火有势结了党，说明是名人。
+  source: chuji:5911
+  raw_quote: 梅兰芳的八字。木火有势结了党，说明是名人。 / 脸上涂了彩，为唱戏的。 / 著名京剧表演艺术家梅兰芳老先生。（注：梅兰芳）
+- id: cj-唱戏-2
+  name: cj-唱戏-2
+  bazi:
+    year: 戊申
+    month: 庚申
+    day: 丁卯
+    hour: 壬寅
+  gender: 坤
+  verdicts:
+    职业: 此人丁火为名，合壬水为唱戏的，申金为声音，制的不好，走未运时…
+  source: chuji:5941
+  raw_quote: 此人丁火为名，合壬水为唱戏的，申金为声音，制的不好，走未运时，开始唱戏了。（运岁：未运开始唱戏）
+- id: cj-歌星
+  name: cj-歌星
+  bazi:
+    year: 丁亥
+    month: 辛亥
+    day: 辛丑
+    hour: 辛卯
+  dayun: 丙午
+  gender: 乾
+  verdicts:
+    职业: 日本著名歌星森健一。
+    应期: 行丁未、丙午运官杀到位，火克金，演唱出名，一炮走红。
+  source: chuji:5953
+  raw_quote: 日本著名歌星森健一。 / 行丁未、丙午运官杀到位，火克金，演唱出名，一炮走红。（运岁：丁未、丙午运演唱出名）（注：书标「森健一」，又作「森进一」）
+- id: cj-老师
+  name: cj-老师
+  bazi:
+    year: 壬寅
+    month: 癸卯
+    day: 辛未
+    hour: 己亥
+  gender: 乾
+  verdicts:
+    财命: 富·午运发财(官统财)
+  source: chuji:6140
+  raw_quote: 请老师讲一下为何午运发财？卜文：官统了财合到主位。（运岁：午运发财）
+- id: cj-6155
+  name: cj-6155
+  bazi:
+    year: 乙丑
+    month: 癸未
+    day: 甲戌
+    hour: 壬申
+  gender: 乾
+  verdicts:
+    官命: 否·书明断不会当官
+  source: chuji:6155
+  raw_quote: 会是当官的吗？卜文：不会。
+- id: cj-富书断能富
+  name: cj-富书断能富
+  bazi:
+    year: 癸丑
+    month: 己未
+    day: 戊午
+    hour: 戊午
+  gender: 坤
+  verdicts:
+    财命: 富·书断能富
+  source: chuji:6175
+  raw_quote: 那这个能大富吗卜文：能富。
+- id: yx-房地产
+  name: yx-房地产
+  bazi:
+    year: 丁巳
+    month: 甲辰
+    day: 丁酉
+    hour: 庚子
+  gender: 乾
+  verdicts:
+    职业: 生意·计算机网络与房地产
+  source: yanjiu:458
+  raw_quote: '"你的生意可能跟计算机或者网络有关，还可能有房地产。"他马上惊讶说"对，都有！"'
+- id: yx-经理
+  name: yx-经理
+  bazi:
+    year: 戊子
+    month: 甲寅
+    day: 戊辰
+    hour: 丁巳
+  dayun: 戊午
+  gender: 乾
+  verdicts:
+    财命: 破财·生意被骗辞职赔款
+    职业: 企业业务经理·贸易
+  source: yanjiu:1586
+  raw_quote: 戊午运当企＼Iv业务经理，子午相冲做贸易生意，为单位赚了不少钱 / 已运合甲，劫财合了小，生意被骗，给单位损失几百万之巨，自己辞职赔款（运岁：大运：乙丙丁戊己庚/卯辰巳午未申；戊午运、已（己）运）（注："已运"应为"己运"；"企＼Iv"为"企业"OCR误）
+- id: yx-经理-2
+  name: yx-经理-2
+  bazi:
+    year: 辛亥
+    month: 庚寅
+    day: 庚申
+    hour: 丙戌
+  dayun: 丙戌
+  gender: 乾
+  verdicts:
+    财命: 巨富·发财过亿
+    职业: 为一家上市公司经理，高薪加送股
+  source: yanjiu:1604
+  raw_quote: 为一家上市公司经理，高薪加送股 / 丙戌运发财过亿（运岁：大运：已戊丁丙乙/丑子亥戌酉；丙戌运）（注：大运首字"已"应为"己"）
+- id: yx-贫家境贫寒一贫
+  name: yx-贫家境贫寒一贫
+  bazi:
+    year: 戊申
+    month: 壬戌
+    day: 戊午
+    hour: 乙卯
+  gender: 坤
+  verdicts:
+    财命: 贫·家境贫寒一贫如洗
+    婚姻: 乙卯时找的老公很差，没本事夫妻关系还不好
+  source: yanjiu:1618
+  raw_quote: 乙卯时找的老公很差，没本事夫妻关系还不好 / 家境贫寒一贫如洗
+- id: yx-富富有百万
+  name: yx-富富有百万
+  bazi:
+    year: 戊申
+    month: 壬戌
+    day: 戊午
+    hour: 甲寅
+  gender: 坤
+  verdicts:
+    财命: 富·富有百万
+    婚姻: 甲寅时因戊喜见甲为财富，所以老公能干
+  source: yanjiu:1630
+  raw_quote: 甲寅时因戊喜见甲为财富，所以老公能干 / 富有百万（注：与戊申壬戌戊午乙卯为双胞胎姐姐，差一时辰）
+- id: yx-书记
+  name: yx-书记
+  bazi:
+    year: 甲午
+    month: 甲戌
+    day: 己丑
+    hour: 丙寅
+  gender: 乾
+  verdicts:
+    官命: 是·所以官位很高，已卯大运，升任市委书记
+  source: yanjiu:1711
+  raw_quote: 所以官位很高，已卯大运，升任市委书记（运岁：已（己）卯大运）（注：原文"已卯"应为"己卯"）
+- id: yx-记者
+  name: yx-记者
+  bazi:
+    year: 癸未
+    month: 甲子
+    day: 癸丑
+    hour: 乙卯
+  gender: 乾
+  verdicts:
+    职业: 此人为高级记者、编辑、著名报人
+  source: yanjiu:1735
+  raw_quote: 此人为高级记者、编辑、著名报人
+- id: yx-导演
+  name: yx-导演
+  bazi:
+    year: 庚寅
+    month: 庚辰
+    day: 丙子
+    hour: 壬辰
+  gender: 乾
+  verdicts:
+    职业: 可以类象为影视，所以能成为著名导演。他所执导电影中的女演员都…
+  source: yanjiu:1770
+  raw_quote: 可以类象为影视，所以能成为著名导演。他所执导电影中的女演员都能走红（注：书称"某导演"）
+- id: yx-律师
+  name: yx-律师
+  bazi:
+    year: 甲午
+    month: 丁卯
+    day: 丁卯
+    hour: 壬寅
+  gender: 乾
+  verdicts:
+    职业: 壬为虚官主名，丁壬相合能成名
+    学历: 此造博士学历，是名律师
+  source: yanjiu:1796
+  raw_quote: 此造博士学历，是名律师 / 壬为虚官主名，丁壬相合能成名
+- id: yx-书法家
+  name: yx-书法家
+  bazi:
+    year: 丙寅
+    month: 甲午
+    day: 庚寅
+    hour: 戊寅
+  gender: 乾
+  verdicts:
+    职业: 命主为画家、书法家田七，少年成名，人称"鬼才"
+  source: yanjiu:1878
+  raw_quote: 命主为画家、书法家田七，少年成名，人称"鬼才"
+- id: yx-律师-2
+  name: yx-律师-2
+  bazi:
+    year: 辛亥
+    month: 乙未
+    day: 丁酉
+    hour: 庚戌
+  gender: 乾
+  verdicts:
+    职业: 此人职业为律师
+  source: yanjiu:1914
+  raw_quote: 此人职业为律师
+- id: yx-服装
+  name: yx-服装
+  bazi:
+    year: 壬子
+    month: 乙巳
+    day: 乙巳
+    hour: 甲申
+  gender: 乾
+  verdicts:
+    职业: 所以他是一个开店的，开了几家服装店
+  source: yanjiu:2368
+  raw_quote: 所以他是一个开店的，开了几家服装店
+- id: yx-建筑
+  name: yx-建筑
+  bazi:
+    year: 甲辰
+    month: 甲戌
+    day: 癸卯
+    hour: 甲寅
+  gender: 乾
+  verdicts:
+    财命: 巨富·搞建筑亿万富翁
+  source: yanjiu:2378
+  raw_quote: 所以此造能发大财。搞建筑起家，亿万富翁
+- id: yx-黑道
+  name: yx-黑道
+  bazi:
+    year: 壬辰
+    month: 甲辰
+    day: 癸巳
+    hour: 乙卯
+  liunian: 癸酉
+  gender: 乾
+  verdicts:
+    职业: 此命为黑道老大
+    应期: 申运癸酉年犯事被枪决
+  source: yanjiu:2463
+  raw_quote: 此命为黑道老大 / 申运癸酉年犯事被枪决（运岁：申运癸酉年）
+- id: yx-处级
+  name: yx-处级
+  bazi:
+    year: 丙午
+    month: 庚寅
+    day: 丙辰
+    hour: 庚子
+  gender: 乾
+  verdicts:
+    官命: 是·所以是个管财的官。行午运冲子水而官星发用，升至处级
+  source: yanjiu:2543
+  raw_quote: 所以是个管财的官。行午运冲子水而官星发用，升至处级（运岁：午运）
+- id: yx-2553
+  name: yx-2553
+  bazi:
+    year: 戊戌
+    month: 甲寅
+    day: 庚申
+    hour: 戊寅
+  gender: 乾
+  verdicts:
+    官命: 是·故他能掌重权，是个政府官员
+  source: yanjiu:2553
+  raw_quote: 故他能掌重权，是个政府官员
+- id: yx-2658
+  name: yx-2658
+  bazi:
+    year: 癸卯
+    month: 辛酉
+    day: 癸酉
+    hour: 庚申
+  gender: 坤
+  verdicts:
+    职业: 实际此女为一家银行行长，金有金融之意
+  source: yanjiu:2658
+  raw_quote: 实际此女为一家银行行长，金有金融之意
+- id: yx-记者-2
+  name: yx-记者-2
+  bazi:
+    year: 甲午
+    month: 庚午
+    day: 己未
+    hour: 丁卯
+  dayun: 乙丑
+  gender: 坤
+  verdicts:
+    财命: 富·做生意发财
+    职业: 在乙丑运之前，从事记者职业，无大财可发
+    婚姻: 此女坐支官杀之墓不开，是一个婚姻不幸的命。因为有甲已相合，曾有过婚姻…
+  source: yanjiu:2722
+  raw_quote: 此女坐支官杀之墓不开，是一个婚姻不幸的命。因为有甲已相合，曾有过婚姻但离异 / 大运行至乙丑运，冲开坐支的杀墓，找到新的幸福，且冲墓成库，丑运做生意发财 / 在乙丑运之前，从事记者职业，无大财可发（运岁：乙丑运）
+- id: yx-破财工程被强拆反
+  name: yx-破财工程被强拆反
+  bazi:
+    year: 辛亥
+    month: 癸巳
+    day: 丁未
+    hour: 癸卯
+  gender: 坤
+  verdicts:
+    财命: 破财·工程被强拆反赔大钱
+  source: yanjiu:2763
+  raw_quote: 果然此年承揽一笔工程准备赚一笔大钱，结果此工程干到一半被政府强拆，反赔了一大笔钱（运岁：酉运己丑流年）（注：原文"亥巴未卯"中"巴"为"巳"OCR误）
+- id: yx-书法家-2
+  name: yx-书法家-2
+  bazi:
+    year: 戊戌
+    month: 甲子
+    day: 己未
+    hour: 戊辰
+  gender: 乾
+  verdicts:
+    职业: 这是一位很有名气的书法家
+    婚姻: 至今没有结婚，为何此命与婚无缘呢？因妻宫未与妻星相穿之故，穿为排斥之…
+  source: yanjiu:2856
+  raw_quote: 这是一位很有名气的书法家 / 至今没有结婚，为何此命与婚无缘呢？因妻宫未与妻星相穿之故，穿为排斥之意，女人进不了他的家中，只能单身（注：原文"戊甲已戊"中"已"为"己"）
+- id: yx-3290
+  name: yx-3290
+  bazi:
+    year: 丁酉
+    month: 丙午
+    day: 丙寅
+    hour: 丁酉
+  gender: 坤
+  verdicts:
+    官命: 是·实际是在银行管理监督不良资产的官员
+    职业: 此人为银行官员
+  source: yanjiu:3290
+  raw_quote: 此人为银行官员 / 实际是在银行管理监督不良资产的官员
+- id: yx-酒店
+  name: yx-酒店
+  bazi:
+    year: 庚申
+    month: 辛巳
+    day: 丁酉
+    hour: 丁未
+  gender: 乾
+  verdicts:
+    职业: 故适合从事酒店业。留学外国学习酒店管理，回国后开酒店，生意一…
+  source: yanjiu:3439
+  raw_quote: 故适合从事酒店业。留学外国学习酒店管理，回国后开酒店，生意一直很好
+- id: yx-律师-3
+  name: yx-律师-3
+  bazi:
+    year: 己酉
+    month: 辛未
+    day: 丙午
+    hour: 庚寅
+  gender: 乾
+  verdicts:
+    职业: 所以必是律师
+  source: yanjiu:3497
+  raw_quote: 所以必是律师（注：原文"已辛丙庚"中"已"为"己"）
+- id: yx-贫满盘偏印无富
+  name: yx-贫满盘偏印无富
+  bazi:
+    year: 甲子
+    month: 丙寅
+    day: 丙午
+    hour: 甲午
+  gender: 乾
+  verdicts:
+    财命: 贫·满盘偏印无富贵可言
+  source: yanjiu:4584
+  raw_quote: 此造满盘偏印，不仅泄尽官气，没有一点富贵可言，而且懒惰、自私
+- id: yx-梁羽生
+  name: yx-梁羽生
+  bazi:
+    year: 甲子
+    month: 丁卯
+    day: 庚子
+    hour: 壬午
+  gender: 乾
+  verdicts:
+    职业: 作家·梁羽生(写文章声名远播)
+  source: yanjiu:4647
+  raw_quote: 食神壬水为思想，丁主文字，丁壬相合，写成文章。丁火官星主名，合官声名远播（注：书为梁羽生命）
+- id: yx-法官
+  name: yx-法官
+  bazi:
+    year: 壬子
+    month: 丙午
+    day: 壬辰
+    hour: 丙午
+  gender: 乾
+  verdicts:
+    职业: 丙午时日主无贪财之病，反得坐支七杀之权，冲羊刃子水而制财，是…
+  source: yanjiu:4747
+  raw_quote: 丙午时日主无贪财之病，反得坐支七杀之权，冲羊刃子水而制财，是个法官（注：与壬子丙午壬辰丁未同日差一时辰）
+- id: yx-4824
+  name: yx-4824
+  bazi:
+    year: 癸卯
+    month: 辛酉
+    day: 辛酉
+    hour: 辛卯
+  gender: 坤
+  verdicts:
+    职业: 生意人·成天为生意奔波
+  source: yanjiu:4824
+  raw_quote: 故命主成天为生意奔波，无清闲之日
+- id: yx-经理-3
+  name: yx-经理-3
+  bazi:
+    year: 壬寅
+    month: 戊申
+    day: 辛丑
+    hour: 辛卯
+  gender: 乾
+  verdicts:
+    职业: 实际此人是证券公司总经理，自己股票也做得很好
+  source: yanjiu:4860
+  raw_quote: 实际此人是证券公司总经理，自己股票也做得很好
+- id: yx-书记-2
+  name: yx-书记-2
+  bazi:
+    year: 甲午
+    month: 丙子
+    day: 庚申
+    hour: 丙子
+  gender: 乾
+  verdicts:
+    官命: 是·实际他的职务是纪检委书记
+  source: yanjiu:4943
+  raw_quote: 实际他的职务是纪检委书记
+- id: yx-5101
+  name: yx-5101
+  bazi:
+    year: 辛丑
+    month: 戊戌
+    day: 庚寅
+    hour: 己卯
+  gender: 乾
+  verdicts:
+    官命: 是·故是掌兵权的大命格
+  source: yanjiu:5101
+  raw_quote: 故是掌兵权的大命格（注：书称"某元帅"；原文"辛戊庚已"中"已"为"己"）
+- id: yx-僧
+  name: yx-僧
+  bazi:
+    year: 甲寅
+    month: 乙亥
+    day: 丙寅
+    hour: 己亥
+  gender: 乾
+  verdicts:
+    职业: 此命是一位僧人，一寺院住持
+  source: yanjiu:5182
+  raw_quote: 此命是一位僧人，一寺院住持（注：原文"甲乙丙已"中"已"为"己"）
+- id: yx-富数百万资产
+  name: yx-富数百万资产
+  bazi:
+    year: 丁巳
+    month: 丙午
+    day: 癸亥
+    hour: 壬子
+  gender: 坤
+  verdicts:
+    财命: 富·数百万资产
+  source: yanjiu:5426
+  raw_quote: 此命为富命，有数百万资产。
+- id: yx-种地
+  name: yx-种地
+  bazi:
+    year: 壬子
+    month: 癸卯
+    day: 乙卯
+    hour: 戊子
+  gender: 乾
+  verdicts:
+    财命: 贫·差命家徒四壁
+    职业: 农民·农村种地
+    六亲: 父母早逝，家徒四壁，光棍一条。
+  source: yanjiu:5514
+  raw_quote: 废神太多而功神太弱，故是个差命。 / 此人在衣村种地为生 / 父母早逝，家徒四壁，光棍一条。（注：衣村=农村OCR误）
+- id: yx-营销
+  name: yx-营销
+  bazi:
+    year: 庚戌
+    month: 癸未
+    day: 戊子
+    hour: 癸亥
+  gender: 坤
+  verdicts:
+    职业: 事实上她是个营销高手，一直从事营销工作，业绩非凡。
+  source: yanjiu:5811
+  raw_quote: 事实上她是个营销高手，一直从事营销工作，业绩非凡。
+- id: yx-巨富丑运发财几千
+  name: yx-巨富丑运发财几千
+  bazi:
+    year: 庚戌
+    month: 己卯
+    day: 庚子
+    hour: 乙酉
+  dayun: 丙子
+  gender: 坤
+  verdicts:
+    财命: 巨富·丑运发财几千万后至亿
+  source: yanjiu:5962
+  raw_quote: 事实上此女丑运发财几千万，丙子运人狱，后乙亥运又发财至亿。（运岁：丑运发财几千万，丙子运入狱，乙亥运发财至亿）（注：原文「庚已庚乙」，已为己OCR误；人狱=入狱）
+- id: yx-富丑运发迹数千
+  name: yx-富丑运发迹数千
+  bazi:
+    year: 甲寅
+    month: 乙亥
+    day: 甲戌
+    hour: 己巳
+  gender: 乾
+  verdicts:
+    财命: 富·丑运发迹数千万资产
+  source: yanjiu:5984
+  raw_quote: 所以此造能得大财。只不过他发财须与别人合伙，或得到别人的帮助才行。 / 事实上，丑运发迹，现有数千万资产。（运岁：丑运发迹）
+- id: yx-经理-4
+  name: yx-经理-4
+  bazi:
+    year: 壬寅
+    month: 戊申
+    day: 戊子
+    hour: 丙辰
+  dayun: 甲辰
+  gender: 坤
+  verdicts:
+    财命: 巨富·亿万富翁(后运破尽)
+    职业: 我从1994年后，就调到另一个城市政府下属的一个公司当经理，…
+    应期: 行甲辰大运，发财数亿。癸卯运癸水代表子水虚透而被卯破，主位之中神被坏…
+  source: yanjiu:6016
+  raw_quote: 寅杀当财富看，功量很大，是个亿万富翁的级别。 / 行甲辰大运，发财数亿。癸卯运癸水代表子水虚透而被卯破，主位之中神被坏，寅申之功与日主无关了，破财无数。 / 是的，我1982年到政府某厅工作，1986年提升过，总是犯小人。 / 我从1994年后，就调到另一个城市政府下属的一个公司当经理，事业上非常顺利。 / 在1998年我自己投资开公司，那段时间比较顺利。（几年你就发财上亿了） / 我是因为给朋友做担保，结果在2006年破了大财，从此就没顺过。2009年又因朋友的事破财 / 此运将自己积累的亿万财富几乎破尽了。（运岁：甲辰运发财数亿；癸卯运(2004起)官司破财，2006/2009两次破大财）（注：同一八字又见9201行（商海沉浮女强人））
+- id: yx-围棋
+  name: yx-围棋
+  bazi:
+    year: 癸卯
+    month: 庚申
+    day: 甲寅
+    hour: 辛未
+  gender: 乾
+  verdicts:
+    职业: 事实上，此人是业余围棋六段，但因没有进人专业段位，又不从事其…
+  source: yanjiu:6034
+  raw_quote: 事实上，此人是业余围棋六段，但因没有进人专业段位，又不从事其他职业，自己没什么收入，成了一个社会闲人。
+- id: yx-6061
+  name: yx-6061
+  bazi:
+    year: 癸卯
+    month: 丁巳
+    day: 丁巳
+    hour: 乙巳
+  gender: 乾
+  verdicts:
+    职业: 故此造可以表示是一个文化名人或学问家。事实上是古代一位翰林院…
+  source: yanjiu:6061
+  raw_quote: 故此造可以表示是一个文化名人或学问家。事实上是古代一位翰林院编修。
+- id: yx-贫一生没有富贵
+  name: yx-贫一生没有富贵
+  bazi:
+    year: 甲午
+    month: 乙亥
+    day: 己巳
+    hour: 辛未
+  gender: 乾
+  verdicts:
+    财命: 贫·一生没有富贵农村打工
+  source: yanjiu:6429
+  raw_quote: 一生没有富贵，农村打工为生。（注：原文「甲乙己辛」无误，日干己）
+- id: yx-木匠
+  name: yx-木匠
+  bazi:
+    year: 己丑
+    month: 庚午
+    day: 己卯
+    hour: 甲戌
+  gender: 乾
+  verdicts:
+    财命: 小康·在农村有小富
+    职业: 木匠职业
+  source: yanjiu:6439
+  raw_quote: 木匠职业 / 在衣村有小富。（注：原文「已庚已甲」，已为己OCR误；衣村=农村）
+- id: yx-贫打工不赚钱无
+  name: yx-贫打工不赚钱无
+  bazi:
+    year: 己酉
+    month: 己巳
+    day: 甲申
+    hour: 甲子
+  gender: 乾
+  verdicts:
+    财命: 贫·打工不赚钱无钱成家
+    婚姻: 无钱结婚成家
+  source: yanjiu:6451
+  raw_quote: 虽生在城市，工作一直不稳，打工又不赚钱，无钱结婚成家。 / 无钱结婚成家（注：原文「已己甲甲」，已为己OCR误）
+- id: yx-泥瓦匠
+  name: yx-泥瓦匠
+  bazi:
+    year: 壬寅
+    month: 壬寅
+    day: 丙子
+    hour: 丁酉
+  gender: 乾
+  verdicts:
+    职业: 这种功量太小，手艺之人，是个泥瓦匠，在外打工为生。
+  source: yanjiu:6463
+  raw_quote: 这种功量太小，手艺之人，是个泥瓦匠，在外打工为生。
+- id: yx-富发财数千万
+  name: yx-富发财数千万
+  bazi:
+    year: 丙午
+    month: 乙未
+    day: 癸酉
+    hour: 甲寅
+  dayun: 壬辰
+  gender: 坤
+  verdicts:
+    财命: 富·发财数千万(后运破财)
+  source: yanjiu:6671
+  raw_quote: 幸行壬辰大运，壬制财星而辰合到主位酉，发财数千万。后运则再尤起色，一直花钱破财。（运岁：大运甲午癸巳壬辰辛卯庚寅；壬辰运发财数千万，后运破财）（注：再尤起色=再无起色OCR误）
+- id: yx-贫穷命贫困线上
+  name: yx-贫穷命贫困线上
+  bazi:
+    year: 癸丑
+    month: 癸亥
+    day: 戊申
+    hour: 辛酉
+  gender: 乾
+  verdicts:
+    财命: 贫·穷命贫困线上挣扎
+    婚姻: 婚姻离了
+  source: yanjiu:6781
+  raw_quote: 所以为穷命。婚姻离了，工作没有，在贫困线上挣扎。 / 婚姻离了
+- id: yx-富钢材生意发财
+  name: yx-富钢材生意发财
+  bazi:
+    year: 庚戌
+    month: 己卯
+    day: 戊子
+    hour: 癸亥
+  dayun: 辛巳
+  gender: 乾
+  verdicts:
+    财命: 富·钢材生意发财数千万
+  source: yanjiu:6798
+  raw_quote: 行辛巳大运，引戌中之火冲击亥水，经营钢财生意，发财数千万。（运岁：辛巳大运发财数千万）（注：原文「庚已戊癸」，已为己OCR误；钢财=钢材OCR误）
+- id: yx-小康生活富裕
+  name: yx-小康生活富裕
+  bazi:
+    year: 癸丑
+    month: 乙卯
+    day: 丙午
+    hour: 辛卯
+  gender: 乾
+  verdicts:
+    财命: 小康·生活富裕(讲学售书取财)
+    职业: 讲学售书取财
+  source: yanjiu:6810
+  raw_quote: 故是个有财之命。虚财又表才学，讲学售书取财，生活富裕。 / 讲学售书取财
+- id: yx-医师
+  name: yx-医师
+  bazi:
+    year: 壬寅
+    month: 丁未
+    day: 壬申
+    hour: 乙巳
+  gender: 坤
+  verdicts:
+    财命: 富·直销年收入超百万
+    职业: 事实上她是一家医院主治医师。
+  source: yanjiu:7048
+  raw_quote: 事实上她是一家医院主治医师。 / 卯运一到伤官落地生起巳火财星，所以辞职去搞直销，年收入超过百万。（运岁：大运丙午乙巳甲辰癸卯壬寅；卯运辞职搞直销年收入超百万）
+- id: yx-经理-5
+  name: yx-经理-5
+  bazi:
+    year: 戊午
+    month: 庚申
+    day: 丁巳
+    hour: 癸卯
+  gender: 坤
+  verdicts:
+    职业: 实际此人是外地一家钢结构公司在太原总代理的市场部经理。
+  source: yanjiu:7126
+  raw_quote: 实际此人是外地一家钢结构公司在太原总代理的市场部经理。
+- id: yx-房地产-2
+  name: yx-房地产-2
+  bazi:
+    year: 丙午
+    month: 壬辰
+    day: 癸丑
+    hour: 丁巳
+  dayun: 丙申
+  gender: 乾
+  verdicts:
+    财命: 巨富·房地产发财数十亿
+    职业: 开发房地产
+  source: yanjiu:7170
+  raw_quote: 命局功量巨大，行丙申运大运，开发房地产，发财数十亿。 / 开发房地产（运岁：丙申运发财数十亿）
+- id: yx-校长
+  name: yx-校长
+  bazi:
+    year: 庚戌
+    month: 壬午
+    day: 丙子
+    hour: 甲午
+  gender: 乾
+  verdicts:
+    官命: 是·虽有官，却官不大。戌为食神主学校，是－一个乡学校校长。
+    职业: 乡学校校长
+  source: yanjiu:7232
+  raw_quote: 虽有官，却官不大。戌为食神主学校，是－一个乡学校校长。 / 乡学校校长
+- id: yx-宰相
+  name: yx-宰相
+  bazi:
+    year: 戊辰
+    month: 壬戌
+    day: 癸巳
+    hour: 戊戌
+  dayun: 戊辰
+  gender: 乾
+  verdicts:
+    官命: 是·所以这是个管理财的大官。行戊辰运，辰土出现被制，升朝中宰相。
+  source: yanjiu:7248
+  raw_quote: 所以这是个管理财的大官。行戊辰运，辰土出现被制，升朝中宰相。（运岁：戊辰运升朝中宰相）
+- id: yx-厅级
+  name: yx-厅级
+  bazi:
+    year: 壬午
+    month: 丁未
+    day: 辛巳
+    hour: 甲午
+  dayun: 壬子
+  gender: 乾
+  verdicts:
+    官命: 是·幸大运行至辛亥、壬子运，捕神旺贼神出现，官职连升，至厅级。
+  source: yanjiu:7329
+  raw_quote: 幸大运行至辛亥、壬子运，捕神旺贼神出现，官职连升，至厅级。（运岁：辛亥、壬子运官职连升至厅级）
+- id: yx-总理
+  name: yx-总理
+  bazi:
+    year: 戊辰
+    month: 壬戌
+    day: 乙未
+    hour: 己卯
+  dayun: 戊辰
+  gender: 乾
+  verdicts:
+    官命: 是·故是个掌大权的命。行戊辰运官职连升，至己巳运升任总理。
+  source: yanjiu:7412
+  raw_quote: 故是个掌大权的命。行戊辰运官职连升，至己巳运升任总理。（运岁：戊辰运官职连升，己巳运升任总理）
+- id: yx-煤矿
+  name: yx-煤矿
+  bazi:
+    year: 丁巳
+    month: 癸丑
+    day: 丙戌
+    hour: 甲午
+  gender: 乾
+  verdicts:
+    财命: 巨富·煤矿发财十几亿
+    职业: 搞煤矿
+  source: yanjiu:7685
+  raw_quote: 行庚戌之戌运，搞煤矿发财十几亿。 / 搞煤矿（运岁：庚戌之戌运发财十几亿）
+- id: yx-处级-2
+  name: yx-处级-2
+  bazi:
+    year: 丁未
+    month: 丁未
+    day: 丙申
+    hour: 甲午
+  gender: 乾
+  verdicts:
+    官命: 是·故官级能至处级。现在是执法部门的处级官员，因命中带羊刃做功之…
+  source: yanjiu:7788
+  raw_quote: 故官级能至处级。现在是执法部门的处级官员，因命中带羊刃做功之故。
+- id: yx-7842
+  name: yx-7842
+  bazi:
+    year: 癸卯
+    month: 丙辰
+    day: 甲辰
+    hour: 戊辰
+  gender: 乾
+  verdicts:
+    职业: 集团董事长(书OCR作重张)
+  source: yanjiu:7842
+  raw_quote: 任某集团公司重张。（注：「重张」疑「董事长」OCR误）
+- id: yx-厅级-2
+  name: yx-厅级-2
+  bazi:
+    year: 壬午
+    month: 壬寅
+    day: 癸卯
+    hour: 甲寅
+  gender: 乾
+  verdicts:
+    官命: 是·并非发财之命，而是一位高官。曾任检察院检察长之职，官至厅级，…
+  source: yanjiu:8099
+  raw_quote: 并非发财之命，而是一位高官。曾任检察院检察长之职，官至厅级，现已退休。
+- id: yx-佛具
+  name: yx-佛具
+  bazi:
+    year: 壬子
+    month: 戊申
+    day: 丁亥
+    hour: 己酉
+  liunian: 丙戌
+  gender: 乾
+  verdicts:
+    职业: 佛具用品及玉器生意
+    学历: 我学历不高，初中毕业
+    婚姻: 我是在1998年结婚的
+    子女: 我头胎是女孩儿
+    应期: 生意应该在亥运上开始做的，结果完全正确。
+  source: yanjiu:8443
+  raw_quote: 我学历不高，初中毕业 / 我是在1998年结婚的 / 我头胎是女孩儿 / 我做的行业不是上杂，是做佛具用品及卡．器生意的 / 我虽然不开餐馆，但是我确实还做了与餐饮有关的生意，是做南方麻辣烫调料的。 / 生意应该在亥运上开始做的，结果完全正确。 / 搞得我2006年生意是没有办法做，破财十来万。 / 就是11月份也就是立冬后官司终于结束了。（运岁：大运05己酉15庚戌25辛亥35壬子45癸丑；亥运开始做生意；2006丙戌年惹官司破财十来万；2007丁亥年立冬后官司结案）（注：「上杂」疑「土杂」；「卡．器」疑「玉器」）
+- id: yx-建筑-2
+  name: yx-建筑-2
+  bazi:
+    year: 癸丑
+    month: 辛酉
+    day: 戊辰
+    hour: 癸丑
+  dayun: 戊午
+  gender: 乾
+  verdicts:
+    职业: 多种生意·佛具工艺品兼建筑泥瓦工
+  source: yanjiu:8573
+  raw_quote: 此人在戊午运的时候就做过好多种生意，其中就包括了佛具用品、佛像、玉器、旅游工艺品等生意。与上造不同的是，此人还做过建筑工作，而且是在建筑队里做过泥瓦工，只是做的时间不长。（运岁：7岁运；戊午运做多种生意）
+- id: yx-科级
+  name: yx-科级
+  bazi:
+    year: 壬子
+    month: 甲辰
+    day: 甲申
+    hour: 庚午
+  gender: 坤
+  verdicts:
+    官命: 是·我确实在国家政府单位工作，而且目前是科级干部。
+    职业: 我原来是做会计的，后来做审计了。
+    应期: 这年我提升到副科。（1999年或2000年工作调动，提升了）
+    婚姻: 我1996年谈的对象，1997年结婚。1998年生的女儿。
+    子女: 1998年生的女儿
+  source: yanjiu:8609
+  raw_quote: 我确实在国家政府单位工作，而且目前是科级干部。 / 这年我提升到副科。（1999年或2000年工作调动，提升了） / 我1996年谈的对象，1997年结婚。1998年生的女儿。 / 1998年生的女儿 / 你婚姻很好，不会有问题，老公也应该是个当官的。…我老公是银行的官。 / 我原来是做会计的，后来做审计了。（运岁：大运06癸卯16壬寅26辛丑36庚子46己亥；1999/2000年提升副科）
+- id: yx-8721
+  name: yx-8721
+  bazi:
+    year: 癸亥
+    month: 乙丑
+    day: 戊辰
+    hour: 癸丑
+  liunian: 乙酉
+  gender: 乾
+  verdicts:
+    职业: 我开始是做业务的，后来换了工作就做了高管，而且我做的行业就是…
+    学历: 我确实学历不高，原本中专毕业
+    应期: 我刚好是2002、2003年从老家出来参加工作的
+  source: yanjiu:8721
+  raw_quote: 我确实学历不高，原本中专毕业 / 我刚好是2002、2003年从老家出来参加工作的 / 我开始是做业务的，后来换了工作就做了高管，而且我做的行业就是手机器材。 / 我说你应该在2005年换工作的，从换工作以后，你的运气就开始比以前好多了，财运也好了很多。 / 最终还是人家控股公司，因为人家投资多。…一定是别人的投资多，而他少，所以他就一定是小股东。（运岁：大运10甲子20癸亥30壬戌；2005乙酉年换工作；2008戊子年辞职合伙投资）
+- id: yx-老板
+  name: yx-老板
+  bazi:
+    year: 甲辰
+    month: 丁卯
+    day: 辛未
+    hour: 丁酉
+  dayun: 甲子
+  gender: 坤
+  verdicts:
+    职业: 后来她告诉我们自己确实是做木材生意的。
+    婚姻: 我看你的婚姻不好，想离义离不了，你一生都为感情的事而苦恼，你想得到的…
+  source: yanjiu:8862
+  raw_quote: 后来她告诉我们自己确实是做木材生意的。 / 你的命是个做老板的命，你做的生意应该是与木材有关。 / 我看你的婚姻不好，想离义离不了，你一生都为感情的事而苦恼，你想得到的东西一样都得不到，反而被男人牵制 / 而且你的婚姻将来可能要离掉。…要50岁以后吧。（运岁：大运06丙寅16乙丑26甲子36癸亥46壬戌；甲子运结不成婚，癸亥运结婚（晚婚））（注：想离义离不了=想离又离不了OCR误）
+- id: yx-中医
+  name: yx-中医
+  bazi:
+    year: 丁酉
+    month: 癸丑
+    day: 壬辰
+    hour: 丙午
+  gender: 乾
+  verdicts:
+    财命: 小康·比较有钱(开诊所)
+    职业: 后来朋友告诉我，此人是做中医推拿的，自已开诊所，比较有钱。
+    健康: 此人不仅有高血压、心脏病，而且糖尿病巳经很严重了，眼底出血严重，只能…
+  source: yanjiu:9129
+  raw_quote: 此人不仅有高血压、心脏病，而且糖尿病巳经很严重了，眼底出血严重，只能靠胰岛素来维持生命了。 / 后来朋友告诉我，此人是做中医推拿的，自已开诊所，比较有钱。 / 比较有钱（运岁：大运03壬子13辛亥23庚戌33己酉43戊申53丁未）（注：巳经=已经；自已=自己OCR误）
+- id: yx-公安
+  name: yx-公安
+  bazi:
+    year: 丁巳
+    month: 壬寅
+    day: 癸丑
+    hour: 丙辰
+  liunian: 戊寅
+  gender: 乾
+  verdicts:
+    职业: 在论坛里得知这个四柱是个卧底公安
+    应期: 戊寅年成为公安，戊官虚透来合身，寅丑又合，寅为公门，代表“公安”这个…
+  source: yanjiu:9400
+  raw_quote: 在论坛里得知这个四柱是个卧底公安 / 戊寅年成为公安，戊官虚透来合身，寅丑又合，寅为公门，代表“公安”这个职业开始了。 / 辛巳年，辛一合丙，寅一穿巳，巳又拱到丑，这一年，一定是摘下公安帽，脱下制服，隐姓埋名，深入敌人内部的一年。 / 甲申年，寅是公门，－虚透到天干来了，一定是这一年身份暴露出事了。 / 2005年判了个无期！（运岁：大运08辛丑18庚子28己亥38戊戌；戊寅年成公安，辛巳年卧底，甲申年身份暴露，2005判无期）
+- id: yx-鞋厂
+  name: yx-鞋厂
+  bazi:
+    year: 己酉
+    month: 壬申
+    day: 丙辰
+    hour: 戊戌
+  dayun: 戊辰
+  liunian: 庚辰
+  gender: 乾
+  verdicts:
+    财命: 破财·庚辰年火灾破财2000多万
+    职业: 我就是开鞋厂的
+    应期: 是庚辰年，肯定是2000年破大财！…是的，是的，那是一场火灾，烧完了…
+  source: yanjiu:9527
+  raw_quote: 我就是开鞋厂的 / 是庚辰年，肯定是2000年破大财！…是的，是的，那是一场火灾，烧完了所有货物，厂房最后倒了！损失2000多万 / 过两年就好了，丙寅运还有大的发展。（运岁：大运01辛未11庚午21己巳31戊辰41丁卯51丙寅61乙丑；戊辰运庚辰年(2000)火灾破财2000多万）（注：原文「已壬丙戊」，已为己OCR误）
+- id: yx-保镖
+  name: yx-保镖
+  bazi:
+    year: 丙辰
+    month: 丁酉
+    day: 己卯
+    hour: 己巳
+  liunian: 庚辰
+  gender: 乾
+  verdicts:
+    职业: 我是私人保镖，以前没人看出我的职业。
+    六亲: 我生下就送人了，十儿岁时养父也死了。
+    婚姻: 命该生女孩，是不是2002壬午年奉子成婚？…是的，怀上后才结婚，当年…
+    子女: 当年生孩子，是女孩
+    应期: 2000庚辰，这一年怕有短暂牢狱之灾，且是受别人牵连，与女人有关。……
+  source: yanjiu:9613
+  raw_quote: 我是私人保镖，以前没人看出我的职业。 / 我生下就送人了，十儿岁时养父也死了。 / 命该生女孩，是不是2002壬午年奉子成婚？…是的，怀上后才结婚，当年生孩子，是女孩。 / 当年生孩子，是女孩 / 生父住院，是肝癌，牛母也住院。 / 2000庚辰，这一年怕有短暂牢狱之灾，且是受别人牵连，与女人有关。…是的，是因为打架，是受别人牵连，是我哥们的妻子引起的，被拘留一个月。（运岁：大运05戊戌15己亥25庚子35辛丑45壬寅；2000庚辰年拘留一个月；2002壬午年奉子成婚）（注：原文「丙丁己已」，时柱己巳，已为己OCR误；牛母=生母）
+- id: yx-中介
+  name: yx-中介
+  bazi:
+    year: 癸丑
+    month: 庚申
+    day: 庚辰
+    hour: 庚辰
+  gender: 乾
+  verdicts:
+    财命: 破财·戊寅年被骗破财15万
+    职业: 我就是做投资生意的，是中介。买东家，打包，再卖西家。在政府和…
+    婚姻: 师父还是师父，是1999年结的婚。
+    子女: 不是2002就是2003年。…是2003年。（生孩子）
+    健康: 还是师父厉害，生日那天车祸，所以我终生难忘（2003年，伤右脚）
+    六亲: 你应是＝介个兄弟的命。…对！（三个兄弟）
+    应期: 你的公司是合伙股份制，2004有人入股，2005又有另一个人入股。……
+  source: yanjiu:9710
+  raw_quote: 我就是做投资生意的，是中介。买东家，打包，再卖西家。在政府和商界之间倒来倒去。 / 师父还是师父，是1999年结的婚。 / 不是2002就是2003年。…是2003年。（生孩子） / 还是师父厉害，生日那天车祸，所以我终生难忘（2003年，伤右脚） / 是一个很好的朋友，以买房为名，骗光了我身上所有的钱，15万！那年我只剩下200块钱（1998年） / 你应是＝介个兄弟的命。…对！（三个兄弟） / 你的公司是合伙股份制，2004有人入股，2005又有另一个人入股。…对！ / 你2006年工作性质有比较大的变化…对，基本是转行了，搞了一个加油站的项目。 / 2007年会怎么样？…有人要撤股。…对，公司马卜一要解散了！（运岁：大运02己未12戊午22丁巳32丙辰42乙卯52甲寅；1998年被骗破财15万，2003年生日车祸伤右脚）（注：＝介个=三个OCR误；马卜一=马上）
+- id: yx-会计
+  name: yx-会计
+  bazi:
+    year: 壬子
+    month: 丁未
+    day: 戊申
+    hour: 己未
+  gender: 坤
+  verdicts:
+    职业: 还真行呀，这也能算出来，我就是个会计呀！
+    婚姻: 对！对！我是1995年谈恋爱，1999年拿证，2001年生的儿子。
+    子女: 2001年生的儿子
+    六亲: 我小时候老肚子痛，经常上医院，我爸爸得过肾结石开过刀。
+  source: yanjiu:9860
+  raw_quote: 还真行呀，这也能算出来，我就是个会计呀！ / 对！对！我是1995年谈恋爱，1999年拿证，2001年生的儿子。 / 2001年生的儿子 / 你老公是在国有单位工作，且有职权，应在执法部门，应该在2003年升职。…是政府部门管路桥公司的，先是副总2003年升正职了。 / 我小时候老肚子痛，经常上医院，我爸爸得过肾结石开过刀。 / 母亲应该不在了，应该在已卯年？…是1999年走的。（运岁：大运03丙午13乙巳23甲辰33癸卯43壬寅53辛丑63庚子73己亥）（注：原文「壬丁戊己」，时干己；已卯=己卯）
+- id: yx-计算机
+  name: yx-计算机
+  bazi:
+    year: 己未
+    month: 丙子
+    day: 辛亥
+    hour: 甲午
+  gender: 坤
+  verdicts:
+    职业: 你说得对，我就是搞计算机的，有点像管账。
+    学历: 对，我是本科学历。
+    婚姻: 癸未2003年谈了个朋友，乙酉2005年分了。2006丙戌年又谈了个…
+    六亲: 父母关系不好，母亲身体不好！…嗯，我爸爸脾气好，母亲比较急，比较吵。…
+    健康: 容易有妇科病，肾有点寒。…对极了。
+  source: yanjiu:9967
+  raw_quote: 对，我是本科学历。 / 你说得对，我就是搞计算机的，有点像管账。 / 如果是放在广州，那薪水不会低于6000元。…美女又点了头。 / 癸未2003年谈了个朋友，乙酉2005年分了。2006丙戌年又谈了个朋友，很短的，当年就分了。…对，上半年谈的，下半年分了。 / 父母关系不好，母亲身体不好！…嗯，我爸爸脾气好，母亲比较急，比较吵。…是开过一次（刀） / 容易有妇科病，肾有点寒。…对极了。（运岁：大运09丁丑19戊寅29己卯39庚辰）（注：原文「已丙辛甲」，已为己OCR误）
+- id: yx-主持人
+  name: yx-主持人
+  bazi:
+    year: 辛亥
+    month: 壬辰
+    day: 癸亥
+    hour: 癸亥
+  gender: 乾
+  verdicts:
+    职业: 某电视台节目主持人，与阳明命造相较，便无飞流直通天河之磅瑚气…
+  source: yanjiu:10936
+  raw_quote: 某电视台节目主持人，与阳明命造相较，便无飞流直通天河之磅瑚气势。又印星远隔，尤职无权了。（注：王阳明命附录今人例）
+- id: yx-期货
+  name: yx-期货
+  bazi:
+    year: 丁未
+    month: 辛亥
+    day: 乙酉
+    hour: 戊寅
+  liunian: 丙戌
+  gender: 乾
+  verdicts:
+    财命: 破财·期货风险投资巨亏
+    应期: 到丙戌年穿倒酉金，自己下海，寅人未墓，合伙赚钱，未主地产。现在换到丙…
+  source: yanjiu:11385
+  raw_quote: 一个杭州的朋友做房地产赚了几千万，却因做期货亏了不少钱 / 我说你的命不适合做风险投资，适合做传媒或广告之类的事。结果不幸言中，风险投资巨亏。 / 到丙戌年穿倒酉金，自己下海，寅人未墓，合伙赚钱，未主地产。现在换到丙运，地产不能再做了，丙能生戊，利做传媒、广告。（运岁：大运：03庚戌 13己酉 23戊申 33丁未 43丙午；丙戌年下海；丙运利传媒广告）（注：巴菲特命理分析篇引子中的杭州朋友）
+- id: yx-爱因斯坦
+  name: yx-爱因斯坦
+  bazi:
+    year: 己卯
+    month: 丁卯
+    day: 丙申
+    hour: 甲午
+  liunian: 己未
+  gender: 乾
+  verdicts:
+    职业: 科学家·爱因斯坦(物理学家)
+    应期: 直到1919年5月，经过一次全日食的观察证实之后，他的相对论才在科学…
+  source: yanjiu:11838
+  raw_quote: 他主要的科学发现是：1.光量子学说；2.狭义相对论与广义相对论，这是他最重要的革命性的发现；3.质能方程：E=MC2 / 直到1919年5月，经过一次全日食的观察证实之后，他的相对论才在科学界引起轰动，被称为“人类思想史中最伟大的成就之一” / 1919年5月是已未年已巳月，已丁一家，晦去丙火之光，这一理论才被实证。（运岁：1919年5月己未年己巳月相对论被实证）（注：爱因斯坦；OCR“已丁丙甲”年干为“己”之误；无乾坤标注）
+- id: yx-玻尔
+  name: yx-玻尔
+  bazi:
+    year: 乙酉
+    month: 乙酉
+    day: 乙未
+    hour: 壬午
+  gender: 乾
+  verdicts:
+    职业: 科学家·玻尔(量子力学)
+    学历: 玻尔在上学时，是个数理天才，但对文学写作却一窍不通。推其午时，表示文…
+  source: yanjiu:11927
+  raw_quote: 玻尔对量子力学的重要贡献，是他领导的哥本哈根学派，完成了对量子力学整个学术体系的构架与诠释，解决了量子波与粒子一对无法调和的矛盾，提出互补原理。 / 玻尔在上学时，是个数理天才，但对文学写作却一窍不通。推其午时，表示文学才能的食神午火被壬水所压，又午未合入墓中了。（运岁：大运：甲申 癸未 壬午 辛巳 庚辰 己卯 戊寅 丁丑）（注：玻尔，1885年10月7日生，推其时辰为午时）
+- id: yx-部长
+  name: yx-部长
+  bazi:
+    year: 甲申
+    month: 丙寅
+    day: 乙卯
+    hour: 辛巳
+  dayun: 壬戌
+  liunian: 庚子
+  gender: 坤
+  verdicts:
+    官命: 是·断：这个女命贵，能嫁个当官的丈夫。问：丈夫能有多大的官？答：…
+    婚姻: 答：官星申为夫，木火成势，巳申合制，制得比较干净。就是怕丈夫桃花多，…
+    应期: 独喜得时上什么辛金为贵，什么巳中正官禄马独旺，这叫飞天禄马格……这位…
+  source: yanjiu:13114
+  raw_quote: 断：这个女命贵，能嫁个当官的丈夫。问：丈夫能有多大的官？答：省长部长一级的官。 / 答：官星申为夫，木火成势，巳申合制，制得比较干净。就是怕丈夫桃花多，不止她一个女人。 / 独喜得时上什么辛金为贵，什么巳中正官禄马独旺，这叫飞天禄马格……这位姑娘若是时辰准了，定是一位主子娘娘，可惜荣华不久，只怕遇着寅年卯月 / 小太监传谕出来说：＂贾娘娘薨逝。”是年甲寅年十二月十八H立春，元妃薨日是十二月十九日，已交卯年寅月，存年四十＝岁。 / 如按此四柱推，元春当在庚子年(17岁）出嫁，壬戌运，申中之水虚透，群阳而失阴，病在此运也非常合乎命理。戌运，卯戌合，禄合入墓，又巳火伤官人墓，故应卯年禄到之年死。（运岁：大运：05乙丑 15甲子 25癸亥 35壬戌 45辛酉；庚子年（17岁）出嫁；壬戌运病；戌运卯年寅月死，存年四十三岁）（注：《红楼梦》元春四柱；作者考证真实生日为1704年2月19日；“四十＝岁”OCR为“四十三岁”；“甲寅年”系原书或传抄之误，应为丁卯年）
+- id: yx-袁隆平
+  name: yx-袁隆平
+  bazi:
+    year: 庚午
+    month: 甲申
+    day: 甲寅
+    hour: 丙子
+  gender: 乾
+  verdicts:
+    职业: 农业科学家·杂交水稻袁隆平
+    应期: 八十七岁后，袁老行巳运穿禄，阴水临绝，生死之关限。
+  source: yanjiu:13326
+  raw_quote: 袁隆平应该是家喻户晓的人物，他搞的杂交水稻，增产部分，可以让中国多养活数千万人 / 他像一位老农一样，成天要在地里干活，也就是要做很多体力劳动。体力劳动者在盲派命理的看法是要禄神做功 / 八十七岁后，袁老行巳运穿禄，阴水临绝，生死之关限。（运岁：大运：02乙酉 12丙戌 22丁亥 32戊子 42己丑 52庚寅 62辛卯 72壬辰 82癸巳；87岁后巳运生死关限）（注：袁隆平，1930年9月1日（农历七月初九）生，时辰晚子时）
+- id: yx-诗人
+  name: yx-诗人
+  bazi:
+    year: 甲辰
+    month: 庚午
+    day: 庚戌
+    hour: 丁亥
+  gender: 乾
+  verdicts:
+    职业: 这位诗人的特点是丁官虚透，盲派讲官星虚透主名气。他的名气确实…
+    婚姻: 我第一句就说：你这个命是中年离婚命，会在1999年或2000年离婚！…
+  source: yanjiu:13965
+  raw_quote: 这位诗人的特点是丁官虚透，盲派讲官星虚透主名气。他的名气确实很大。 / 我第一句就说：你这个命是中年离婚命，会在1999年或2000年离婚！他竖起大母指，确实，他是2000年离的婚。 / 我说：第二任妻子要找一个年岁小很多的，现在已经有了。确实如此。（运岁：大运：02辛未 12壬申 22癸酉 32甲戌 42乙亥 52丙子（原文末柱“32丙”疑为52丙子之误）；2000年离婚）（注：北京遭遇诗人篇男诗人；大运末组OCR“32丙/子”存疑）
+- id: yx-14085
+  name: yx-14085
+  bazi:
+    year: 庚戌
+    month: 己卯
+    day: 己丑
+    hour: 壬申
+  dayun: 癸未
+  liunian: 戊子
+  gender: 乾
+  verdicts:
+    职业: 又断那一定当过兵，对方说是当过兵。我说，那他应该是银行的官员…
+    应期: 赵宇分析一会断：这个命癸未运走坏了，反了局，2008戊子年一定遇到大…
+  source: yanjiu:14085
+  raw_quote: 又断那一定当过兵，对方说是当过兵。我说，那他应该是银行的官员，这下对了。 / 赵宇分析一会断：这个命癸未运走坏了，反了局，2008戊子年一定遇到大麻烦，子卯相破，杀星被破，整个局反了。癸水财星代表丑土跑了，犯了经济问题，不是个丢官罢职的事，应该有牢狱之灾！ / 赵宇答：这个命估计要判十年，快也有六七年的牢灾，经济问题，但不会判死刑，过了癸未运，这家伙还有一步好运，估计会发大财。 / 癸水的数，六数，不是六百万就是六千万。贪污就是六百万，挪用公款就是六千万。果真，六千万的案，挪用公款。（运岁：大运：09庚辰 19辛巳 29壬午 39癸未 49甲申；癸未运2008戊子年牢狱）（注：断例几则之银行官员；OCR“已 已壬”月日两干为“己”之误）
+- id: yx-纺织
+  name: yx-纺织
+  bazi:
+    year: 乙未
+    month: 辛巳
+    day: 壬申
+    hour: 庚子
+  gender: 乾
+  verdicts:
+    职业: 赵宇断：这个命年轻时当过兵，当兵后能分到企业，在国有企业工作…
+    应期: 赵宇断：在企业干到子运，就不干了，壬午2002年就在外边做生意了。对…
+    子女: 我断：你的命中有儿有女，先生女后生儿，如果计划生育的话，只有一女儿。…
+    六亲: 命中母亲高寿，父亲有克。估计父亲不在已经六七年了。反馈：太准了！
+  source: yanjiu:14137
+  raw_quote: 赵宇断：这个命年轻时当过兵，当兵后能分到企业，在国有企业工作。对方说：确实当过兵，不过时间很短，几个月就问来了，到了企业。又断：企业能当个中层干部。对方说：是。 / 我此时拿起四柱，直断道：应该在纺织企业。对方十分惊讶，居然连纺织企业都能断出来。 / 赵宇断：在企业干到子运，就不干了，壬午2002年就在外边做生意了。对方说：是，只不过单位关系还在。赵宇断：干到子运结束，2005年就不干了，基本不赚什么钱。 / 我们一致认为，这一年跟合作者关系处理不好，搞不好要打官司，如果不是官司，可能会有身体方面的伤害。对方听了我们的判断，又是一惊，说：确实去年闹翻了，当年虽然没有起官司，但今年打官司了，刚刚起诉。 / 对方说：实际数目是四十万到五十万之间。今年丑官与日主申一家，判断官司一定能赢，但钱要在明年才能拿到。 / 我断：你的命中有儿有女，先生女后生儿，如果计划生育的话，只有一女儿。反馈：对。是有一女儿。 / 命中母亲高寿，父亲有克。估计父亲不在已经六七年了。反馈：太准了！ / 年上伤官，祖业破败，原来你家是一个大家族，但在父亲手中败落了。反馈：对。 / 命中兄弟姐妹四个，你是老大。反馈：兄弟姐妹只有三个，确实是老大。（运岁：大运：02庚辰 12己卯 22戊寅 32丁丑 42丙子 52乙亥 62甲戌；子运壬午2002年做生意；2005年不干；2006乙运做技术指导；2008年闹翻打官司）（注：2009年11月与赵宇同断例）
+- id: yx-14300
+  name: yx-14300
+  bazi:
+    year: 壬戌
+    month: 己酉
+    day: 丁巳
+    hour: 丙午
+  gender: 坤
+  verdicts:
+    职业: 断：适合在银行工作。婚姻2005年可成。同应：是在银行工作，…
+    六亲: 断：个人能力很强，命中不利母亲，母可能有病在身。回应：是，母亲有肾病…
+    婚姻: 断：婚姻不会有问题，放心。回应：我发现过他有出轨。
+    应期: 如果他有出轨一定是在2007年，那年七八月有外遇，到第二年五月份就彻…
+  source: yanjiu:14300
+  raw_quote: 断：适合在银行工作。婚姻2005年可成。同应：是在银行工作，2006年结的婚。 / 断：个人能力很强，命中不利母亲，母可能有病在身。回应：是，母亲有肾病。身体一直不好。 / 断：婚姻不会有问题，放心。回应：我发现过他有出轨。 / 如果他有出轨一定是在2007年，那年七八月有外遇，到第二年五月份就彻底结束了。回应：对，他本来很老实，被我发现后，他交待的时间跟你断的吻合。（运岁：大运：08戊申 18丁未 28丙午 38乙巳 48甲辰；2006年结婚；夫2007年外遇）（注：断例几则之四·例二；“同应”OCR为“回应”）
+- id: yx-破财那几年负债五
+  name: yx-破财那几年负债五
+  bazi:
+    year: 丁亥
+    month: 乙巳
+    day: 壬辰
+    hour: 戊申
+  gender: 乾
+  verdicts:
+    财命: 破财·那几年负债五万(饥荒)后好转
+  source: yanjiu:15261
+  raw_quote: 这种生意我们村很多人做，就是开三轮车带一些铝制品到外地卖。几年下来，争不仅没赚到钱，还亏了很多。 / 郝师给他断到：你这个命，这几年得有饥荒了（负债之意），你累死累活不算数，饥荒得够五万，现在够不够？答：现在够五万了 / 再欠还是要欠的，不过以后欠的是喜饥荒，不是坏饥荒，不是起房子，就是要娶媳妇。后来，果真再没有在生意上赔钱了，不久，儿子娶了媳妇，从此家运才慢慢好转起来。（注：命运谈屑篇村民高某（五十多岁，男性），1998年找郝师预测；无乾坤标注）
+- id: yx-左宗棠
+  name: yx-左宗棠
+  bazi:
+    year: 壬申
+    month: 辛亥
+    day: 丙午
+    hour: 庚寅
+  gender: 乾
+  verdicts:
+    官命: 是·左宗棠(举人出山入幕建奇功)
+    学历: 他虽然才气横溢，少负大志，却屡试不中，只考了个举人，考儿次都是举人，…
+  source: yanjiu:15457
+  raw_quote: 他虽然才气横溢，少负大志，却屡试不中，只考了个举人，考儿次都是举人，没信心了，回乡当教书先生。一直到四十岁，他还在教书 / 太平天国势不可挡攻城掠地时，南方只剩下湖南了，湖南告急！在这危难时刻，有人推荐左宗棠出山，当湖南巡抚张亮基幕府。 / 排兵布阵、运筹帷握，一举击溃劲敌。 / 可是就在那一刻，他的所有缺点都成了他的优点了，最后，他成功了。（运岁：大运：09壬子 19癸丑 29甲寅 39乙卯 49丙辰 59丁巳 69戊午）（注：左宗棠，命运谈屑篇附录）
+- id: yx-煤矿-2
+  name: yx-煤矿-2
+  bazi:
+    year: 乙未
+    month: 丁亥
+    day: 壬午
+    hour: 己酉
+  dayun: 壬午
+  gender: 乾
+  verdicts:
+    财命: 巨富·煤矿发财十亿
+  source: yanjiu:15535
+  raw_quote: 壬午大运，搞煤矿发财十亿。现在辛运已经不好了，巳运冲亥，局全坏了。（运岁：大运：03丙戌 13乙酉 23甲申 33癸未 43壬午 53辛巳 63庚辰；壬午运发财十亿；辛运转差）（注：山西煤老板例1（集体应灾：2009-2010年干不成））
