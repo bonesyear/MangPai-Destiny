@@ -371,6 +371,8 @@ def detect_bijiao_duocai(
         同 R3/ he_types；天干五合互绊）者失去原性、不能夺财（qi03
         「合绊…不克害用神」；《授课教程》例「寅亥合」之理财女强人/得200万
         造，寅劫被亥合伤，不论夺财；辰酉合酉非受害方，合化反助不豁免）。
+      R1d 官星护财：夺财比劫被官杀非辅助制住者失能，不论夺财（K3-294批6，
+        gj-公门转商「官合劫…五行流转有情…小富之局」书锚）。
 
     Returns:
         {'detected': bool, 'severity': 'severe'|'normal'|None,
@@ -397,6 +399,25 @@ def detect_bijiao_duocai(
 
     wa = _ensure_work_actions(day_gan, gans, zhis, work_actions)
     heban_pos = _tiejie_heban_positions(gans, zhis)
+    # R1d（K3-294批6 A11）：被官杀非辅助制（冲/克/穿/破/刑，制者主气=官杀）
+    # 之位——该位比劫被官制住、不能夺财（官星护财/官制劫）。
+    guanhu_pos: Set[str] = set()
+    for a in wa:
+        if a.get('auxiliary'):
+            continue
+        t = a.get('type', '')
+        if t not in ('冲', '克', '穿', '破', '刑'):
+            continue
+        fp0, tp0 = a.get('from_pos', ''), a.get('to_pos', '')
+        if not (fp0 and tp0):
+            continue
+        if t in ('冲', '穿'):
+            if _wx_cat(dw, _pos_main_wx(fp0, gans, zhis)) == '官杀':
+                guanhu_pos.add(tp0)
+            if _wx_cat(dw, _pos_main_wx(tp0, gans, zhis)) == '官杀':
+                guanhu_pos.add(fp0)
+        elif _wx_cat(dw, _pos_main_wx(fp0, gans, zhis)) == '官杀':
+            guanhu_pos.add(tp0)
     # G9（48期）：非日柱之激活自合柱，柱上之干被坐支藏干合绊失用
     # （康熙型「甲被午中己合绊」）——与 R1b 受害方口径统一：失用之干
     # 不能做功夺财。日柱自合不在此列（日主自合=日主从支，非比劫夺财域）。
@@ -423,6 +444,13 @@ def detect_bijiao_duocai(
         # R1b：比劫功神位为紧贴合绊之受害方者失去原性，不能夺财
         # （合绊者不克害；辰酉合等非受害方不受此限——合化反助者不豁免）。
         if fp in heban_pos:
+            continue
+        # R1d（K3-294批6 A11）：夺财比劫被官杀明现制住者失能，不论夺财——
+        # 「官合劫/官制劫」=官星护财（书锚 gj-公门转商「财生官，官合劫，印
+        # 生身，五行流转有情，故能成小富之局」：酉刃夺寅财而午官制酉；
+        # 同法理 cj-富发财「官杀制比劫…发财」）。反锚：第9期群劫夺午财
+        # 无官制（清家荡产）/王亚樵酉刃无火制，俱不动。
+        if fp in guanhu_pos:
             continue
         # R1c（从弱·D类从格细则）：从弱财为顺势，比劫须「逆势有力」方破格。
         # 功神干虚透无本气根者从化无力（《授课》「天干比肩再多也无用」，
@@ -1029,9 +1057,69 @@ def detect_caisheng_sha_gongshen(
             sha_wx = w  # 克我者=官杀五行
             break
     strength = classify_strength(day_gan, gans, zhis)
-    if strength != '身弱' or not cai_wx or not sha_wx:
+    if not cai_wx or not sha_wx:
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
     if WX_SHENG.get(cai_wx) != sha_wx:
+        return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
+
+    # ── K3-294批6 A10：三会官杀局攻身分支（severe，越 strength 门）──
+    # 地支三会官杀局全会且**会局含日支**（日主坐支之根被卷入杀局、根化入杀）
+    # 者，「官杀极旺克身」——扶抑身强/中和之判不足凭（根被会走），不再受
+    # 上方身弱门限。书锚 gj-合财反贫：「地支寅卯辰会东方木局，官杀极旺克身
+    # …身弱不胜财官，合财反致祸患…一生贫苦」（engine 扶抑判中和，书判身弱
+    # 即此理）。判：财明现≥1（生杀有源）+ 会局外无制杀/合杀之力（含辅助合
+    # 杀——合杀之象不论主宾皆化杀；军官师级 己甲合杀、厅级 丁壬合杀俱有制
+    # 化不论）+ 印化无力（印明现≤1位，单印难化方局之杀；li207 壬癸两印化杀
+    # 有力不论）。severe：方局之杀攻身无救，凶重于普通财生杀（normal）。
+    _SAN_HUI = (('寅', '卯', '辰'), ('巳', '午', '未'),
+                ('申', '酉', '戌'), ('亥', '子', '丑'))
+    huiju = None
+    for _trio in _SAN_HUI:
+        if all(_t in zhis for _t in _trio) and ZHI_WX.get(_trio[0], '') == sha_wx:
+            huiju = set(_trio)
+            break
+    if huiju and len(zhis) == 4 and zhis[2] in huiju \
+            and _mingxian_cat_count(day_gan, gans, zhis, '财') >= 1:
+        kill_pos = {f'{_PK4[i]}_gan' for i in range(4)
+                    if i != 2 and GAN_WX.get(gans[i], '') == sha_wx}
+        kill_pos |= {f'{_PK4[i]}_zhi' for i in range(4) if zhis[i] in huiju}
+        zhi_hua = False
+        for a in _ensure_work_actions(day_gan, gans, zhis, work_actions):
+            t = a.get('type', '')
+            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            if not (fp and tp):
+                continue
+            if t in ('冲', '克', '穿', '破', '刑') and not a.get('auxiliary'):
+                # 外力制杀：制者非杀位/非会局支（会局内部摩擦非制）
+                if tp in kill_pos and fp not in kill_pos:
+                    zhi_hua = True
+                    break
+                if t in ('冲', '穿') and fp in kill_pos and tp not in kill_pos:
+                    zhi_hua = True
+                    break
+            elif t in ('天干合', '地支合', '暗合', '半合'):
+                if (fp in kill_pos) != (tp in kill_pos):
+                    zhi_hua = True  # 合杀（含辅助）：合一端为杀、他端非杀
+                    break
+        if not zhi_hua:
+            # 印化无力：印明现≤1位（单印难化方局之杀）；印藏会局支内者不计
+            # ——印已被会入杀局，化杀无力（合财反贫 寅中丙印随寅入会局，
+            # 唯月干一丁明现难化三会木局，书明文「官杀极旺克身」）。
+            yin_out = {p for p in _mingxian_shishen_positions(
+                day_gan, gans, zhis, {'正印', '偏印'})
+                if not (p.endswith('_zhi') and zhis[_PK4.index(p.split('_')[0])] in huiju)}
+            if len(yin_out) <= 1:
+                _trio_cn = ''.join(sorted(huiju))
+                return {
+                    'detected': True, 'severity': 'severe', 'strength': strength,
+                    'hits': [f'三会官杀局（{_trio_cn}）会日支攻身'],
+                    'reason': (f'财生杀攻身：地支{_trio_cn}三会官杀局全会且会日支，'
+                               f'官杀极旺克身、财明现生杀有源、杀无制化、印化无力'
+                               f'（段氏「官杀极旺克身…身弱不胜财官」），'
+                               f'因财致祸 severe'),
+                }
+
+    if strength != '身弱':
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
 
     cai_cnt = _mingxian_cat_count(day_gan, gans, zhis, '财')
@@ -1070,7 +1158,24 @@ def detect_caisheng_sha_gongshen(
     # 印化无力判定：印明现且未被财制 -> 杀印相生有救应，不触发
     yin_pos = _mingxian_shishen_positions(day_gan, gans, zhis, {'正印', '偏印'})
     if yin_pos:
-        cai_pos = _mingxian_shishen_positions(day_gan, gans, zhis, {'正财', '偏财'})
+        # K3-294批6 A10：财制印证据以**透干/本气**主气十神口径匹配动作两端
+        # （制式动作的实际施受双方是柱之主气；藏干中气只是柱内余势——cj-包工头
+        # 丑(本气己=食伤)克亥(本气壬=官)=食伤制官做功，旧口径以丑中辛(财)/
+        # 亥中甲(印)中气误读为财制印→印化无力误判，书明文壬卯运=印运发财）。
+        # gj-财党杀攻身 寅(本气甲=财)克辰(本气戊=印)本气口径仍命中，不动。
+        def _bq_positions(targets: Set[str]) -> Set[str]:
+            from mangpai.objective.canggan import get_canggan_mangpai
+            pos: Set[str] = set()
+            for i, pk in enumerate(_PK4):
+                if i < len(gans) and gans[i] and _shishen_full(day_gan, gans[i]) in targets:
+                    pos.add(f'{pk}_gan')
+                if i < len(zhis) and zhis[i]:
+                    cg0 = get_canggan_mangpai(zhis[i])[0][0]
+                    if _shishen_full(day_gan, cg0) in targets:
+                        pos.add(f'{pk}_zhi')
+            return pos
+        cai_pos = _bq_positions({'正财', '偏财'})
+        yin_bpos = _bq_positions({'正印', '偏印'})
         yin_zhi = False
         for a in wa:
             if a.get('auxiliary'):
@@ -1080,10 +1185,10 @@ def detect_caisheng_sha_gongshen(
                 continue
             fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
             if t in ('冲', '穿'):
-                if (fp in cai_pos and tp in yin_pos) or (fp in yin_pos and tp in cai_pos):
+                if (fp in cai_pos and tp in yin_bpos) or (fp in yin_bpos and tp in cai_pos):
                     yin_zhi = True
                     break
-            elif fp in cai_pos and tp in yin_pos:
+            elif fp in cai_pos and tp in yin_bpos:
                 yin_zhi = True
                 break
         if not yin_zhi:
@@ -1297,6 +1402,17 @@ def detect_heban_yongshen(
                     if _wx_cat(dw, GAN_WX.get(partner_g, '')) in js \
                             and _ji_isolated(GAN_WX.get(partner_g, '')):
                         continue  # 从格异党孤立合去=吉，不论绊
+                    # 从格官合劫豁免（K3-294批6 A1 残留）：合对为 官杀(用神)×
+                    # 比劫(忌神) 而比劫明现≥2（非孤立，合去不尽）者——官杀合
+                    # 比劫=官星制劫护财之「合制」做功（zuogong 已记合制），官
+                    # 正行其职非「失去原性」，不论用神受绊。书锚 cj-富发财
+                    # 「官杀制比劫…申子辰会官杀局制劫财，发财」（丁丁两透，
+                    # 批4 孤立合去豁免够不到）；反锚 庚乙庚乙从强比劫包局
+                    # （财×比劫之合，非官杀）仍论绊不动。
+                    if cat == '官杀' \
+                            and _wx_cat(dw, GAN_WX.get(partner_g, '')) == '比劫' \
+                            and not _ji_isolated(GAN_WX.get(partner_g, '')):
+                        continue  # 官合劫=官星制劫护财（合制做功），不论绊
                 if _huaqi_exempt(HUA_YONG_MAP.get((g0, g1), ''), GAN_WX.get(g, '')):
                     continue  # 合化出喜用（化气≠本行且属喜用类），不论凶绊
                 hits.append(f'{g0}{g1}合 {_PK_CN[j]}干{g}({cat}为用神受绊)')
@@ -1313,6 +1429,70 @@ def detect_heban_yongshen(
         'detected': detected, 'severity': severity, 'strength': strength,
         'hits': hits, 'reason': reason,
     }
+
+
+def detect_zhuwei_ti_chonghuai(
+    day_gan: str, gans: List[str], zhis: List[str],
+) -> Dict:
+    """主位之体被宾位势冲坏检测（A12/N5，severe）。
+
+    段氏《中级》独眼乞食例（丁亥癸丑丁未辛亥）：「八字是金水有势而将未土
+    冲坏…冲坏了未中丁火…此命差了」——日支（主位之体，藏日主根气）欲制
+    宾位之支，而宾支得势（所制之五行干支主气≥3）反将日支冲坏：主弱宾强、
+    体被势坏，命差 severe（封顶贫）。与贼神捕神同源的「被制者主宾/体用
+    身份校验」：贼神须为宾，制体为凶。
+
+    判（窄口径防过火，全库实测命中仅 zj-独眼乞食 1 例）：
+      日支与宾位（年/月）支六冲 + 日支藏干（含余气）含日主五行（体=日主
+      之根）+ 日主于他支藏干（含余气）无同五行根（体孤——yx-富数百万
+      癸亥日亥子两根、reg67-地矿局长戊午日巳午两根，俱不论）+ 日支五行
+      克冲支本气/藏干五行 X（日支为欲制方——shouke-戚继光 巳亥冲，巳火
+      被亥水克、非欲制方，不论）+ X 干支主气≥3（成势）。
+    """
+    if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
+        return {'detected': False, 'severity': None, 'reason': ''}
+    from mangpai.objective.constants import LIU_CHONG
+    from mangpai.objective.canggan import get_canggan_mangpai
+    dw = GAN_WX.get(day_gan, '')
+    if not dw:
+        return {'detected': False, 'severity': None, 'reason': ''}
+
+    def _cang_wxs(z: str) -> Set[str]:
+        return {GAN_WX.get(cg, '') for cg, _q in get_canggan_mangpai(z)} - {''}
+
+    def _hit_pair(a: str, b: str) -> bool:
+        return (a, b) in LIU_CHONG or (b, a) in LIU_CHONG
+
+    day_z = zhis[2]
+    day_zwx = ZHI_WX.get(day_z, '')
+    # 体：日支藏干（含余气）含日主五行；体孤：他支藏干无同五行
+    if dw not in _cang_wxs(day_z):
+        return {'detected': False, 'severity': None, 'reason': ''}
+    if any(dw in _cang_wxs(zhis[i]) for i in (0, 1, 3) if zhis[i]):
+        return {'detected': False, 'severity': None, 'reason': ''}
+    for bi in (0, 1):  # 宾位（年/月）
+        bz = zhis[bi]
+        if not bz or not _hit_pair(day_z, bz):
+            continue
+        # 日支欲制对象 X：冲支本气或藏干五行中被日支五行所克者
+        targets = {ZHI_WX.get(bz, '')} | _cang_wxs(bz)
+        targets.discard('')
+        for x in sorted(targets):
+            if WX_KE.get(day_zwx) != x:
+                continue
+            # X 成势（干支主气≥3，同 22 期从格成势闸口径）
+            n = sum(1 for g in gans if GAN_WX.get(g) == x) + \
+                sum(1 for z in zhis if ZHI_WX.get(z) == x)
+            if n >= 3:
+                pk_cn = '年' if bi == 0 else '月'
+                return {
+                    'detected': True, 'severity': 'severe',
+                    'reason': (f'主位体坏：日支{day_z}（主位之体，藏日主{day_gan}之根）'
+                               f'欲制{pk_cn}支{bz}之{x}，而{x}有势（干支主气{n}位）'
+                               f'反将日支冲坏——主弱宾强、体被势坏，命差'
+                               f'（段氏「金水有势而将未土冲坏…此命差了」）'),
+                }
+    return {'detected': False, 'severity': None, 'reason': ''}
 
 
 def _ensure_zhengfan(day_gan: str, gans: List[str], zhis: List[str],
@@ -1526,11 +1706,15 @@ def assess_direction_signals(
     # famous23 与 trainset 零命中），方入凶向链。缺省自调 laoyu（与 ly 同链，
     # 不重复计算——见下方 laoyu_result 处理，此处先置 None 待 ly 就绪后补判）。
     n4: Dict = {'detected': False, 'severity': 'normal', 'reason': ''}
+    # N5（K3-294批6 A12）：主位之体被宾位势冲坏（日支藏日主根、体孤欲制
+    # 宾支而宾支得势反坏之——独眼乞食书锚），severe 级（封顶贫）。
+    n5 = detect_zhuwei_ti_chonghuai(day_gan, gans, zhis)
     mingju_xiong = bool(n1.get('detected')) or bool(n2.get('detected')) \
-        or bool(n3.get('detected'))
-    # severe 预留（当前三式俱 normal——凶向标记供「因财致祸/官非」断语，
-    # 不强行压贫；severe 封顶贫仍由比劫夺财 pocai_severe 承担）
-    mingju_xiong_severe = any(n.get('severity') == 'severe' for n in (n1, n2, n3))
+        or bool(n3.get('detected')) or bool(n5.get('detected'))
+    # severe 预留（N1/N3 俱 normal——凶向标记供「因财致祸/官非」断语，
+    # 不强行压贫；severe 封顶贫由比劫夺财 pocai_severe / N2 会局杀 / N5 承担）
+    mingju_xiong_severe = any(n.get('severity') == 'severe'
+                              for n in (n1, n2, n3, n5))
 
     zf = zhengfan_result or _ensure_zhengfan(day_gan, gans, zhis, relations)
     ly = laoyu_result or _ensure_laoyu(day_gan, gans, zhis, relations)
@@ -1617,7 +1801,7 @@ def assess_direction_signals(
         reasons.append(r2.get('reason', '忌神制用神'))
     if r3.get('detected'):
         reasons.append(r3.get('reason', '用神被合绊'))
-    for n in (n1, n2, n3, n4):
+    for n in (n1, n2, n3, n4, n5):
         if n.get('detected'):
             reasons.append(n.get('reason', '原局凶向'))
 
@@ -1644,6 +1828,7 @@ def assess_direction_signals(
         'caisheng_sha_gongshen': n2,       # N2 财生杀攻身（severe）
         'guansha_rumu': n3,                # N3 官杀入墓为忌
         'guanfei_laoyu': n4,               # N4 官非牢狱复合（魁罡逢冲官∧枭神夺食）
+        'zhuwei_ti_huai': n5,              # N5 主位之体被宾位势冲坏（severe）
         'mingju_xiong': mingju_xiong,      # 原局级凶向四式任一命中
         'mingju_xiong_severe': mingju_xiong_severe,
         'cong_target': cong_target,        # G5 从格所从分类（标注/消费两用）

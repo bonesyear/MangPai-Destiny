@@ -298,8 +298,24 @@ def _detect_po_cong(
         # 破从·日主得根：运岁支藏干（含余气，22期例6 戌中丁火墓库余气根）含日主五行
         if op_zhi:
             from mangpai.objective.canggan import get_canggan_mangpai
+            # 得根合化豁免（K3-294批6 G5）：运岁支与原局支六合、或运支补全
+            # 三合局（原局已有另两支）者，运支被原局合走/合化，所藏日主之根
+            # 随合化而不立——日主实未得根，不破从。
+            #   锚：yx-经理-4 甲辰运（辰与局申、子三合水局化财势，书明文「行
+            #   甲辰大运，发财数亿」）、yx-富发财数千万 壬辰运（辰合到主位酉，
+            #   书明文「幸行壬辰大运…辰合到主位酉，发财数千万」）；22期例6
+            #   戌运（原局无合戌之支）破从不动。
+            gen_he_hua = any(nz and _pair_hit(op_zhi, nz, LIU_HE)
+                             for nz in natal_zhis)
+            if not gen_he_hua:
+                from mangpai.objective.constants import SAN_HE as _SANHE
+                for _he, _wx in _SANHE.items():
+                    if op_zhi in _he \
+                            and all(p == op_zhi or p in natal_zhis for p in _he):
+                        gen_he_hua = True
+                        break
             for cg, _q in get_canggan_mangpai(op_zhi):
-                if GAN_WX.get(cg, '') == dw:
+                if GAN_WX.get(cg, '') == dw and not gen_he_hua:
                     fans.append({
                         'fan_type': f'{op_name}反局·破从(日主得根)',
                         'severity': '重',

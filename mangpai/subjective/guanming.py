@@ -847,7 +847,8 @@ def analyze_guanming(
             _has_positive_guanming(day_gan, gans or [], zhis or [], combo, guancai):
         veto_reasons = [r for r in veto_reasons
                         if not r.startswith(('反局', '岁运', '忌神制用神', '用神被合绊',
-                                             '伤官见官', '财生杀', '官杀入墓', '官非牢狱'))]
+                                             '伤官见官', '财生杀', '官杀入墓', '官非牢狱',
+                                             '主位体坏'))]
     vetoed = is_guanming_raw and bool(veto_reasons)
     is_guanming = is_guanming_raw and not vetoed
     if vetoed:

@@ -22,6 +22,24 @@ from mangpai.objective.constants import (
 )
 
 
+def _ss_cat(day_gan: str, gan: str) -> str:
+    """十神大类（比劫/印/食伤/财/官杀），供合对党派判别（K3-294批6）。"""
+    dw, gw = GAN_WX.get(day_gan, ''), GAN_WX.get(gan, '')
+    if not dw or not gw:
+        return ''
+    if gw == dw:
+        return '比劫'
+    if WX_SHENG.get(gw) == dw:
+        return '印'
+    if WX_SHENG.get(dw) == gw:
+        return '食伤'
+    if WX_KE.get(dw) == gw:
+        return '财'
+    if WX_KE.get(gw) == dw:
+        return '官杀'
+    return ''
+
+
 def _pos_element(pos: str, gans: List[str], zhis: List[str]) -> str:
     """取柱位 pos（如 'hour_zhi'/'day_gan'）处的五行。"""
     if not pos or '_' not in pos:
@@ -228,6 +246,7 @@ def analyze_zhengfan(
     day_targets: List[str] = []
     day_fan_targets: List[str] = []  # K2-5 精化后仍计入反局（五行方向）的日柱指向
     global_targets: List[str] = []
+    _gsrc: Dict[str, tuple] = {}  # 全局指向来源动作（K3-294批6 A1 残留用）
 
     # K2-5 合年/月干官精化（管理、控制别人=官为我所用）：日主合年/月干官者，
     # 官杀系统为日主所用（管理权，《中高级》「如是日主合年、月上的官，则意思
@@ -289,8 +308,10 @@ def analyze_zhengfan(
             # 非日柱的做功
             if to_pos:
                 global_targets.append(to_pos)
+                _gsrc.setdefault(to_pos, (wa.get('type', ''), from_pos))
             if from_pos:
                 global_targets.append(from_pos)
+                _gsrc.setdefault(from_pos, (wa.get('type', ''), to_pos))
 
     # 日柱无做功 → 无功不为局（盲派：无功不为局，不自动判正局）
     if not day_targets:
@@ -437,7 +458,36 @@ def analyze_zhengfan(
             day_elems = {de for de in day_elems
                          if not (de == _dq or WX_SHENG.get(de) == _dq)}
         if global_main_elem and day_elems:
-            ke_global = any(
+            # K3-294批6 A1 残留二道豁免（批1 any→制式收窄后的残留面，书锚双端）：
+            # (a) 合局同党：全局主指向来自**三合局**（成势以参与字记指向本就宽泛，
+            #   参与字非方向本身）而日柱制式指向已含该字五行者——同一成势做功
+            #   网络，非相背（gj-公门转商 寅午戌火局主指向戌土∈日柱指向{火木土}，
+            #   书明文「五行流转有情，故能成小富之局」；反锚 famous-李昌镐：
+            #   主指向来自天干五合不在此列，其官命否决由反局维持=否·不入仕途）。
+            # (b) 合链同战：全局主指向来自五合/合族（合制做功），而合之他方五行
+            #   恰为日柱制式指向者——合动作把两党绑于一条合链，日柱所制与全局
+            #   所制同属一役，非相背。限**官劫相缠**之合（合对两干十神为
+            #   官杀×比劫——官杀制比劫之战；书锚 cj-富发财 壬丁合=官合劫，
+            #   日柱辰制子水=官，书明文「官杀制比劫…发财」；reg67-乾隆 辛丙
+            #   合=劫合杀同理）。反锚：zj-注册会计师 丁壬合=官×食（非官劫），
+            #   li101-穷命 癸戊合之他方水∉日柱指向{木,火}，反局俱不动。
+            _g_exempt = False
+            _gs = _gsrc.get(global_main_target)
+            if _gs:
+                _gt, _gp = _gs
+                _gp_elem = _pos_element(_gp, gans, zhis) if _gp else ''
+                if _gt == '三合局' and global_main_elem in day_elems:
+                    _g_exempt = True
+                elif _gt in ('天干合', '地支合', '暗合', '半合') \
+                        and _gp_elem and _gp_elem in day_elems:
+                    _cats = set()
+                    for _p in (global_main_target, _gp):
+                        if _p.endswith('_gan'):
+                            _gi = ('year', 'month', 'day', 'hour').index(_p[: -4])
+                            _cats.add(_ss_cat(day_gan, gans[_gi]))
+                    if _cats == {'官杀', '比劫'}:
+                        _g_exempt = True
+            ke_global = not _g_exempt and any(
                 WX_KE.get(de) == global_main_elem
                 or WX_KE.get(global_main_elem) == de
                 for de in day_elems

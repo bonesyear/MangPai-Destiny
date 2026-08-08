@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-08-08 第二十八批 · 294 例训练集修复 批6（财命收官：G5 残 + A1残 + A10/A11/A12，trainset 财命破 50%）
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| G5 从格破从残留 | 经理-4/富发财数千万 破从分类补齐（22期从格行运规则） | subjective/yunfan.py |
+| A10/A11 | N2 财生杀攻身双向 + R1 比劫夺财假阳（yongshen +203） | subjective/yongshen.py |
+| A12 | 主位之体被宾位势冲坏入凶向链（zhengfan +52） | subjective/zhengfan.py |
+| 官命联动 | guanming 小改（+3） | subjective/guanming.py |
+
+验证：verify 432+70 全绿、pytest 473 passed、heldout 财命 66.67%（46✅）零翻转、**trainset 财命 52.21%（59✅/42⚠️/12❌，❌ 16→12，破 50% 大关）**、67例 0 回归、famous 无变化、calib 0 回归（+5 IMPROVE 保持）。
+注：K3 改码 150 轮中途撞 kimi 配额 403（264 行改动未验证即中断），验证由 Hermes 复核完成；财命维度收官（A 簇 15 个全处理）。
+
 ## 2026-08-08 第二十七批 · 294 例训练集修复 批5（A13/A7/A4/A9/A15 小簇，trainset 财命 49.56%）
 
 | 项目 | 内容 | 文件 |
