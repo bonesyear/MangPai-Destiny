@@ -272,6 +272,12 @@ def _detect_zhiku_decai(
             break
     if not opener:
         return out
+    # 三刑坏库守卫（K3-294批4，cj-贫穷命悲惨书锚）：丑戌未三刑三字全在局，
+    # 库入三刑为刑坏而非冲/刑开（段氏「丑未冲开一点点」vs 三刑刑伤——
+    # 书明文丑未戌三刑坏财库判「穷命悲惨」），不论制库得财。奥纳西斯
+    # （丑未冲，局无戌）、yx-煤矿（丑戌刑，局无未）皆二字冲刑，不受此限。
+    if month_zhi in '丑戌未' and {'丑', '戌', '未'} <= set(z for z in zhis if z):
+        return out
     # 要件3：muku 判开库（透干引拔）
     mu = _ensure_muku(gans, zhis, muku_result)
     opened = any(t.get('zhi') == month_zhi and t.get('status') == '开库'
@@ -726,7 +732,7 @@ def classify_caifu_view(
     # 主位已制宾官得财（官杀当财）则不再判过河拆桥破财，避免矛盾破财信号。
     guohe = {}
     if '财统官' not in views and '官统财（官杀当财）' not in views:
-        guohe = _detect_guohe_chaiqiao(day_gan, gans, zhis, cats, wa)
+        guohe = _detect_guohe_chaiqiao(day_gan, gans, zhis, cats, wa, _active_ku)
     guohe_type = guohe.get('type') if guohe else None
     if guohe:
         views.append(f'过河拆桥·{guohe_type}')
@@ -802,11 +808,40 @@ def _guan_mingxian_positions(
 
 def _controlled_guan_positions(
     wa: List[Dict], gans: List[str], zhis: List[str], guan_wx: str,
+    he_both_ends: bool = False,
 ) -> Set[str]:
-    """被制官杀位（制用/合制动作 to_pos，目标五行=官五行）。"""
+    """被制官杀位（制用/合制动作目标，目标五行=官五行）的 pos 集合。
+
+    he_both_ends=True（过河拆桥制尽判据专用）：合制（天干合/地支合/暗合/
+    半合）from/to 无方向语义、两端俱入局受合（与 _detect_guohe_chaiqiao
+    「合用对称，两端皆试」同口径）——合之施动端支本/中气所藏同党官随合
+    入局、非游离残存（K3-294批4：yx-富发财数千万 午未合，午中己官随合，
+    书明文壬辰运发财数千万，非制不尽破财）。
+    默认 False（制不尽当财等「被制引动」判据用）：合制仅计 to_pos 本气，
+    支中藏官受合牵扯不算被制（reg67-合例六两妻 卯戌合戌中丁官、
+    cj-中医 辰酉合辰中癸官——书俱不判官杀当财）。
+    """
     pos: Set[str] = set()
     for a in wa:
-        if a.get('type') not in (_ZHI_CONTROL | _HE_CONTROL):
+        t = a.get('type')
+        if t not in (_ZHI_CONTROL | _HE_CONTROL):
+            continue
+        if t in _HE_CONTROL and he_both_ends:
+            # to 端维持本气旧口径；from 端只计**中气藏干**同党官（随合入局
+            # 之附属官非游离残存——yx-富发财数千万 午未合、午中己官随合，
+            # 书明文壬辰运发财数千万）；from 端本气官=合局主角（拆桥之桥
+            # 或拆桥者本身），其去留由拆桥动作判定、不在此计（qi02-夫死
+            # 申子半合、申为被拆之桥本气官，计之则破财误翻富格）。
+            to_pos = a.get('to_pos', '')
+            if to_pos and _pos_element(to_pos, gans, zhis) == guan_wx:
+                pos.add(to_pos)
+            from_pos = a.get('from_pos', '')
+            if from_pos and from_pos.endswith('_zhi'):
+                i = PILLAR_KEYS.index(_pos_pillar(from_pos))
+                if i < len(zhis) and zhis[i] and any(
+                        GAN_WX.get(cg) == guan_wx and src == '中气'
+                        for cg, src in get_canggan_mangpai(zhis[i])):
+                    pos.add(from_pos)
             continue
         to_pos = a.get('to_pos', '')
         if to_pos and _pos_element(to_pos, gans, zhis) == guan_wx:
@@ -834,19 +869,33 @@ def _is_zhi_jin(
     仍计残存（qi05 时干癸杀透干，制不尽成立）。b67 森田健（辛戊己癸/卯戌
     亥酉）：日支亥中气甲（官）被旧判据计为残存 -> 误判制不尽破财（gold
     富·壬申癸酉年发财）；修法后宾官卯俱被月戌合制 -> 制尽富格。
+
+    宾位透干随根论制（K3-294批4，famous-索罗斯书锚「制七杀申金，制之
+    干净功力十足」）：宾位（年/月）透干官杀之同五行本气根支俱被制者，
+    干为被制之根透出的虚影（庚为申透，申制尽则庚自虚，况庚坐午截脚），
+    不计残存同党；主位透干不在此例（qi05 红线同上）。
     """
     mingxian = _guan_mingxian_positions(day_gan, gans, zhis, guan_wx)
     mingxian = {p for p in mingxian
                 if not (p.endswith('_zhi') and _pos_pillar(p) in ('day', 'hour'))}
     if not mingxian:
         return False
-    controlled = _controlled_guan_positions(wa, gans, zhis, guan_wx)
+    controlled = _controlled_guan_positions(wa, gans, zhis, guan_wx,
+                                            he_both_ends=True)
+    # 宾位透干官杀：根支（同五行本气支）俱被制 -> 随根论制，不计残存
+    root_zhis = {f'{pk}_zhi' for i, pk in enumerate(PILLAR_KEYS)
+                 if i < len(zhis) and ZHI_WX.get(zhis[i]) == guan_wx}
+    if root_zhis and root_zhis <= controlled:
+        mingxian = {p for p in mingxian
+                    if not (p.endswith('_gan')
+                            and _pos_pillar(p) in ('year', 'month'))}
     return mingxian <= controlled  # 明现官杀位俱被制方为制尽
 
 
 def _detect_guohe_chaiqiao(
     day_gan: str, gans: List[str], zhis: List[str],
     cats: List[Set[str]], wa: List[Dict],
+    active_ku: Optional[Set[str]] = None,
 ) -> Dict:
     """过河拆桥检测：主位财生宾官、宾官被宾字合/制，按制尽/制不尽分键。
 
@@ -876,13 +925,22 @@ def _detect_guohe_chaiqiao(
     # 主位（日支或时支）有财：段氏过河拆桥核心是「宾字合/制桥（宾官）」，
     # 「日支财生宾官」为经典「财过河」结构；时支同主位，时支财过河生宾官亦成立。
     # 放宽「日支必为财」硬前置 -> 主位有财即可，避免漏检时支财过河之桥被拆。
+    # 财须有根（藏干皆计，含余气——qi05 巳中庚余气财过河被拆=破财真阳、
+    # qi20 戌中辛余气财富格真阳，俱不可排）；唯**库财**（藏干五行入该支
+    # 之墓）未活化者不算（对齐上方 cai_count 库财口径，K3-294批4：
+    # cj-贫穷命悲惨 丑中辛=金库之财、丑未戌三刑坏库书判穷命悲惨）。
+    # b67 森田健 亥中甲中气财不受影响。
     if len(zhis) != 4:
         return {}
+    _active_ku = active_ku or set()
 
     def _zhi_has_wx(zhi: str, wx: str) -> bool:
-        return (ZHI_WX.get(zhi) == wx) or any(
-            GAN_WX.get(cg) == wx for cg, _ in get_canggan_mangpai(zhi)
-        )
+        if ZHI_WX.get(zhi) == wx:
+            return True
+        for cg, _q in get_canggan_mangpai(zhi):
+            if GAN_WX.get(cg) == wx:
+                return wx not in TOMB_MAP.get(zhi, []) or zhi in _active_ku
+        return False
 
     cai_pos_cn = ''
     cai_zhi = ''
@@ -947,9 +1005,30 @@ def _detect_guohe_chaiqiao(
     desc = found_action.get('desc', '制')
     # 制尽/制不尽分键（高级篇富格 vs 中级篇破财）
     if _is_zhi_jin(day_gan, gans, zhis, cats, wa, guan_wx):
+        # 日主争合坏格守卫（K3-294批4，yx-贫打工书锚）：两及以上同五行透干
+        # 争合日主（甲日年月两己），段氏争合「合不住、其情不专」——财意
+        # 不专于日主，制官得财之富格（巨富定式）不成立（书明文「打工不
+        # 赚钱，无钱成家」判贫）。
+        zhenghe = sum(1 for k, g in enumerate(gans)
+                      if k != 2 and g and TIAN_GAN_HE.get(g) == day_gan)
+        if zhenghe >= 2:
+            return {}
         return {'type': '富格', 'detail': (
             f'{cai_pos_cn}{cai_zhi}（财）生宾位{pos_cn}官杀，宾官又被宾字{desc}且制尽（净制），'
             f'过河拆桥富格——制官得财（七杀当财量级），巨富')}
+    # 主位制宾官豁免（K3-294批4，famous-索罗斯书锚）：主位（日/时）以非辅助
+    # 制用动作直制该宾官者，为「主制宾官得财」官杀当财做功（双午制申，书明文
+    # 「制七杀申金，制之干净功力十足」），财非过河流失——制不尽亦不论破财
+    # （与上官统财/财统官互斥门同旨，彼以 views 计数守门、此以做功动作守门，
+    # 索罗斯 官财 3:3 平数时 views 门漏、动作门兜住）。
+    for a in wa:
+        if a.get('auxiliary') or a.get('type') not in _ZHI_CONTROL:
+            continue
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        if _is_zhu(fp) and tp and not _is_zhu(tp) \
+                and _pos_pillar(tp) in ('year', 'month') \
+                and _pos_element(tp, gans, zhis) == guan_wx:
+            return {}
     return {'type': '破财', 'detail': (
         f'{cai_pos_cn}{cai_zhi}（财）生宾位{pos_cn}官杀，宾官被宾字{desc}但制不尽'
         f'（官杀残存），过河拆桥，财流失破财')}

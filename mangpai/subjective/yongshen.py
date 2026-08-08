@@ -588,6 +588,11 @@ def detect_jishen_zhiyongshen(
     用神制忌神=吉，不触发。
     严重度：忌神（R2a=财/R2b=印）≥2柱 或 命中≥2处 -> severe。
 
+    忌神失能三道豁免（K3-294批4，与 R1b 同书锚族）：忌神被紧贴合绊失能
+    （巨富丑运 戌印被卯戌合绊，书明文丑印运发财）/贪合忘克·同入三合全
+    局内不论克（cj-老师 亥卯未全，未印不夺亥食）/日支自合柱合神即忌神
+    同类=为我所得（yx-煤矿-2 壬午日丁财自合，书明文壬午财运发财十亿）。
+
     Returns:
         {'detected': bool, 'kind': '财坏印'|'印夺食'|None,
          'severity': 'severe'|'normal'|None, 'strength': str,
@@ -624,6 +629,43 @@ def detect_jishen_zhiyongshen(
                 'strength': strength, 'hits': []}
 
     wa = _ensure_work_actions(day_gan, gans, zhis, work_actions)
+
+    # ── 忌神失能三道豁免（K3-294批4，A2 假阳簇）──
+    # R2 前提是忌神有力能制用神；忌神自身失原性/为我所得者不能制——
+    # 与 R1b 功神被合绊失能（qi03「合绊…不克害用神」）同书锚族。
+    # (a) 忌神被合绊：功神位为紧贴合绊失能方（六合受害方/天干五合互绊，
+    #     口径同 _tiejie_heban_positions）——yx-巨富丑运 戌印被卯戌合绊，
+    #     书明文丑运（印）发财几千万，印非夺食之忌神。
+    _js_heban = _tiejie_heban_positions(gans, zhis)
+    # (b) 贪合忘克：功神与被制者同入三字全之三合局，合化一行、局内不论
+    #     相克——cj-老师 未印「克」亥食伤，然亥卯未全、未随局化财，
+    #     书明文官统财合到主位、午运发财。
+    from mangpai.objective.constants import SAN_HE as _SAN_HE
+    _zhis_set = set(z for z in zhis if z)
+
+    def _same_sanhe(pa: str, pb: str) -> bool:
+        if not (pa.endswith('_zhi') and pb.endswith('_zhi')):
+            return False
+        za = zhis[_PK4.index(pa.rsplit('_', 1)[0])]
+        zb = zhis[_PK4.index(pb.rsplit('_', 1)[0])]
+        for grp in _SAN_HE:
+            if len(grp) == 3 and za in grp and zb in grp and all(z in _zhis_set for z in grp):
+                return True
+        return False
+
+    # (c) 自合柱之财为我得（G9 口径）：日支自合柱激活且支中合神即忌神
+    #     同类（财）者，财合日主=财来就我、承载日主取用，非忌神坏印——
+    #     yx-煤矿-2 壬午日午中丁财自合，书明文壬午运（财）发财十亿。
+    _zihe_js_dayzhi = False
+    try:
+        from mangpai.objective.zihe import detect_zihe
+        _dzh = detect_zihe(gans, zhis).get('day_zihe')
+        _zihe_js_dayzhi = bool(
+            _dzh and _dzh.get('activated')
+            and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == js_cat)
+    except Exception:
+        pass
+
     hits: List[str] = []
     for a in wa:
         if a.get('auxiliary'):
@@ -634,9 +676,15 @@ def detect_jishen_zhiyongshen(
         fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
         if not (fp and tp) or fp == 'day_gan':
             continue
+        if fp in _js_heban:
+            continue  # (a) 忌神被合绊失能，不能制用神
+        if fp == 'day_zhi' and _zihe_js_dayzhi:
+            continue  # (c) 日主自合之财（忌神同类）为我所得，不论忌神制用神
         fc = _wx_cat(dw, _pos_main_wx(fp, gans, zhis))
         tc = _wx_cat(dw, _pos_main_wx(tp, gans, zhis))
         if fc == js_cat and tc == ys_cat:
+            if _same_sanhe(fp, tp):
+                continue  # (b) 贪合忘克：同入三合局，局内不论相克
             hits.append(f'{t} {fp}({js_cat})→{tp}({ys_cat})')
 
     detected = bool(hits)
@@ -1127,8 +1175,12 @@ def detect_heban_yongshen(
     def _ji_isolated(wx: str) -> bool:
         """忌神五行孤立（明现≤1：透干或支主气）：孤立者被合去即成净
         （段氏「合去」=去除——ans30 壬财孤立，丁合去之则忌神净；乙财两见
-        者合去一处仍有余，不尽，不论合去）。"""
-        n = sum(1 for g in gans if GAN_WX.get(g) == wx) + \
+        者合去一处仍有余，不尽，不论合去）。
+        从格日主不计同党之援（K3-294批4）：从格日主无根不能自立、其气
+        已从势，非异党之根援——cj-富发财 从弱，丙日主不计火党，丁劫
+        孤立被壬杀合去=忌神净吉（书明文戊申运会官杀局制劫发财）。"""
+        n = sum(1 for k, g in enumerate(gans)
+                if k != 2 and GAN_WX.get(g) == wx) + \
             sum(1 for z in zhis if ZHI_WX.get(z) == wx)
         return n <= 1
     for i in range(3):
@@ -1154,19 +1206,24 @@ def detect_heban_yongshen(
                         continue  # 合化出喜用（化气≠本行且属喜用类），不论凶绊
                     hits.append(f'{a}{b}合绊 {_PK_CN[j]}支{z}({cat}为用神受绊)')
     # ── 天干五合（他干紧贴=年干×月干，互绊）──
-    # 日主争合抑制：受害方若为月干且与日主五合（日主合用=我取之用——该神
-    # 正承载日主做功，未「失去原性」），不论绊。与「日干参与之合属合用
-    # 做功层」同口径（从财格日主合财=得财，如 丙申辛丑丙申己亥 地产发财；
-    # 年干受害隔柱非日主紧贴，无此抑制）。
+    # 日主争合整对豁免（K3-294批4，限扶抑格）：日主与该五合之一方相合者，
+    # 合对两干皆在日主争合/合用之境（zuogong「合用」做功层：合财/合官），
+    # 未「失去原性」，整对不论绊——yx-医师（身弱）两壬争合丁财，年干比肩
+    # 为日主争财之援非受绊（书明文卯运伤官生财年入百万）。**从格不论**：
+    # 从格论势不论争合取用，异党相缠非「我取之用」（庚乙庚乙从强比劫包局
+    # 锚：年干庚被乙财合仍论绊）；从格仅保留 j==1 日主合用单点抑制
+    # （丙申辛丑丙申己亥从财格日主合辛财=得财，不触发）。
     # 从格异党合去豁免（G5）：合对一方为异党（忌神）者，忌神被合去=吉
     # （ans30 从禄格 丁壬合去壬财忌神），不单论用神侧受绊。
     g0, g1 = gans[0], gans[1]
-    if g0 and g1 and TIAN_GAN_HE.get(g0) == g1:
+    _zhenghe_pair_exempt = strength not in ('从强', '从弱') \
+        and TIAN_GAN_HE.get(day_gan) in (g0, g1)
+    if g0 and g1 and TIAN_GAN_HE.get(g0) == g1 and not _zhenghe_pair_exempt:
         for j, g in ((0, g0), (1, g1)):
             cat = _wx_cat(dw, GAN_WX.get(g, ''))
             if cat in ys and f'{_PK[j]}_gan' not in engaged:
                 if j == 1 and TIAN_GAN_HE.get(day_gan) == g:
-                    continue  # 日主争合/合用做功，月干用神未失原性
+                    continue  # 日主合用做功（从格顺势合财=得财），月干用神未失原性
                 if cong_hequ_exempt:
                     partner_g = g1 if j == 0 else g0
                     if _wx_cat(dw, GAN_WX.get(partner_g, '')) in js \
