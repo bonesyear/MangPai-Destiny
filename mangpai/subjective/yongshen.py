@@ -846,12 +846,59 @@ def detect_shangguan_jianguan(
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
         return {'detected': False, 'severity': None, 'reason': ''}
     strength = classify_strength(day_gan, gans, zhis)
-    ys, _js = _yongshen_cats(strength)
-    if '官杀' not in ys:
-        return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
     shang_pos = _mingxian_shishen_positions(day_gan, gans, zhis, {'伤官'})
     guan_pos = _mingxian_shishen_positions(day_gan, gans, zhis, {'正官'})
     if not (shang_pos and guan_pos):
+        return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
+
+    # 伤官诀五行分向（总诀「伤官见官分宜畏，全在五行与节令」）——喜忌双向
+    # 消费：喜见官侧入下方豁免一；怕见官侧入下方成势 severe 条款（A4）。
+    try:
+        from mangpai.subjective.juefa import analyze_juefa
+        sg = analyze_juefa(gans, zhis, day_gan).get('shangguan_jue') or {}
+    except Exception:
+        sg = {}
+    vd = sg.get('verdict', '') if sg.get('matched') else ''
+
+    # ── 成势怕见官 severe 条款（K3-294批5 A4 漏检侧，不论身强弱）──
+    # gj-低保伤官书锚：「土金伤官怕见官…伤官与官星对抗，格局破败…靠低保
+    # 维生」——juefa 判「怕见官」（无火印通关）+ 伤官明现≥3柱成势 + 伤官
+    # 本气支与本气正官支冲战（含遥冲）+ 无财明现通关（有财则伤官生财、
+    # 财转生官，战意解），即「怕见官」成局：官非吉去而是被冲战破败，
+    # severe（格局破败困顿）。反例守卫：qi19 伤官去官格（官透干被伤官干
+    # 克去=去官吉，无本气官支冲战）不触；过河拆桥/董竹君/qi15 财明现不触。
+    if '怕见官' in vd and len(shang_pos) >= 3:
+        from mangpai.objective.constants import LIU_CHONG as _LC
+        from mangpai.objective.canggan import get_canggan_mangpai as _gcm
+        # 通关之财须明透（透干/支本气）——中气藏财力弱不能解冲战
+        # （低保伤官书锚：申中壬中气财在局，书仍判「格局破败…靠低保维生」）。
+        _cai_wx_s = WX_KE.get(GAN_WX.get(day_gan, ''), '')
+        _cai_ming_tou = bool(_cai_wx_s) and (
+            any(GAN_WX.get(g, '') == _cai_wx_s for g in gans) or
+            any(ZHI_WX.get(z, '') == _cai_wx_s for z in zhis if z))
+        if not _cai_ming_tou:
+            def _bq_zhi_idxs(pos_set: Set[str], ten_god: str) -> List[int]:
+                out = []
+                for p in pos_set:
+                    if not p.endswith('_zhi'):
+                        continue
+                    zi = _PK4.index(p.split('_')[0])
+                    if _shishen_full(day_gan, _gcm(zhis[zi])[0][0]) == ten_god:
+                        out.append(zi)
+                return out
+            guan_bq = _bq_zhi_idxs(guan_pos, '正官')
+            shang_bq = _bq_zhi_idxs(shang_pos, '伤官')
+            if any((zhis[si], zhis[gi]) in _LC or (zhis[gi], zhis[si]) in _LC
+                   for si in shang_bq for gi in guan_bq):
+                return {'detected': True, 'severity': 'severe', 'strength': strength,
+                        'hits': [], 'exemption': '',
+                        'reason': (f'伤官见官为忌（成势怕见官）：伤官明现{len(shang_pos)}柱'
+                                   f'成势，伤官本气支与本气正官支冲战，无财通关——'
+                                   f'{sg.get("type", "")}「{vd}」，格局破败'
+                                   f'（书锚=gj-低保伤官「土金伤官怕见官…靠低保维生」）')}
+
+    ys, _js = _yongshen_cats(strength)
+    if '官杀' not in ys:
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
 
     wa = _ensure_work_actions(day_gan, gans, zhis, work_actions)
@@ -876,13 +923,7 @@ def detect_shangguan_jianguan(
     if hits:
         # 豁免一：伤官诀五类（juefa.py 已实现五行×节令分向）——金水伤官喜见官
         # （调候暖局）、水木伤官喜财官（财官相佐）、伤官佩印（印来制伤贵气生）
-        # 者，见官为格局所需，非「贵气损」。
-        try:
-            from mangpai.subjective.juefa import analyze_juefa
-            sg = analyze_juefa(gans, zhis, day_gan).get('shangguan_jue') or {}
-        except Exception:
-            sg = {}
-        vd = sg.get('verdict', '') if sg.get('matched') else ''
+        # 者，见官为格局所需，非「贵气损」。（sg/vd 已在上方统一取）
         for key in ('喜见官', '喜财官', '伤官佩印'):
             if key in vd:
                 exemption = (f'伤官诀·{sg.get("type", "")}「{vd}」：'
@@ -918,6 +959,33 @@ def detect_shangguan_jianguan(
             cai_pos = _mingxian_shishen_positions(day_gan, gans, zhis, {'正财', '偏财'})
             if cai_pos and not any(h.startswith(('冲', '穿')) for h in hits):
                 exemption = '财星通关：财明现，伤官贪生财忘克官（财官相佐），见官不凶'
+        # 豁免四（K3-294批5 A4 假阳侧）：伤官自身被制——伤官俱在支位且各支
+        # 均被非官杀之支冲/刑/穿（reg67-例9 书明文「两申制寅」=印制伤官；
+        # 资本运营 丑未冲=伤官互冲自战），伤官无力伤官，见官不凶。冲/刑/穿
+        # 者为官杀本气者不在此列（官伤相战正是 N1 本体——书法家 午官冲子伤
+        # 官，不豁免）。
+        if not exemption:
+            from mangpai.objective.constants import (
+                LIU_CHONG as _LC4, XING_PAIRS as _XP4, LIU_HAI as _LH4,
+            )
+            from mangpai.objective.canggan import get_canggan_mangpai as _gcm4
+            shang_zhi_idx = [_PK4.index(p.split('_')[0]) for p in shang_pos
+                             if p.endswith('_zhi')]
+            if shang_zhi_idx and len(shang_zhi_idx) == len(shang_pos):
+                def _non_guan_attacker(zi: int) -> bool:
+                    for j, z2 in enumerate(zhis):
+                        if j == zi or not z2:
+                            continue
+                        if ((zhis[zi], z2) in _LC4 or (z2, zhis[zi]) in _LC4
+                                or (zhis[zi], z2) in _XP4 or (z2, zhis[zi]) in _XP4
+                                or (zhis[zi], z2) in _LH4 or (z2, zhis[zi]) in _LH4):
+                            if _shishen_full(day_gan, _gcm4(z2)[0][0]) \
+                                    not in ('正官', '七杀'):
+                                return True
+                    return False
+                if all(_non_guan_attacker(zi) for zi in shang_zhi_idx):
+                    exemption = ('伤官自身被制：伤官支俱被非官杀之支冲/刑/穿'
+                                 '（如两申制寅），无力伤官，见官不凶')
 
     detected = bool(hits) and not exemption
     reason = ''
@@ -1422,7 +1490,8 @@ def assess_direction_signals(
          'yongshen_xiong': bool, 'reasons': [str], 'suiyun_reasons': [str]}
     """
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
-        return {'direction': '中性', 'fanju': False, 'suiyun_fanju': False,
+        return {'direction': '中性', 'fanju': False, 'fanju_caixing': False,
+                'suiyun_fanju': False,
                 'laoyu_risk': '无',
                 'bijiao_duocai': {}, 'pocai': False, 'pocai_severe': False,
                 'guohe_pocai': False,
@@ -1477,6 +1546,19 @@ def assess_direction_signals(
             mingju_xiong = True
 
     natal_fanju = bool(zf and zf.get('type') == 'fan')
+    # A15 财星反局（K3-294批5）：K2-4 冲合矛盾反局且财本气支在主位（日时）
+    # 冲对中被冲坏——书明文「财星反局主大凶」（zgj-财反局苦力：日时子午冲
+    # 冲坏子水财星，「非常穷年收入不过五千」），severe 级凶向（caiming 封顶
+    # 贫）。宾位（年月）冲对/财在合对者不 severe（cj-平财不大 年月子午冲、
+    # 财在午=宾位，书判平·财不大，仍按一般凶向封顶小康）。
+    fanju_caixing = False
+    if natal_fanju and zf and zf.get('k24_chong_zhuwei'):
+        _cai_wx_f = WX_KE.get(GAN_WX.get(day_gan, ''), '')
+        if _cai_wx_f:
+            fanju_caixing = any(
+                ZHI_WX.get(z, '') == _cai_wx_f
+                for z in (zf.get('k24_chong_zhis') or [])
+            )
 
     # 岁运反局（A1）：当前运/岁反局 + 岁运联动，接入同一否决链。
     # 流年 fans 内已含岁运联动条目（fans.extend(sui_fans)），故流年段跳过
@@ -1520,6 +1602,8 @@ def assess_direction_signals(
     reasons: List[str] = []
     if natal_fanju:
         reasons.append(f"反局（{zf.get('configuration', '')}）")
+        if fanju_caixing:
+            reasons.append('财星反局（财本气支在冲对中被坏，主大凶）')
     if suiyun_fanju:
         # 岁运反局条目多（一运/岁可命中多类型），截取前 3 条示意见 suiyun_reasons
         reasons.extend(suiyun_reasons[:3])
@@ -1545,6 +1629,7 @@ def assess_direction_signals(
     return {
         'direction': direction,
         'fanju': fanju,
+        'fanju_caixing': fanju_caixing,  # A15 财星反局（severe 级，封顶贫）
         'suiyun_fanju': suiyun_fanju,
         'laoyu_risk': laoyu_risk,
         'laoyu_hit': laoyu_hit,

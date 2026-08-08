@@ -303,6 +303,8 @@ def analyze_zhengfan(
 
     # 反局判定：日柱做功方向与全局气势相背
     fan_reason = ''
+    k24_chong_zhis: List[str] = []  # A15：K2-4 冲合矛盾之冲对支字
+    k24_chong_zhuwei = False        # A15：冲对是否在主位（日时）
 
     # K2-3 时支不可坏特判：日主合时干官、时支为体（比劫/印），而时支被得势方
     # 所坏（冲/刑/穿/破/克以其为目标）→ 反局（「必须用时支，时支不可坏；
@@ -369,6 +371,12 @@ def analyze_zhengfan(
                     f'年月{zhis[0]}{zhis[1]}相{ym_rel}、日时{zhis[2]}{zhis[3]}相{dh_rel}，'
                     f'冲合做功方式自相矛盾，八字自乱{he_note}'
                 )
+                # K3-294批5 A15：记录冲对支字（供「财星反局」severe 判——
+                # 财本气支在主位（日时）冲对中被冲坏，书明文「财星反局主大凶」
+                # 封顶贫；宾位年月冲对不 severe——cj-平财不大书判平/小康）
+                k24_chong_zhis = [zhis[0], zhis[1]] if ym_rel == '冲' \
+                    else [zhis[2], zhis[3]]
+                k24_chong_zhuwei = dh_rel == '冲'
 
     # 反局（五行方向）：日柱做功目标五行 vs 全局做功主要目标五行，相克即相背。
     #   比和（同五行）/相生为同向、顺势，不判反局；五行信息缺失则不论。
@@ -462,6 +470,8 @@ def analyze_zhengfan(
             'type': 'fan',
             'reason': fan_reason,
             'qishi': qishi,
+            'k24_chong_zhis': k24_chong_zhis,
+            'k24_chong_zhuwei': k24_chong_zhuwei,
         }
 
     # 正局：日柱做功未与气势相背

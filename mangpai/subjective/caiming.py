@@ -283,6 +283,16 @@ def _detect_zhiku_decai(
     opened = any(t.get('zhi') == month_zhi and t.get('status') == '开库'
                  for t in (mu.get('tombs') or []))
     if not opened:
+        # 要件3'（K3-294批5 A13）：成势制库豁免——闭库（无透干引拔）但克库
+        # 藏财之五行一方成势（干支主气≥3）者，势制库财同开库之制。制库为
+        # 「制」口径（成势方把库连同库中财与原神俱制），非开库取用口径，
+        # 不以透干引拔为门槛。书锚=yx-煤矿（丁巳癸丑丙戌甲午：火土成势制
+        # 月令丑金财库，书明文戌运发财十几亿）。
+        _ke_cai = next((k for k, v in WX_KE.items() if v == cai_wx), '')
+        _n_ke = sum(1 for g in gans if GAN_WX.get(g, '') == _ke_cai) + \
+            sum(1 for z in zhis if ZHI_WX.get(z, '') == _ke_cai)
+        opened = bool(_ke_cai) and _n_ke >= 3
+    if not opened:
         return out
     # 要件4：库藏干同含财与食伤（财与原神同库）
     ku_gans = {cg for cg, _q in get_canggan_mangpai(month_zhi)}
@@ -1241,11 +1251,19 @@ def _zeishen_jingzhi(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
     """贼神捕神净制判定（段氏理象学）：净=贼神原神俱制、制之干净，量级同制尽。
 
     zhibujin 封顶富的豁免判据——软依赖 zeishen_bushen，异常一律按不净（封顶）。
+    K3-294批5 A9：净制须捕神强度≥贼神强度（捕弱于贼则制不住、制不净）——
+    yx-贫家境贫寒一贫书锚（捕火5.0<贼金6.25 假净制上浮巨富，书判一贫如洗；
+    双胞胎甲寅时同构，书判富百万系「戊喜见甲」非净制之功）。巨富锚俱捕强
+    于贼（李嘉诚5.75≥4.0/保尔森8.75≥3.25/cj-巨富制尽10≥3.75），不受影响。
     """
     try:
         from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
         r = analyze_zeishen_bushen(day_gan, gans, zhis)
-        return bool((r.get('zeishen_bushen') or {}).get('jing_zhi') == '净')
+        zb = r.get('zeishen_bushen') or {}
+        if zb.get('jing_zhi') != '净':
+            return False
+        return float(zb.get('bushen_strength') or 0) >= \
+            float(zb.get('zeishen_strength') or 0)
     except Exception:
         return False
 
@@ -1320,6 +1338,32 @@ def assess_caiming_level(
     except Exception:
         pass
     cong_ge = strength.startswith('从')
+    # A7 从格顺势档根判门（K3-294批5）：日主坐支为日主五行之墓库（坐库通根）
+    # 且根未被双夹冲/合会转化坏者，「去之不得」不从——从财/从儿「基阶不落下
+    # 富」顺势档不予。书锚：cj-贫一生不富穷命（丙坐戌=火库根，书明文「金水
+    # 有势，去之不得…一生不富」非从财）。余气坐根不在此门（li131 甲坐辰，
+    # 书明文「身弱不从」仍富——其富由从财顺势档正供，坐余气根不挡）。
+    cong_floor_blocked = False
+    if strength == '从弱' and len(zhis or []) == 4 and zhis[2]:
+        _dw7 = GAN_WX.get(day_gan, '')
+        if _dw7 and _dw7 in TOMB_MAP.get(zhis[2], []):
+            _nb7 = [zhis[1], zhis[3]]
+            _dc7 = sum(1 for w in _nb7 if w and (
+                (zhis[2], w) in LIU_CHONG or (w, zhis[2]) in LIU_CHONG))
+            _zhh7 = False
+            _yin7 = next((k for k, v in WX_SHENG.items() if v == _dw7), '')
+            for _he7, _wx7 in SAN_HE.items():
+                if zhis[2] in _he7 and _wx7 not in {_dw7, _yin7} \
+                        and all(p in zhis for p in _he7):
+                    _zhh7 = True
+                    break
+            if not _zhh7:
+                for _he7, _wx7 in BAN_HE.items():
+                    if zhis[2] in _he7 and _wx7 not in {_dw7, _yin7} \
+                            and _he7[0] in zhis and _he7[1] in zhis:
+                        _zhh7 = True
+                        break
+            cong_floor_blocked = _dc7 < 2 and not _zhh7
     # 凶向信号（反局/破财/过河拆桥/用忌受制绊）：浮财升档抑制与下方封顶共用
     ds = direction_signals or {}
     ds_xiong = bool(ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai')
@@ -1340,7 +1384,7 @@ def assess_caiming_level(
     #     缺乏连贯性」（例141 从财非常穷），从财亦贫。
     # 凶向命中者不升（同校准一/升档抑制口径），伏吟压贫不受升档影响。
     cong_cai_pin = False
-    if strength == '从弱' and not ds_xiong:
+    if strength == '从弱' and not ds_xiong and not cong_floor_blocked:
         _cai_wx_cc = WX_KE.get(GAN_WX.get(day_gan, ''), '')
         if _cai_wx_cc:
             _wx_counts = {}
@@ -1390,7 +1434,8 @@ def assess_caiming_level(
     # li213 董竹君从儿企业家）。凶向命中者不升（同从财格口径）。
     # 「明财」门控：限天干透财/支本气财——藏干中气财非明现，不能任
     # 「儿又生儿」之流通；从儿无财者儿不生儿、不流通，基阶不升（22期）。
-    if strength == '从弱' and not ds_xiong and not cong_cai_pin:
+    if strength == '从弱' and not ds_xiong and not cong_cai_pin \
+            and not cong_floor_blocked:
         try:
             from mangpai.subjective.yongshen import classify_cong_target
             _ct = classify_cong_target(day_gan, gans or [], zhis or [], strength)
@@ -1511,6 +1556,29 @@ def assess_caiming_level(
     elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin:
         tier_idx -= 1
         adjust = '下浮（禄/食伤当财量级有限）'
+    # A13-b（K3-294批5）：从强格官杀藏月令墓库、自党成势制之不净——「官杀
+    # 制不干净当财看」（cj-富二十年书锚：火土成势制辰中癸官，书明文「官杀
+    # 制不干净当财看…此二十年发财」），基阶不落下富。须局有明现（透干/支
+    # 本气）五行克官杀（制之方实存）；无制者（heldout ans29 从强火土、官木
+    # 藏辰未而局无金制，书判一贫如洗）与官杀明现者（走正途官杀当财/统官
+    # 链）不触。凶向命中者不升（同各 floor 口径）。
+    if strength == '从强' and not ds_xiong and tier_idx < 3 \
+            and len(zhis or []) == 4 and zhis[1] in TOMB_MAP:
+        _guan_wx_a = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '')
+        _ke_guan = next((k for k, v in WX_KE.items() if v == _guan_wx_a), '')
+        _guan_in_ku = bool(_guan_wx_a) and any(
+            GAN_WX.get(cg, '') == _guan_wx_a
+            for cg, _q in get_canggan_mangpai(zhis[1]))
+        _guan_ming = bool(_guan_wx_a) and (
+            any(GAN_WX.get(g, '') == _guan_wx_a for g in (gans or [])) or
+            any(ZHI_WX.get(z, '') == _guan_wx_a for z in (zhis or []) if z))
+        _ke_ming = bool(_ke_guan) and (
+            any(GAN_WX.get(g, '') == _ke_guan for g in (gans or [])) or
+            any(ZHI_WX.get(z, '') == _ke_guan for z in (zhis or []) if z))
+        if _guan_in_ku and not _guan_ming and _ke_ming:
+            tier_idx = 3
+            adjust = (adjust + '；' if adjust != '持平' else '') + \
+                '从强势制月令库中官杀，制不干净当财看（官杀当财），基阶不落下富'
     # 294批2 A5 收敛：财统官须财能任统——明现财支遭≥2方冲/穿/破（寡不敌众，
     # 财弱/制不了）者统官无功，官杀当财量级主张不成立，纵基阶巨富亦封顶富。
     # 书锚：gj-合财小康「财弱，故不发大财」、cj-平辛辛苦苦「想要制财也制不了」、
@@ -1603,16 +1671,17 @@ def assess_caiming_level(
     # 浮财/阻通降档后富档跟随（同凶向下浮口径：降档仍标高富档则自相矛盾）
     if fucai_capped and tier_idx < base_level:
         wealth_grade = ''
-    # 吉凶方向封顶（P0 A + M1 + N1/N2/N3）：反局/牢狱/比劫夺财破财/过河拆桥破财
-    # /忌神制用神(R2)/用神被合绊(R3)/原局凶向三式（伤官见官为忌/财生杀攻身/官杀入墓）
-    # 任一凶向命中，财命按严重度封顶--severe（比劫夺财严重/财生杀攻身因财致祸）
-    # ->贫(1)，余->小康下(2)。
+    # 吉凶方向封顶（P0 A + M1 + N1/N2/N3 + A15）：反局/牢狱/比劫夺财破财/
+    # 过河拆桥破财/忌神制用神(R2)/用神被合绊(R3)/原局凶向三式（伤官见官为忌/
+    # 财生杀攻身/官杀入墓）任一凶向命中，财命按严重度封顶--severe（比劫夺财
+    # 严重/财生杀攻身因财致祸/财星反局主大凶）->贫(1)，余->小康下(2)。
     # 段氏功量层只判「做了什么」，凶向反哺「该不该做」：制用神/反局破财不得
     # 记为富（如第9期比劫夺财清家荡产、第8期贪财坐牢、忌神制用神/用神被合绊
-    # 则财源断而难富）。
+    # 则财源断而难富；财星反局书明文「财大凶…非常穷」，A15 severe 化）。
     if ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai') \
             or ds.get('yongshen_xiong') or ds.get('mingju_xiong'):
-        cap = 1 if (ds.get('pocai_severe') or ds.get('mingju_xiong_severe')) else 2
+        cap = 1 if (ds.get('pocai_severe') or ds.get('mingju_xiong_severe')
+                    or ds.get('fanju_caixing')) else 2
         if tier_idx > cap:
             tier_idx = cap
             sev = '严重' if cap == 1 else '一般'
