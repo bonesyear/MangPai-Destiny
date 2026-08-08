@@ -10,7 +10,9 @@ guanming - 盲派官命定性·主观层（subjective）
   2. 官杀+劫刃：劫刃（比劫/羊刃）制官杀 -> 制杀得权，主军警/武职/竞争掌权；
   3. 印+财：财制印（段氏做功五配置之一，财印相战）-> 财印制用组合；
   4. 印+伤食：印制伤食（印制伤官以护官）-> 护官得官，主文职/行政。
-  四类皆须主位（日时）制宾位（年月）方为得，宾制主为失。
+  四类不以主宾方向过滤（K3-294官命批勘误：段氏实战印类 combo 以「印有功」
+  论不按主宾——岳飞同侧/蒋介石宾制主/周恩来宾制主皆立官书锚，旧文档
+  「皆须主制宾」与代码不符，代码现状为准；方向门被 10 个书锚否决，切勿加）。
 
 二、生用化用（不以制得，以生化得官权）：
   1. 印化官杀：杀印相生（官杀->印->日主），化杀为印、化印为身 -> 文职/职权；
@@ -42,7 +44,7 @@ from mangpai.objective.constants import (
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.xiangfa_ops import daixiang
-from mangpai.subjective.yongshen import assess_direction_signals
+from mangpai.subjective.yongshen import assess_direction_signals, classify_strength
 
 _YANG_GANS = set('甲丙戊庚壬')
 _ZHI_CONTROL: Set[str] = {'冲', '克', '穿', '刑', '破'}
@@ -137,7 +139,8 @@ def classify_guanming_combo(
 ) -> Dict:
     """官命做功组合判定：制用四类 + 生用化用。
 
-    制用四类（主制宾=得，宾制主=失/被制）：
+    制用四类（方向不入判——印类 combo 段氏以「印有功」论不按主宾，岳飞/
+    蒋介石/周恩来书锚；方向记于 details 仅供叙事）：
       - 伤食制官杀（官杀+伤食）
       - 劫刃制官杀（官杀+劫刃）
       - 财制印（印+财）
@@ -239,6 +242,12 @@ def classify_guanming_combo(
             if any(GAN_WX.get(cg) == guan_wx
                    for cg, _ in get_canggan_mangpai(zhis[i])):
                 has_guansha = True
+                # 藏杀被制=制杀得权，入官命组合（K3-294官命批：旧仅置
+                # has_guansha，藏杀被制为唯一官结构时判非官——yx-厅级-2
+                # 检察长「并非发财之命，而是高官」锚；慈禧/希特勒/曾国藩
+                # 锚之外延）
+                if '藏杀被制' not in combos:
+                    combos.append('藏杀被制')
                 details.append(
                     f'官杀藏{PILLAR_NAMES_CN[i]}支{zhis[i]}被制（藏杀被制='
                     '制杀得权，与明现同论）')
@@ -302,6 +311,7 @@ def classify_guanming_combo(
     # 功在墓杀」；慈禧/希特勒同法理），非制死，不以制空论。
     guan_zhi_zhikong = False
     guan_zhi_idxs = [i for i in range(4) if ZHI_WX.get(zhis[i]) == guan_wx]
+    _guan_tou_gan = any(GAN_WX.get(g) == guan_wx for g in gans)
     if guan_wx and guan_zhi_idxs:
         _guan_tombs = {z for z, els in TOMB_MAP.items() if guan_wx in els}
         if not (_guan_tombs & set(zhis)):
@@ -399,9 +409,15 @@ def classify_guanming_combo(
                     else:
                         details.append(f'{key}（财命域模式，不入官命）')
                     break
-                # G7：涉围制财源支者，制意在财不在官，主富不主贵，不入官命
+                # G7：涉围制财源支者，制意在财不在官，主富不主贵，不入官命；
+                # 印制伤食窄豁免（K3-294官命批：G7 只看被制支身份不看制者身份，
+                # 印制伤食=印方得权护官，与比劫制财主富不同法理）——仅限被制伤食
+                # 为日主坐下（to_pos=day_zhi，坐下伤官被印制住=护官成格：cj-县长
+                # 「壬水伤官被戊戌所克」亥=日支、reg67-市长午=日支）；印制年月时
+                # 支伤食仍是围制财源、制财得财，主富不主贵（李嘉诚辰制时支亥，
+                # 亥=财之原神，书判巨富非官——G7 锚，豁免放宽须保）
                 _g7_hit = sorted({from_pos, to_pos} & _weizhi_caiyuan)
-                if _g7_hit:
+                if _g7_hit and not (pkey == '印制伤食' and to_pos == 'day_zhi'):
                     details.append(
                         f'{key}：涉围制财源支（{"/".join(_g7_hit)}），'
                         '财与原神被围制，主富不主贵，不入官命')
@@ -493,8 +509,27 @@ def classify_guanming_combo(
     if xiangfa_only and not combos and not shengyong_core:
         details.append(
             f'象法类（{"/".join(xiangfa_only)}）单独无做功组合佐证，不立官命（G4）')
+    # 印类 combo（财制印/印制伤食及合制变体）以印主权力，书明文无官杀亦可立
+    # 官命（reg67-印制伤食市长「四柱无官，印主权力，所以此造是个官员」；
+    # cj-5536 元朝丞相掌重权一品；cj-处级-5「财星制印的格局，是当官的命」），
+    # 豁免 has_guansha 门槛（K3-294官命批）
+    _yin_combo_hit = any(c.replace('合制·', '') in ('财制印', '印制伤食')
+                         for c in combos)
+    # G6 收窄（K3-294官命批）：官杀透干明现且另有杀刃相制/印化官杀之权柄做功
+    # 者，不以支空制死论——支上官被制空，干上官杀犹存，官杀之气已入制杀得权/
+    # 化杀为印通道，官未全灭（乾隆劫刃制官杀/雍正印化官杀/左宗棠·处级官杀制
+    # 比劫锚；处级例书明文「制去官与官的原神是当大官的」）。唯以伤食制官
+    # （技艺立命）而无杀刃/印化者透干不豁免——李昌镐「食神制官组合，官星被制
+    # 空亡，故他不入仕途」锚仍判非官；财务总监-2 官不透干仍判。
+    if guan_zhi_zhikong and _guan_tou_gan and (
+            any(c.replace('合制·', '') in ('劫刃制官杀', '官杀制比劫')
+                for c in combos)
+            or '印化官杀' in shengyong):
+        guan_zhi_zhikong = False
+        details.append(
+            '官杀透干且有杀刃相制/印化官杀做功，官未全灭，不以制空论（G6收窄）')
     is_guanming = bool(combos or shengyong_core) and (
-        has_guansha or bool(shengyong)) and not guan_zhi_zhikong
+        has_guansha or _yin_combo_hit or bool(shengyong)) and not guan_zhi_zhikong
 
     return {
         'zhiyong_combos': combos,
@@ -849,6 +884,35 @@ def analyze_guanming(
                         if not r.startswith(('反局', '岁运', '忌神制用神', '用神被合绊',
                                              '伤官见官', '财生杀', '官杀入墓', '官非牢狱',
                                              '主位体坏'))]
+    # ── 官命域 veto 链收窄（K3-294官命批·九规则栈之 veto 侧五则；只滤官命域
+    # veto_reasons，不动底层检测器，财命/职业零影响；115例双侧模拟 +21-0）──
+    if is_guanming_raw and veto_reasons:
+        _combos_now = combo.get('zhiyong_combos', []) or []
+        _yin_now = any(c.replace('合制·', '') in ('财制印', '印制伤食')
+                       for c in _combos_now)
+        # R1GUAN2：从弱格比劫自身被官杀明制（官杀制比劫 combo 在场）者，比劫
+        # 被制不能夺财，R1 比劫夺财不否决官命（克林顿/reg67-公安/县长-2/歌唱家
+        # 锚：申寅冲官杀制比劫）；身强比劫夺财真凶锚（zhenbao-23a/yx-处级-2）
+        # 以「从弱」窄化保护
+        if classify_strength(day_gan, gans or [], zhis or []) == '从弱' and any(
+                '官杀制比劫' in c for c in _combos_now):
+            veto_reasons = [r for r in veto_reasons
+                            if not r.startswith('比劫夺财')]
+        # R2GUAN：印类 combo 在场——扶抑口径「财坏印凶」与做功口径「财星制印的
+        # 格局，是当官的命」（cj-处级-5明文）冲突，官命域从做功，R2 财坏印不
+        # 否决官命（厅级-2 军政委大校/yx-5101 元帅/yx-3290 银行监督锚）
+        if _yin_now:
+            veto_reasons = [r for r in veto_reasons
+                            if not r.startswith('忌神制用神·财坏印')]
+        # R3GUAN：用神被合绊不否决官命——官合身=官来找我（cj-处级-2「合身，
+        # 肯定是个官」明文），从强扶抑合绊与做功口径冲突，官命域从做功
+        # YUNFAN-G：岁运反局不否决官命——升官之运是应期非反局（县长-4 乙巳运
+        # 升县委副书记/yx-总理戊辰运连升/厅级戊戌运升副厅，皆书明文）；原局
+        # 反局 veto 不动（贪财坐牢例锚安全）
+        # N2GUAN：财生杀攻身不否决官命——杀刃/制杀得功之官命自带杀攻身之象
+        # （cj-厅级/cj-处级-5 锚）；财命域 N2 封顶不动
+        veto_reasons = [r for r in veto_reasons
+                        if not r.startswith(('用神被合绊', '岁运', '财生杀'))]
     vetoed = is_guanming_raw and bool(veto_reasons)
     is_guanming = is_guanming_raw and not vetoed
     if vetoed:
