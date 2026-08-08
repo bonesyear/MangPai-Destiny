@@ -171,6 +171,21 @@ def _main_qi_cats(day_gan: str, gans: List[str], zhis: List[str], i: int) -> Set
     return out - {''}
 
 
+def _main_qi_char_count(day_gan: str, gans: List[str], zhis: List[str],
+                        cat: str) -> int:
+    """主气十神字数（透干+支本气逐字计，同柱干支各算一字，0-8）——柱集计
+    数（_main_qi_cats）下 甲寅/丙午 类透干通根只算一柱，埋没了「官星两现」
+    的强度信息（K3 职业批2：官商之间/金成势金融 以字数论强弱）。"""
+    n = 0
+    for i in range(4):
+        if gans[i] and _cat(_compute_shishen(day_gan, gans[i])) == cat:
+            n += 1
+        cg = get_canggan_mangpai(zhis[i])
+        if cg and _cat(_compute_shishen(day_gan, cg[0][0])) == cat:
+            n += 1
+    return n
+
+
 def _action_main_qi(action: Dict, day_gan: str, gans: List[str], zhis: List[str],
                     ) -> Tuple[Set[str], Set[str]]:
     """动作两端当事人的主气十神（干动作看两端干、支动作看两端支本气；
@@ -333,6 +348,35 @@ def _score_accountant(day_gan, gans, zhis, wa, muku) -> Tuple[int, List[str]]:
     if tomb_zhis & closed:
         score += 1
         ev.append('财/印库不开（管公家他人之财）')
+    # 水财坐实+食伤算计+局无官杀 +3（K3 职业批2 雇员帐房通道）：财五行属水
+    # （数字/流动之象）且透干、亥子辰在局、食伤主气算计、局中无官杀主气
+    # （非官非吏=受雇管帐）——书锚 yx-会计「我就是个会计呀」（壬子水财透干
+    # 通根+申金食神算计+局无官杀）。有官杀主气者财归经营/管理（老板/官员
+    # 之命，水财亦可房地产/贸易），不以雇员会计论；金≥3者金归金融成象。
+    _n_gs_char = _main_qi_char_count(day_gan, gans, zhis, '官杀')
+    _jin_cnt = (sum(1 for z in zhis if z in ('申', '酉'))
+                + sum(1 for g in gans if g in ('庚', '辛')))
+    _n_ss_main = sum(1 for i in range(4)
+                     if '食伤' in _main_qi_cats(day_gan, gans, zhis, i))
+    _n_cai_main = sum(1 for i in range(4)
+                      if '财' in _main_qi_cats(day_gan, gans, zhis, i))
+    _cai_tou = any(g and _cat(_compute_shishen(day_gan, g)) == '财' for g in gans)
+    if (cai_wx == '水' and _cai_tou and shui_zhis and _n_ss_main >= 1
+            and _n_gs_char == 0 and _jin_cnt < 3):
+        score += 3
+        ev.append('水财坐实+食伤算计（局无官杀，雇员帐房/会计）')
+    # 金成势金融 +6（K3 职业批2 独力通道）：申酉庚辛≥4字 + 印主气≥3柱 +
+    # 局无财主气 + 官杀主气≤1字——金印成势而局中无财=管公家钱财之金融机构
+    # （金=金融/数字，印=机构/公家，局中无财=所管非己之财），书锚 yx-2658
+    # 「实际此女为一家银行行长，金有金融之意」（金5印3无财）、reg67-银行
+    # 行长央行「银行·金融官员」（金4印3无财）、《高级》案例七「财库包局，
+    # 银行工作」。带官杀≥2字者金归律令/兵刃（lawyer/military 侧，li151 穷
+    # 教书匠官2字不入此象）；有财主气者以财论经营（merchant 侧）。
+    _n_yin_main = sum(1 for i in range(4)
+                      if '印' in _main_qi_cats(day_gan, gans, zhis, i))
+    if _jin_cnt >= 4 and _n_yin_main >= 3 and _n_cai_main == 0 and _n_gs_char <= 1:
+        score += 6
+        ev.append(f'金成势{_jin_cnt}字+印重{_n_yin_main}柱（局中无财，金融机构管公家钱）')
     return score, ev
 
 
