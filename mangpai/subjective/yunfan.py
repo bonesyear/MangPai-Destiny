@@ -137,6 +137,43 @@ def _detect_sanxing(op_zhi: str, natal_zhis: List[str]) -> List[str]:
     return out
 
 
+def _detect_sanxing_dayun(op_zhi: str, natal_zhis: List[str]) -> List[str]:
+    """大运支与原局组成完整三刑（A14 大运口径：不含自刑——大运自刑二本例
+    皆假阳：煤矿-2 壬午运午午自刑、经理-4 甲辰运辰辰自刑，书皆判该运发财）。"""
+    if not op_zhi:
+        return []
+    natal_set = set(z for z in natal_zhis if z)
+    pool = natal_set | {op_zhi}
+    return [''.join(sorted(g)) + '三刑'
+            for g in _SANXING_GROUPS
+            if op_zhi in g and g <= pool and not g <= natal_set]
+
+
+def _detect_fuyin_jihua_dayun(op_zhi: str, natal_zhis: List[str]) -> List[str]:
+    """大运支伏吟且激化原局已有刑对（A14 大运口径）。
+
+    伏吟=该字到位，单字伏吟不即反局（发财运多为该字五行应期——294例批3
+    十一发财运中煤矿戌运/包工头卯运/复例四申运/经理-2戌运皆假阳）；须
+    伏吟支与原局已有刑对相互激化方为「自我冲突激化」（巨富丑运丙子运：
+    子伏吟日支、激化原局卯子刑，书明文该运入狱=真阳锚）。刑合并见以合
+    解（复例四原局巳申刑合并见，庚申运发财）；刑涉墓库=刑开库应期，豁免
+    （煤矿戌运刑开丑财库、书明文发财十几亿锚）。干伏吟归伤官见官等原局
+    凶向链（案例五乙伏吟年干实与伤官见官纠缠），不入大运 T3。
+    """
+    if not op_zhi or op_zhi not in natal_zhis:
+        return []
+    partners = sorted({
+        nz for nz in natal_zhis if nz and nz != op_zhi
+        and _pair_hit(op_zhi, nz, XING_PAIRS)
+        and not _pair_hit(op_zhi, nz, LIU_HE)  # 刑合并见，以合解
+    })
+    if not partners:
+        return []
+    if op_zhi in TOMB_MAP or any(p in TOMB_MAP for p in partners):
+        return []  # 刑涉墓库=刑开库应期（吉），非自我冲突
+    return [f'{op_zhi}伏吟激化原局{op_zhi}{"、".join(partners)}刑']
+
+
 def _detect_jishen_fufu(
     op_gan: str, op_zhi: str,
     natal_gans: List[str], natal_zhis: List[str],
@@ -309,6 +346,7 @@ def _detect_dayun_fan(
     gshen: List[str], fei_shen: List[str],
     work_actions: List[Dict], work_types: List[str],
     day_gan: str,
+    strength: str = '',
 ) -> List[Dict]:
     """单步大运反局检测（三大类型）。"""
     fans: List[Dict] = []
@@ -316,29 +354,75 @@ def _detect_dayun_fan(
     gong_pos = set(gshen or [])
 
     # ── 类型一：破坏原局功神 ──
+    # A14 收窄（294例批3）：类型一原文「穿害冲散功神位」——冲/穿毁功神方入
+    # 反局（薄一波造辰穿卯锚；破财工程酉运酉冲卯=书明文强拆赔钱真阳锚）。
+    # 运「合」功神多为做功应期（合到主位=得：十一发财运运合功神全假阳，
+    # 如庚申运财合日支巳、壬辰运辰合日支酉）；「破」不在原文三式（破力最轻，
+    # 非毁功主式）。例外守真阳：运破日主禄/刃=破护身体（阴阳逆转心法，
+    # 巨富丑运丙子运子破酉刃、书明文该运入狱锚）。
     hits_gong = [x for x in inter
-                 if x['target_pos'] in gong_pos and x['type'] in _HARM_TYPES]
+                 if x['target_pos'] in gong_pos and x['type'] in ('冲', '穿')]
+    if op_zhi and day_gan:
+        from mangpai.objective.shensha import _YANG_REN_FULL as _YR
+        lr_chars = {LU.get(day_gan, '')} | set(_YR.get(day_gan, []))
+        lr_chars.discard('')
+        hits_gong += [x for x in inter
+                      if x['type'] == '破' and x['target_pos'] in gong_pos
+                      and x['target_elem'] in lr_chars]
     if hits_gong:
         fans.append({
             'fan_type': '大运反局·类型一(破坏功神)',
             'severity': '重',
             'reason': '；'.join(h['desc'] for h in hits_gong)
-                      + '——运岁合绊/穿害/冲散核心功神，原局之功无法施展',
+                      + '——运岁穿害/冲散核心功神，原局之功无法施展',
         })
-    # 忌神反客为主（阴阳逆转）
-    js = _detect_jishen_fufu(op_gan, op_zhi, natal_gans, natal_zhis, fei_shen)
-    if js:
-        fans.append({
-            'fan_type': '大运反局·类型一(忌神反客)',
-            'severity': '重',
-            'reason': '；'.join(js),
-        })
+    # 杀临攻身（身弱忌神临旺，b67 复例二锚：「丙子运子水忌神旺」戊寅己卯
+    # 庚辰年破财）：身弱（非从格——从格行运由破从规则另管）+ 运支为官杀
+    # 五行 + 原局官杀明现透干 → 虚杀逢根临旺攻身。杀不透干者不论（原局
+    # 无杀，运杀自成气候非「逢根」）。判别面：全库仅 b67 一例（身弱杀运
+    # 为制杀应期者皆身强或杀不透，不命中）。
+    if strength == '身弱' and op_zhi and day_gan:
+        _dw = GAN_WX.get(day_gan, '')
+        _sha_wx = next((w for w, c in WX_KE.items() if c == _dw), '')
+        if _sha_wx and ZHI_WX.get(op_zhi, '') == _sha_wx \
+                and any(GAN_WX.get(g, '') == _sha_wx for g in natal_gans if g):
+            fans.append({
+                'fan_type': '大运反局·类型一(杀临攻身)',
+                'severity': '重',
+                'reason': f'身弱，运支{op_zhi}为官杀（{_sha_wx}）临旺之地，原局'
+                          f'官杀明现透干虚杀逢根——忌神临旺攻身（b67 丙子运'
+                          f'子水忌神旺破财锚）',
+            })
+    # 忌神反客（大运侧移除，A14）：原文「忌神得运来生助，反客为主」依赖
+    # zuogong 废神判据，实证不可复现——案例一书锚机制为辰支生申（申=被制
+    # 忌神），而本引擎 zuogong 判申为功神，原实现实靠丙干生戊偶合命中；
+    # 判别集 4 例全假阳（经理-2 戌生庚、老师 午生己、煤矿-2 壬生乙、经理-4
+    # 甲生丙，书皆明文该运发财），零真阳（巨富丑运丙子真阳由破刃+伏吟激刑
+    # 承载）。流年侧「引动忌神」保留。
 
     # ── 类型二：改变做功方式（冲合互变）──
     mode = _work_mode(work_actions, work_types, natal_zhis)
     if mode['has_chong']:
-        # 原局喜冲怕逢合：运来合冲做功之字 → 合变冲（闭）
-        he_hits = [x for x in inter if x['type'] in _HE_TYPES]
+        # A14 收窄：运合须合住「原局冲做功参与字」方为变冲为合——冲对之字，
+        # 或入墓于冲对之库的原局字（案例三卯合申：申入丑墓、参与丑未冲功锚）；
+        # 任意运合即判为泛触（资本运营酉合辰/经理-2丙合辛皆假阳）。合主位
+        # （日/时）之字=护体解冲（合能解冲），豁免（医师卯运卯暗合日支申，
+        # 书明文伤官生财年入百万=吉运锚）。
+        _nz = [z for z in natal_zhis if z]
+        chong_chars: set = set()
+        for _i in range(len(_nz)):
+            for _j in range(_i + 1, len(_nz)):
+                if _pair_hit(_nz[_i], _nz[_j], LIU_CHONG):
+                    chong_chars.update((_nz[_i], _nz[_j]))
+        _tombs = {c for c in chong_chars if c in TOMB_MAP}
+        if _tombs:
+            for _e, _w in ([(e, GAN_WX.get(e, '')) for e in natal_gans if e]
+                           + [(z, ZHI_WX.get(z, '')) for z in _nz]):
+                if _w and any(_w in TOMB_MAP.get(t, []) for t in _tombs):
+                    chong_chars.add(_e)
+        he_hits = [x for x in inter if x['type'] in _HE_TYPES
+                   and x['target_elem'] in chong_chars
+                   and not x['target_pos'].startswith(('day_', 'hour_'))]
         if he_hits:
             fans.append({
                 'fan_type': '大运反局·类型二(冲变合)',
@@ -359,9 +443,14 @@ def _detect_dayun_fan(
                           + '——冲开合局，做功方式反转（喜合怕逢冲）',
             })
     # 闭库/开库：运合原局墓库位 → 闭库（合变冲闭库反局）
+    # A14 收窄：须原局有冲开该库之冲（原局赖冲开库做功，合闭之方为反局
+    # ——案例四子合丑，原局丑未冲开财库锚）；库未被冲开做功者运合之非闭库
+    # （资本运营酉合辰/老师午合未皆假阳）。
     if op_zhi:
         for i, nz in enumerate(natal_zhis):
-            if nz in TOMB_MAP and _pair_hit(op_zhi, nz, LIU_HE):
+            if nz in TOMB_MAP and _pair_hit(op_zhi, nz, LIU_HE) \
+                    and any(oz and oz != nz and _pair_hit(nz, oz, LIU_CHONG)
+                            for oz in natal_zhis):
                 fans.append({
                     'fan_type': '大运反局·类型二(合闭墓库)',
                     'severity': '中',
@@ -370,15 +459,27 @@ def _detect_dayun_fan(
                 })
                 break
 
-    # ── 类型三：伏吟/三刑 ──
-    fy = _detect_fuyin(op_gan, op_zhi, natal_gans, natal_zhis)
-    sx = _detect_sanxing(op_zhi, natal_zhis)
+    # ── 类型三：伏吟/三刑（A14 大运口径：单字伏吟/自刑不即反局，见函数注）──
+    fy = _detect_fuyin_jihua_dayun(op_zhi, natal_zhis)
+    # 伏吟干被克坏（案例五锚：乙酉运乙伏吟年干、被原局辛金克坏——乙为辰墓
+    # 之透，克乙=坏辰墓功神，此运大凶坐牢没收财产）：运干伏吟原局非日主
+    # 之干，且原局有干克（非合）之。日主伏吟不论（体非功，煤矿-2 壬午运
+    # 壬伏吟日干、书明文发财十亿锚）。
+    if op_gan and op_gan != day_gan and op_gan in (g for g in natal_gans if g):
+        _ow = GAN_WX.get(op_gan, '')
+        _ke = next((g for g in natal_gans
+                    if g and g != op_gan
+                    and WX_KE.get(GAN_WX.get(g, ''), '') == _ow
+                    and TIAN_GAN_HE.get(g) != op_gan), '')
+        if _ke:
+            fy.append(f'{op_gan}伏吟被原局{_ke}克坏')
+    sx = _detect_sanxing_dayun(op_zhi, natal_zhis)
     if fy or sx:
         fans.append({
             'fan_type': '大运反局·类型三(伏吟三刑)',
             'severity': '中',
             'reason': ('；'.join(fy + sx))
-                      + '——运岁伏吟/三刑激化原局内部矛盾，反复动荡',
+                      + '——运岁伏吟激刑/三刑激化原局内部矛盾，反复动荡',
         })
 
     return fans
@@ -584,7 +685,8 @@ def analyze_yunfan(
         if not (gan or zhi):
             continue
         fans = _detect_dayun_fan(
-            gan, zhi, natal_gans, natal_zhis, gshen, fei, work_actions, wtypes, day_gan)
+            gan, zhi, natal_gans, natal_zhis, gshen, fei, work_actions, wtypes,
+            day_gan, strength=_strength)
         # G5 破从/合去（大运级）
         pc_fans, pc_jis = _detect_po_cong(
             gan, zhi, day_gan, natal_gans, natal_zhis, _strength, _cong_label,

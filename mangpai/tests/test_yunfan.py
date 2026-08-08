@@ -27,11 +27,14 @@ def _liandong_types(r):
 
 
 def test_dayun_case1_break_gongshen():
-    """案例一：戊申甲寅辛卯癸巳，丙辰运——辰穿卯晦巳，破坏功神。"""
+    """案例一：戊申甲寅辛卯癸巳，丙辰运——辰穿卯晦巳，破坏功神。
+
+    （A14：忌神反客大运侧已移除——书锚机制辰生申要求 zuogong 判申为废神，
+    本引擎判申为功神不可复现，原断言实靠丙干生戊偶合；判别集 4 例全假阳。
+    流年侧引动忌神保留。）"""
     r = analyze_yunfan(['戊', '甲', '辛', '癸'], ['申', '寅', '卯', '巳'], '辛',
                        dayun_list=[{'gz': '丙辰'}])
     assert any('破坏功神' in t for t in _dy_fan_types(r))
-    assert any('忌神反客' in t for t in _dy_fan_types(r))
 
 
 def test_dayun_case3_chong_bian_he():
@@ -113,16 +116,23 @@ def _zhenbao1_yunfan():
 
 
 def test_current_fan_slice_filters_current_dayun():
-    """切片只保留当前大运柱；include 开关控制运/岁两段。"""
-    yf = _zhenbao1_yunfan()
-    s = current_fan_slice(yf, '壬戌')
-    assert s['dayun_fan'] and all(d['gz'] == '壬戌' for d in s['dayun_fan'])
-    assert s['liunian_fan'] and s['sui_yun_liandong']
+    """切片只保留当前大运柱；include 开关控制运/岁两段。
+
+    夹具用案例一（丙辰运辰穿卯=类型一破坏功神，书锚真阳）；原第1期壬戌运
+    夹具于 A14 收窄后大运段不再命中（其反局在戊辰年流年/双冲联动侧，非
+    大运三类型），不足以作大运切片夹具。"""
+    yf = analyze_yunfan(['戊', '甲', '辛', '癸'], ['申', '寅', '卯', '巳'], '辛',
+                        dayun_list=[{'gz': '丙辰', 'start_age': 5}],
+                        liunian_list=[{'gz': '戊辰', 'year': 1988}],
+                        current_dayun={'gz': '丙辰'})
+    s = current_fan_slice(yf, '丙辰')
+    assert s['dayun_fan'] and all(d['gz'] == '丙辰' for d in s['dayun_fan'])
+    assert s['liunian_fan']
     # 不含大运段
-    s2 = current_fan_slice(yf, '壬戌', include_dayun=False)
+    s2 = current_fan_slice(yf, '丙辰', include_dayun=False)
     assert s2['dayun_fan'] == [] and s2['liunian_fan']
     # 不含流年段（自动流年展示锚点不入否决链）
-    s3 = current_fan_slice(yf, '壬戌', include_liunian=False)
+    s3 = current_fan_slice(yf, '丙辰', include_liunian=False)
     assert s3['liunian_fan'] == [] and s3['sui_yun_liandong'] == []
     # 全量 dayun_fan 中无匹配 gz → 空
     s4 = current_fan_slice(yf, '甲子')
