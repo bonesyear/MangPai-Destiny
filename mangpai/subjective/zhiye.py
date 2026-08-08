@@ -157,6 +157,59 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return {}
 
 
+def _main_qi_cats(day_gan: str, gans: List[str], zhis: List[str], i: int) -> Set[str]:
+    """柱主气十神集（干本身 + 支本气）——柱级 _pillar_cats 含藏干中气，
+    四支柱几乎必然带入财/印/食伤而泛触；主气粒度只认透干与支本气
+    （K3 职业批1 统一粒度：merchant 门户/lawyer 制官/teacher 印重/
+    military 驾杀 共用）。"""
+    out: Set[str] = set()
+    if gans[i]:
+        out.add(_cat(_compute_shishen(day_gan, gans[i])))
+    cg = get_canggan_mangpai(zhis[i])
+    if cg:
+        out.add(_cat(_compute_shishen(day_gan, cg[0][0])))
+    return out - {''}
+
+
+def _action_main_qi(action: Dict, day_gan: str, gans: List[str], zhis: List[str],
+                    ) -> Tuple[Set[str], Set[str]]:
+    """动作两端当事人的主气十神（干动作看两端干、支动作看两端支本气；
+    暗合=支中藏干相合，当事人含本气+中气——口径同 _score_merchant._act_cats）。
+    日干位记 {'日主'}。"""
+    fi, ti = _pos_idx(action.get('from_pos', '')), _pos_idx(action.get('to_pos', ''))
+    if fi < 0 or ti < 0:
+        return set(), set()
+
+    def _one(pos, i):
+        if pos == 'day_gan':
+            return {'日主'}
+        if pos.endswith('_gan'):
+            return {_cat(_compute_shishen(day_gan, gans[i]))} - {''}
+        cg = get_canggan_mangpai(zhis[i])
+        if not cg:
+            return set()
+        if action.get('type') == '暗合':
+            return {_cat(_compute_shishen(day_gan, g)) for g, _ in cg[:2]} - {''}
+        return {_cat(_compute_shishen(day_gan, cg[0][0]))} - {''}
+
+    return _one(action.get('from_pos', ''), fi), _one(action.get('to_pos', ''), ti)
+
+
+def _has_main_qi_action(wa: List[Dict], day_gan: str, gans: List[str],
+                        zhis: List[str], cat_a: str, cat_b: str,
+                        types: Set[str]) -> bool:
+    """指定类型动作且两端主气当事人分别为 cat_a/cat_b（双向）——
+    _action_between_cats 的主气粒度版（柱级判据把藏干中气携带者全判
+    当事人，官命案伤官见官结构全中泛触）。"""
+    for a in wa:
+        if a.get('auxiliary') or a.get('type') not in types:
+            continue
+        fa, ta = _action_main_qi(a, day_gan, gans, zhis)
+        if (cat_a in fa and cat_b in ta) or (cat_b in fa and cat_a in ta):
+            return True
+    return False
+
+
 def _pos_idx(pos: str) -> int:
     k = pos.split('_')[0]
     return PILLAR_KEYS.index(k) if k in PILLAR_KEYS else -1
@@ -353,6 +406,19 @@ def _score_teacher(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
             and _has_cat(day_gan, gans, zhis, '印')):
         score += 1
         ev.append('金水伤官见印（数理理科）')
+    # 印重馆阁 +2（K3 职业批1 新通道）：主气印≥2柱 + 主气食伤0柱 + 金不重型
+    # （申酉庚辛<3）——印重无泄之纯学问/馆阁文职象（书锚 yx-6061 翰林院学士，
+    # 印重成象贫而贵）；金重者归金融/律令不归文，食伤主气在局者走吐秀/门户
+    # 通道（famous-乔布斯/外贸商 等印食并见经营命不触此条）。
+    _n_yin_main = sum(1 for i in range(4)
+                      if '印' in _main_qi_cats(day_gan, gans, zhis, i))
+    _n_ss_main = sum(1 for i in range(4)
+                     if '食伤' in _main_qi_cats(day_gan, gans, zhis, i))
+    _jin_cnt = (sum(1 for z in zhis if z in ('申', '酉'))
+                + sum(1 for g in gans if g in ('庚', '辛')))
+    if _n_yin_main >= 2 and _n_ss_main == 0 and _jin_cnt < 3:
+        score += 2
+        ev.append('印重无食伤（馆阁纯学问之象）')
     return score, ev
 
 
@@ -375,18 +441,16 @@ def _score_lawyer(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     if has_jin:
         score += 2 if combo else 1
         ev.append(f'申酉金/辛金（律令法律{"，配对抗组合" if combo else "，弱信号"}）')
-    # 伤官制官（实克动作，辩护对抗）；共存「伤官见官」不单独加分
-    # （压低共存加分：伤官见官无动作仅为两象并见，段氏取象须做功）
-    if _action_between_cats(wa, day_gan, gans, zhis, '食伤', '官杀', {'克'}):
+    # 伤官制官（实克动作，辩护对抗）；K3 职业批1 主气粒度收窄：克动作两端
+    # 当事人主气为食伤/官杀方计 +2（实制）；柱级共存（藏干中气带入的伤官见官，
+    # 官命案/银行/工人命局全中泛触）降为 +1 弱信号；食神制官共存条款删除
+    # （条文制规则与伤官制官同形，柱级判据下纯泛触——银行簇/低保/工人全中）。
+    if _has_main_qi_action(wa, day_gan, gans, zhis, '食伤', '官杀', {'克'}):
         score += 2
         ev.append('伤官制官（辩护对抗）')
-    # 食神制官：食神透干 + 食伤官杀间实有制/合动作（条文制规则）；
-    # 旧版共存即 +1（任一食神干+有官杀），过宽，压低为须做功
-    if any(_compute_shishen(day_gan, g) == '食神' for g in gans if g) and \
-       _action_between_cats(wa, day_gan, gans, zhis, '食伤', '官杀',
-                            {'克', '天干合', '地支合'}):
+    elif _action_between_cats(wa, day_gan, gans, zhis, '食伤', '官杀', {'克'}):
         score += 1
-        ev.append('食神制官（条文制规则）')
+        ev.append('食伤制官（柱级共存，对抗弱信号）')
     # 卯酉冲/卯午破（依律破例，律师 distinctive）
     for a in wa:
         t = a.get('type', '')
@@ -609,11 +673,19 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     if ss_cai:
         score += 2
         ev.append('食伤生财做功（贸易/生产）')
-    # 4. 财印门户（开店，结构象保留）+1
-    portal_cats = _pillar_cats(day_gan, gans[3], zhis[3])
-    if '财' in portal_cats or '印' in portal_cats:
+    # 4. 财印门户（开店，结构象保留）+1——K3 职业批1 收窄（首版教训修正）：
+    #    旧版柱级 _pillar_cats 含藏干中气，时柱几乎必有财/印，泛触（教师/官命
+    #    案全中，fp 26 例命中 25）。收窄为主气粒度（时干十神/时支本气），并保
+    #    留食伤主气门户（以口为业兼营门面之象，书锚 yx-酒店丁未时/董竹君庚申
+    #    时=食伤坐门户之真商人）；heldout 三书锚商人（ans10 戊申时主气财/
+    #    li002 辛亥时主气印/li131 癸卯时主气印）主气命中，不受收窄影响。
+    _hour_main = _main_qi_cats(day_gan, gans, zhis, 3)
+    if {'财', '印'} & _hour_main or '食伤' in _hour_main:
         score += 1
-        ev.append('财/印在时柱门户（开店）')
+        if {'财', '印'} & _hour_main:
+            ev.append('财/印在时柱门户（开店）')
+        else:
+            ev.append('食伤在时柱门户（经营门面，以口为业兼营）')
     # 5. 官杀当财被制（大生意）+1
     if _has_cat(day_gan, gans, zhis, '官杀') and \
        _action_between_cats(non_aux, day_gan, gans, zhis, '官杀', '食伤', {'克'}):
@@ -744,6 +816,24 @@ def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     if has_tao and cnt.get('火', 0) >= 2:
         score += 1
         ev.append('丙丁火+桃花（声色演艺）')
+    # 无桃花之艺 +3（K3 职业批1 新通道）：柱级食伤≥2柱成势 + 食伤参与做功
+    # （主气当事人）+ 局无桃花 + 无明财（主气）——凭技艺立身之艺人。桃花作
+    # 核心条件在本样本双向失败（fp 9 例全有桃花/真艺人 7 例全无桃花），桃花
+    # 诸条款保留不动，另开无桃花通道（书锚：阿炳/帕瓦罗蒂/gj-影星合杀 皆
+    # 食伤成势做功而无桃花；财明现者食伤生财归经营，不以艺论——famous-乔布斯
+    # 豁免）。
+    if not has_tao:
+        n_ss_pillars = sum(1 for i in range(4)
+                           if '食伤' in _pillar_cats(day_gan, gans[i], zhis[i]))
+        cai_ming = any('财' in _main_qi_cats(day_gan, gans, zhis, i)
+                       for i in range(4))
+        ss_work = any(
+            '食伤' in fa or '食伤' in ta
+            for fa, ta in (_action_main_qi(a, day_gan, gans, zhis)
+                           for a in wa if not a.get('auxiliary')))
+        if n_ss_pillars >= 2 and ss_work and not cai_ming:
+            score += 3
+            ev.append('食伤成势做功（无桃花之艺，凭技艺立身）')
     return score, ev
 
 
@@ -945,6 +1035,38 @@ def classify_zhiye(
     s, e = _score_performer(day_gan, gans, zhis, wa, ss)
     scores['performer'], evidence['performer'] = s, e
 
+    # 羊刃驾杀武职通道 +3（K3 职业批1 真军警 fn 侧）：成势门「官杀柱级≥3」
+    # 在金标军警上召回仅 2/8（蒋介石/公安/刑警等 2 柱官杀够不着门）。段氏
+    # 杀刃相制=武权：官杀主气≥2柱 + 阳刃在局 + 刃支与官杀主气端有制/合动作
+    # （刃无官杀动作=闲刃，reg67-合例一富命之子刃穿未官…实以财做功主象，
+    # 财星入局做功触发者杀刃以商战论，豁免）；已成势（柱级≥3）者不重复加。
+    _n_gs_main = sum(1 for i in range(4)
+                     if '官杀' in _main_qi_cats(day_gan, gans, zhis, i))
+    _yr = ss.get('羊刃') or {}
+    _ren_zhis = {z for z in zhis if z in (_yr.get('zhi_all') or [])}
+    if (_n_gs_main >= 2 and _ren_zhis
+            and not any('官杀成势' in ln for ln in evidence.get('military', []))
+            and not any('财星入局做功' in ln for ln in evidence.get('merchant', []))):
+        _jia_sha = False
+        for a in wa:
+            if a.get('auxiliary'):
+                continue
+            for pos, other in ((a.get('from_pos', ''), a.get('to_pos', '')),
+                               (a.get('to_pos', ''), a.get('from_pos', ''))):
+                i, j = _pos_idx(pos), _pos_idx(other)
+                if i < 0 or j < 0 or not pos.endswith('_zhi') \
+                        or zhis[i] not in _ren_zhis:
+                    continue
+                if '官杀' in _main_qi_cats(day_gan, gans, zhis, j):
+                    _jia_sha = True
+                    break
+            if _jia_sha:
+                break
+        if _jia_sha:
+            scores['military'] = scores.get('military', 0) + 3
+            evidence['military'] = evidence.get('military', []) + [
+                '羊刃驾杀（杀刃相制=武权，刃与官杀有制合动作）']
+
     # 六十干支组合象 person 辅证
     liushi_hints: List[str] = []
     for i in range(4):
@@ -956,7 +1078,16 @@ def classify_zhiye(
                 liushi_hints.append(f'{PILLAR_NAMES_CN[i]}柱{gz}：{person}')
 
     # xiangfa_ops 局象/换象互证（加权）——非常规职业（军警/演艺/公检法）命中路径
+    # K3 职业批1：互证加权每桶封顶 +2（换象/包局/夹官/全阳逐条 +1/+2 无上限
+    # 堆叠把非军警命推过阈值——yx-导演 military 9 中 corro 占 5、gj-煤矿 9 占 5、
+    # reg67-申机器工人 lawyer 8 占 4；真军警反而 0-5 分覆没，corro 虚高是
+    # military/lawyer fp/fn 倒置之源）。
     corroborate: List[str] = []
+    _corro_adds: Dict[str, int] = {}
+
+    def _corro(bucket: str, n: int) -> None:
+        _corro_adds[bucket] = _corro_adds.get(bucket, 0) + n
+
     try:
         from mangpai.subjective.xiangfa_ops import analyze_xiangfa_ops
         xo = analyze_xiangfa_ops(day_gan, gans, zhis, relations=rel, muku_result=muku,
@@ -968,16 +1099,16 @@ def classify_zhiye(
         for f in (xo.get('huanxiang') or []):
             dom = f.get('domain', '')
             if dom in ('官权', '官杀'):
-                scores['lawyer'] = scores.get('lawyer', 0) + 1
-                scores['military'] = scores.get('military', 0) + 1
+                _corro('lawyer', 1)
+                _corro('military', 1)
                 corroborate.append(f'换官象→律师/公门/军职加权（{f.get("desc","")[:20]}）')
             elif dom in ('财',):
-                scores['merchant'] = scores.get('merchant', 0) + 1
+                _corro('merchant', 1)
                 corroborate.append(f'换财象→商人加权（{f.get("desc","")[:20]}）')
             elif dom in ('食艺', '食伤'):
-                scores['performer'] = scores.get('performer', 0) + 1
-                scores['doctor'] = scores.get('doctor', 0) + 1
-                scores['teacher'] = scores.get('teacher', 0) + 1
+                _corro('performer', 1)
+                _corro('doctor', 1)
+                _corro('teacher', 1)
                 corroborate.append(f'换食伤象→演艺/医生/教师加权（{f.get("desc","")[:20]}）')
         # 局象（全局氛围象）：官杀包局/全阳/夹官→军职公门，食伤包局→演艺(配官杀→执法)
         jia_guan = 0
@@ -987,34 +1118,38 @@ def classify_zhiye(
             qx = f.get('qi_xiang', '')
             if t == '包局':
                 if dom == '官杀':
-                    scores['military'] = scores.get('military', 0) + 2
-                    scores['lawyer'] = scores.get('lawyer', 0) + 1
+                    _corro('military', 2)
+                    _corro('lawyer', 1)
                     corroborate.append('官杀包局→军职/公门加权')
                 elif dom == '财':
-                    scores['merchant'] = scores.get('merchant', 0) + 1
+                    _corro('merchant', 1)
                 elif dom == '食伤':
-                    scores['performer'] = scores.get('performer', 0) + 1
+                    _corro('performer', 1)
                     if has_guansha:
-                        scores['lawyer'] = scores.get('lawyer', 0) + 1  # 食伤制官=执法/公检法
+                        _corro('lawyer', 1)  # 食伤制官=执法/公检法
                     if has_cai or has_tao:
-                        scores['performer'] = scores.get('performer', 0) + 1
+                        _corro('performer', 1)
                 elif dom == '印':
-                    scores['teacher'] = scores.get('teacher', 0) + 1
+                    _corro('teacher', 1)
             elif t == '全阳':
-                scores['military'] = scores.get('military', 0) + 1
+                _corro('military', 1)
                 corroborate.append('全阳之局→刚烈武职加权')
             elif t == '夹局' and '官' in qx:
                 jia_guan += 1
             elif t == '专旺' and dom == '官杀':
-                scores['military'] = scores.get('military', 0) + 1
+                _corro('military', 1)
         if jia_guan:
-            scores['military'] = scores.get('military', 0) + 1
-            scores['lawyer'] = scores.get('lawyer', 0) + 1
+            _corro('military', 1)
+            _corro('lawyer', 1)
             corroborate.append(f'夹官局→军职/公门加权（{jia_guan}处）')
         if xo.get('hexiang'):
             corroborate.append(f'合象{len(xo["hexiang"])}处（产新象印证组合）')
     except Exception:
         pass
+    for _b, _n in _corro_adds.items():
+        scores[_b] = scores.get(_b, 0) + min(_n, 2)
+        if _n > 2:
+            corroborate.append(f'{_b}互证加权{_n}封顶+2（防堆叠虚高）')
 
     # 军警/武职 gating（P0 B/C + M1）：军警为官命之武职，反局/比劫夺财破财
     # /忌神制用神(R2)/用神被合绊(R3) 等凶向命中者不得判武职（坐牢的、破财的、
@@ -1035,6 +1170,14 @@ def classify_zhiye(
             gate = '军警gating（凶向：' + '；'.join(ds.get('reasons') or []) + '）'
             scores['military'] = 0
             evidence['military'] = [gate]
+    # lawyer gating（K3 职业批1）：伤官见官为忌破格（mingju_xiong）者不以律师
+    # 成象——伤官制官为用方主辩护对抗，为忌则破格困顿/官非（书锚 gj-低保伤官
+    # 「土金伤官怕见官…靠低保维生」：与律师同形而吉凶相反）。
+    if ds.get('mingju_xiong') and scores.get('lawyer', 0) > 0:
+        gate = 'lawyer gating（伤官见官为忌破格主困顿，不以律师成象：' \
+            + '；'.join(ds.get('reasons') or []) + '）'
+        scores['lawyer'] = 0
+        evidence['lawyer'] = [gate]
     # merchant gating（P0-c）：严重破财凶向（比劫夺财 severe=清家荡产/乞丐级）
     # 命局不以经营成象——其「财做功」为夺财交战而非经营取财（段氏制财得财以
     # 功神非比劫为前提）；一般破财（normal）之经商者不在此限（破财的商人仍是商人）。

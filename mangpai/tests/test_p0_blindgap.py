@@ -286,7 +286,8 @@ class TestTeacherLawyerCoexistenceSuppression:
         s, ev = _score_teacher('辛', ['甲', '丙', '辛', '己'], ['子', '午', '卯', '辰'], [])
         assert any('木火通明' in e for e in ev)
         # 仅地支木火共存 -> 弱信号 +1（无 +2）
-        s2, ev2 = _score_teacher('辛', ['庚', '戊', '辛', '己'], ['寅', '午', '卯', '辰'], [])
+        # （时干癸=食神主气：隔离 K3 职业批1「印重无食伤」新通道，专注木火层级差）
+        s2, ev2 = _score_teacher('辛', ['庚', '戊', '辛', '癸'], ['寅', '午', '卯', '辰'], [])
         assert any('弱信号' in e for e in ev2)
         assert s - s2 >= 1
 

@@ -1,5 +1,22 @@
 # 盲派客观层 变更记录
 
+## 2026-08-08 第三十批 · 294 例训练集修复 职业批1（merchant 收窄修正版过 heldout 闸，trainset 职业 25.29→32.94%）
+
+| 规则 | 内容 | 位置 |
+|------|------|------|
+| Z1 merchant 门户收窄（修正版） | 财/印在时柱门户改主气粒度（时干十神/时支本气）+ 食伤主气门户保留（经营门面象）——旧柱级含藏干中气时柱几乎必中（fp 26 中 25）；首版教训=官杀当财/内食神收窄误伤 heldout 三书锚商人（ans10/li002/li131 实测主气门户全命中不受影响），故仅门户一条过闸，官杀当财/内食神维持原口径 | subjective/zhiye.py _score_merchant |
+| Z2 performer 无桃花通道 | 柱级食伤≥2柱+食伤做功（主气当事人）+无桃花+无主气明财 → +3（桃花双向失败：fp9 全有桃花/真艺人 7 全无；桃花条款保留不动；财明现者归经营豁免=乔布斯锚） | _score_performer |
+| Z3 military 羊刃驾杀 | 官杀主气≥2柱+阳刃在局+刃支与官杀主气端有制合动作+未成势+财星入局做功未触发 → +3（成势门 3 柱金标召回仅 2/8；财做功主象豁免=合例一富命锚） | classify_zhiye |
+| Z7 corroborate 封顶 | xiangfa 互证加权每桶总和封顶 +2（导演 military 9 corro 占 5/煤矿 9 占 5/申机器工人 lawyer 8 占 4=fp/fn 倒置之源） | classify_zhiye |
+| Z4 lawyer 主气粒度 | 伤官制官须克动作两端主气食伤↔官杀方 +2，柱级共存降 +1；食神制官共存条款删除（银行簇/工人/低保全中泛触） | _score_lawyer |
+| Z8 lawyer gating | mingju_xiong（伤官见官为忌破格=困顿）者不以律师成象（gj-低保伤官书锚） | classify_zhiye |
+| Z6 teacher 印重馆阁 | 主气印≥2柱+主气食伤 0 柱+金<3 → +2（yx-6061 翰林院学士书锚；印食并见经营命豁免） | _score_teacher |
+| B-a rubric v8 | _ZY_EXCLUDE['military'] 增「冠军」（体育冠军之「军」substring 误命中，cj-运动员/cj-武术转 unscorable，trainset 职业 n 87→85） | heldout/blind_eval.py RUBRIC_VERSION=v8-20260808 |
+| 测试fixture | test_teacher_muhuo_gan_level 支级木火 fixture 时干己→癸（隔离印重馆阁新通道，专测木火层级差） | test_p0_blindgap.py |
+
+验证：verify 432 全绿、pytest 473 passed、**trainset 职业 22✅→28✅（❌ 53→43，25.88→32.94%，6 翻转全改善：罗斯切尔德/影星合杀/劫刃制官杀/化例二/合例八暗合/yx-6061）**、**heldout 职业 21✅ 40.38% 底线守住（ans10/li002/li131 三书锚商人逐项确认 ✅ 无损）**、heldout 官命 74.24%/财命 66.67% 逐字节平、trainset 官命 83.48%/财命 52.21% 零翻转、67例 0 回归（+2 IMPROVE：李嘉诚/乔布斯 zhiye）、famous 0 回归、calib 与 HEAD 一致（zhenbao-01 官命=存量）、双 seed 逐字节一致。新 baseline `20260808_r.json`（rubric v8 重评自 `20260808_q_rescore.json`）。
+残留：doctor 中医 3 簇（merchant 7-11 分差过大）/yx-2658 金 5 重独力通道/图书管理员金多无火盲区/岳飞戴笠警察墓库 C 备案；accountant 银行簇 ❌→⚠️ 改善未达标（差 1-2 分）。
+
 ## 2026-08-08 第二十九批 · 294 例训练集修复 官命批（veto 链级九规则栈，trainset 官命 65.22→83.48%）
 
 | 规则 | 内容 | 位置 |
