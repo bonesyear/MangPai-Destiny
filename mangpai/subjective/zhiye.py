@@ -410,6 +410,21 @@ def _score_accountant(day_gan, gans, zhis, wa, muku) -> Tuple[int, List[str]]:
                 score += 3
                 ev.append(f'财入印墓于{PILLAR_NAMES_CN[_i]}柱宾位（食生财财入墓，做帐的）')
                 break
+    # 水局成势 +4（K3 职业批4 会计审计通道）：亥子辰支≥2 + 申子辰三合水局
+    # + 财主气明现——7.3 会计「亥子辰水，数字象」之成势版：水局成局者数字
+    # 之象成势，管数之业（书锚 yx-科级「我原来是做会计的，后来做审计了」：
+    # 申子辰三合水局，数字成局）。仅半合拱合不成局者不取（zhenbao-10 公检
+    # 法/yx-房地产/shouke-qi05 下海营商皆半合水，不归此象）。
+    _shui_ju = any(
+        a.get('type') == '三合局'
+        and _pos_idx(a.get('from_pos', '')) >= 0
+        and _pos_idx(a.get('to_pos', '')) >= 0
+        and {zhis[_pos_idx(a.get('from_pos', ''))],
+             zhis[_pos_idx(a.get('to_pos', ''))]} <= {'申', '子', '辰'}
+        for a in wa)
+    if len(shui_zhis) >= 2 and _shui_ju and _n_cai_main >= 1:
+        score += 4
+        ev.append('申子辰水局成势（数字之象成局，管数之业/会计审计）')
     # 日支坐财库+官杀透干+财库合闭 +2（K3 职业批3 单位管财通道）：书锚
     # cj-财务总监「管理跨国海外公司的大企业的财务总监」（辛日未财库坐日支，
     # 丙官透月干=单位/公家，午未合闭库=管公家之财不流出）。
@@ -1416,6 +1431,59 @@ def classify_zhiye(
                     f'段氏：干体力活维生，不为商）')
             scores['merchant'] = 0
             evidence['merchant'] = [gate]
+
+    # ── K3 职业批4 窄通道（书锚驱动，137 例网格验证零误伤）──
+    # 食生财财入墓复合 +2（书锚 zj-注册会计师原话「食伤生财，财星入印墓在宾位，
+    # 是替别人做智力服务的…食生财，财入墓，做帐的」——二象复合即做帐）。
+    # 财墓坐日支者不入此象：财归己坐下之库=自守之财，非「入宾位印墓替人做帐」
+    # （cj-足球 未财墓坐日支，运动员非帐房）。
+    _cai_tomb_b4 = {'木': '未', '火': '戌', '金': '丑', '水': '辰',
+                    '土': '辰'}.get(WX_KE.get(GAN_WX.get(day_gan, ''), ''), '')
+    _acc_mu_hit = any('财入印墓' in ln for ln in evidence.get('accountant', [])) \
+        and zhis[PILLAR_KEYS.index('day')] != _cai_tomb_b4
+    if _acc_mu_hit and any('食伤生财做功' in ln for ln in evidence.get('merchant', [])):
+        scores['accountant'] = scores.get('accountant', 0) + 2
+        evidence['accountant'] = evidence.get('accountant', []) + [
+            '食伤生财+财入印墓复合（食生财财入墓，做帐的）']
+    # 桃花象让位：财入印墓宾位（做帐书锚信号）命中且有桃花者，桃花演艺象
+    # 压平 3 分——同一书锚命带桃花（子居日柱）而书判「做帐的」：财入印墓
+    # 之象优先于桃花演艺之象（压平幅度≈桃花居日柱+桃花+财两条之量；桃花
+    # 条款本身不动，仅财入印墓命中者让位）。
+    if _acc_mu_hit and (ss.get('桃花') or {}).get('in_pillars') \
+            and scores.get('performer', 0) > 0:
+        scores['performer'] = max(scores.get('performer', 0) - 3, 0)
+        evidence['performer'] = evidence.get('performer', []) + [
+            '财入印墓做帐之象优先，桃花演艺象压平']
+    # 纯食伤文人 +5（书锚 yx-记者「高级记者、编辑、著名报人」）：食伤主气
+    # ≥3字吐秀之极而无财（不鬻）无印（非馆阁），纯以文笔为业——梁羽生食伤
+    # 鬻文通道（财≥2）之无财对偶。伤官见官为忌破格者食伤为忌非吐秀，不入
+    # 此象（gj-低保伤官「土金伤官怕见官…靠低保维生」豁免）；金不重型，金重
+    # 归律令/兵刃不归文（同印重馆阁通道守卫——shouke-qi19 伤官去官格官员
+    # 金4字，以制官为业非文笔，豁免）。
+    if (_main_qi_char_count(day_gan, gans, zhis, '食伤') >= 3
+            and _main_qi_char_count(day_gan, gans, zhis, '印') == 0
+            and _main_qi_char_count(day_gan, gans, zhis, '财') == 0
+            and (sum(1 for z in zhis if z in ('申', '酉'))
+                 + sum(1 for g in gans if g in ('庚', '辛'))) < 3
+            and not ds.get('mingju_xiong')):
+        scores['teacher'] = scores.get('teacher', 0) + 5
+        evidence['teacher'] = evidence.get('teacher', []) + [
+            '纯食伤吐秀无财无印（纯以文笔为业，文人/记者）']
+    # 从强金财金融 +5（书锚 yx-3290「此人为银行官员」：从强格印比成势，申酉
+    # 金财≥2位为忌被制——金=金融，从强之财非我之财，乃金融机器中所管公家
+    # 之财；从弱从财者财为我趋之财归经营，不入此象）。
+    if WX_KE.get(GAN_WX.get(day_gan, ''), '') == '金' and (
+            sum(1 for z in zhis if z in ('申', '酉'))
+            + sum(1 for g in gans if g in ('庚', '辛'))) >= 2:
+        try:
+            from mangpai.subjective.yongshen import classify_strength as _cs4
+            _st4 = str(_cs4(day_gan, gans, zhis))
+        except Exception:
+            _st4 = ''
+        if _st4 == '从强':
+            scores['accountant'] = scores.get('accountant', 0) + 5
+            evidence['accountant'] = evidence.get('accountant', []) + [
+                '从强金财为忌被制（金=金融，财非我财，金融机构管公家钱）']
 
     # 多象定一象：取最高分。同分决胜（K3，段氏 7.3 总则「先定取财方式：先断其
     # 属于经营、风险、智力、体力、工薪中哪一类…再精确定位」+ 引言「象法为宗」）：
