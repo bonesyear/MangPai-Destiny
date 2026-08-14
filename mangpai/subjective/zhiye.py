@@ -419,7 +419,7 @@ def _score_doctor(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     return score, ev
 
 
-def _score_teacher(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
+def _score_teacher(day_gan, gans, zhis, wa, ss=None) -> Tuple[int, List[str]]:
     score = 0
     ev: List[str] = []
     # 木火通明（压低共存加分）：段氏口径为「甲乙见丙丁」（天干木火相见）+2；
@@ -437,8 +437,9 @@ def _score_teacher(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     if '食伤' in _pillar_cats(day_gan, gans[3], zhis[3]):
         score += 2
         ev.append('食伤在时柱门户（以口为业）')
-    # 印星月令为用
-    if '印' in _pillar_cats(day_gan, gans[1], zhis[1]):
+    # 印星月令为用——K3 职业批2 主气化：藏干中气带入之虚印不计（月干十神/
+    # 月支本气为印方取，虚印泛触把演艺/吏员命全打上学校标签）
+    if '印' in _main_qi_cats(day_gan, gans, zhis, 1):
         score += 1
         ev.append('月令印星（书本知识/学校）')
     # 财星虚透合印
@@ -463,6 +464,43 @@ def _score_teacher(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     if _n_yin_main >= 2 and _n_ss_main == 0 and _jin_cnt < 3:
         score += 2
         ev.append('印重无食伤（馆阁纯学问之象）')
+    # 食伤鬻文 +3（K3 职业批2 作家通道）：食伤主气≥3柱 + 财主气≥2柱 + 局无
+    # 桃花 + 印主气0柱——食伤吐秀之极而财明现=以文鬻财（书锚 yx-梁羽生 作家：
+    # 庚日子水伤官三柱+甲卯财两位）。有印者归馆阁/印食文墨，有桃花者归演艺。
+    _n_cai_main = sum(1 for i in range(4)
+                      if '财' in _main_qi_cats(day_gan, gans, zhis, i))
+    _n_gs_main = sum(1 for i in range(4)
+                     if '官杀' in _main_qi_cats(day_gan, gans, zhis, i))
+    _has_tao = bool(((ss or {}).get('桃花') or {}).get('in_pillars'))
+    if _n_ss_main >= 3 and _n_cai_main >= 2 and not _has_tao and _n_yin_main == 0:
+        score += 3
+        ev.append(f'食伤{_n_ss_main}柱吐秀+财{_n_cai_main}位（食伤鬻文，以文为业）')
+    # 印食文墨授业 +4（K3 职业批2 教师 fn 主通道）：月令主气印（学校/单位
+    # 之门）+ 印食共现（印=知识、食伤=表达，传授之象）+ 木火文象 + 财在局
+    # （工薪取财）+ 金不重型（金重归金融/律令）+ 无卯酉冲（酒家门户象优先，
+    # cj-老板）——段氏 7.3「先定取财方式」：官杀多寡定单位形态，三型居其一：
+    #   无官杀·财食皆≥2 = 纯文职教书（书锚 zj-邢铭芬「教师」，印重无官）；
+    #   官杀1·食伤≥3   = 吐秀授业（书锚 zj-教师无官，食伤成势以口为业）；
+    #   官杀2·印≥2     = 印化官杀之文书传业（书锚 cj-2097 作家，甲寅印重）。
+    # 印食并见之经营命（famous-乔布斯 食伤生财做实、yx-房地产 财重）不入三型
+    # 强度，不触此条。
+    _maoyou = any(
+        a.get('type') == '冲'
+        and _pos_idx(a.get('from_pos', '')) >= 0
+        and _pos_idx(a.get('to_pos', '')) >= 0
+        and frozenset({zhis[_pos_idx(a.get('from_pos', ''))],
+                       zhis[_pos_idx(a.get('to_pos', ''))]}) == frozenset({'卯', '酉'})
+        for a in wa)
+    _muhuo_any = gan_muhuo or (cnt.get('木', 0) >= 1 and cnt.get('火', 0) >= 1)
+    _month_yin_main = '印' in _main_qi_cats(day_gan, gans, zhis, 1)
+    if (_month_yin_main and _n_yin_main >= 1 and _n_ss_main >= 1
+            and _muhuo_any and _n_cai_main >= 1 and _jin_cnt < 3
+            and not _maoyou and (
+                (_n_gs_main == 0 and _n_cai_main >= 2 and _n_ss_main >= 2)
+                or (_n_gs_main == 1 and _n_ss_main >= 3)
+                or (_n_gs_main == 2 and _n_yin_main >= 2))):
+        score += 4
+        ev.append('印食文墨授业（月令印+印食共现+木火，教书/传授为业）')
     return score, ev
 
 
@@ -739,6 +777,21 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     if chong_cai:
         score += 1
         ev.append('冲财做功（贸易运输）')
+    # 6a. 卯酉冲门户 +1（K3 职业批2 酒家门户象）：卯酉=门户（《中级》象法
+    #     「卯酉为出入之门」），冲则门户大开迎客，配财在局=开店经营之象
+    #     （书锚 cj-老板「卯酉冲酒家门户」开酒店）。与 lawyer「依律破例」
+    #     同象异读：财主气在局者以商论。
+    _n_cai_main_m = sum(1 for i in range(4)
+                        if '财' in _main_qi_cats(day_gan, gans, zhis, i))
+    if _n_cai_main_m >= 1 and any(
+            a.get('type') in ('冲', '破')
+            and _pos_idx(a.get('from_pos', '')) >= 0
+            and _pos_idx(a.get('to_pos', '')) >= 0
+            and frozenset({zhis[_pos_idx(a.get('from_pos', ''))],
+                           zhis[_pos_idx(a.get('to_pos', ''))]}) == frozenset({'卯', '酉'})
+            for a in non_aux):
+        score += 1
+        ev.append('卯酉冲门户（门户大开迎客，酒家/开店经营）')
     # 6b. 自坐财库 +1（结构辅证，同门户）——《高级》6.3「戌为火库，若局中火为
     #     财，则戌为财库，象意银行、金库、仓库」+ 案例七「财库包局，银行工作」：
     #     日支为日主财星之库（库 mapping 复用 objective.TOMB_MAP），坐下与财
@@ -878,6 +931,32 @@ def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
         if n_ss_pillars >= 2 and ss_work and not cai_ming:
             score += 3
             ev.append('食伤成势做功（无桃花之艺，凭技艺立身）')
+    # 金水声音 +4（K3 职业批2 歌坛通道）：日主为金 + 水食伤主气在局 + 食伤
+    # 主气≥2柱 + 比劫主气≥3柱（身旺任泄）——象法金水相生主声音/歌喉（金=
+    # 钟磬之声、水=婉转流动），身旺食伤泄秀者以声为业（书锚 cj-歌星：辛日
+    # 三辛透干身旺、亥亥水伤成势）。金日主水食伤而身不旺者泄重不立（帕瓦罗蒂
+    # 比劫1柱不触，归别象），非金日主之水食伤归文墨/技艺（梁羽生归鬻文）。
+    if GAN_WX.get(day_gan) == '金':
+        _n_ss_main = sum(1 for i in range(4)
+                         if '食伤' in _main_qi_cats(day_gan, gans, zhis, i))
+        _n_bj_main = sum(1 for i in range(4)
+                         if '比劫' in _main_qi_cats(day_gan, gans, zhis, i))
+        _shui_ss = False
+        for i in range(4):
+            if '食伤' not in _main_qi_cats(day_gan, gans, zhis, i):
+                continue
+            if gans[i] and _cat(_compute_shishen(day_gan, gans[i])) == '食伤' \
+                    and GAN_WX.get(gans[i]) == '水':
+                _shui_ss = True
+                break
+            _cg = get_canggan_mangpai(zhis[i])
+            if _cg and _cat(_compute_shishen(day_gan, _cg[0][0])) == '食伤' \
+                    and ZHI_WX.get(zhis[i]) == '水':
+                _shui_ss = True
+                break
+        if _shui_ss and _n_ss_main >= 2 and _n_bj_main >= 3:
+            score += 4
+            ev.append('金水声音（金水伤官身旺泄秀，以歌喉/声音为业）')
     return score, ev
 
 
@@ -1068,7 +1147,7 @@ def classify_zhiye(
     scores['accountant'], evidence['accountant'] = s, e
     s, e = _score_doctor(day_gan, gans, zhis, wa, ss)
     scores['doctor'], evidence['doctor'] = s, e
-    s, e = _score_teacher(day_gan, gans, zhis, wa)
+    s, e = _score_teacher(day_gan, gans, zhis, wa, ss)
     scores['teacher'], evidence['teacher'] = s, e
     s, e = _score_lawyer(day_gan, gans, zhis, wa)
     scores['lawyer'], evidence['lawyer'] = s, e
