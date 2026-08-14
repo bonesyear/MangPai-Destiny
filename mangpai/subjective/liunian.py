@@ -387,7 +387,8 @@ def classify_chong_semantic(
       2. 所冲为墓库（辰戌丑未）               -> 冲开（库藏释放，事发扬）
       3. 所冲衰（评分<0）                     -> 冲去（主离去/失去）
       4. 流年支衰而所冲旺（衰神冲旺神）        -> 冲去（流年字自去，书例姐远嫁）
-      5. 流年冲大运：正行干运 -> 冲动（提前引动）；正行支运 -> 冲去（运支当令怕冲崩）
+      5. 流年冲大运：正行干运 -> 冲动（提前引动）；正行支运/统看 -> 冲去
+         （运支当令怕冲崩；统看干支同主事，「流年冲大运一般是冲去」）
       6. 所冲旺（>=2）且喜忌可判               -> 冲旺（激起：用神吉放大/忌神凶放大）
       7. 其余（旺而喜忌不明/力量相当）          -> 冲动（主变迁/调动）
     """
@@ -436,7 +437,10 @@ def classify_chong_semantic(
         elif target_location == 'dayun' and phase_active == '干':
             chong_type = '冲动'
             desc_tail = '正行天干运，流年冲运为冲动，提前引动该运之事'
-        elif target_location == 'dayun' and phase_active == '支':
+        elif target_location == 'dayun' and phase_active in ('支', '干支'):
+            # 「流年冲大运一般是冲去」（shouke:1370）/「若正行地支运，流年冲
+            # 大运为冲去」（gaoji:19348）；统看干支同主事同论：壬午年冲去丙子
+            # 运子水，母子被杀（cj2:6042）
             chong_type = '冲去'
             desc_tail = '运支当令怕冲崩，流年冲运为冲去，运支力量暂弱'
         elif s_t >= 2:
@@ -467,6 +471,8 @@ def classify_he_semantic(
     target_location: str = 'natal',
     gender: Optional[str] = None,
     target_idx: int = -1,
+    ln_gan: str = '',
+    he_partner_dayun: bool = False,
 ) -> Dict:
     """合之四种语义（高级篇 ch12 法则一：合留/合动/合去/合绊）。
 
@@ -474,8 +480,15 @@ def classify_he_semantic(
     喜事临。原局旺神逢岁合，合动做事事必成。衰神逢合为合去，离去消失
     不见形。两字相贴逢岁合，合绊牵制难发挥。」
       - 合大运字：配偶星 -> 合留（得到，主婚缘）；余 -> 合动（引动大运所主）
+      - 大运合原局字（he_partner_dayun=True）-> 合绊（运-局合，合绊则不
+        起作用；cj1:1816 丁丑运天地合绊断水源 / gaoji:5558 乙丑运丑合绊
+        子水 / chuji:3097「大运合为合绊」）
       - 合命局字：衰 -> 合去（离去/失去）；原局已与他字相贴合 -> 合绊（牵制
         难发挥）；配偶星/喜用 -> 合留（合入得到）；余（旺）-> 合动（发动）
+      - 天干合且流年干虚透（不透于原局天干）而为原局支所藏之透（代表原局
+        之物，ln_gan 传入方判）-> 合去（流年字被原局合去，主失去/离去；
+        yx2:5877 戊虚透代表巳火夫星被癸合去离异 / zhongji:6111 甲戌年
+        甲木虚透合走了，双锚）
     kind: '天干合'（target 为干）或 '六合'/'暗合'（target 为支）。
     """
     is_gan = kind == '天干合'
@@ -506,6 +519,11 @@ def classify_he_semantic(
             he_type, tail = '合留', '流年合住大运配偶星，得到/留住，主婚缘'
         else:
             he_type, tail = '合动', '流年合大运为合动，引动大运所主吉凶'
+    elif he_partner_dayun:
+        # 运-局合：「大运合为合绊，合绊了就不起作用了」（chuji:3097）；
+        # 丁丑运子丑合切断水源寿到（cj1:1816）/ 乙丑运丑土合绊子水
+        # （gaoji:5558）双锚
+        he_type, tail = '合绊', '大运合原局为合绊，合绊则不起作用，难发挥'
     elif adjacent_he:
         # 相贴优先于衰：书例二（子丑贴，丁丑年合绊用神）target 丑虽偏弱仍论
         # 合绊不论合去；书例三合去（丧母）target 辛无贴合，虚透方论合去
@@ -520,6 +538,13 @@ def classify_he_semantic(
         he_type, tail = '合去', '衰神逢合为合去，离去消失，主失去'
     elif spouse:
         he_type, tail = '合留', '配偶星逢岁合，合入得到，多主婚缘喜事'
+    elif (is_gan and ln_gan and ln_gan not in natal_gans
+            and any(ln_gan in [g for g, _c in get_canggan_mangpai(z)]
+                    for z in natal_zhis if z)):
+        # 流年干虚透（不透于原局天干）而为原局支所藏之透=代表原局之物，
+        # 被原局合去：戊虚透代表巳火夫星，戊癸一合正式离异（yx2:5877）/
+        # 甲戌年甲木虚透合走了（zhongji:6111）双锚
+        he_type, tail = '合去', '流年干虚透原局所藏之物，被原局合去，主失去/离去'
     else:
         xiji = _judge_xiji(day_gan, natal_gans, natal_zhis,
                            GAN_WX.get(target, '') if is_gan else ZHI_WX.get(target, ''))
@@ -742,7 +767,7 @@ def analyze_liunian_mangpai(
                 r['he_semantic'] = classify_he_semantic(
                     '天干合', tgt, natal_gans, natal_zhis, day_gan,
                     dayun_zhi=dy_zhi, kong_wang=kong_wang,
-                    target_location='natal', gender=gender,
+                    target_location='natal', gender=gender, ln_gan=gan,
                 )
 
         # K5: 强语义叠信号（保守：只补最凶两端，中性变迁不碰 overall）
