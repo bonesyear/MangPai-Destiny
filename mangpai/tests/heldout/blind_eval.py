@@ -22,6 +22,9 @@
   #   ↑ M5：评估+存快照（附 _meta: git sha/rubric 版本）并与基线快照 diff 一条龙
   # 确定性门禁（M1）: PYTHONHASHSEED=0 与默认 seed 各跑一次，输出须逐字节一致；
   #   diff/基线报告末尾「文本抖动」段 >0 即卫生失败。
+  # 显著性门禁（M3）: 汇总行后附 Wilson 95% CI（acc±half/下界）；--diff 报告附
+  #   显著性判定——|Δacc| > 两 CI 半宽之和 方判显著改善/退化，余记「噪声带内」；
+  #   验收门槛以 CI 下界计（如「财命 CI 下界 ≥ X%」）。纯附加输出，既有行不变。
 """
 import argparse
 import json
@@ -324,6 +327,60 @@ def _print_groups(label, data):
         for k in keys))
 
 
+# ── M3 Wilson 95% CI（P3 测量卫生收尾）：汇总精度区间 + diff 显著性判定 ──
+# 纯附加输出：既有汇总行/分组行逐字节不变，CI 行与显著性段为其后新增段落。
+# 口径：Wilson score interval（z=1.96，无需 scipy）；--diff 时 |Δacc| 须大于
+# 两 CI 半宽之和方判显著改善/退化，余记「噪声带内」；验收门槛以 CI 下界计。
+# （注：同一批案例前后对比本属配对设计，两半宽和规则为约定阈，偏保守。）
+_WILSON_Z = 1.959964
+
+
+def _wilson(ok, n):
+    """Wilson 95% score interval。返回 (lo, hi, half)；n=0 返回 None。"""
+    if not n:
+        return None
+    p = ok / n
+    z2 = _WILSON_Z * _WILSON_Z
+    denom = 1 + z2 / n
+    center = (p + z2 / (2 * n)) / denom
+    half = _WILSON_Z * ((p * (1 - p) / n + z2 / (4 * n * n)) ** 0.5) / denom
+    return max(0.0, center - half), min(1.0, center + half), half
+
+
+def _print_ci(label, data):
+    """汇总行后附 CI 行：acc%±half%（下界 lo%），n=0 维度跳过。"""
+    s = summarize(data)
+    parts = []
+    for d in ('官命', '财命', '职业'):
+        v = s.get(d)
+        if not v or not v['n']:
+            continue
+        lo, _hi, half = _wilson(v['✅'], v['n'])
+        parts.append(f"{d}: {v['✅'] / v['n'] * 100:.1f}%±{half * 100:.1f}%"
+                     f"(下界{lo * 100:.1f}%)")
+    if parts:
+        print(f'[{label}·CI95] ' + '  '.join(parts))
+
+
+def _print_significance(before, after):
+    """--diff 显著性：|Δacc| > 两半宽之和 → 显著改善/退化，否则噪声带内。"""
+    print('\n=== M3 显著性（Wilson95：|Δacc| > 两半宽之和方判显著）===')
+    for split in ('heldout', 'trainset'):
+        sb, sa = summarize(before.get(split, {})), summarize(after.get(split, {}))
+        for d in ('官命', '财命', '职业'):
+            vb, va = sb.get(d), sa.get(d)
+            if not vb or not va or not vb['n'] or not va['n']:
+                continue
+            pb, pa = vb['✅'] / vb['n'], va['✅'] / va['n']
+            band = _wilson(vb['✅'], vb['n'])[2] + _wilson(va['✅'], va['n'])[2]
+            delta = pa - pb
+            verdict = '噪声带内'
+            if abs(delta) > band:
+                verdict = '显著改善' if delta > 0 else '显著退化'
+            print(f'  [{split}][{d}] Δ={delta * 100:+.1f}% '
+                  f'半宽和={band * 100:.1f}% → {verdict}')
+
+
 # ── M1 文本抖动：score 全不变但 engine 字段有差异（复跑确定性门禁，>0 即失败）──
 def _jitter(before, after):
     out = []
@@ -350,6 +407,8 @@ def _print_diff(before, after):
                 for d, v in s.items() if v['n'])
             print(f'[{name}][{split}] {line}')
             _print_groups(f'{name}][{split}', data.get(split, {}))
+            _print_ci(f'{name}][{split}', data.get(split, {}))
+    _print_significance(before, after)
     print('\n=== 翻转明细（heldout + trainset）===')
     for split in ('heldout', 'trainset'):
         flips = diff(before.get(split, {}), after.get(split, {}))
@@ -437,6 +496,7 @@ def main():
                 f"{d}: {v['✅']}✅/{v['⚠️']}⚠️/{v['❌']}❌ acc={v['acc']}"
                 for d, v in s.items() if v['n'])
             print(f'[{split}·重评] {line}')
+            _print_ci(f'{split}·重评', cases)
         print(f'(saved -> {out_path})')
         return
 
@@ -459,6 +519,7 @@ def main():
             for d, v in s.items() if v['n'])
         print(f'[{split}] n={len(data)}  {line}')
         _print_groups(split, data)
+        _print_ci(split, data)
     if args.out:
         payload = dict(result)
         payload['_meta'] = {'git_sha': _git_sha(),

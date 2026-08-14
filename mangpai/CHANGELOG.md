@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-08-14 第三十五批 · 杂项清理批（知识库固化 + M3 Wilson CI + 收尾决策，引擎零改动）
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| 知识库固化 | `docs/knowledge-base.md`：memory 62 份归档提炼——书锚清单（按模块）/已固化规则要点/备案清单/铁律与测量纪律/工具链/关键坑；新会话上下文替代品 | docs/knowledge-base.md |
+| M3 Wilson CI | blind_eval 汇总行后附 `[·CI95]` 行（Wilson 95%：acc±half(下界)，手工实现无 scipy）；--diff/--baseline 附显著性判定段——\|Δacc\| > 两 CI 半宽之和方判显著改善/退化，余记「噪声带内」；验收门槛以 CI 下界计。**纯附加输出，既有行逐字节不变，rubric 仍 v8** | tests/heldout/blind_eval.py |
+| _p2_diag 转正 | 删除一次性诊断脚本 `_p2_diag.py`（b67 硬编码），转为正式单盘诊断工具 `diag_case.py`（argparse 任意四柱，复用 blind_eval._bazi_data 含 dayun 支-only 坑处理，增 guanming/zhiye dump） | tests/heldout/diag_case.py |
+| gongshen 备案结论 | `_PILLAR_BODY` 年时身段颠倒=**永久备案**：仅流进 narrative 宫身行文本，三维评分零消费；body_parts.PILLAR_BODY 已按书主表为唯一事实源，不回写（详见 knowledge-base §6.4） | — |
+| 快照 meta 补全 | 20 份快照全量核验：git_sha/rubric_version 齐；5 份空 note（i/j/m/14a/14b）按批次记忆补写 | tests/heldout/snapshots/ |
+
+验证：verify 432 全绿、pytest 473 passed、blind vs 20260814_c **零翻转零抖动**（官 74.24%/财 66.67%/职 44.23% + trainset 83.48/52.21/50.59 逐字节平，CI 列正常）、双 seed 逐字节一致。
+
 ## 2026-08-14 第三十四批 · 294 例训练集职业批4（收尾：31❌ 四规则栈 +4✅，heldout 零翻转）
 
 | 规则 | 内容 | 位置 |

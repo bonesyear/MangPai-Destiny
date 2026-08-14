@@ -3457,6 +3457,6 @@
  "_meta": {
   "git_sha": "cb216a0",
   "rubric_version": "v6-20260802",
-  "note": ""
+  "note": "gongliang base3层校准: 库源×入墓同源去重+克链入墓惰性; 财命66.67%持平零回归"
  }
 }

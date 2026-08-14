@@ -7519,6 +7519,6 @@
  "_meta": {
   "git_sha": "bc277e3",
   "rubric_version": "v6-20260802",
-  "note": ""
+  "note": "G3扩容收官: trainset 119→294(cj92+yx83); 新基线 官65.22/财38.05/职24.14; heldout vs l 零diff"
  }
 }
