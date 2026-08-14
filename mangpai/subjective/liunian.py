@@ -35,7 +35,7 @@ from typing import Dict, List, Optional, Any
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI,
-    XING_PAIRS, AN_HE, LU, PILLAR_KEYS,
+    XING_PAIRS, AN_HE, LU, PILLAR_KEYS, SAN_HE,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
@@ -334,6 +334,37 @@ def _is_spouse_star(shishen: str, gender: Optional[str]) -> bool:
     return False
 
 
+def _zhi_has_natal_he(zhi: str, natal_zhis: List[str]) -> bool:
+    """支在原局是否与他支有合住（六合 / 三合半合，四库会局不计）。"""
+    for o in natal_zhis:
+        if not o or o == zhi:
+            continue
+        if (zhi, o) in LIU_HE or (o, zhi) in LIU_HE:
+            return True
+        for key in SAN_HE:
+            if len(key) == 3 and zhi in key and o in key:
+                return True
+    return False
+
+
+def _ln_spouse_related(ln_zhi: str, day_gan: str, gender: Optional[str]) -> bool:
+    """流年支是否为配偶星本气或配偶星库（藏干含配偶星的辰戌丑未）。
+
+    书锚：「流年夫星（酉为辛的禄）冲入夫宫」（cj1:2936）/「辰是官杀库…
+    冲动了夫宫」（cj1:2946）。gender 缺省不误判。
+    """
+    if not gender:
+        return False
+    if _is_spouse_star(_zhi_benqi_shishen(day_gan, ln_zhi), gender):
+        return True
+    if ln_zhi in _MU_KU:
+        from mangpai.subjective.yongshen import _shishen_full
+        for gan, _c in get_canggan_mangpai(ln_zhi):
+            if _is_spouse_star(_shishen_full(day_gan, gan), gender):
+                return True
+    return False
+
+
 def classify_chong_semantic(
     ln_zhi: str,
     target_zhi: str,
@@ -344,11 +375,14 @@ def classify_chong_semantic(
     kong_wang: Any = None,
     target_location: str = 'natal',
     phase_active: str = '',
+    gender: Optional[str] = None,
 ) -> Dict:
     """冲之五种语义（高级篇 ch12 法则二、ch13 天克地冲断法）。
 
     判别顺序（书诀「旺者冲动衰者伤；冲开墓库事发扬；冲去衰神主离去；
     冲破无救主死亡；冲旺用神反为吉，冲凶忌神祸难当」）：
+      0a. 流年七杀冲日主之禄（非配偶星）      -> 冲破（七杀冲禄主凶死）
+      0b. 流年配偶星/配偶星库冲原局有合之日支 -> 冲动（冲开原合，婚姻发动）
       1. 所冲极衰无救（评分<= -2）            -> 冲破（主死亡/终结，大凶）
       2. 所冲为墓库（辰戌丑未）               -> 冲开（库藏释放，事发扬）
       3. 所冲衰（评分<0）                     -> 冲去（主离去/失去）
@@ -363,34 +397,56 @@ def classify_chong_semantic(
                         natal_gans=natal_gans)
     s_l = _liunian_strength(ln_zhi, ctx, month_zhi)
 
-    chong_type = '冲动'
-    desc_tail = '旺神逢冲，主变迁/调动'
-    if s_t <= -2:
-        chong_type = '冲破'
-        desc_tail = '所冲极衰无救，冲破主终结/死亡，大凶'
-    elif target_zhi in _MU_KU:
-        chong_type = '冲开'
-        desc_tail = '冲开墓库，库藏释放，事发扬'
-    elif s_t < 0:
-        chong_type = '冲去'
-        desc_tail = '衰神逢冲而去，主离去/失去'
-    elif s_l <= 0 and s_t >= 2:
-        chong_type = '冲去'
-        desc_tail = '流年衰神冲旺神，流年字自去（主离去）'
-    elif target_location == 'dayun' and phase_active == '干':
+    day_zhi = natal_zhis[2] if len(natal_zhis) > 2 else ''
+    chong_type = ''
+    desc_tail = ''
+    if target_location == 'natal':
+        ln_shishen = _zhi_benqi_shishen(day_gan, ln_zhi)
+        if (target_zhi and target_zhi == LU.get(day_gan, '')
+                and ln_shishen == '七杀'
+                and not _is_spouse_star(ln_shishen, gender)):
+            # 书诀「七杀冲禄主凶死」：乾造庚子运乙酉年酉冲卯禄急病死
+            # （cj2:5278）/ 乙未运乙酉年冲卯禄把人冲坏入院（cj1:652）双锚；
+            # 女命七杀=夫星豁免（冲入夫宫主婚，见下条）
+            chong_type = '冲破'
+            desc_tail = '七杀冲禄，主凶死/伤灾，大凶'
+        elif (day_zhi and target_zhi == day_zhi
+                and _zhi_has_natal_he(day_zhi, natal_zhis)
+                and _ln_spouse_related(ln_zhi, day_gan, gender)):
+            # 配偶宫原局有合住，流年配偶星（或其库）冲入=冲开原合为动，主
+            # 婚姻之应：酉（辛禄=夫星）冲卯成婚（cj1:2936）/ 辰（官杀库）
+            # 冲戌夫宫成婚（cj1:2946）双锚
+            chong_type = '冲动'
+            desc_tail = '流年配偶星冲动有合之配偶宫，主婚姻发动'
+    if not chong_type:
         chong_type = '冲动'
-        desc_tail = '正行天干运，流年冲运为冲动，提前引动该运之事'
-    elif target_location == 'dayun' and phase_active == '支':
-        chong_type = '冲去'
-        desc_tail = '运支当令怕冲崩，流年冲运为冲去，运支力量暂弱'
-    elif s_t >= 2:
-        xiji = _judge_chong_xiji(day_gan, natal_gans, natal_zhis, target_zhi)
-        if xiji == '喜':
-            chong_type = '冲旺'
-            desc_tail = '冲旺用神，激起更旺，反为吉'
-        elif xiji == '忌':
-            chong_type = '冲旺'
-            desc_tail = '冲旺忌神，激起发凶，祸难当'
+        desc_tail = '旺神逢冲，主变迁/调动'
+        if s_t <= -2:
+            chong_type = '冲破'
+            desc_tail = '所冲极衰无救，冲破主终结/死亡，大凶'
+        elif target_zhi in _MU_KU:
+            chong_type = '冲开'
+            desc_tail = '冲开墓库，库藏释放，事发扬'
+        elif s_t < 0:
+            chong_type = '冲去'
+            desc_tail = '衰神逢冲而去，主离去/失去'
+        elif s_l <= 0 and s_t >= 2:
+            chong_type = '冲去'
+            desc_tail = '流年衰神冲旺神，流年字自去（主离去）'
+        elif target_location == 'dayun' and phase_active == '干':
+            chong_type = '冲动'
+            desc_tail = '正行天干运，流年冲运为冲动，提前引动该运之事'
+        elif target_location == 'dayun' and phase_active == '支':
+            chong_type = '冲去'
+            desc_tail = '运支当令怕冲崩，流年冲运为冲去，运支力量暂弱'
+        elif s_t >= 2:
+            xiji = _judge_chong_xiji(day_gan, natal_gans, natal_zhis, target_zhi)
+            if xiji == '喜':
+                chong_type = '冲旺'
+                desc_tail = '冲旺用神，激起更旺，反为吉'
+            elif xiji == '忌':
+                chong_type = '冲旺'
+                desc_tail = '冲旺忌神，激起发凶，祸难当'
 
     return {
         'chong_type': chong_type,
@@ -454,6 +510,12 @@ def classify_he_semantic(
         # 相贴优先于衰：书例二（子丑贴，丁丑年合绊用神）target 丑虽偏弱仍论
         # 合绊不论合去；书例三合去（丧母）target 辛无贴合，虚透方论合去
         he_type, tail = '合绊', '两字相贴逢岁合，合绊牵制难发挥'
+    elif not is_gan and target_idx == 2:
+        # 配偶宫（日支）逢流合：书诀「配偶星宫逢流合，多为婚期喜事临」——
+        # 宫位之合不论旺衰以合去，主合入得位（婚缘/得到）。书锚：卯戌合住
+        # 夫宫成婚（cj1:2775）/ 妻星合到宫位结婚（cj2:3841）/ 辰酉合夫宫
+        # 结婚（yx3:13528）三锚
+        he_type, tail = '合留', '配偶宫逢岁合，合入得位，多主婚缘喜事'
     elif s_t < 0 or (is_gan and s_t == 0):
         he_type, tail = '合去', '衰神逢合为合去，离去消失，主失去'
     elif spouse:
@@ -661,7 +723,7 @@ def analyze_liunian_mangpai(
                 r['chong_semantic'] = classify_chong_semantic(
                     zhi, tgt, natal_gans, natal_zhis, day_gan,
                     dayun_zhi=dy_zhi, kong_wang=kong_wang,
-                    target_location='natal',
+                    target_location='natal', gender=gender,
                 )
             elif r['type'] in ('六合', '暗合'):
                 t_idx = -1
@@ -712,7 +774,7 @@ def analyze_liunian_mangpai(
                         zhi, dy_zhi, natal_gans, natal_zhis, day_gan,
                         dayun_zhi=dy_zhi, kong_wang=kong_wang,
                         target_location='dayun',
-                        phase_active=year_phase_active,
+                        phase_active=year_phase_active, gender=gender,
                     )
                 elif inter['type'] == '六合':
                     inter['he_semantic'] = classify_he_semantic(
