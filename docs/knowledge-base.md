@@ -203,7 +203,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 - xiangfa_ops：换象（门槛=制尽，主从易位）/局象（包局/夹局/全阴全阳/专旺/寒暖燥湿，只做象意不加点）/化象补五行相生/借象借同五行副宫；muxiang tomb_relations dict 须 `_zhi_of` 解包（曾致 analyze_xiangfa_ops 整体崩被 try 吞掉）。
 - juefa：伤官诀五类（金水喜见官/土金喜佩印怕见官/水木喜财官/木火喜见印/火土看组合）+断语22项；断语15/17/19 须传 yongshen_result 否则跳过（防过杀）。
 - liunian：冲九语义（冲动/冲开/冲去/冲破/冲旺）+合四分（留/动/去/绊）；分看统看唯一机械触发=流年刑冲合运。
-- yingqi_subj：大限∩大运∩流年三要素命中其二即 commit；`_classify_lu` 分日干/他干/外神（任何见禄都算 trigger，标签区分）。
+- yingqi_subj：大限∩大运∩流年三要素命中其二即 commit；`_classify_lu` 分日干/他干/外神（任何见禄都算 trigger，标签区分）。`detect_shouyuan_jixie` 寿元机制推演（破禄/禄到位/寿元星被坏/原局字到位，risk=带病逢引动）——只推演验证，**不进 engine 消费链**。
 - 宫位年龄=大限套（1-18/18-35/35-55/55+）已统一，GONG_WEI_XIANG 旧 1-15 套作废。
 - body_parts=身体部位唯一事实源（干主外/支主内；宫位身段主表年腿足/时头面 + ch11 变体分键）。
 - narrative 叙事层：郝金阳 5 模板 few-shot 三段式，软依赖 anthropic，失败降级返 prompt 文本；LLM temperature 与「敢下数字」无生成后校验（已知幻觉风险备案）。

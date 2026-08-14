@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-08-14 第三十八批 · 寿元域样本挖掘（yingqi_subj 四机制 + 10 断言全 pass）
+
+| 项目 | 内容 | 文件 |
+|------|------|------|
+| 寿元域样本 | 矿存 22 盘逐条 raw quote 打标：破禄 2 锚 / 禄到位 3 正锚+1 吉反锚 / 寿元星被坏 2 锚 / 原局字到位 3 锚；收档 10 条（无机制明文/伤非死/单锚） | — |
+| 引擎落地 | 四机制全未建模 → `detect_shouyuan_jixie`（模块内，他模块零改动）；**只做「带病逢引动」推演、不进 engine 消费链、不做预测断言**（安全红线）；吉反锚处理（状元=禄到位但吉 risk=False） | subjective/yingqi_subj.py |
+| 断言 | test_yingqi_shouyuan.py 10 条全 pass | tests/test_yingqi_shouyuan.py |
+| 知识库 | §4.10 yingqi_subj 补一行 | docs/knowledge-base.md |
+
+验证：verify 432 全绿、pytest **499**（498 passed + 1 xfailed，489→499 +10）、blind 快照 20260814_f **零翻转零抖动**、双 seed 一致。
+
 ## 2026-08-14 第三十七批 · liunian xfail 书锚搜索（3 修 1 收档，xfail 4→1）
 
 | 项目 | 内容 | 文件 |
