@@ -353,6 +353,9 @@ def _score_accountant(day_gan, gans, zhis, wa, muku) -> Tuple[int, List[str]]:
     # （非官非吏=受雇管帐）——书锚 yx-会计「我就是个会计呀」（壬子水财透干
     # 通根+申金食神算计+局无官杀）。有官杀主气者财归经营/管理（老板/官员
     # 之命，水财亦可房地产/贸易），不以雇员会计论；金≥3者金归金融成象。
+    # K3 职业批3 收窄：透干水财之通根支（亥子丑辰申）全部被冲坏者非「坐实」
+    # ——书锚 ans12-下岗穷命自证「财星太弱，财根被破，故成想赚钱又得不到钱」
+    # （壬辰戌×2，辰辰财根全被戌冲坏，下岗穷命非会计）。
     _n_gs_char = _main_qi_char_count(day_gan, gans, zhis, '官杀')
     _jin_cnt = (sum(1 for z in zhis if z in ('申', '酉'))
                 + sum(1 for g in gans if g in ('庚', '辛')))
@@ -361,8 +364,19 @@ def _score_accountant(day_gan, gans, zhis, wa, muku) -> Tuple[int, List[str]]:
     _n_cai_main = sum(1 for i in range(4)
                       if '财' in _main_qi_cats(day_gan, gans, zhis, i))
     _cai_tou = any(g and _cat(_compute_shishen(day_gan, g)) == '财' for g in gans)
+    _shui_roots = {z for z in zhis if z in ('亥', '子', '丑', '辰', '申')}
+    _chong_zhis = set()
+    for _a in wa:
+        if _a.get('type') != '冲':
+            continue
+        _fi, _ti = _pos_idx(_a.get('from_pos', '')), _pos_idx(_a.get('to_pos', ''))
+        if _fi >= 0:
+            _chong_zhis.add(zhis[_fi])
+        if _ti >= 0:
+            _chong_zhis.add(zhis[_ti])
+    _shui_root_broken = bool(_shui_roots) and _shui_roots <= _chong_zhis
     if (cai_wx == '水' and _cai_tou and shui_zhis and _n_ss_main >= 1
-            and _n_gs_char == 0 and _jin_cnt < 3):
+            and _n_gs_char == 0 and _jin_cnt < 3 and not _shui_root_broken):
         score += 3
         ev.append('水财坐实+食伤算计（局无官杀，雇员帐房/会计）')
     # 金成势金融 +6（K3 职业批2 独力通道）：申酉庚辛≥4字 + 印主气≥3柱 +
@@ -372,11 +386,42 @@ def _score_accountant(day_gan, gans, zhis, wa, muku) -> Tuple[int, List[str]]:
     # 行长央行「银行·金融官员」（金4印3无财）、《高级》案例七「财库包局，
     # 银行工作」。带官杀≥2字者金归律令/兵刃（lawyer/military 侧，li151 穷
     # 教书匠官2字不入此象）；有财主气者以财论经营（merchant 侧）。
+    # K3 职业批3 收窄：金须为日主之印（金即印星=金融之机构/公家之门，两
+    # 书锚皆癸日金为印）；金为比劫者乃自身之金成势（身旺自立），非机构之
+    # 象——yx-中介「我就是做投资生意的，是中介」（庚日金4=比劫，印3=土）
+    # 不入此象。
     _n_yin_main = sum(1 for i in range(4)
                       if '印' in _main_qi_cats(day_gan, gans, zhis, i))
-    if _jin_cnt >= 4 and _n_yin_main >= 3 and _n_cai_main == 0 and _n_gs_char <= 1:
+    if (_jin_cnt >= 4 and _n_yin_main >= 3 and _n_cai_main == 0
+            and _n_gs_char <= 1 and yin_wx == '金'):
         score += 6
         ev.append(f'金成势{_jin_cnt}字+印重{_n_yin_main}柱（局中无财，金融机构管公家钱）')
+    # 财入印墓于宾位 +3（K3 职业批3 做帐通道）：财星主气明现 + 财之墓库支
+    # 落宾位（年/月）且该墓库支主气为印——书锚 zj-注册会计师「食伤生财，
+    # 财星入印墓在宾位，是替别人做智力服务的…食生财，财入墓，做帐的」
+    # （庚日寅财入年支未墓，未为印库=替人管帐，注册会计师）。
+    _CAI_TOMB = {'木': '未', '火': '戌', '金': '丑', '水': '辰', '土': '辰'}
+    _cai_tomb = _CAI_TOMB.get(cai_wx, '')
+    if _cai_tomb and _n_cai_main >= 1:
+        for _i in (0, 1):
+            _cg_t = get_canggan_mangpai(zhis[_i])
+            if (zhis[_i] == _cai_tomb and _cg_t
+                    and _cat(_compute_shishen(day_gan, _cg_t[0][0])) == '印'):
+                score += 3
+                ev.append(f'财入印墓于{PILLAR_NAMES_CN[_i]}柱宾位（食生财财入墓，做帐的）')
+                break
+    # 日支坐财库+官杀透干+财库合闭 +2（K3 职业批3 单位管财通道）：书锚
+    # cj-财务总监「管理跨国海外公司的大企业的财务总监」（辛日未财库坐日支，
+    # 丙官透月干=单位/公家，午未合闭库=管公家之财不流出）。
+    _day_i = PILLAR_KEYS.index('day')
+    if (_cai_tomb and zhis[_day_i] == _cai_tomb
+            and any(g and _cat(_compute_shishen(day_gan, g)) == '官杀' for g in gans)
+            and any(a.get('type') in ('地支合', '半合', '暗合')
+                    and not a.get('auxiliary')
+                    and (a.get('from_pos') == 'day_zhi' or a.get('to_pos') == 'day_zhi')
+                    for a in wa)):
+        score += 2
+        ev.append('日支坐财库+官杀透干+库合闭（在单位管公家之财）')
     return score, ev
 
 
@@ -1301,11 +1346,44 @@ def classify_zhiye(
             + '；'.join(ds.get('reasons') or []) + '）'
         scores['lawyer'] = 0
         evidence['lawyer'] = [gate]
+    # 官杀为忌克身贫贱 gating（K3 职业批3）：官杀主气≥3字 + 身弱/从弱 + 财命
+    # 贫/小康——书锚 gj-煤矿工人「官杀重重克身…日主戊土微弱，全赖年时远隔
+    # 之比劫助身抗杀…体力取财，贫贱之命」：官杀为忌克身之贫贱命，其伤官制官/
+    # 卯酉冲/官杀成势诸象皆对抗为忌之虚象，不以律师/武职成象（真武贵=官杀
+    # 为用，非贫/小康之局）。
+    _gs_char_n = _main_qi_char_count(day_gan, gans, zhis, '官杀')
+    if _gs_char_n >= 3 and (scores.get('military', 0) > 0
+                            or scores.get('lawyer', 0) > 0):
+        _tier_g = (caiming_result or {}).get('tier_static', '')
+        if _tier_g in ('贫', '小康'):
+            try:
+                from mangpai.subjective.yongshen import classify_strength as _cs2
+                _strength_g = str(_cs2(day_gan, gans, zhis))
+            except Exception:
+                _strength_g = ''
+            if _strength_g in ('身弱', '从弱'):
+                _gate_g = (f'官杀为忌克身贫贱gating（官杀主气{_gs_char_n}字+'
+                           f'{_strength_g}+{_tier_g}命——段氏：官杀重重克身，'
+                           f'比劫助身抗杀，体力取财，不以武职/律职成象）')
+                if scores.get('military', 0) > 0:
+                    scores['military'] = 0
+                    evidence['military'] = [_gate_g]
+                if scores.get('lawyer', 0) > 0:
+                    scores['lawyer'] = 0
+                    evidence['lawyer'] = [_gate_g]
     # merchant gating（P0-c）：严重破财凶向（比劫夺财 severe=清家荡产/乞丐级）
     # 命局不以经营成象——其「财做功」为夺财交战而非经营取财（段氏制财得财以
     # 功神非比劫为前提）；一般破财（normal）之经商者不在此限（破财的商人仍是商人）。
     if ds.get('pocai_severe') and scores.get('merchant', 0) > 0:
         gate = 'merchant gating（严重破财凶向不以经营成象：' \
+            + '；'.join(ds.get('reasons') or []) + '）'
+        scores['merchant'] = 0
+        evidence['merchant'] = [gate]
+    # merchant gating（K3 职业批3）：财星反局（fanju_caixing，A15 severe 级）
+    # 不以经营成象——书锚 zgj-财反局苦力「财星反局财大凶，故此人非常穷…干苦
+    # 力活」：财反局者财做功为虚功（想赚钱而得不到），非经营取财之能。
+    if ds.get('fanju_caixing') and scores.get('merchant', 0) > 0:
+        gate = 'merchant gating（财星反局财大凶，财做功为虚不以经营成象：' \
             + '；'.join(ds.get('reasons') or []) + '）'
         scores['merchant'] = 0
         evidence['merchant'] = [gate]
