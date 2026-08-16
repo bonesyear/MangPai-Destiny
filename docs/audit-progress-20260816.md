@@ -12,8 +12,10 @@
 | 3 功量象法层 | gongliang/muku/xiangfa(+ops) | ✅ | 6/19/26 |
 | 4 命局正反层 | zhengfan/yunfan/yingqi(+subj) | ✅ | 11/34/39 |
 | 5 岁运层 | dayun/liunian/jiaoyun/laoyu | ✅ | 4/22/18 |
-| **累计** | | | **P0=22 / P1=90 / P2=108** |
-| 6 判定层A | caiming/guanming/yongshen/juefa | ⏸ 等配额 | — |
+| 6 判定层A | caiming/guanming/yongshen/juefa | ✅ | 11/33/24 |
+| 7 判定层B | zhiye/hunyin/zaihuo/xueli/liuqin | ✅ | 29/57/45 |
+| **累计** | | | **P0=62 / P1=180 / P2≈177** |
+| 8 杂项层 | shensha/shenshu/shipaige/gongshen/gongfei/gongmen_wuzhi | ⏸ 等配额 | — |
 | 7 判定层B | zhiye/hunyin/zaihuo/xueli/liuqin | ⏸ | — |
 | 8 杂项层 | shensha/shenshu/shipaige/gongshen/gongfei/gongmen_wuzhi | ⏸ | — |
 | 9 辅助层 | bazi_calc/advanced/biqi/body_parts/chuangong/soil/virtual/wood/anhe | ⏸ | — |
