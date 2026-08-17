@@ -589,14 +589,17 @@ class MangpaiEngine:
             direction_result=result.get('direction'),
         ) or {}
 
-        # 灾祸（消费 yunfan_result：detect_siwang 取岁运反局联动信号）
+        # 灾祸（消费 yunfan A1 切片：detect_siwang 取岁运反局联动信号——
+        # F14 修复批7/批10 A1 破口，与 caiming/guanming/zhiye 同口径；
+        # F14 接入 laoyu_result：牢狱入灾祸 max_risk，ch11 牢狱为灾祸之首）
         result['zaihuo'] = self._safe_compute(
             'zaihuo', analyze_zaihuo,
             self.day_gan, self.gans, self.zhis,
             relations=relations,
-            yunfan_result=result.get('yunfan'),
+            yunfan_result=yunfan_slice,
             shensha_result=result.get('shensha'),
             direction_result=result.get('direction'),
+            laoyu_result=result.get('laoyu'),
         ) or {}
 
         # 综合应期（原局=车，大运=路，流年=触发点；传 age 定位大限柱，

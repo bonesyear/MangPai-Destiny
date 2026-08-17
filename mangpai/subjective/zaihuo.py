@@ -552,6 +552,10 @@ def detect_siwang(
             if zhis[i] in kong_wang_zhis:
                 mu_jue_kong.append(f'寿元星{PILLAR_NAMES_CN[i]}支落空亡')
 
+    # 5. 禄落空亡（死例九「禄神空亡，根基虚浮」gaoji:16434-16436；批7 P1 补实现）
+    if lu_pillar >= 0 and zhis[lu_pillar] in kong_wang_zhis:
+        mu_jue_kong.append(f'禄神（{lu_zhi}）落空亡')
+
     # 禄刃损伤
     if lu_pillar >= 0:
         for a in wa:
@@ -597,15 +601,18 @@ def detect_siwang(
             yunfan_trigger = True
             markers.append(f'岁运反局联动{len(ld)}处（天地合/三刑/双冲，急性触发）')
 
-    # 风险：墓绝空亡合见为最高
-    risk = '无'
-    if (mu_jue_kong and any('墓被冲开' in m or '见绝' in m or '空亡' in m for m in mu_jue_kong)
-            and len(mu_jue_kong) >= 2):
+    # 风险：书诀「墓绝空亡齐相见，神仙难救必归西」（gaoji:16323）——
+    # 高=墓/绝/空亡三类齐见（批7 P0-2：旧「任二项即高」双向偏离书诀，
+    # 绝+空无墓假阳判高、书真死例单一类仅中，按书收窄）。
+    _mjk_cats = {c for m in mu_jue_kong for c in ('墓', '绝', '空亡') if c in m}
+    if len(_mjk_cats) >= 3:
         risk = '高'
-    elif len(mu_jue_kong) >= 1 or yunfan_trigger or (xiong_sha and kong_wang_zhis):
+    elif mu_jue_kong or yunfan_trigger or (xiong_sha and kong_wang_zhis):
         risk = '中'
     elif markers:
         risk = '低'
+    else:
+        risk = '无'
 
     parts = []
     if shouyuan_cat:
@@ -633,8 +640,10 @@ def analyze_zaihuo(
     yunfan_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
     direction_result: Optional[Dict] = None,
+    laoyu_result: Optional[Dict] = None,
 ) -> Dict:
-    """灾祸综合：疾病 + 车祸 + 死亡。
+    """灾祸综合：疾病 + 车祸 + 死亡 + 牢狱（ch11 牢狱 11.1 为灾祸之首，
+    F14 接入 laoyu.risk——批7 P1 漏接修复）。
     A3：接入 yongshen 方向总线（direction_result 缺省自调，只读信号不改判定）。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
@@ -642,6 +651,7 @@ def analyze_zaihuo(
     Returns:
         {
           'jibing': {...}, 'chehuo': {...}, 'siwang': {...},
+          'laoyu_risk': '高'|'中'|'低'|'无',
           'max_risk': '高'|'中'|'低'|'无', 'summary': str,
         }
     """
@@ -676,7 +686,9 @@ def analyze_zaihuo(
             direction_result = {}
 
     order = {'高': 3, '中': 2, '低': 1, '无': 0}
-    max_risk = max([jb['risk'], ch['risk'], sw['risk']], key=lambda r: order.get(r, 0))
+    laoyu_risk = (laoyu_result or {}).get('risk', '无') or '无'
+    max_risk = max([jb['risk'], ch['risk'], sw['risk'], laoyu_risk],
+                   key=lambda r: order.get(r, 0))
 
     parts = [f'灾祸总风险{max_risk}']
     if jb['risk'] != '无':
@@ -685,13 +697,44 @@ def analyze_zaihuo(
         parts.append(f'车祸{ch["risk"]}')
     if sw['risk'] != '无':
         parts.append(f'死亡{sw["risk"]}')
+    if laoyu_risk != '无':
+        parts.append(f'牢狱{laoyu_risk}')
 
     return {
         'jibing': jb,
         'chehuo': ch,
         'siwang': sw,
+        'laoyu_risk': laoyu_risk,
         'max_risk': max_risk,
         'direction_signals': direction_brief(direction_result),
+        'summary': '；'.join(parts),
+    }
+
+
+def zaihuo_llm_view(zh: Dict) -> Dict:
+    """LLM 通道物理屏蔽视图（批10 寿元红线，F14）：剔除 siwang
+    （死亡档/寿元星 markers 原文），max_risk/summary 重算为
+    疾病/车祸/牢狱三域，确保死亡/寿元内容不进 payload/narrative。"""
+    if not isinstance(zh, dict):
+        return {}
+    jb = zh.get('jibing') or {}
+    ch = zh.get('chehuo') or {}
+    laoyu_risk = zh.get('laoyu_risk', '无') or '无'
+    order = {'高': 3, '中': 2, '低': 1, '无': 0}
+    max_risk = max([jb.get('risk', '无'), ch.get('risk', '无'), laoyu_risk],
+                   key=lambda r: order.get(r, 0))
+    parts = [f'灾祸总风险{max_risk}']
+    if jb.get('risk', '无') != '无':
+        parts.append(f'疾病{jb["risk"]}({(jb.get("desc") or "")[:20]})')
+    if ch.get('risk', '无') != '无':
+        parts.append(f'车祸{ch["risk"]}')
+    if laoyu_risk != '无':
+        parts.append(f'牢狱{laoyu_risk}')
+    return {
+        'jibing': jb,
+        'chehuo': ch,
+        'laoyu_risk': laoyu_risk,
+        'max_risk': max_risk,
         'summary': '；'.join(parts),
     }
 
@@ -701,4 +744,5 @@ __all__ = [
     'detect_chehuo',
     'detect_siwang',
     'analyze_zaihuo',
+    'zaihuo_llm_view',
 ]

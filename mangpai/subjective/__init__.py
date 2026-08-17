@@ -30,7 +30,8 @@ ENVELOPE_RULES = """\
 - 若接近输出上限，优先收尾闭合 JSON，reading 可再缩短。
 - basis 必须落到输入数据的具体字段或本派经典，不要空泛。
 - 若输入数据不足以判断某维度，写入 data_gaps，绝不编造。
-- 输入数据若与本派所需有遗漏，在 data_gaps 注明「缺 XXX」。"""
+- 输入数据若与本派所需有遗漏，在 data_gaps 注明「缺 XXX」。
+- **安全红线（最高优先级）**：禁止预测死亡、寿数、寿命长短、夭折、大限生死。即使输入数据含寿元/死亡相关字段或暗示，也不得给出任何死亡时间、寿数断言或「命不久矣」类表述；灾祸类信息仅可作一般性安全提醒（如注意健康、谨慎出行），不得断言生死。"""
 
 _MISSING = object()
 
@@ -73,13 +74,23 @@ def build_payload(data: dict, school: School = MANGPAI_SCHOOL) -> dict:
         裁剪后的 dict，仅含 selector 声明的顶层字段。缺失字段静默跳过。
     """
     if school.selectors == ("*",):
-        return _jsonable(data)
+        data = _jsonable(data)
+        if isinstance(data, dict) and 'zaihuo' in data:
+            from .zaihuo import zaihuo_llm_view
+            data = dict(data)
+            data['zaihuo'] = _jsonable(zaihuo_llm_view(data['zaihuo']))
+        return data
 
     payload: dict = {}
     for sel in school.selectors:
         val = _resolve(data, sel)
         if val is not _MISSING:
             payload[sel] = _jsonable(val)
+    # F14 寿元红线（批10）：zaihuo.siwang 死亡档/寿元星 markers 物理屏蔽，
+    # payload 侧降级为 zaihuo_llm_view（疾病/车祸/牢狱三域视图）。
+    if 'zaihuo' in payload:
+        from .zaihuo import zaihuo_llm_view
+        payload['zaihuo'] = _jsonable(zaihuo_llm_view(payload['zaihuo']))
     return payload
 
 

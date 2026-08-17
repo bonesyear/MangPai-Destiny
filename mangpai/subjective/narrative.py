@@ -161,11 +161,14 @@ def _yunfan_line(yf: dict) -> str:
 
 
 def _zaihuo_line(zh: dict) -> str:
-    """灾祸：最高风险 + 摘要。"""
+    """灾祸：最高风险 + 摘要（F14 起经 zaihuo_llm_view 物理屏蔽死亡档/
+    寿元星 markers——批10 寿元红线，siwang 不进 LLM 通道）。"""
     if not zh:
         return ''
-    mr = zh.get('max_risk', '') or ''
-    sm = zh.get('summary', '') or ''
+    from mangpai.subjective.zaihuo import zaihuo_llm_view
+    view = zaihuo_llm_view(zh)
+    mr = view.get('max_risk', '') or ''
+    sm = view.get('summary', '') or ''
     if not mr and not sm:
         return ''
     return f"灾祸：{mr}（{sm}）".strip('（）')

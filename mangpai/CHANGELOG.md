@@ -1,5 +1,19 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F14 批 · zaihuo + LLM 红线（批7 P0×2/P1×2 + 批10 寿元红线；prompts 决策点3已解锁）
+
+| 项 | 处理方式 | 书锚 | 文件 |
+|----|----------|------|------|
+| 马星死判据（批7 P0-1） | F13 已修（ma_count 改消费 in_pillars），本批补书例哨兵锁定：死例一（丙午癸巳辛酉癸巳）全局无马 ma_count=0 | excerpts:149「以年支日支为主」 | tests/test_f14_zaihuo_llm.py |
+| 死亡「高」双向偏离（批7 P0-2） | 旧「墓绝空亡任二项即高」收窄为书诀「墓/绝/空亡三类齐见方判高」——绝+空无墓假阳（构造盘甲申辛未壬子壬寅）高→中；书真死例一/九/十（单一类）维持中 | gaoji:16323「墓绝空亡齐相见，神仙难救必归西」 | subjective/zaihuo.py `detect_siwang` |
+| 禄落空亡未实现（批7 P1） | 补条款：禄支落空亡入 mu_jue_kong——死例九（庚辰戊寅甲辰戊辰，寅禄甲辰旬空）出「禄神（寅）落空亡」marker | gaoji:16434-16436「禄神空亡，根基虚浮」 | 同上 |
+| 牢狱漏接（批7 P1） | analyze_zaihuo 新增 laoyu_result 入参：laoyu.risk 入 max_risk 与 summary（牢狱 11.1 为灾祸之首）；engine 接线 result['laoyu'] | gaoji ch11 章序 | 同上 `analyze_zaihuo`、engine.py |
+| A1 破口（批7/批10） | engine zaihuo 调用 yunfan_result 全量→yunfan_slice（与 caiming/guanming/zhiye/direction 同口径，自动流年窗口不再污染 siwang 急性触发） | 批10 A1 口径 | engine.py:592-602 |
+| LLM 寿元红线（批10 护栏只堵一半） | ①prompt 禁令：mangpai.md 增「安全红线」节 + ENVELOPE_RULES 增禁令条——禁死亡/寿数/夭折/大限生死断言，灾祸仅作一般安全提醒；②物理屏蔽：zaihuo 新增 `zaihuo_llm_view`（剔除 siwang，max_risk/summary 重算为疾病/车祸/牢狱三域），build_payload 对 zaihuo 选择器（含 "*" 通配）强制走该视图，narrative `_zaihuo_line` 同源——siwang 死亡档/寿元星 markers 不再进 payload/digest 双通道，引擎内部 result['zaihuo']['siwang'] 保留 | 批10 红线只堵 detect_shouyuan_jixie 一半 | subjective/prompts/mangpai.md、subjective/__init__.py、subjective/narrative.py、subjective/zaihuo.py |
+| 哨兵（先红后绿） | 新建 test_f14_zaihuo_llm.py 11 测（先红 6）：马星书例/墓绝空亡齐见高/绝+空无墓收窄/死例一·九·十三书例/牢狱入 max_risk 有无两向/payload 屏蔽/narrative 屏蔽/prompt 禁令 | 见上 | tests/test_f14_zaihuo_llm.py |
+
+验证：哨兵先红 6 后绿 11/11、verify 432 全绿、pytest 576 passed（+11）、blind 对照 20260817_f13——**heldout 官 48✅/财 47✅ 68.12%/职 24✅ 全不动，0 翻转 0 文本抖动**（f7→f14 累计翻转 42 条全为 F8-F13 已备案项，财 47≥46 红线守住）；67 例 0 新增回归、famous 0 新增回归、calib 4 REGRESSION 经 stash 实证=存量（与 F6-F13 同清单，0 新增）、双 seed 逐字节一致。
+
 ## 2026-08-17 F13 批 · shensha（批7/8：桃花重建/day-ref 接线/日支起算/马星死判据/戊双刃/reference 断路）
 
 | 项 | 处理方式 | 书锚 | 文件 |
