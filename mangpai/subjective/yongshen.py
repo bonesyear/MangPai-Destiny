@@ -168,6 +168,11 @@ def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
         for w in neighbors:
             if _pair_hit(z, w, XING_PAIRS) or _pair_hit(z, w, LIU_HAI):
                 return True
+        # 晦（邻支湿土晦火——22期例6「丙火之根巳远隔无力，且被丑土晦尽，
+        # 无法帮身」zhenbao:739-743；例3「辰土晦火之故」）：丑/辰晦巳/午，
+        # 火根失其性不能帮身，视同根被坏（批6 P0-1 补此第四式）。
+        if z in ('巳', '午') and any(w in ('丑', '辰') for w in neighbors):
+            return True
         # 合会转化（三合/半合，局五行为异党（非日主非印）方失原性——
         # 例3 寅午会火于甲日=木泄为火（异党）故坏；午戌会火于己日=火印
         # 生身（自党）则根反固，不坏）。
@@ -228,15 +233,29 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
     conc = 8 - selfc
     yue_wx = ZHI_WX.get(zhis[1], '')
     yue_self = yue_wx in self_wx
-    if selfc >= 6 or (selfc >= 5 and yue_self and conc <= 2):
-        return '从强'
-    if conc >= 6 or (conc >= 5 and not yue_self and selfc <= 2):
-        return '从弱'
-    base = '中和' if abs(selfc - conc) <= 1 else ('身强' if selfc > conc else '身弱')
-    # ── 22期从格细则（additive）──
+    # 22期细则状态提前计算：衰旺计数粗闸不得压过书明文细则（段氏明文反对
+    # 衰旺计数取用，shouke:454；批6 P0-2）——22期例7（己乙丙己/丑丑辰亥，
+    # conc=6）旧被 conc>=6 粗闸抢跑误判从弱，书「乙木印星根在亥，印星有根，
+    # 故不能从」「以身弱看」（zhenbao:744-747）。
     try:
         st = _cong_gen_fu_state(day_gan, gans, zhis)
     except Exception:
+        st = None
+    if selfc >= 6 or (selfc >= 5 and yue_self and conc <= 2):
+        return '从强'
+    if conc >= 6 or (conc >= 5 and not yue_self and selfc <= 2):
+        # 印有根且印根不被坏者印能扶身、不能从（22期例7）——落下方细则路径
+        # 判身弱。印须透干明现方有扶身之力（例7 乙印透干；藏干印不作救，
+        # 否则粗闸无一得行）；日主自合柱不受印生（G9）同不论。
+        yin_tou = any(i != 2 and g and GAN_WX.get(g, '') == yin
+                    for i, g in enumerate(gans))
+        yin_jiu = bool(st) and yin_tou and st['yin_rooted'] \
+            and not st['yin_root_broken'] and not st.get('day_zihe')
+        if not yin_jiu:
+            return '从弱'
+    base = '中和' if abs(selfc - conc) <= 1 else ('身强' if selfc > conc else '身弱')
+    # ── 22期从格细则（additive）──
+    if st is None:
         return base
     # 从格须一方成势（段氏势论：从格=从其旺势）——异党单五行干支主气≥3
     # 方有势可从；水木两停/火土各半者非从（生例一富婆 亥子寅卯两停=生用
@@ -251,11 +270,14 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
         yidang_shi = max(yidang_shi, n)
     # G9：日主自合柱者，合局化势计入成势闸（48期例2 亥卯半合化木，官势实3
     # 而主气仅2——日主既已自合失扶，所从之势按合局后五行量）。
-    # G5 扩展（22期例6）：异党数量占优（selfc<conc，非两停）者同用化势
-    # 宽口径——例6 从官格 癸乙丙丙/酉丑子申，异党5:3，酉丑半合金则金实3
-    # 成势（主气仅2），从官。两停局（selfc==conc，生例一富婆水木各半）
+    # G5 扩展：异党数量占优（selfc<conc，非两停）者同用化势宽口径。
+    # F11 扩展（22期例6；锚干支按 F0 勘误更正——旧注释误记「酉丑子申」，
+    # 原文巳丑子申，zhenbao:739-743）：例6 从官格 癸乙丙丙/巳丑子申，书
+    # 「看八字气势在官，以从官格看」——水势主气仅2（癸、子），申子半合
+    # 化水则水实3成势；日主之根俱被坏（巳被丑晦尽）者从意已明，同用化势
+    # 宽口径。两停局（selfc==conc）且根未被坏者（生例一富婆水木各半）
     # 维持主气计数，防两停误判从。
-    if st.get('day_zihe') or selfc < conc:
+    if st.get('day_zihe') or selfc < conc or (st['roots'] and st['roots_broken']):
         from mangpai.objective.constants import SAN_HE as _SH2, BAN_HE as _BH2
         zhi_wx_eff = [ZHI_WX.get(z, '') for z in zhis]
         for _he, _wx in _SH2.items():

@@ -187,6 +187,45 @@ def _pos_element(pos: str, gans: List[str], zhis: List[str]) -> str:
     return ZHI_WX.get(zhis[idx], '') if idx < len(zhis) else ''
 
 
+def _pos_connected(a: str, b: str) -> bool:
+    """两位有作用（相连）：同柱（干支相互作用）；支与支五行之气流通（不限
+    柱位）；干与干须紧贴（天干作用紧贴方有力）；异柱干支不直接作用——
+    支藏干不生异柱天干（批6 P0-2：ans12 巳中庚中气财与壬月干无生系）。
+    """
+    pa, pb = _pos_pillar(a), _pos_pillar(b)
+    if pa not in PILLAR_KEYS or pb not in PILLAR_KEYS:
+        return False
+    ia, ib = PILLAR_KEYS.index(pa), PILLAR_KEYS.index(pb)
+    if ia == ib:
+        return True
+    a_zhi, b_zhi = a.endswith('_zhi'), b.endswith('_zhi')
+    if a_zhi and b_zhi:
+        return True                # 支支五行之气流通，不限柱位
+    if not a_zhi and not b_zhi:
+        return abs(ia - ib) == 1   # 干干作用须紧贴
+    return False                   # 异柱干支无直接生系
+
+
+def _cai_sheng_guan_connected(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
+    """财官相连（财生官）：明财（透干/支主气）与明官（透干/支主气）存在相连
+    且五行财生官。段氏「财官必须相连了，即财生官了」（zhongji:2821 注）。
+    """
+    day_wx = GAN_WX.get(day_gan, '')
+    cai_wx = WX_KE.get(day_wx, '')      # 财五行=我克
+    guan_wx = WX_KE_ME.get(day_wx, '')  # 官五行=克我
+    if not cai_wx or not guan_wx or WX_SHENG.get(cai_wx) != guan_wx:
+        return False
+    cai_pos = [f'{pk}_gan' for i, pk in enumerate(PILLAR_KEYS)
+               if i < len(gans) and gans[i] and GAN_WX.get(gans[i]) == cai_wx]
+    cai_pos += [f'{pk}_zhi' for i, pk in enumerate(PILLAR_KEYS)
+                if i < len(zhis) and zhis[i] and ZHI_WX.get(zhis[i]) == cai_wx]
+    guan_pos = [f'{pk}_gan' for i, pk in enumerate(PILLAR_KEYS)
+                if i < len(gans) and gans[i] and GAN_WX.get(gans[i]) == guan_wx]
+    guan_pos += [f'{pk}_zhi' for i, pk in enumerate(PILLAR_KEYS)
+                 if i < len(zhis) and zhis[i] and ZHI_WX.get(zhis[i]) == guan_wx]
+    return any(_pos_connected(cp, gp) for cp in cai_pos for gp in guan_pos)
+
+
 def _ensure_relations(day_gan, gans, zhis, relations):
     if relations is not None:
         return relations
@@ -709,12 +748,20 @@ def classify_caifu_view(
         views.append('伤食当财')
         details.append('局无财星而有食伤，食伤=技术/智力，智力取财')
 
-    # 4. 官杀当财两式（官杀多且制官杀成立）。
-    # 财统官须财在（cai_count>=1）：段氏「官多财少，财可统官」——无财则
-    # 无可统之财、无财生官之相连（注：少指只有一个，且财官必须相连，即
-    # 财生官），零财之局官杀当财不成立（《中级》己酉戊辰壬申癸卯造：
-    # 辰被卯穿「坏了，不为官了」，以伤官当财，非财统官）。
-    zhi_guan_controlled = False  # 宾官被制（主制宾官）
+    # 4. 官杀当财两式。前置两腿居一即可（批6 P0-1 补全）：
+    # (a) 主位制宾官（旧口径：官杀被主位制用动作直制，官杀当财做功在场）；
+    # (b) 财生官相连且少方仅一位——段氏「官多财少，财可统官…（注：少指只有
+    #     一个，且财官必须相连了，即财生官了，此时才为财统官或官统财。且只
+    #     论原局，大运出现不算。）」（zhongji:2817-2822）。旧码仅 (a) 一腿，
+    #     致书明文财统官巨富例漏检（zhongji:2853-2859：乙巳己丑壬辰辛丑，
+    #     「巳火财星与官星丑土相拱，官多而财星少，财可统官」，原局无制官动
+    #     作，行戌运冲开辰墓发财数亿）。(b) 腿「少方仅一位」防财2官3两可之
+    #     局误统（PUTONG3 庚戌庚辰癸未丁巳，源文功量一章，非「少」不统）。
+    # 零财之局官杀当财不成立（《中级》己酉戊辰壬申癸卯造：辰被卯穿「坏了，
+    # 不为官了」，以伤官当财，非财统官）。
+    # （官统财「官仅一位」书例 zhongji:2907 因 guan_count>=2 外闸仍漏——
+    # 批6 P1-2，留后续批。）
+    zhi_guan_controlled = False  # (a) 宾官被制（主制宾官）
     for a in wa:
         if a.get('auxiliary'):
             continue  # 非做功动作（宾位干克/宾位入墓等 M4 扩展检出）不证"被制"
@@ -729,11 +776,13 @@ def classify_caifu_view(
             if '官杀' in to_cats and _is_zhu(from_pos) and not _is_zhu(to_pos):
                 zhi_guan_controlled = True
                 break
-    if guan_count >= 2 and zhi_guan_controlled:
-        if guan_count > cai_count and cai_count >= 1:
+    cai_guan_lian = _cai_sheng_guan_connected(day_gan, gans, zhis)  # (b) 财生官相连
+    if guan_count >= 2:
+        if guan_count > cai_count and cai_count >= 1 and (
+                zhi_guan_controlled or (cai_guan_lian and cai_count == 1)):
             views.append('财统官')
             details.append(f'官杀多（{guan_count}位）而财少（{cai_count}位），财统官，官杀当财（七杀当财量级高）')
-        elif cai_count > guan_count:
+        elif cai_count > guan_count and zhi_guan_controlled:
             views.append('官统财（官杀当财）')
             details.append(f'财多（{cai_count}位）而官杀少（{guan_count}位），官统财，官杀当财（七杀当财量级高）')
 
@@ -954,11 +1003,13 @@ def _detect_guohe_chaiqiao(
 
     cai_pos_cn = ''
     cai_zhi = ''
+    cai_pk = ''
     for pk in ('day', 'hour'):
         idx = PILLAR_KEYS.index(pk)
         if idx < len(zhis) and zhis[idx] and _zhi_has_wx(zhis[idx], cai_wx):
             cai_pos_cn = PILLAR_NAMES_CN[idx]
             cai_zhi = zhis[idx]
+            cai_pk = pk
             break
     if not cai_pos_cn:
         return {}
@@ -1007,6 +1058,17 @@ def _detect_guohe_chaiqiao(
             bridge_pos = hit
             break
     if not found_action:
+        return {}
+
+    # 验财生官位置相连（批6 P0-2）：主位财须确生该被拆宾官——同柱干支相
+    # 作用、支支五行之气流通、干干紧贴（书例皆具体相连：zhongji:2977「主位
+    # 的酉生了宾位的亥官」、zhongji:2821 注「财官必须相连了，即财生官了」）。
+    # 旧码仅全局验五行（WX_SHENG[财]==官）不验该财确生该宾官：ans12（丁未
+    # 壬子丁巳辛丑）桥=壬（月干，丁壬宾宾合制首中），巳中庚支藏中气财不生
+    # 异柱天干=无生系却入富格=假富格（书断小康不贵不富，shouke-ans12:2560
+    # ——KB「永久必损」备案根因在此，按根因修复并非必损）。真阳锚 qi05/
+    # qi20（巳中庚财生月支亥官，支支相生）与 qi02（丑财生申官）不受影响。
+    if not _pos_connected(f'{cai_pk}_zhi', bridge_pos):
         return {}
 
     bridge_pk = _pos_pillar(bridge_pos)

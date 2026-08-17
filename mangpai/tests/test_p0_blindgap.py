@@ -193,13 +193,15 @@ class TestN3GuanshaRumu:
     def test_tomb_zhuwei_exempt(self):
         # 墓之宾主归属（高级篇2.5「主位之墓库…墓库制忌，其祸自消」）：
         # 身弱丙、官杀水入墓辰在**日支**（主位）-> 制忌自消，不以被关押论
+        # （F11：时支改亥——甲印得根（亥中甲中气）则未从身弱；旧盘酉时午根被辰晦坏+甲印
+        # 无根，22期细则判从弱，不再入 N3 身弱门）
         n3 = detect_guansha_rumu_xiong('丙', ['壬', '甲', '丙', '戊'],
-                                       ['子', '午', '辰', '酉'])
+                                       ['子', '午', '辰', '亥'])
         assert n3['detected'] is False
         assert '主位' in n3.get('exemption', '')
         # 同构造但墓在年支（宾位）-> 官方收藏，仍触发
         n3b = detect_guansha_rumu_xiong('丙', ['壬', '甲', '丙', '戊'],
-                                        ['辰', '子', '午', '酉'])
+                                        ['辰', '子', '午', '亥'])
         assert n3b['detected'] is True
 
 
