@@ -478,14 +478,16 @@ def compute_four_pillars(year: int, month: int, day: int, hour: int, minute: int
     - 年柱以立春为界（名义出生时刻判定）
     - 月柱以节气为界（名义出生时刻判定最近节）
     - 日柱六十甲子连续计数（真太阳时 ±12h 跨日校正）
-    - 时柱五鼠遁（真太阳时小时；晚子时 23 点按 next_day 归次日）
+    - 时柱五鼠遁（真太阳时小时；晚子时 23 点时柱推转一轮纳次日干，
+      日柱归属见 late_zi_method，理象学:3703-3716）
 
     Args:
         year/month/day/hour/minute: 公历出生时刻（北京时间）
         city_lon: 城市经度（东经，度），用于真太阳时校正
         late_zi_method: 晚子时（23:00-23:59）日柱处理
-            'next_day'（晚子时派，默认）→ 日柱取次日、时柱取次日子时
-            'same_day'（早子时派）→ 日柱仍用当天
+            'next_day'（子初换日派，默认）→ 日柱取次日
+            'same_day'（子正换日派，书例口径）→ 日柱仍用当天
+            （两派时柱均推转一轮 = 次日日干起子时）
 
     Returns:
         {'year_gz','month_gz','day_gz','hour_gz','corrected_hour'}
@@ -506,14 +508,17 @@ def compute_four_pillars(year: int, month: int, day: int, hour: int, minute: int
     y_gz = year_gz(year, month, day, hour, minute)
     m_gz = month_gz(year, month, day, hour, minute, year_gan=y_gz[0])
 
-    # 时柱：真太阳时小时；晚子时派 23 点 → 次日子时
-    if ch == 23 and late_zi_method == 'next_day':
-        next_d = d + timedelta(days=1)
-        di = day_gz_index(next_d.year, next_d.month, next_d.day)
+    # 时柱：真太阳时小时；晚子时（23:00-23:59）书例口径（理象学:3703-3716）：
+    # 夜子时「以本日之日上起时歌，推转一轮，再纳天干」——时柱一律取次日日干
+    # 起子时；日柱归属分两派：next_day（子初换日）归次日 / same_day（子正换
+    # 日，书例口径：2010-12-9 晚23:30 → 癸巳日甲子时）归本日
+    di = day_gz_index(d.year, d.month, d.day)
+    if ch == 23:
+        h_gz = hour_gz(GAN[(di + 1) % 10], 0)  # 推转一轮：次日干起子时
+        if late_zi_method == 'next_day':
+            di = (di + 1) % 60
         d_gz = ganzhi(di)
-        h_gz = hour_gz(GAN[di % 10], 0)  # 次日子时
     else:
-        di = day_gz_index(d.year, d.month, d.day)
         d_gz = ganzhi(di)
         h_gz = hour_gz(GAN[di % 10], ch)
 
@@ -681,7 +686,7 @@ def get_di_zhi_relations(zhis: List[str]) -> Dict[str, Any]:
 
 
 # ════════════════════════════════════════════════════════════════
-#  大运（月柱起，阳男阴女顺行；起运岁数 = 到最近节的天数 / 3）
+#  大运（月柱起，阳男阴女顺行；起运岁 = 整日差/3 余一舍余二进一，虚岁）
 # ════════════════════════════════════════════════════════════════
 # （F1 批删除：_JIE_QI_NAMES/_JIE_NAME_TO_ORDERIDX 两表全库 0 引用=死数据；
 #  jiaoyun.py 自有一套节气索引表，不受影响。）
@@ -692,7 +697,8 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
     """计算大运（起运岁数 + 方向 + 8 步序列）。
 
     - 阳男阴女→顺排，阴男阳女→逆排
-    - 起运岁数：从出生时刻到最近节的天数 ÷ 3（顺排取未来节，逆排取过去节）
+    - 起运岁数：书口径（理象学:3846-3877）——出生日到最近节的整日差 ÷ 3，
+      余一舍余二进一，不足一天按一岁，结果为整数虚岁
     - 大运序列从月柱起，顺排 +1、逆排 −1，每步 10 年
     """
     y_gz = four_pillars['year_gz']
@@ -712,15 +718,19 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
         if pos < 0:
             pos = 0
     jie_dt, _jbranch, jie_name = _JIE_TIMELINE[pos]
-    days = abs((jie_dt - birth).total_seconds()) / 86400.0
-    start_age = days / 3.0
+    # 起运岁书口径（理象学:3846-3877）：
+    #   - 天数 = 生日到最近节的整日差（非精确时刻天数；书例 2005-3-15 逆数
+    #     至惊蛰 3-5 差 10 天，:3916-3918）
+    #   - 用三除之，除不尽时余一舍掉、余二进一（:3854-3856）
+    #   - 不足一天也以一岁起运排；最大十最小一（:3864-3873）
+    #   - 所得为整数虚岁（「所算出的起运岁数是以虚岁定」:3875-3877）
+    days = abs((jie_dt.date() - birth.date()).days)
+    q, r = divmod(days, 3)
+    start_age = q + (1 if r == 2 else 0)
+    if start_age < 1:
+        start_age = 1
 
-    years_int = int(start_age)
-    months_int = int(round((start_age - years_int) * 12))
-    if months_int == 12:
-        years_int += 1
-        months_int = 0
-    start_age_str = f'{years_int}岁{months_int}月'
+    start_age_str = f'{start_age}岁（虚岁）'
 
     mt = GAN.index(m_gz[0])
     md = ZHI.index(m_gz[1])
@@ -729,18 +739,18 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
     for i in range(8):
         tg = (mt + step * (i + 1)) % 10
         dz = (md + step * (i + 1)) % 12
-        age = round(start_age + i * 10, 1)
-        dayun.append({'gz': GAN[tg] + ZHI[dz], 'start_age': age, 'end_age': round(age + 10, 1)})
+        age = start_age + i * 10
+        dayun.append({'gz': GAN[tg] + ZHI[dz], 'start_age': age, 'end_age': age + 10})
 
     # F1 标注：direction/forward/start_age_str/jie_name/days 五键 engine 不读
     # （engine 只取 dayun 列表与 start_age，批9 审计）=死字段，保留输出契约不删。
     return {
         'direction': direction,
         'forward': forward,
-        'start_age': round(start_age, 4),
+        'start_age': start_age,
         'start_age_str': start_age_str,
         'jie_name': jie_name,
-        'days': round(days, 4),
+        'days': days,
         'dayun': dayun,
     }
 
@@ -751,7 +761,8 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
 def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
                    gender: str, city_lon: float,
                    yin_method: str = 'same_as_yang',
-                   shensha_reference: str = 'year') -> Dict[str, Any]:
+                   shensha_reference: str = 'year',
+                   late_zi_method: str = 'next_day') -> Dict[str, Any]:
     """完整八字排盘（盲派 engine 入口所需最小契约）。
 
     内部完成四柱（compute_four_pillars）+ 十神 + 空亡 + 地支关系 + 大运，
@@ -774,13 +785,17 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
             保留以对齐签名，神煞由 MangpaiEngine.compute_shensha_ext 自行计算。
             （F1 标注：死形参——本层接收不用；engine 层该参有效但全库 0 处
              传 'day'，实际口径恒 'year'。）
+        late_zi_method: 晚子时日柱处理（'next_day' 子初换日 / 'same_day'
+            子正换日·书例口径），透传 compute_four_pillars（F3 批暴露，
+            批9 P0-3）。
 
     Returns:
         bazi_data：包含 input/bazi/shishen/kong_wang/di_zhi_relations/da_yun
         等键；MangpaiEngine 读取这些键进行盲派分析（nayin/canggan/wuxing/
         chang_sheng 等由 engine 自行重算，故此处不产出，避免重复）。
     """
-    fp = compute_four_pillars(year, month, day, hour, minute, city_lon)
+    fp = compute_four_pillars(year, month, day, hour, minute, city_lon,
+                              late_zi_method=late_zi_method)
     pillars = {k: fp[k] for k in ('year_gz', 'month_gz', 'day_gz', 'hour_gz')}
     day_gz = pillars['day_gz']
     day_gan = day_gz[0]
