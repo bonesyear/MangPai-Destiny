@@ -136,3 +136,51 @@ class TestYuanjuDaowei:
         r2 = _run('乙未乙酉丙戌己丑', dy='丑', ln='丁丑')
         assert '原局字到位' in r2['mechanisms']
         assert r2['risk'] is True
+
+
+# ── 高级寿元章书例（gaoji 11.4，F10 哨兵：一漏一错）──────────────────
+
+class TestGaojiShouyuanShuli:
+    def test_anli1_shishen_zuo_jue_zhengke(self):
+        # 丙午癸巳辛酉癸巳 乾，丁酉运乙酉年肝癌死：「癸水食神虚浮无根，坐巳火
+        # 绝地…火旺克金…运逢丁杀熬癸水…食神寿星绝尽而亡」（gaoji:16164-16185）。
+        # 机制=寿元星(癸)坐绝带病（总诀「穿害克绝命难长」gaoji:16148/16547）
+        #   + 酉（日主禄/原局字）到位被原局午火正克（yx2:7486「正克」同型）。
+        r = _run('丙午癸巳辛酉癸巳', dy='丁酉', ln='乙酉')
+        assert '寿元星被坏' in r['mechanisms']
+        assert r['risk'] is True
+
+    def test_anli2_yinxing_gen_chongsan(self):
+        # 癸卯丙辰甲辰乙丑 坤，庚申运甲戌年死：「无食神（丙坐辰无功）以印星
+        # 为寿…癸水印星之根辰土被坏…流年甲戌，戌土冲辰，辰中癸水印根被冲散。
+        # 印根被拔寿星倒」（gaoji:16190-16216）。
+        # 机制=定位诀「无食看印印为根」（gaoji:16148/16157）印级补位
+        #   + 寿元星(癸)之根辰原局被坏、流年戌冲辰引动。
+        r = _run('癸卯丙辰甲辰乙丑', dy='庚申', ln='甲戌')
+        assert '寿元星被坏' in r['mechanisms']
+        assert any('辰' in s and '癸' in s for s in r['signals'])
+        assert r['risk'] is True
+
+
+# ── engine 传 age（F10：三要素 commit 名副其实）─────────────────────
+
+class TestEnginePassesAge:
+    def test_engine_yingqi_daxian_active(self):
+        # engine 链路须传 age → has_daxian 不再恒 False（批4 P1-3/P0 传导）
+        from mangpai.engine import MangpaiEngine
+        bazi_data = {
+            'bazi': {'year': '丙午', 'month': '癸巳', 'day': '辛酉', 'hour': '癸巳'},
+            'input': {'year': 1966},
+        }
+        r = MangpaiEngine(bazi_data).compute_all()
+        assert r['yingqi_subj']['daxian_yingqi']['active'] is not None
+
+    def test_engine_yingqi_no_year_daxian_absent(self):
+        # 无出生年 → 大限仍缺省空转（回退行为不变）
+        from mangpai.engine import MangpaiEngine
+        bazi_data = {
+            'bazi': {'year': '丙午', 'month': '癸巳', 'day': '辛酉', 'hour': '癸巳'},
+            'input': {},
+        }
+        r = MangpaiEngine(bazi_data).compute_all()
+        assert r['yingqi_subj']['daxian_yingqi']['active'] is None

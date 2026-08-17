@@ -2,7 +2,7 @@
 
 > **用途**：新会话（任何 CLI，含 Kimi code）读本文件即获得 2026-07 ~ 2026-08 全部攻坚历史的关键结论，
 > 替代逐次会话上下文。来源 = `~/.claude/projects/-root-metaphysics/memory/` 62 份归档 + 十批审计归档（kimi-audit-1~10）的提炼。
-> 最后更新：2026-08-17（F7 zhengfan 方向性大修：气势补势党识别（金水湿土党/火土燥土党，中级:186/234/246/255）+合坏接入 K2-3（:200/215 官坐实之支克合坏体）+日支「追求之意」（:147-148/240-242）+日支被得势方反制（同性冲+临月令党众，:266-275）+无势做功=正局（:139-140，旧「局未定」废，prompts 残留备案）——书第一章 7 书例 2→7 全命中，丙子戊戌/癸未丙辰两方向相反修正，见 §4.4；引擎基线 = `snapshots/20260817_f7.json`，heldout 财命 46✅ 66.67% 守住、官 49→50✅、职不动，trainset 财 58✅ 持平）。早前：F6 gongliang 批（阎锡山解锁 L4→L3 合书「三层强一点」（化用高层+1 杀党≥5 加收纯化用门；checkpoint/calib 反锁以书为准改 L3）+奥纳西斯制库门 L2→L4（制墓库去 san_he 门改 同制+冲/刑 门、方局三会包制检出、方局围制+制库不净豁免、caiming 制库得财免禄/伤食下浮），见 §4.2；引擎基线 = `snapshots/20260817_f6.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F5 zeishen 传导断口批（zeishen 消费 work_actions 滤 auxiliary——蒋介石 zb 误净→不净（书 6122-6126）；gongfei 删 auxiliary 排除——辅助功神仍是功神（理象学 6008-6010）；引擎基线 = `snapshots/20260817_f5.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F4 虚实木性批（virtual_solid 只就一柱+坐印皆实、wood_type 水不生木之根=死木（岳飞/戴妃死木化），见 §4.12；引擎基线 = `snapshots/20260817_f4.json`，heldout/trainset 0 翻转 0 抖动、财命 46✅ 66.67% 守住）。早前：F3 岁运地基批（起运岁整数虚岁+整日差/晚子时推转一轮/交运年虚岁-1，见 §4.11；基线 `snapshots/20260817_f3.json`）；F2 数据表层批（anhe 删子巳+TOMB_MAP 加戌=土墓+muku 三 P0+传导两守卫，见 §4.9/§4.11）；F0 知识库勘误批（十批审计 46 条勘误+批1-4 散见 8 条落盘，见 §10）。
+> 最后更新：2026-08-17（F10 yingqi_subj 寿元域四缺口：寿元星定位补印级+支/藏干食伤、坏关系补克/绝（正克限到位语境、盲派破按书收窄子卯/卯午）、寿元星藏干根被坏检出、engine 传 age 三要素 commit 名副其实——高级寿元章两书例哨兵先红后绿；引擎基线 = `snapshots/20260817_f10.json`，heldout/trainset 0 翻转 0 文本抖动，官 50✅/财 46✅ 66.67%/职 23✅ 守住，红线维持不进 engine 消费链，见 §4.10）。早前：F7 zhengfan 方向性大修：气势补势党识别（金水湿土党/火土燥土党，中级:186/234/246/255）+合坏接入 K2-3（:200/215 官坐实之支克合坏体）+日支「追求之意」（:147-148/240-242）+日支被得势方反制（同性冲+临月令党众，:266-275）+无势做功=正局（:139-140，旧「局未定」废，prompts 残留备案）——书第一章 7 书例 2→7 全命中，丙子戊戌/癸未丙辰两方向相反修正，见 §4.4；引擎基线 = `snapshots/20260817_f7.json`，heldout 财命 46✅ 66.67% 守住、官 49→50✅、职不动，trainset 财 58✅ 持平。早前：F6 gongliang 批（阎锡山解锁 L4→L3 合书「三层强一点」（化用高层+1 杀党≥5 加收纯化用门；checkpoint/calib 反锁以书为准改 L3）+奥纳西斯制库门 L2→L4（制墓库去 san_he 门改 同制+冲/刑 门、方局三会包制检出、方局围制+制库不净豁免、caiming 制库得财免禄/伤食下浮），见 §4.2；引擎基线 = `snapshots/20260817_f6.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F5 zeishen 传导断口批（zeishen 消费 work_actions 滤 auxiliary——蒋介石 zb 误净→不净（书 6122-6126）；gongfei 删 auxiliary 排除——辅助功神仍是功神（理象学 6008-6010）；引擎基线 = `snapshots/20260817_f5.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F4 虚实木性批（virtual_solid 只就一柱+坐印皆实、wood_type 水不生木之根=死木（岳飞/戴妃死木化），见 §4.12；引擎基线 = `snapshots/20260817_f4.json`，heldout/trainset 0 翻转 0 抖动、财命 46✅ 66.67% 守住）。早前：F3 岁运地基批（起运岁整数虚岁+整日差/晚子时推转一轮/交运年虚岁-1，见 §4.11；基线 `snapshots/20260817_f3.json`）；F2 数据表层批（anhe 删子巳+TOMB_MAP 加戌=土墓+muku 三 P0+传导两守卫，见 §4.9/§4.11）；F0 知识库勘误批（十批审计 46 条勘误+批1-4 散见 8 条落盘，见 §10）。
 
 ---
 
@@ -21,7 +21,7 @@
 | 财命 | 59✅ = **52.21%** (n=113) | 46✅/15⚠️/8❌ = **66.67%** (n=69) |
 | 职业 | 43✅/15⚠️/27❌ = **50.59%** (n=85) | 23✅ = **44.23%** (n=52) |
 
-- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 537 collected（517 passed+1 xfailed+19 xpassed，F7 实测；F6 记 529、批10 旧记 499、更旧 473 均作废——F2/F3/F4/F6/F7 哨兵各 +11/+8/+6/+2/+8）+ blind_eval 快照零翻转 + 双 seed 逐字节一致（旧 853 口径 2026-07-17 起作废）。
+- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 556 collected（536 passed+1 xfailed+19 xpassed，F10 实测；F9 记 532、F7 记 517、F6 记 529、批10 旧记 499 均作废——F2/F3/F4/F6/F7/F9/F10 哨兵各 +11/+8/+6/+2/+8/+10/+4）+ blind_eval 快照零翻转 + 双 seed 逐字节一致（旧 853 口径 2026-07-17 起作废）。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
 - **十批全模块审计已收官**（2026-08-17）：P0=96/P1=245/P2=259，修复批次 F0-F19 已批准（见 `docs/audit-progress-20260816.md`）；审计勘误本文件记录见 §10。
 
@@ -91,7 +91,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
   - v6 运锚层级断语判轨：断语干支锚=所喂运岁且原局轨差≥2 → 评 delta 轨（**差≥2 门槛是关键**，裸锚匹配会误杀 li001/li131/qi22 乙亥发财）；
   - v7 破财/凶断语一律评全量轨（凶向在档仅全量轨可见）；
   - v8 `_ZY_EXCLUDE['military']` 增「冠军」（体育冠军=比劫做功，substring 误命中）。
-- **M5 快照**：`heldout/snapshots/*.json` 入 git（.gitignore 例外），带 `_meta`（git_sha/rubric_version/note，加载剥离）。基线链：`…→20260808_q(官命批)→r(职批1,rubric v8 rescore)→20260814_a(职批2)→b(职批3)→c(职批4)→20260817_f2~f7(F2-F7 修复批)→f8(yunfan 三P0,当前)`。全 20 份快照 meta 完整（2026-08-14 核验，5 份空 note 已补）。
+- **M5 快照**：`heldout/snapshots/*.json` 入 git（.gitignore 例外），带 `_meta`（git_sha/rubric_version/note，加载剥离）。基线链：`…→20260808_q(官命批)→r(职批1,rubric v8 rescore)→20260814_a(职批2)→b(职批3)→c(职批4)→20260817_f2~f7(F2-F7 修复批)→f8(yunfan 三P0)→f9(laoyu 四P0)→f10(yingqi_subj 寿元域四缺口,当前)`。全 20 份快照 meta 完整（2026-08-14 核验，5 份空 note 已补）。
 - **用法**：`python3 mangpai/tests/heldout/blind_eval.py --out snapshots/<批>.json --note "<验证状态>" --baseline snapshots/<上一批>.json`
 
 ### 2.3 评估纪律要点
@@ -208,7 +208,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 - xiangfa_ops：换象（门槛=制尽，主从易位）/局象（包局/夹局/全阴全阳/专旺/寒暖燥湿，只做象意不加点——⚠️批3 勘误：与 zhiye.py:1282-1319 把换象/局象转职业候选数值权重存在边界争议，gongliang/caiming 不加点评核 ✓）/化象补五行相生/借象借同五行副宫；muxiang tomb_relations dict 须 `_zhi_of` 解包（曾致 analyze_xiangfa_ops 整体崩被 try 吞掉）。⚠️批3 补记：专旺≥6/8、寒暖燥湿≥5/8、局象纯≥6/8、伤官诀≥3 字均为无书定量的工程阈值（自定义）。
 - juefa：伤官诀五类（金水喜见官/土金喜佩印怕见官/水木喜财官/木火喜见印/火土看组合）+断语22项；断语15/17/19 须传 yongshen_result 否则跳过（防过杀——⚠️批6 勘误：仅「None→skip」一半属实，19 提供后不读内容、17 以身强/从弱代理「财为用神」）。
 - liunian：冲合九语义=**冲5**（冲动/冲开/冲去/冲破/冲旺）+**合4**（留/动/去/绊）——⚠️批4 勘误：旧文「冲九语义」措辞歧义，九=冲5+合4 非冲有九种；分看统看机械触发=流年与大运刑、冲、合、**并**——⚠️批4/5 勘误：旧条文漏「并」（伏吟）字，shouke:1368「刑冲合并则统看」，引擎 determine_dayun_phase（liunian.py:599-610）同漏（批4 P1-6）。
-- yingqi_subj：大限∩大运∩流年三要素命中其二即 commit；`_classify_lu` 分日干/他干/外神（⚠️批4 勘误：旧文「任何见禄都算 trigger」与函数自述「外神不计触发」冲突——commit 路径却用含外神的 ln_lu_all，外神之禄算触发无书锚，且 `trigger` 字段全仓无消费=死字段；另 engine 调 `infer_comprehensive_yingqi` 不传 age → has_daxian 恒 False，三要素交集在 engine 链路名不副实）。`detect_shouyuan_jixie` 寿元机制推演（破禄/禄到位/寿元星被坏/原局字到位，risk=带病逢引动）——只推演验证，**不进 engine 消费链**。
+- yingqi_subj：大限∩大运∩流年三要素命中其二即 commit；`_classify_lu` 分日干/他干/外神（⚠️批4 勘误：旧文「任何见禄都算 trigger」与函数自述「外神不计触发」冲突——commit 路径却用含外神的 ln_lu_all，外神之禄算触发无书锚，且 `trigger` 字段全仓无消费=死字段）。**F10 已修**：engine 调 `infer_comprehensive_yingqi` 现传 `age=self._current_age()`（engine.py:608 一带，has_daxian 不再恒 False，三要素 commit 名副其实）；寿元星定位补印级（「无食看印印为根/食伤受伤无用则看印」gaoji:16148/16157，受伤=透干虚浮无根或坐绝；支/藏干食伤亦为寿 gaoji:4600/7651）；坏关系补「绝」（透干寿元星虚浮无根坐绝地=带病，gaoji:16172 案例一）与「正克」（限到位被坏语境，yx2:7486/gaoji:16547）；破从盲派书口径仅子卯/卯午互破（理象学:2934-2955，标准六破其余各对无段氏书锚移出 _HUAI_PAIRS）；寿元星藏干根被坏/被运岁冲散检出（gaoji:16206-16216 案例二印根辰）。高级寿元章两书例（gaoji:16164 案例一/16190 案例二）哨兵=test_yingqi_shouyuan.py TestGaojiShouyuanShuli（先红后绿）。`detect_shouyuan_jixie` 寿元机制推演（破禄/禄到位/寿元星被坏/原局字到位，risk=带病逢引动）——只推演验证，**不进 engine 消费链**（红线维持）。
 - 宫位年龄=大限套（1-18/18-35/35-55/55+）已统一，GONG_WEI_XIANG 旧 1-15 套作废。
 - body_parts=身体部位数据可信但**未接线**（⚠️批9 勘误：旧文「唯一事实源」名不副实——全模块零生产消费（engine/subjective 零引用），服役旧表=gongshen._PILLAR_BODY 颠倒备案表+zaihuo 自带四表；干主外/支主内；宫位身段主表年腿足/时头面 + ch11 变体分键本身与书逐项吻合）。
 - narrative 叙事层：郝金阳 5 模板 few-shot 三段式，软依赖 anthropic，失败降级返 prompt 文本；数字生成后校验已建（N1，narrative.py:446——⚠️批10 勘误：旧备案「无生成后校验」已过时）。⚠️批10 真缺口=**寿元红线只堵一半**：detect_shouyuan_jixie 物理隔离 ✓，但 zaihuo 死亡档/寿元星 markers 经 selector+narrative 双通道直进 LLM 且 prompt 全文无死亡禁令（F14 修）；few-shot「引擎段实跑生成」名不副实（子女/岁运行系人工增补混合体），第14期把已证伪的咸池桃花→演艺伪因果固化成风格锚（prompts 受保护，备案升级为伪因果风格锚）；payload 裁剪意图被绕——selector 排除 gongshen/direction/jiaoyun_analysis，narrative digest 行间接带入 gongshen summary 与灾祸文本。

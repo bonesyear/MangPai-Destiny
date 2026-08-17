@@ -33,10 +33,11 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from mangpai.objective.constants import (
     GAN_WX, WX_KE, WX_SHENG,
-    LU, PILLAR_KEYS, is_pillars,
-    LIU_CHONG, LIU_HAI, LIU_PO, XING_PAIRS,
+    LU, PILLAR_KEYS, is_pillars, ZHI_WX,
+    LIU_CHONG, LIU_HAI, XING_PAIRS,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.yingqi import (
     DAXIAN_MAP, detect_daxian, daxian_of_age,
     detect_lu_yuanshen, detect_duncang_tougan, detect_yingqi,
@@ -397,14 +398,23 @@ def infer_comprehensive_yingqi(
 # ───────────────────── 3. 寿元机制推演 ─────────────────────
 
 # 坏禄关系并集：冲/穿/刑/破（书言「子卯破」即引擎子卯刑，见 cj1:1838/cj2:5278；
+#   盲派破仅子卯/卯午互破——理象学:2934-2955「子破卯，卯破午；也可以反过来破」
+#   三例皆子卯/卯午，标准六破其余各对（寅亥等）无段氏书锚，不入此集；
 #   自刑剔除——同字重现归「原局字到位」而非坏）
-_HUAI_PAIRS = set(LIU_CHONG) | set(LIU_HAI) | set(LIU_PO) | {
+_HUAI_PAIRS = set(LIU_CHONG) | set(LIU_HAI) | {('卯', '午'), ('午', '卯')} | {
     (a, b) for a, b in XING_PAIRS if a != b
 }
 
 
 def _is_huai(a: str, b: str) -> bool:
     return bool(a and b) and a != b and ((a, b) in _HUAI_PAIRS or (b, a) in _HUAI_PAIRS)
+
+
+def _is_zhengke(zhi: str, oz: str) -> bool:
+    """zhi 被 oz 五行正克（书诀「穿害克绝命难长」gaoji:16148、「最忌寿星遭刑克」
+    gaoji:16547 之「克」；书例 yx2:7486「申金到位被局中官星火正克」）。
+    仅用于「到位被坏」语境——原局静克是做功常态，不计带病。"""
+    return WX_KE.get(ZHI_WX.get(oz, ''), '') == ZHI_WX.get(zhi, '')
 
 
 def detect_shouyuan_jixie(
@@ -423,10 +433,16 @@ def detect_shouyuan_jixie(
         破禄，破禄而死」）或运岁引动（cj2:5278「子卯破禄…把禄给坏了」）。
       - 禄到位：运岁支为日主或原局干之禄（「禄到为寿到」cj1:1838/cj1:2477/cj1:2741）。
         到位本身中性：原局无带病则吉（反锚 cj1:697「酉到为日主到了…高考状元」）。
-      - 寿元星被坏：食伤为寿元星，其禄/根被坏（cj2:6042「癸水寿元星见子水为禄…
-        被午冲，主寿到了」；cj2:3704 盲师诀「穿倒食神损寿元」）。
+      - 寿元星被坏：寿元星定位诀「食神为寿第一尊，无食看印印为根」
+        （gaoji:16148/16157——无食或食伤受伤无用则印级补位；支/藏干食伤亦为寿，
+        gaoji:4600/7651）；其禄/根被坏或透干坐绝（cj2:6042「癸水寿元星见子水为禄…
+        被午冲」；cj2:3704「穿倒食神损寿元」；gaoji:16172「坐巳火绝地」；
+        gaoji:16206-16216「印根辰被冲散…印根被拔寿星倒」）。
       - 原局字到位：运岁干/支重现原局字或透原局支藏干，引动其受坏结构
-        （yx2:7486「申金到位被局中官星火正克」；cj2:4160「丁虚透为原局的戌到了」）。
+        （yx2:7486「申金到位被局中官星火正克」——到位逢正克亦计，总诀
+        「最忌寿星遭刑克」gaoji:16547；cj2:4160「丁虚透为原局的戌到了」）。
+      - 坏关系并集=冲/穿/刑/破；破从盲派书口径仅子卯/卯午互破
+        （理象学:2934-2955），标准六破其余各对无段氏书锚不入。
 
     Returns:
         {'signals': [str], 'mechanisms': [str], 'risk': bool, 'desc': str}
@@ -438,8 +454,38 @@ def detect_shouyuan_jixie(
     if not day_gan or len(gans) < 4 or len(zhis) < 4:
         return empty
 
-    shishang = [g for g in gans if _compute_shishen(day_gan, g) in ('食神', '伤官')]
-    # 禄主表：日干 / 寿元星（食伤）/ 原局他干（六亲星）
+    _ss = lambda g: _compute_shishen(day_gan, g)
+    # 寿元星定位诀：「食神为寿第一尊，无食看印印为根」（gaoji:16148）。
+    # 支/藏干食伤亦为寿元星（gaoji:4600「甲寅伤官…为寿元星」、7651「日支寅木
+    #   为食神…为寿元星」——不只查天干）。
+    shishang = sorted({g for g in gans if _ss(g) in ('食神', '伤官')})
+    shishang += [g for g in sorted({cg for z in zhis for cg, _ in get_canggan_mangpai(z)
+                                    if _ss(cg) in ('食神', '伤官')}) if g not in shishang]
+
+    def _no_root(g: str) -> bool:
+        """虚浮无根：禄与藏干根均不在局。"""
+        if LU.get(g, '') in zhis:
+            return False
+        return not any(any(cg == g for cg, _ in get_canggan_mangpai(z)) for z in zhis)
+
+    def _sits_jue(g: str) -> bool:
+        """透干而坐绝地（阴阳同生同死表；「水绝于巳」cj1:1846）。"""
+        return any(gans[i] == g and get_changsheng_mangpai(g, zhis[i]) == '绝'
+                   for i in range(min(len(gans), len(zhis))))
+
+    # 「无食神或食神受伤无用，则看印星」（gaoji:16157）——受伤无用=透干而
+    #   虚浮无根或坐绝地（案例二「丙坐辰土无功」gaoji:16204）；印级取透干印。
+    if not shishang or all(g in gans and (_no_root(g) or _sits_jue(g)) for g in shishang):
+        shishang += [g for g in sorted({g for g in gans if _ss(g) in ('正印', '偏印')})
+                     if g not in shishang]
+
+    # 寿元星之根：禄以外的藏干根支（案例二「癸水印星之根辰土」gaoji:16206-16210）
+    star_roots: Dict[str, List[str]] = {
+        g: sorted({z for z in zhis if any(cg == g for cg, _ in get_canggan_mangpai(z))})
+        for g in shishang
+    }
+
+    # 禄主表：日干 / 寿元星（食伤，无食或食伤受伤则印）/ 原局他干（六亲星）
     lu_owners: List[Tuple[str, str]] = [('日干', LU.get(day_gan, ''))]
     lu_owners += [(f'寿元星({g})', LU.get(g, '')) for g in shishang]
     lu_owners += [(f'他干({g})', LU.get(g, ''))
@@ -463,6 +509,28 @@ def detect_shouyuan_jixie(
             if lbl.startswith('寿元星'):
                 mechanisms.add('寿元星被坏')
 
+    # 1b) 寿元星透干坐绝=带病（「最怕寿星遭刑破，穿害克绝命难长」
+    #     gaoji:16148-16151；案例一「癸水食神虚浮无根，坐巳火绝地，寿星衰弱
+    #     受克」gaoji:16172-16174）
+    for g in shishang:
+        if g in gans and _no_root(g) and _sits_jue(g):
+            jz = next(zhis[i] for i in range(min(len(gans), len(zhis)))
+                      if gans[i] == g and get_changsheng_mangpai(g, zhis[i]) == '绝')
+            mechanisms.add('寿元星被坏')
+            natal_huai = True
+            signals.append(f'寿元星被坏（原局带病）：寿元星({g})虚浮无根，坐{jz}绝地')
+
+    # 1c) 寿元星之根被原局坏=带病（案例二「癸水印星之根辰土被穿坏…印根被拔
+    #     寿星倒」gaoji:16206-16216）
+    for g in shishang:
+        bad_pair = next(((rz, oz) for rz in star_roots.get(g, [])
+                         for oz in zhis if _is_huai(rz, oz)), None)
+        if bad_pair:
+            mechanisms.add('寿元星被坏')
+            natal_huai = True
+            signals.append(
+                f'寿元星被坏（原局带病）：寿元星({g})之根{bad_pair[0]}被{bad_pair[1]}坏')
+
     # 2) 运岁：引动坏 / 到位
     for src, yg, yz in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
         if yz:
@@ -471,8 +539,9 @@ def detect_shouyuan_jixie(
                 mechanisms.add('禄到位')
                 arrived = True
                 signals.append(f'禄到位：{src}支{yz}为{"、".join(owners)}之禄，原神到场')
-                # 到位之禄被原局坏（如子运被原局未穿，cj1:2477）
-                if any(_is_huai(yz, oz) for oz in zhis):
+                # 到位之禄被原局坏（如子运被原局未穿，cj1:2477；正克亦计——
+                #   yx2:7486「申金到位被局中官星火正克」、总诀「最忌寿星遭刑克」）
+                if any(_is_huai(yz, oz) or _is_zhengke(yz, oz) for oz in zhis):
                     mechanisms.add('破禄')
                     triggered = True
                     if any(o.startswith('寿元星') for o in owners):
@@ -486,6 +555,15 @@ def detect_shouyuan_jixie(
                     if lbl.startswith('寿元星'):
                         mechanisms.add('寿元星被坏')
                     signals.append(f'破禄（{src}引动）：{src}支{yz}坏{lbl}之禄{lz}')
+            # 运岁支坏寿元星之根（案例二：流年甲戌冲辰，「辰中癸水印根被冲散」
+            #   gaoji:16208-16210）
+            for g in shishang:
+                rz = next((r for r in star_roots.get(g, []) if _is_huai(r, yz)), None)
+                if rz:
+                    mechanisms.add('寿元星被坏')
+                    triggered = True
+                    signals.append(
+                        f'寿元星被坏（{src}引动）：{src}支{yz}坏寿元星({g})之根{rz}')
             # 流年坏大运到位之禄（壬午年冲子运，cj2:6042）
             if src == '流年' and dayun_zhi and _is_huai(yz, dayun_zhi):
                 dy_owners = _owners_of(dayun_zhi)
@@ -501,7 +579,7 @@ def detect_shouyuan_jixie(
             if yz in zhis:
                 mechanisms.add('原局字到位')
                 arrived = True
-                weak = any(_is_huai(yz, oz) for oz in zhis)
+                weak = any(_is_huai(yz, oz) or _is_zhengke(yz, oz) for oz in zhis)
                 if weak:
                     triggered = True
                 signals.append(f'原局字到位：{src}支{yz}重现原局' + ('，其位原局已受坏' if weak else ''))

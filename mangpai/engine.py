@@ -126,6 +126,18 @@ class MangpaiEngine:
             for y in (cur_year, cur_year - 1, cur_year + 1)
         ]
 
+    def _current_age(self) -> Optional[int]:
+        """当前虚岁口径年龄（当前年 − 出生年），与 _auto_liunian_list 的
+        「当下」锚点同口径；无出生年返回 None。"""
+        birth_year = self.input_data.get('year')
+        if not birth_year:
+            return None
+        try:
+            from datetime import datetime
+            return datetime.now().year - int(birth_year)
+        except Exception:
+            return None
+
     def _current_dayun(self, dy_list: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
         """定位「当下」所处大运：按当前年龄（当前年 − 出生年）匹配
         start_age/end_age 区间，与 _auto_liunian_list 的「当下」锚点
@@ -151,14 +163,7 @@ class MangpaiEngine:
                         pair[k] = entry[k]
             return pair
 
-        birth_year = self.input_data.get('year')
-        age = None
-        if birth_year:
-            try:
-                from datetime import datetime
-                age = datetime.now().year - int(birth_year)
-            except Exception:
-                age = None
+        age = self._current_age()
         if age is not None:
             first_sa = last_ea = None
             for entry in dy_list:
@@ -593,11 +598,13 @@ class MangpaiEngine:
             direction_result=result.get('direction'),
         ) or {}
 
-        # 综合应期（原局=车，大运=路，流年=触发点；age/互动缺省空转）
+        # 综合应期（原局=车，大运=路，流年=触发点；传 age 定位大限柱，
+        # 三要素交集名副其实；无出生年则大限缺省空转）
         result['yingqi_subj'] = self._safe_compute(
             'yingqi_subj', infer_comprehensive_yingqi,
             self.day_gan, self.gans, self.zhis,
             cur_dy_gan, cur_dy_zhi, cur_ln_gan, cur_ln_zhi,
+            age=self._current_age(),
         ) or {}
 
         # 郝金阳叙事层：把引擎结构化结论压成一行【引擎结论】（软依赖，
