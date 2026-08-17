@@ -177,6 +177,22 @@ class TestZeishenBushen:
         assert zb['yuanshen_yi_zhi'] is False  # 原神金未被制
         assert zb['zeishen_isolated'] is False
 
+    def test_jiangjieshi_wa_auxiliary_filtered(self):
+        """F5 哨兵（书 6122-6126「制之不净，达不到四层功」）：透传 work_actions 时
+        宾位 auxiliary 干克（丁克庚，non_day_ganke）不得塞入制局目标集——
+        旧码未滤 auxiliary 致「金」入 target_wx_set → 原神同制误净。"""
+        g, z = JIANGJIESHI
+        wa_aux = [{'type': '克', 'from_pos': 'year_gan', 'to_pos': 'month_gan',
+                   'auxiliary': True, 'non_day_ganke': True}]
+        zb = detect_zeishen_bushen(g[2], g, z, work_actions=wa_aux)
+        assert zb['jing_zhi'] == '不净'
+        assert zb['yuanshen_yi_zhi'] is False
+        # 对照：同一条非 auxiliary 真做功干克仍补目标集（金被制→原神同制→净）
+        wa_main = [{'type': '克', 'from_pos': 'year_gan', 'to_pos': 'month_gan'}]
+        zb2 = detect_zeishen_bushen(g[2], g, z, work_actions=wa_main)
+        assert zb2['yuanshen_yi_zhi'] is True
+        assert zb2['jing_zhi'] == '净'
+
     def test_yuefei_jing_no_yuanshen(self):
         """岳飞：子水贼神无原神金，未土捕神，净制。"""
         zb = _zb(*YUEFEI)

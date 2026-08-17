@@ -603,6 +603,10 @@ def detect_zeishen_bushen(
         for wa in work_actions:
             if wa.get('type') not in ('冲', '克', '穿', '刑', '破'):
                 continue
+            # 滤 auxiliary：宾位/非日主参与之制非真做功（书 6122-6126 蒋介石
+            # 丁克庚宾位干克不得塞入制局目标集，否则原神同制误净，「制之不净达不到四层功」）
+            if wa.get('auxiliary'):
+                continue
             to = wa.get('to_pos', '')
             elem = _elem_of(to, gans, zhis)
             tw = _wx_of(elem)

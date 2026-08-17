@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F5 批 · zeishen 传导断口（滤 auxiliary）+ gongfei 辅助功神仍是功神
+
+| 项 | 处理方式 | 书锚 | 文件 |
+|----|----------|------|------|
+| zeishen 滤 auxiliary（核心断口，一行级） | detect_zeishen_bushen 消费 work_actions 补 target_wx_set 时过滤 auxiliary：宾位/非日主参与之制非真做功，不得塞入制局目标集。蒋介石丁克庚宾位干克（auxiliary+non_day_ganke）曾把「金」塞入目标集→原神同制→误净；修后 净→不净，zhi_jing/zeishen_jing_zhi 同帧矛盾消除 | 理象学:6122-6126「制之不净，达不到四层功」 | subjective/zeishen_bushen.py:602-613 |
+| gongfei 修正 | 删 `if wa.get('auxiliary'): continue`——auxiliary 仅 M4 主功权重标记（「不做主功」≠「不做功」），辅助功神仍是功神；fei_shen 集合随之收缩，gong_shen_ratio 上升 | 理象学:6008-6010「参与做功的字也分主要功神和辅助功神…卯木生巳火为辅助功神」；定义锚 :5332-5334 | objective/gongfei.py:26-38 |
+| 传导审查（全量 diff，509 例两树对照） | gongliang 三通道（无制采纳/bao 与金字塔门/不净覆写解封顶）30 例 zb 净→不净（保守方向：target 集只缩不增）；xiangfa_ops 换象门槛随之失净（象意层无评分影响）；caiming 两处净制豁免走 wa-free 路径（analyze 不传 zuogong_result）**零影响**——李嘉诚/保尔森豁免不动；gongfei→L5 gate ratio 无翻转（work_level 全库 0 变）；gongfei→gongliang zhi_jing/has_qishi 19 例 level 上浮（score 未越书层锚）；yunfan/liunian 破坏功神·引动忌神随功神集扩大/废神集缩小增减（veto_reasons/adjust 文案 63 条，score 全不变） | — | — |
+| 哨兵（先红后绿） | test_zeishen_bushen.py 增 test_jiangjieshi_wa_auxiliary_filtered（红：wa 透传判净→绿：不净；对照非 auxiliary 同条仍补目标集判净）；新建 test_gongfei.py 2 测（卯生巳辅助功神仍入功神集/闲置字为废神） | 书 6122-6126；理象学:6008-6010 | tests/test_zeishen_bushen.py、tests/test_gongfei.py |
+
+验证：verify 432 全绿、verify_dayun 70 全绿（断言用显式 fei_shen 列表，零影响）、pytest 506 passed（+2 哨兵）、blind 对照 20260817_f4 **heldout/trainset 0 翻转**（财命 46✅ 66.67% 守住、官 74.24%/职 44.23% 不动；巨富三锚李嘉诚/保尔森/奥纳西斯层级不动）、文本抖动 63 条逐条审=意图内解释层漂移（veto_reasons/adjust 文案同步，score 全不变）、67 例 0 回归（4 条 ⚠️->✅ 改善与基线树相同=存量）、famous 0 降级（8 条改善同基线树=存量）、calib 4 REGRESSION 与基线树逐条相同=F4 存量、双 seed 逐字节一致。
+
 ## 2026-08-17 F4 批 · 虚实木性（virtual_solid 只就一柱+坐印皆实 / wood_type 水不生木之根）
 
 | 项 | 处理方式 | 书锚 | 文件 |

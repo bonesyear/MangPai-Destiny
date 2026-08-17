@@ -25,9 +25,8 @@ def _extract_positions(work_actions: List[Dict]) -> Set[str]:
     """
     positions: Set[str] = set()
     for wa in work_actions:
-        if wa.get('auxiliary'):
-            # 辅助关系（如生扶）不视作功神
-            continue
+        # 辅助功神仍是功神（理象学:6008-6010「参与做功的字也分主要功神和
+        # 辅助功神…卯木生巳火为辅助功神」）——auxiliary 仅主功权重标记，不排除
         for field in ('from_pos', 'to_pos'):
             val = wa.get(field, '')
             if val:
