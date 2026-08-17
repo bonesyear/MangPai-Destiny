@@ -10,6 +10,10 @@ zhengfan — 盲派正局/反局
   日干有合（合财/合官）不自动判正局——若合方向与全局气势相背，仍为反局
 
 全局气势（段氏"成势"）：
+  势党成势：金水湿土一党（金+水+丑辰湿土）/ 火土燥土一党（火+未戌燥土），
+    一党 ≥ 半数（4/8）且压倒对方即该党成势（《盲派中级命理学》第一章
+    :186「原局金水成势」:234「火与燥土势大」:246「火土成势去金水」:255「金水成势」
+    ——书之成势口径为两党，湿土归金水党、燥土归火土党）。
   单向气势：某五行独旺（≥ 半数）成势，如木旺成势
   两神成象：两五行合力主盘（合计 ≥ 6/8 字）且相生或相克，如木火相生成象、木土成象
 置信度：中
@@ -18,7 +22,7 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     PILLAR_KEYS, GAN_WX, ZHI_WX, WX_SHENG, WX_KE, WX_KE_ME,
-    TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP,
+    TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP, CANG_GAN_MANGPAI,
 )
 
 
@@ -79,6 +83,29 @@ def _compute_qishi(gans: Optional[List[str]],
     total = sum(counts.values())
     if total < 4:
         return None
+
+    # 势党成势（F7，书第一章口径）：金水湿土一党（金+水+丑辰湿土）/
+    # 火土燥土一党（火+未戌燥土），一党 ≥ 半数且压倒对方即该党成势。
+    # 书锚：中级:186「原局金水成势」（辛丙己甲/亥申丑戌——金2水1+丑湿土方成势，
+    # 湿土不计则书第一个反局书例的「借金水之势」无门）、:234「火与燥土势大」、
+    # :246「火土成势去金水」（丙戊丁丁/子戌丑未）、:255「金水成势」（壬庚辛己/子戌丑未）。
+    _zs = zhis or []
+    shi_dang = counts['金'] + counts['水'] + sum(1 for z in _zs if z in ('丑', '辰'))
+    zao_dang = counts['火'] + sum(1 for z in _zs if z in ('未', '戌'))
+    if shi_dang >= 4 and shi_dang > zao_dang:
+        return {
+            'desc': '金水成势',
+            'kind': '势党',
+            'relation': '旺',
+            'pair': ['金', '水'],
+        }
+    if zao_dang >= 4 and zao_dang > shi_dang:
+        return {
+            'desc': '火土成势',
+            'kind': '势党',
+            'relation': '旺',
+            'pair': ['火', '土'],
+        }
 
     ranked = sorted(counts.items(), key=lambda kv: -kv[1])
     top_wx, top_cnt = ranked[0]
@@ -339,12 +366,39 @@ def analyze_zhengfan(
         is_ti = bool(hz_wx and day_wx and
                      (hz_wx == day_wx or WX_SHENG.get(hz_wx) == day_wx))
         if is_ti:
+            # 合坏（F7，中级:200「申不能制官反被局中巳火官制了，反局了」、
+            # 闲注:215「财生了巳火，又巳申合，坏了申」——案例3 乙巳庚辰辛卯丙申）：
+            # 时支体被**所合时干官坐实之支**克合所坏（地支六合，坏方藏干含该官
+            # 本气——巳中丙即丙官之禄，官亲自坏体）→ 反局。合坏之合在 wa 中多为
+            # auxiliary（合非主功），此处不过滤。反锚：制例三 癸卯戊午己酉甲戌
+            # 卯戌合（卯藏乙非甲官坐实）不触发，大富正局不动。
+            _guan_gan = gans[3] if len(gans) > 3 else ''
+            for wa in work_actions:
+                if wa.get('type') != '地支合':
+                    continue
+                _fp, _tp = wa.get('from_pos', ''), wa.get('to_pos', '')
+                if 'hour_zhi' not in (_fp, _tp):
+                    continue
+                actor_pos = _tp if _fp == 'hour_zhi' else _fp
+                actor_wx = _pos_element(actor_pos, gans, zhis)
+                actor_zhi = _pos_zhi(actor_pos, zhis)
+                _guan_seated = any(
+                    cg == _guan_gan
+                    for cg, _qi in CANG_GAN_MANGPAI.get(actor_zhi, [])
+                )
+                if actor_wx and WX_KE.get(actor_wx) == hz_wx and _guan_seated:
+                    fan_reason = (
+                        f'日主合时干官，时支{hz}为体（印/劫）不可坏，'
+                        f'被{actor_zhi or actor_pos}（{_guan_gan}官坐实之支）合坏'
+                        f'——时支坏则反局{he_note}'
+                    )
+                    break
             qwxs: Set[str] = set()
             if qishi:
                 if qishi.get('dominant'):
                     qwxs.add(qishi['dominant'])
                 qwxs |= set(qishi.get('pair') or [])
-            if qwxs:
+            if qwxs and not fan_reason:
                 for wa in work_actions:
                     if wa.get('auxiliary'):
                         continue
@@ -398,6 +452,73 @@ def analyze_zhengfan(
                 k24_chong_zhis = [zhis[0], zhis[1]] if ym_rel == '冲' \
                     else [zhis[2], zhis[3]]
                 k24_chong_zhuwei = dh_rel == '冲'
+
+    # 反局（日支追求之意，F7，书规则①精化）：日支与支 X 六合，而 X 五行为
+    # 得势方所克（局意去 X）——日支之合=追求挽留 X、不想让制，与全局之势
+    # 相反 → 反局。书锚：中级:147-148「并不是日支与八字的势对抗，而是日支
+    # 表达的意思——日支追求的东西与八字势对抗」；:240-242「子丑合，日支的
+    # 合的东西反局了（局是去子水，日支一合追求子水，故反局了）…子丑一合，
+    # 表日支追求的是子水，不想让制之意，而原局和日干是要制子水和辛金」
+    # （坤 丙子戊戌丁丑丁未，火土成势去金水）。反锚：壬子庚戌辛丑己未
+    # （:255-265）金水成势，子为势党己方，子丑合「顺应大势」=正局不触发。
+    if not fan_reason and qishi and len(zhis) == 4:
+        if qishi.get('kind') == '两神' and qishi.get('relation') == '克':
+            _shi_wxs = set(qishi.get('pair', [])[:1])  # 相克成象：得势方=克方
+        else:
+            _shi_wxs = set(qishi.get('pair') or [])
+            if qishi.get('dominant'):
+                _shi_wxs.add(qishi['dominant'])
+        _dz = zhis[2]
+        for _i, _xz in enumerate(zhis):
+            if _i == 2 or not _xz:
+                continue
+            if (_dz, _xz) not in LIU_HE and (_xz, _dz) not in LIU_HE:
+                continue
+            _x_wx = ZHI_WX.get(_xz, '')
+            if _x_wx and any(WX_KE.get(q) == _x_wx for q in _shi_wxs):
+                fan_reason = (
+                    f'日支{_dz}合{_xz}，日支追求{_xz}（{_x_wx}）不想让制，'
+                    f'而{qishi["desc"]}意在去{_x_wx}，日支追求之意与局势相反{he_note}'
+                )
+                break
+
+    # 反局（日支做功被得势方反制，F7）：日支主动**冲** X（同性相冲=力量对决），
+    # 而 X 与日支同五行、临月令且党众（同名≥2）并对日支有反向制式动作——
+    # 日支制不动反被制 → 反局。限「冲+同五行」：书机制是力量对比（旺者制弱者），
+    # 穿/刑为损害非对力（zhenbao-05 乙巳庚辰辛卯壬辰 卯辰穿=伤官制官升处级，
+    # 书判正局，不触发）。
+    # 书锚：中级:266-275（乾 癸未丙辰戊戌丙辰）「戌土想去两辰中水…但辰土
+    # 旺秉月令而旺，把戌制了，成了反局，此人一生穷命」「辰力量强，反过来
+    # 夹制戌了！反局」「要制财，但被财反制」。
+    if not fan_reason and len(zhis) == 4:
+        _month_z = zhis[1]
+        for wa in work_actions:
+            if wa.get('auxiliary'):
+                continue
+            if wa.get('type') != '冲':
+                continue
+            if wa.get('from_pos') != 'day_zhi':
+                continue
+            _xz = _pos_zhi(wa.get('to_pos', ''), zhis)
+            if not _xz or _xz != _month_z or zhis.count(_xz) < 2:
+                continue
+            if _xz == zhis[2]:
+                continue  # 自刑/伏吟（亥亥亥类同名自缠）非「反制」——王阳明造锚
+            if ZHI_WX.get(_xz) != ZHI_WX.get(zhis[2]):
+                continue  # 非同性相冲不论力量反制（zhenbao-05 卯辰穿/异行锚）
+            _rev = any(
+                (not w2.get('auxiliary'))
+                and w2.get('type') in ('冲', '刑', '穿', '破', '克')
+                and w2.get('to_pos') == 'day_zhi'
+                and _pos_zhi(w2.get('from_pos', ''), zhis) == _xz
+                for w2 in work_actions
+            )
+            if _rev:
+                fan_reason = (
+                    f'日支{zhis[2]}{wa["type"]}{_xz}欲制之，然{_xz}临月令党众'
+                    f'（{zhis.count(_xz)}重）反制日支，日支做功被得势方反制{he_note}'
+                )
+                break
 
     # 反局（五行方向）：日柱做功目标五行 vs 全局做功主要目标五行，相克即相背。
     #   比和（同五行）/相生为同向、顺势，不判反局；五行信息缺失则不论。
@@ -453,10 +574,15 @@ def analyze_zhengfan(
         # 燥土成势，日支未冲丑制库、未午合皆势内之功，书判巨富正局），
         # 不计入相克判据；泄势/克势/被势克之指向照常计入（保守不豁免——
         # li101 红线复验：申克卯木（木）/杀印相生（土）等指向犹在，反局不动）。
-        if qishi and qishi.get('kind') == '单向' and qishi.get('dominant'):
-            _dq = qishi['dominant']
+        # F7：势党（金水/火土成势）同此理——党中两行及其原神皆势内
+        # （中级:255-265 壬子庚戌辛丑己未：金水成势，丑刑戌、丑未冲皆势内之功）。
+        if qishi and qishi.get('kind') in ('单向', '势党'):
+            _dq_set = set(qishi.get('pair') or [])
+            if qishi.get('dominant'):
+                _dq_set.add(qishi['dominant'])
             day_elems = {de for de in day_elems
-                         if not (de == _dq or WX_SHENG.get(de) == _dq)}
+                         if not (de in _dq_set
+                                 or any(WX_SHENG.get(de) == q for q in _dq_set))}
         if global_main_elem and day_elems:
             # K3-294批6 A1 残留二道豁免（批1 any→制式收窄后的残留面，书锚双端）：
             # (a) 合局同党：全局主指向来自**三合局**（成势以参与字记指向本就宽泛，
@@ -549,10 +675,14 @@ def analyze_zhengfan(
             'qishi': qishi,
         }
 
-    # 有日柱做功但无气势、无全局做功可判正反 → 局未定（不自动判正局）
+    # 无势+日主能做功=正局（F7，中级:139-140「八字无势，日主能做功也称为
+    # 正局」；书例 :147-151 己卯己巳辛亥甲午——日支亥被午合制之意与火势
+    # 一致，正局非反局）。旧「局未定」口径与书明文直接冲突（批4 P1-1），
+    # 此处按书改正；⚠ prompts/mangpai.md（受保护）「无势可判则局未定」
+    # 为旧口径残留，备案待评审同步。
     return {
-        'configuration': '局未定',
-        'type': 'neutral',
-        'reason': f'有日柱做功，然无明确气势可判正反{he_note}',
+        'configuration': '正局（无势能做功）',
+        'type': 'zheng',
+        'reason': f'八字无明确气势，日柱能做功，亦称正局（中级139-140）{he_note}',
         'qishi': qishi,
     }

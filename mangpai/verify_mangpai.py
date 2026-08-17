@@ -1324,12 +1324,13 @@ check('正局(做功同向)',
       zf_z6['type'] == 'zheng' and '同向' in zf_z6['configuration'],
       f"got {zf_z6}")
 
-# 局未定：有日柱做功但无气势、无全局做功可判正反（不自动判正局）
+# 无势+日主能做功=正局（F7 按书改正：中级139-140「八字无势，日主能做功
+# 也称为正局」；旧「局未定」口径与书明文冲突，批4 P1-1，已废）
 _z7_wa = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}]
 zf_z7 = analyze_zhengfan(_z7_wa, None,
                          ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
-check('局未定 不自动判正局',
-      zf_z7['type'] == 'neutral' and '局未定' in zf_z7['configuration'],
+check('无势能做功=正局（中级139-140）',
+      zf_z7['type'] == 'zheng' and '无势能做功' in zf_z7['configuration'],
       f"got {zf_z7}")
 
 # 端到端：MangpaiEngine 透传 gans/zhis，气势接入正反局
@@ -1362,14 +1363,15 @@ check('auxiliary日柱做功被跳过→无功不为局',
 
 # 辅助宾宾做功不应计入 global_targets → 不触发反局(柱位)
 # 日柱冲时支(hour)，辅助宾宾冲年→月。旧实现把辅助冲计入 global_targets(month)，
-# 与 day(hour) 方向相背 → 误判反局；修复后辅助跳过，无全局做功 → 局未定。
+# 与 day(hour) 方向相背 → 误判反局；修复后辅助跳过，无全局做功 → 非反局
+# （F7 起终态按中级139-140「无势能做功=正局」，核心断言=非反局不变）。
 _zf_aux2 = [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'},
             {'type': '冲', 'from_pos': 'year_zhi', 'to_pos': 'month_zhi',
              'auxiliary': True}]
 zf_aux2 = analyze_zhengfan(_zf_aux2, None,
                            ['甲', '丙', '戊', '庚'], ['子', '午', '卯', '酉'])
 check('auxiliary宾宾做功不计入全局→非反局',
-      zf_aux2['type'] != 'fan' and '局未定' in zf_aux2['configuration'],
+      zf_aux2['type'] != 'fan',
       f"got {zf_aux2}")
 
 # ── 24. 合克优先级（合克属合不属克）──
