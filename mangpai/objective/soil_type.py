@@ -112,6 +112,8 @@ def analyze_soil(
                 'shengke': soil_shengke_behavior(z),
             }
 
+    # F1 标注：wet_soil/dry_soil 两键无 Python 消费（prompt-only）；
+    # zuogong_confirm 自算土性不读本结果（engine↔zuogong 双轨，批9 备案）。
     return {
         'soil_entries': list(soil_info.values()),
         'wet_soil': sorted([z for z in _KU_ZHI if z in zhis and '湿' in SOIL_TYPE.get(z, '')]),

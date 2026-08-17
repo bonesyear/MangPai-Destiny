@@ -322,10 +322,11 @@ def _bazi_line(engine_result: Dict[str, Any]) -> str:
     else:
         pillars = str(bazi)
     extra = []
-    dy = engine_result.get('dayun_gz') or engine_result.get('_dayun_gz')
+    # F1 批删除 _dayun_gz/_liunian_gz 回退键（全库无写入者=死回退，批10）。
+    dy = engine_result.get('dayun_gz')
     if dy:
         extra.append(f"{dy}运")
-    ln = engine_result.get('liunian_gz') or engine_result.get('_liunian_gz')
+    ln = engine_result.get('liunian_gz')
     if ln:
         extra.append(f"{ln}年")
     return (pillars + ' ' + ' '.join(extra)).strip()

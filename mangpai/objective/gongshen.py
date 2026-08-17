@@ -292,6 +292,9 @@ def analyze_gongshen(
     if palace_interactions:
         parts.append(f'宫位互动{len(palace_interactions)}处')
 
+    # F1 标注（批8/批10 审计定）：palaces/star_palace/spouse_palace/
+    # palace_interactions 四子字段全库零消费，仅 summary 经 narrative 出文本；
+    # 字段保留不删（输出契约），gongshen 年/时身段颠倒备案详见 KB §6.4。
     return {
         'palaces': palaces,
         'star_palace': star_palace,

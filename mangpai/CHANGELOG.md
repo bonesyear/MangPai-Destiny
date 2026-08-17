@@ -1,5 +1,30 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F1 批 · 死数据/伪标清理（判定算法零改动）
+
+| 项 | 处理方式 | 文件 |
+|----|----------|------|
+| chuangong 伪标 | **去冠名**：docstring 撤「段氏理象学·置信度高」，标注「非段氏体系参考模块」（五书零命中，excerpts.md:244 已定 ❌）；19 条锁自造 spec 测试整体 xfail(strict=False) 备查 | subjective/chuangong.py、tests/test_chuangong.py |
+| advanced 死 shim | **保留最小接口**（防外部旧 import 炸），docstring 更正「仅 analyze_zhengfan 单符号告警、6 eager 符号静默、全库零调用」 | objective/advanced.py |
+| body_parts | **去冠名**：撤「唯一事实源」，标注数据可信但零接线（服役旧表=gongshen._PILLAR_BODY+zaihuo 四表），接线留后续批 | objective/body_parts.py |
+| gongmen_wuzhi | **标记弃用**：docstring 注明 zhiye 零消费+is_wuzhi 近恒真+11 条 P0 偏差，接入决策留 F18；删死函数 _zhi_doi | subjective/gongmen_wuzhi.py |
+| zaihuo | **不清理**（LLM 通路红线相关，F14 修）；仅拆 `for _ in [0]` 死壳（恒等变换） | subjective/zaihuo.py |
+| 桃花 day_ref / shensha_reference | **标注配置断路**：全库 0 处传 'day'、桃花 day_ref 无读者；亡神 day_ref 有 zaihuo 读者勿删键 | objective/shensha.py、engine.py |
+| yin_method | **标注双层断路**（bazi_calc 接收不用、engine 透传无消费方），不动公共签名 | objective/bazi_calc.py、engine.py |
+| juefa 断语18 | **标注生产恒 skip**（yongshen.py:886 不传 shensha_result） | subjective/juefa.py |
+| result['zihe'] 死输出 | **删除** engine 计算+注释+import（三家自调 detect_zihe，零读者，不在 selectors） | engine.py |
+| result['direction'] | **标注**仅模块间透传、三出口不可见（非纯死勿删） | engine.py |
+| gongshen 四子字段 | **标注** palaces/star_palace/spouse_palace/palace_interactions 零消费（仅 summary 出文本），保留输出契约 | objective/gongshen.py |
+| narrative 回退键 | **删除** _dayun_gz/_liunian_gz 死回退（全库无写入者） | subjective/narrative.py |
+| jiaoyun_analysis / anhe / biqi | **标注** prompt-only/不进 payload | engine.py |
+| soil_type/virtual_solid 死字段 | **标注** wet_soil/dry_soil、virtual_count/solid_count/vulnerable_count 无消费 | objective/soil_type.py、objective/virtual_solid.py |
+| bazi_calc 死数据 | **删除** _JIE_QI_NAMES/_JIE_NAME_TO_ORDERIDX 两死表（全库 0 引用）；标注 da_yun 五死键+corrected_hour | objective/bazi_calc.py |
+| hunyin direction_signals | **维持**（docstring 已标「只读信号」）；删死函数 _is_zhu | subjective/hunyin.py |
+| shipaige 断语层 | **补注**「断语层与郑氏碎片 39 条零对应，不可作书证」 | subjective/shipaige.py |
+| anhe/biqi alt_key | **删除** biqi alt_key 反查死分支（BI_QI 键序与 LIU_HE 全同，反查永不命中） | objective/biqi.py |
+
+验证：verify 432 全绿、pytest 499 collected（479 passed + 1 xfailed + 19 xpassed，xpassed=chuangong 旧测仍过但已标 xfail 备查）、blind 对照 20260814_f **零翻转零抖动**（判定零变化）。红线：未动任何判定算法；接线类一律未做（留对应批）。
+
 ## 2026-08-14 第三十八批 · 寿元域样本挖掘（yingqi_subj 四机制 + 10 断言全 pass）
 
 | 项目 | 内容 | 文件 |

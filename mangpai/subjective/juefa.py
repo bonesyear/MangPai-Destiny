@@ -552,6 +552,8 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
                 emit(17, f'财为用神（{strength}）而{"、".join(cai_hurt)}——养命源受损，贫病之象')
 
     # 18 贵人头上带刃剑（须 shensha）
+    # F1 标注：生产恒 skip——唯一生产调用方 yongshen.py:886 不传
+    # shensha_result（配置断路）；仅测试直达。接线决策留 shensha 修复批。
     if shensha_result is None:
         skip(18, '未提供 shensha_result，不评估')
     else:

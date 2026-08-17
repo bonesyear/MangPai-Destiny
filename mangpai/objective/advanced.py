@@ -6,6 +6,11 @@ objective/advanced — 向后兼容重导出（已拆分为独立模块）
 
 注意：早期版本在模块顶层 warnings.warn，会在 import mangpai.objective 时连带触发，
 污染主包导入。已改为延迟触发：仅当显式访问 advanced 的导出符号时才告警。
+
+⚠️ F1 批（2026-08-17）核实：6 个 eager re-export 符号（analyze_anhe 等）走
+模块 globals 不触发 __getattr__，实际仅 analyze_zhengfan 单符号告警；
+且全库零调用方（死 shim）。决议：保留最小兼容接口（防外部旧代码 import 炸），
+不扩展、不新增引用。
 """
 import warnings
 

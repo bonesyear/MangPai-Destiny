@@ -4,13 +4,24 @@
   串宫分级（2弱/3强/4全）、positions/pillars/theme 结构、空亡排除、
   压运三型（增强/触发/引入）、冲散/合化/会局 conflict、容错与 summary。
 判据为结构检测（出现次数+冲合会关系），不做吉凶，见模块 docstring。
+
+⚠️ F1 批（2026-08-17）：chuangong 经审计定为非段氏体系（五书零命中），
+本文件锁的是自造 spec（无书锚），全部用例标 xfail（strict=False）保留备查；
+模块若未来下线，本文件一并删除。
 """
 import sys
 import os
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.subjective.chuangong import analyze_chuangong
+
+pytestmark = pytest.mark.xfail(
+    reason='chuangong 锁自造 spec（非段氏体系，F1 批去冠名），仅备查',
+    strict=False,
+)
 
 
 # ── 串宫检测与分级 ──

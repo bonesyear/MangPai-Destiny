@@ -1,8 +1,14 @@
 """
 chuangong — 串宫压运（同一地支多柱串联 + 岁运压入互动）·主观层
 
-理论来源：段建业《段氏理象学》岁运篇、盲师口传体系。
-  （需求文档：mangpai/docs/chuangong-spec.md）
+⚠️ F1 批（2026-08-17）去冠名定版：**非段氏体系参考模块**。
+  段氏五书+渊海 grep「串宫」「十二神」零命中；项目自家
+  docs/duan-shi-lixiangxue-excerpts.md:244 已定「串宫压运｜❌ 非段氏体系」。
+  旧 docstring 署「段氏理象学·置信度：高」系伪标，特此更正。
+  且全模块零消费（engine 无引用，spec 集成要求未执行），仅存作参考实现；
+  测试（test_chuangong.py）锁的是自造 spec（mangpai/docs/chuangong-spec.md，
+  无书锚），已整体 xfail。
+  （需求文档：mangpai/docs/chuangong-spec.md，自拟无书锚）
 
 核心思想：
   串宫：同一地支出现于命局两个或以上柱位（年月日时），该地支主题在人生的
@@ -18,7 +24,7 @@ chuangong — 串宫压运（同一地支多柱串联 + 岁运压入互动）·�
   本模块为纯结构检测（出现次数 + 冲合会关系），不做吉凶判断。
   按第三期规划置于 subjective/（objective←subjective 单向依赖，引擎接线
   属后续期次；本模块独立可用，不改任何核心判定逻辑）。
-置信度：高（检测规则确定性）。
+置信度：不作标（旧标「高」系伪标已撤——规则为 spec 自拟，非段氏书义）。
 """
 from typing import Dict, List, Optional
 

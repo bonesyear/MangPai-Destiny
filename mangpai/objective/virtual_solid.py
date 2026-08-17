@@ -218,6 +218,8 @@ def analyze_virtual_solid(
             'desc': desc,
         })
 
+    # F1 标注：virtual_count/solid_count/vulnerable_count 三计数字段无消费方
+    # （死字段，批9 审计）；保留不删（输出契约）。
     return {
         'virtual_solid': results,
         'virtual_count': sum(1 for r in results if not r['is_solid']),

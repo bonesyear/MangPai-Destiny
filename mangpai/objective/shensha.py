@@ -179,6 +179,10 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'year') 
         other_key = 'year_ref'
         other_label = 'year_zhi'
     else:
+        # F1 标注：生产全链路 0 处传 'day'（engine.py 默认 'year'），reference
+        # 形参=配置断路（默认 year 与 gaoji:7912「日支为主」的分歧留 shensha 修复批）。
+        # 次柱键名随 reference 翻转（day_ref↔year_ref）：桃花 day_ref 全库无读者
+        # （死数据）；亡神等 day_ref 有 zaihuo 读者，勿整体删键。
         ref_zhi = year_zhi
         ref_label = 'year_zhi'
         other_zhi = day_zhi

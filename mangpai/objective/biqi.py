@@ -52,8 +52,8 @@ def analyze_biqi(
         b_pillars = [k for k, v in zhis.items() if v == b]
         if a_pillars and b_pillars:
             key = f'{a}{b}'
-            alt_key = f'{b}{a}'
-            bi = BI_QI.get(key) or BI_QI.get(alt_key)
+            # F1 批删 alt_key 反查死分支：BI_QI 键字序与 LIU_HE 全同，反查永不命中。
+            bi = BI_QI.get(key)
             if bi:
                 # 多柱同支全部报告
                 for ap in a_pillars:

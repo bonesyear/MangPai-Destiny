@@ -75,10 +75,6 @@ def _spouse_wx(day_gan: str, gender: str) -> str:
     return WX_KE_ME.get(day_wx, '')
 
 
-def _is_zhu(pos: str) -> bool:
-    return pos.split('_')[0] in ('day', 'hour')
-
-
 def _star_positions(day_gan: str, gans: List[str], zhis: List[str], gender: str) -> List[int]:
     """配偶星所在柱索引（天干或地支本/中气含配偶星五行）。"""
     swx = _spouse_wx(day_gan, gender)

@@ -522,7 +522,7 @@ def compute_four_pillars(year: int, month: int, day: int, hour: int, minute: int
         'month_gz': m_gz,
         'day_gz': d_gz,
         'hour_gz': h_gz,
-        'corrected_hour': ch,
+        'corrected_hour': ch,  # F1 标注：死字段（全库无读者，批9 审计），保留输出契约
     }
 
 
@@ -683,19 +683,8 @@ def get_di_zhi_relations(zhis: List[str]) -> Dict[str, Any]:
 # ════════════════════════════════════════════════════════════════
 #  大运（月柱起，阳男阴女顺行；起运岁数 = 到最近节的天数 / 3）
 # ════════════════════════════════════════════════════════════════
-_JIE_QI_NAMES: Dict[int, str] = {
-    0: '冬至', 1: '小寒', 2: '大寒', 3: '立春', 4: '雨水',
-    5: '惊蛰', 6: '春分', 7: '清明', 8: '谷雨', 9: '立夏',
-    10: '小满', 11: '芒种', 12: '夏至', 13: '小暑', 14: '大暑',
-    15: '立秋', 16: '处暑', 17: '白露', 18: '秋分', 19: '寒露',
-    20: '霜降', 21: '立冬', 22: '小雪', 23: '大雪',
-}
-# 节名 → 规范序下标（用于回填 jie_name）
-_JIE_NAME_TO_ORDERIDX: Dict[str, int] = {
-    '立春': 0, '惊蛰': 2, '清明': 4, '立夏': 6, '芒种': 8,
-    '小暑': 10, '立秋': 12, '白露': 14, '寒露': 16, '立冬': 18,
-    '大雪': 20, '小寒': 22,
-}
+# （F1 批删除：_JIE_QI_NAMES/_JIE_NAME_TO_ORDERIDX 两表全库 0 引用=死数据；
+#  jiaoyun.py 自有一套节气索引表，不受影响。）
 
 
 def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
@@ -743,6 +732,8 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
         age = round(start_age + i * 10, 1)
         dayun.append({'gz': GAN[tg] + ZHI[dz], 'start_age': age, 'end_age': round(age + 10, 1)})
 
+    # F1 标注：direction/forward/start_age_str/jie_name/days 五键 engine 不读
+    # （engine 只取 dayun 列表与 start_age，批9 审计）=死字段，保留输出契约不删。
     return {
         'direction': direction,
         'forward': forward,
@@ -777,8 +768,12 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
         yin_method: 阴干方向（盲派默认 'same_as_yang'，阴阳同生同死）；
             本字段保留以与 engine.calc_mangpai_full 签名对齐，盲派十二长生
             由 MangpaiEngine 自行计算（同生同死），本排盘不产出 chang_sheng。
+            （F1 标注：死形参——接收不用；engine 侧透传亦无消费方，双层断路。
+             删除须动公共签名，留签名清理批。）
         shensha_reference: 神煞参考柱（'year' 年支传统 / 'day' 日支盲派）；
             保留以对齐签名，神煞由 MangpaiEngine.compute_shensha_ext 自行计算。
+            （F1 标注：死形参——本层接收不用；engine 层该参有效但全库 0 处
+             传 'day'，实际口径恒 'year'。）
 
     Returns:
         bazi_data：包含 input/bazi/shishen/kong_wang/di_zhi_relations/da_yun

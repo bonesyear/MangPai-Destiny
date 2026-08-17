@@ -1,6 +1,12 @@
 """
 gongmen_wuzhi - 盲派公门武职专辑·主观层（subjective）
 
+⚠️ F1 批（2026-08-17）标记弃用（deprecated，暂不删除）：
+  zhiye 零消费本模块（engine 中并行独立计算），is_wuzhi 聚合口径近恒真
+  （任一武职类象即 True，几乎逢盘必中），当前输出信息量趋零；
+  且实现与 gaoji 8.2 有 11 条 P0 级偏差（批8 审计）。接入 zhiye 的决策
+  留 F18 批，届时须先修实现偏差。删除/_zhi_doi 等死代码本批已清。
+
 理论来源：段建业《盲派命理高级内容篇》8.2「公门武职」（源文 11588-11971 行）
 核心思想：公门武职以「干支类象 + 组合做功」定位——寅为公门、戌为火药枪弹
           库、申酉为刀枪律法、丑为阴库（公安刑警）、巳午为枪炮、羊刃七杀为
@@ -158,12 +164,6 @@ def _action_between_cats(wa, day_gan, gans, zhis, cat_a, cat_b, types) -> List[D
         if (cat_a in fa and cat_b in ta) or (cat_b in fa and cat_a in ta):
             out.append(a)
     return out
-
-
-def _zhi_doi(zhis: List[str], z: str) -> bool:
-    """某地支是否做功（被冲/刑/合引动）。"""
-    return z in zhis  # 简化：现于四柱即视为可做功字（精确做功由 wa 判）
-
 
 # ───────────────────── A. 军官四组合 ─────────────────────
 

@@ -27,7 +27,6 @@ from mangpai.objective import (
     analyze_shenshu,
     safe_compute_jiaoyun,
     get_gan_xiang, get_zhi_xiang, get_shishen_xiang, get_gongwei_xiang,
-    detect_zihe,
 )
 from mangpai.objective.bazi_calc import calc_bazi_full
 from mangpai.objective.zuogong_detect import detect_relations
@@ -269,6 +268,8 @@ class MangpaiEngine:
 
         result['muku'] = self._safe_compute('muku', analyze_muku, self.zhis, self.gans) or {}
 
+        # F1 标注：anhe/biqi 两结果 prompt-only（进 selector→prompt，无任何
+        # Python 判定逻辑消费其内容；主观层暗合走 zuogong work_actions 或自算）。
         anhe_val = self._safe_compute(
             'anhe', analyze_anhe,
             p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi,
@@ -300,11 +301,9 @@ class MangpaiEngine:
         )
         result['he_types'] = he_val or {'he_types': []}
 
-        # G9 天地合/自合柱检测（48期；柱内干支五合，非柱间做功，
-        # yongshen 从格/R1b、caiming 财绊/日主合财、guanming 康熙型消费）
-        result['zihe'] = self._safe_compute(
-            'zihe', detect_zihe, self.gans, self.zhis,
-        ) or {}
+        # （F1 批删除 result['zihe'] 死输出：guanming/yongshen/caiming 全部
+        #  就地自调 detect_zihe，无任何模块读 result['zihe']，且不在 selectors
+        #  不进 payload——engine↔模块双轨第四例，批10 审计定。）
 
         result['virtual_solid'] = self._safe_compute(
             'virtual_solid', analyze_virtual_solid,
@@ -408,6 +407,8 @@ class MangpaiEngine:
                 ) or {}
 
         # 交运时间计算（用年柱纳音五行定交运，大运序列从月柱起）
+        # F1 标注：jiaoyun_analysis 仅进 _build_summary 交运行，不在 selectors
+        # 不进 payload（LLM 见不到交运时刻本体，批10 P1 备案）。
         if self.input_data.get('year') and self.month_gz:
             result['jiaoyun_analysis'] = self._safe_compute(
                 'jiaoyun_analysis', safe_compute_jiaoyun,
@@ -492,6 +493,8 @@ class MangpaiEngine:
         # A3 方向总线：yongshen.assess_direction_signals 全引擎统一计算一次，
         # 透传各领域模块（hunyin/liuqin/xueli/zaihuo/gongmen_wuzhi 只读消费；
         # caiming/guanming/zhiye 已有内部否决链，口径同源）。
+        # F1 标注：result['direction'] 仅模块间透传——payload(selectors)/
+        # _build_summary/narrative 三出口均不可见（批10 备案，非纯死勿删）。
         from mangpai.subjective.yongshen import assess_direction_signals
         result['direction'] = self._safe_compute(
             'direction', assess_direction_signals,
@@ -696,8 +699,10 @@ def calc_mangpai_full(
         minute: 分（0-59）
         gender: '男' 或 '女'
         city_lon: 城市经度
-        yin_method: 阴干起运方向，默认 'same_as_yang'（盲派阴阳同生同死）
+        yin_method: 阴干起运方向，默认 'same_as_yang'（盲派阴阳同生同死）。
+            （F1 标注：透传形参，calc_bazi_full 接收不用，全链路无消费方）
         shensha_reference: 神煞参考柱，默认 'year'
+            （F1 标注：全库 0 处传 'day'，配置断路，口径分歧留 shensha 修复批）
 
     Returns:
         完整盲派排盘结果

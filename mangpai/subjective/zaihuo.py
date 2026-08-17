@@ -270,7 +270,8 @@ def classify_jibing(
     if {'亥', '子'} & present and '寅' in present and cnt.get('水', 0) >= 2:
         special.append('尿毒（亥子水绝寅木）')
     # 精神病：酉戌穿 或 双丁透干
-    if any(frozenset({'酉', '戌'}) <= {zhis[i] for i in range(4)} for _ in [0]):
+    # F1 批拆 for-in-[0] 死壳（any(X for _ in [0])≡X，批7 审计）。
+    if frozenset({'酉', '戌'}) <= {zhis[i] for i in range(4)}:
         if frozenset({'酉', '戌'}) <= present and any(a.get('type') == '穿' for a in wa):
             special.append('精神病（酉戌穿）')
     if sum(1 for g in gans if g == '丁') >= 2:
