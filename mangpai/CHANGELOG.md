@@ -1,5 +1,18 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F4 批 · 虚实木性（virtual_solid 只就一柱+坐印皆实 / wood_type 水不生木之根）
+
+| 项 | 处理方式 | 书锚 | 文件 |
+|----|----------|------|------|
+| virtual_solid 全局找根收窄 | 找根范围从全局四支收窄为本柱坐支（本气/藏干同五行=根），_has_wx_root_in_zhis 改为 _pillar_gen_sheng | 理象学:5647-5649「虚实只就一柱干支而言，与周围的生克关系没有联系」 | objective/virtual_solid.py |
+| virtual_solid 坐印判虚修正 | 坐支本气为印=有生→实（is_solid=True，vulnerable_to_ke=无）；例外：燥土未戌不生金反脆金，金坐未戌根印俱不算（庚戌/辛未书列虚表） | 理象学:5659「有根有生者实」；初级:2461「坐印都是实」；实表甲子/庚辰/辛丑（:5663-5665/:5706-5714）；燥土脆金 :3120-3122 | objective/virtual_solid.py |
+| wood_type 死木补条件 | 水支与木根支相破（盲派破=子卯/卯午，非传统六破）/相冲/相穿则该水不生该根；所有水皆不生任何根→死木（水不生木之根）。岳飞造 活木→死木、戴妃造 活木→死木 | 理象学:12613-12615「水不生木之根也是死木」（戴妃明例）；:3187-3189 岳飞明例；:2934-2936「相破时…子水不生卯木」 | objective/wood_type.py |
+| zuogong_confirm 传导 | 消费侧零改动（字段契约不变）；岳飞造冒烟：fear_metal 撤销→死木三信号（反焚/制水为功）正常接入 | — | subjective/zuogong_confirm.py（未改，验证一致） |
+| gongliang 岳飞 boundary 传导 | 岳飞 level 仍 L3（书层不变）；score 78→84（活木 fear_metal 打折撤销），boundary 标注路径由 bao-decisive 转 score 近上沿（L2/L3→L3/L4），两测试随之更新并注明 F4 因果 | 岳飞书定省部级=L3 | tests/test_gongliang.py |
+| 哨兵（先红后绿） | 新建 test_virtual_solid.py（3 测：跨柱收窄/坐印皆实/书表抽查含燥土例外）+test_wood_type.py（3 测：岳飞/戴妃/活木保留×2）——初跑 5 红 1 绿（1 绿后修正测试盘归因），修复后 6 全绿 | 见各测 docstring 行号 | tests/test_virtual_solid.py、test_wood_type.py |
+
+验证：verify 432 全绿、pytest 504 全绿、blind 对照 20260817_f3 **heldout/trainset 0 翻转 0 文本抖动**（六维逐字节同，财命 46✅ 66.67% 守住，官 74.24%/职 44.23% 不动）、67 例 0 回归（4 条 ⚠️->✅ 改善）、famous 0 降级（6 条改善：李昌镐官命/李嘉诚乔布斯职业 ❌->✅ 等）、calib 4 REGRESSION 经 stash 实证全为 F3 存量（含 zhenbao-01 常驻）、双 seed 逐字节一致。
+
 ## 2026-08-17 F3 批 · 岁运地基（起运岁口径 + 晚子时 + 交运年虚岁）
 
 | 项 | 处理方式 | 书锚 | 文件 |

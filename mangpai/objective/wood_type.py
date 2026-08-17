@@ -3,8 +3,11 @@ wood_type - 盲派木的活死判断
 
 理论来源：段建业《段氏理象学》木性篇
 核心思想：日干为木时，需判断是活木还是死木，二者行为完全不同。
-  活木条件：有水生 + 有根（支中有水和木根）
-  死木条件：无水或无根
+  活木条件：有水生 + 有根（支中有水和木根），且水能生木之根——
+    「有水有根，水不生木之根也是死木」（理象学:12613-12615）：
+    水支与木根支相破（子水不生卯木，:2934-2936）、相冲（戴妃造丑冲未，
+    :12615）、相穿（岳飞造子穿未，:3187-3189）则该水不生该根。
+  死木条件：无水或无根，或水不生木之根
   活木见火=开花泄秀（吉）；死木见火=燃烧（凶，怕旺火）
   活木怕金坏根；死木不怕金克
   活木喜水（特别是夏生）；死木见水反坏（腐烂）
@@ -18,7 +21,41 @@ wood_type - 盲派木的活死判断
 """
 from typing import Dict, List
 
-from mangpai.objective.constants import ZHI_WX, CANG_GAN_MANGPAI, GAN_WX, is_pillars
+from mangpai.objective.constants import (
+    ZHI_WX, CANG_GAN_MANGPAI, GAN_WX, is_pillars, LIU_CHONG, LIU_HAI,
+)
+
+# 盲派相破（理象学:2930-2932「子破卯，卯破午；也可以反过来破」）——
+# 与传统六破（constants.LIU_PO）不同表，勿混用。
+_MANGPAI_PO = {('子', '卯'), ('卯', '子'), ('卯', '午'), ('午', '卯')}
+
+
+def _wx_zhis(zhis: List[str], target_wx: str) -> List[str]:
+    """返回本气或藏干含目标五行的地支列表。"""
+    out = []
+    for z in zhis:
+        if not z:
+            continue
+        if ZHI_WX.get(z, '') == target_wx:
+            out.append(z)
+            continue
+        for gan, _qi in CANG_GAN_MANGPAI.get(z, []):
+            if GAN_WX.get(gan, '') == target_wx:
+                out.append(z)
+                break
+    return out
+
+
+def _water_sheng_root(water_zhi: str, root_zhi: str) -> bool:
+    """水是否生木之根：相破/相冲/相穿则不生（理象学:2934-2936 子水不生卯木；
+    :3187-3189 岳飞造子破卯穿未；:12613-12615 戴妃造丑冲未）。"""
+    pair = (water_zhi, root_zhi)
+    if pair in _MANGPAI_PO:
+        return False
+    for pairs in (LIU_CHONG, LIU_HAI):
+        if pair in pairs or (root_zhi, water_zhi) in pairs:
+            return False
+    return True
 
 
 def _has_wx_root(zhis: List[str], target_wx: str) -> bool:
@@ -95,11 +132,19 @@ def analyze_wood_type(
     zhis = [year_zhi, month_zhi, day_zhi, hour_zhi]
     gans = [day_gan] + [g for g in other_gans if g]
 
-    has_root = _has_wx_root(zhis, '木')
-    has_water = _has_wx_root(zhis, '水')
+    root_zhis = _wx_zhis(zhis, '木')
+    water_zhis = _wx_zhis(zhis, '水')
+    has_root = bool(root_zhis)
+    has_water = bool(water_zhis)
+    # 「有水有根，水不生木之根也是死木」（理象学:12613-12615）：
+    # 水支与木根支相破/冲/穿则该水不生该根；所有水皆不生任何根时水不计。
+    water_sheng = has_root and has_water and any(
+        _water_sheng_root(w, r) for w in water_zhis for r in root_zhis)
 
-    if has_root and has_water:
+    if has_root and water_sheng:
         wood_type = '活木'
+    elif has_root and has_water:
+        wood_type = '死木（水不生木之根）'
     elif has_root and not has_water:
         wood_type = '死木（有根无水）'
     elif not has_root and has_water:
@@ -126,6 +171,8 @@ def analyze_wood_type(
         rules.append('喜水润木')
         rules.append('活木不制水（水为印生身，不以制水为做功）')
     else:
+        if has_root and has_water:
+            rules.append('水与木根相破/冲/穿，水不生木之根，亦为死木（理象学:12613-12615）')
         rules.append('怕见旺火（燃烧焚尽，伤寿）')
         rules.append('不怕金克（金劈木生火）')
         rules.append('见水反坏（水多腐烂，或湿木不生火）')

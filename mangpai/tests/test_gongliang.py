@@ -179,10 +179,12 @@ class TestBoundaryAnnotation:
         r = _run(KELINTUN)
         assert r['boundary'] == 'L3/L4边界'
 
-    def test_yuefei_boundary_via_bao_decisive(self):
-        # 岳飞 L3 score78（层中段，远离边沿），经包制 distrust 翻转 decisive 标注。
+    def test_yuefei_boundary_via_score_edge(self):
+        # 岳飞 L3 score84（F4 批：wood_type 修书「岳飞为死木」（理象学:3187-3189）后
+        # 活木 fear_metal 打折撤销，score 78→84），近 L3 上沿经 score 机制标注
+        # L3/L4 边界；包制翻转仍计入（+1层），仅标注路径由 bao-decisive 转为 score。
         r = _run(YUEFEI)
-        assert r['boundary'] == 'L2/L3边界'
+        assert r['boundary'] == 'L3/L4边界'
 
     def test_jiangjieshi_boundary_via_score(self):
         # 蒋介石 L3 score70（距 L3 下沿68仅2，±5 内）-> score 机制标注 L2/L3 边界。
@@ -207,7 +209,7 @@ class TestBoundaryAnnotation:
 
     def test_boundary_appears_in_reasons(self):
         r = _run(YUEFEI)
-        assert any('边界区' in x and 'L2/L3边界' in x for x in r['reasons'])
+        assert any('边界区' in x and 'L3/L4边界' in x for x in r['reasons'])
 
 
 class TestYongshenXiongAnnotation:
