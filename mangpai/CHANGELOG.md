@@ -1,5 +1,18 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F13 批 · shensha（批7/8：桃花重建/day-ref 接线/日支起算/马星死判据/戊双刃/reference 断路）
+
+| 项 | 处理方式 | 书锚 | 文件 |
+|----|----------|------|------|
+| 桃花重建（批8 P0-3+传导 P0-2） | 咸池整套五书无「咸池」明文，书桃花=「禄合财官杀伤食」十神合绊象。shensha 新增 `detect_lu_ban_taohua_zhi`（禄支与他支六合/半合+所合支藏干十神属财/官/杀/伤/食+合日支不论），挂 桃花['lu_ban']；hunyin `detect_lu_ban_taohua` 改消费 lu_ban（旧以咸池为桃花，伪锚）；zhiye performer 桃花信号书口径化=咸池日支起（`_tao_day` 接 day_ref）∨丙火食伤透∨日主坐禄+禄做功+食伤透；「居日柱」补日主坐沐浴修饰（仅 has_tao 已立时）。岳飞 performer 8→1 根因修复（旧 year-ref 咸池子落日柱驱动） | zhongji:1517/4349/4471、gaoji:13259-13313 口诀+案例八/九、zhenbao14期「丙火主艺术演技」、chuji:5871/5877 吕丽萍/梦露「禄神与食神做功应是艺人」、gaoji:1610 刘晓庆 | objective/shensha.py、subjective/hunyin.py、subjective/zhiye.py `_score_performer` |
+| 起算主支 year→day + 双查（批8 P0-1/2） | 默认 reference 'day'（compute_shensha_ext/resolve_shensha/engine×2/bazi_calc 签名对齐）；亡神/劫煞/灾煞/桃花/驿马恒年日双查——year_ref/day_ref 子键年日异支且异值时恒在，不再随 reference 翻转丢次柱值（旧配置断路：全库 0 处传 'day' 且真切会丢亡神次柱） | gaoji:7912「先以日支（为主）查空亡、亡神、劫煞。年支亦需同查」、:7789「以年支或日支查」 | objective/shensha.py `_dual_ref`、engine.py、bazi_calc.py |
+| 马星 count 死判据（批7/8 P0） | zaihuo 车祸 ma_count 改消费在局马数 in_pillars（旧 count=并集马支数恒≥3，随机 2000 盘 min=3，`ma_count>=1` 恒真白送 1 分）；供给层 count 字段保留但注释警示 | 批8 供给侧实锤 | subjective/zaihuo.py `detect_chehuo` |
+| 戊双刃四处单值漏检（批8 传导 P0-3） | zaihuo 凶神汇聚/gongmen_wuzhi 组合1+武职类象/liuqin 羊刃逢冲 四处 `zhi in zhis` 单值改全刃表（zhi_all/in_pillars）——戊日刃在未（无午）盘不再漏检 | 理象学:2086「戊刃在午、未」（:4977/zhongji:1520「未或巳」分歧标注） | subjective/zaihuo.py、gongmen_wuzhi.py、liuqin.py |
+| 灾煞条款口径固定（传导护卫） | zhiye military 灾煞条款（灾煞三书无载，象法自造）固定读 year_ref 保持旧校准口径——日支起算切换下阎锡山（年支未→灾煞酉在局）军警锚不失、复例四merchant 锚不翻 | 批8 P1 灾煞无锚；阎锡山 calib 锚 | subjective/zhiye.py `_score_military` |
+| 哨兵（先红后绿） | 新建 test_f13_shensha.py 9 测（先红 7）：岳飞 performer=1/禄绊桃花两书例+两反例（合印不论/合夫妻宫不论）/驿马 gaoji 案例九双查/默认 day+劫煞灾煞双查/戊双刃供给+两消费/马星 count=0 同局盘；test_laoyu 阳制阴盘午移月支（日支起算后旧盘午日→劫煞亥在局多中一法属书口径正确，调合成盘保「单法命中」前提） | 见上 | tests/test_f13_shensha.py、tests/test_laoyu.py |
+
+验证：哨兵先红 7 后绿 9/9、verify 432 全绿、verify_dayun 70/layer1 64/layer3 20 全绿、pytest 585 collected 565 passed（+9）、blind 对照 20260817_f12——**heldout 官 48✅/财 47✅ 68.12% 不动、职 23→24✅（44.23%→46.15%，ans10-梦露 ⚠️→✅，红线守住）**；trainset 职 42→41✅——collateral 备案 3 条：生例二经理 ✅→❌、带帽银行副处/yx-14300 ⚠️→❌（皆日支起算后咸池日在局之象法固有声纳，卯日→子在月/申日→酉在月/巳日→午在时均为咸池日支查法正检，非检测错误）；帕瓦罗蒂 ❌→✅ 改善。famous 0 降级（帕瓦罗蒂/李嘉诚/乔布斯 ❌→✅ 等 6 改善）、67 例 0 回归（5 改善）、calib 4 REGRESSION 经 stash 实证=存量（与 F6-F12 同清单，0 新增）、双 seed 逐字节一致。文本抖动=zhiye_primary/label 换档同名条目，逐条对应翻转明细=意图内。
+
 ## 2026-08-17 F12 批 · guanming + juefa（批6 七 P0：官禄格定义/制用三反向/主位字门槛/grade 映射/G5 误杀/断语7 方向）
 
 | 项 | 处理方式 | 书锚 | 文件 |

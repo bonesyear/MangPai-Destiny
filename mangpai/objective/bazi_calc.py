@@ -761,7 +761,7 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
 def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
                    gender: str, city_lon: float,
                    yin_method: str = 'same_as_yang',
-                   shensha_reference: str = 'year',
+                   shensha_reference: str = 'day',
                    late_zi_method: str = 'next_day') -> Dict[str, Any]:
     """完整八字排盘（盲派 engine 入口所需最小契约）。
 
@@ -781,10 +781,10 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
             由 MangpaiEngine 自行计算（同生同死），本排盘不产出 chang_sheng。
             （F1 标注：死形参——接收不用；engine 侧透传亦无消费方，双层断路。
              删除须动公共签名，留签名清理批。）
-        shensha_reference: 神煞参考柱（'year' 年支传统 / 'day' 日支盲派）；
-            保留以对齐签名，神煞由 MangpaiEngine.compute_shensha_ext 自行计算。
-            （F1 标注：死形参——本层接收不用；engine 层该参有效但全库 0 处
-             传 'day'，实际口径恒 'year'。）
+        shensha_reference: 神煞参考柱（'day' 日支盲派（默认，F13 起）/
+            'year' 年支传统）；保留以对齐签名，神煞由
+            MangpaiEngine.compute_shensha_ext 自行计算。
+            （死形参——本层接收不用；engine 层该参有效，默认 'day'。）
         late_zi_method: 晚子时日柱处理（'next_day' 子初换日 / 'same_day'
             子正换日·书例口径），透传 compute_four_pillars（F3 批暴露，
             批9 P0-3）。

@@ -87,7 +87,10 @@ def test_lijiacheng_risk_not_high():
 def test_yang_zhi_yin_jianxiong():
     # 单法命中（水多金沉）+阳制阴（午亥克合制亥）在场 -> 减凶为「无」
     # （书:5582「如是阳制阴不为牢狱」；旧码必得「低」）
-    r = analyze_laoyu('庚', list('壬辛庚壬'), list('未亥午亥'))
+    # F13 传导同步：神煞默认改日支起算（gaoji:7912）后，旧盘 day=午→劫煞亥
+    # 在局会多中「劫煞亡神」法（书口径日支查劫煞，命中本身正确）；本哨兵
+    # 考的是阳制阴减凶，将午移至月支保持「单法命中」前提（合成盘，非书例）。
+    r = analyze_laoyu('庚', list('壬辛庚壬'), list('未午亥亥'))
     assert r['hit_count'] == 1
     assert r['laoyu_zi']['yang_zhi_yin'] is True
     assert r['risk'] == '无'

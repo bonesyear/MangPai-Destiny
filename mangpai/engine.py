@@ -62,11 +62,12 @@ class MangpaiEngine:
 
     Args:
         bazi_data: calc_bazi_full() 返回的完整八字数据字典
-        shensha_reference: 神煞参考柱，'year' 用年支（传统），
-            'day' 用日支（盲派）。默认 'year'。
+        shensha_reference: 神煞参考柱，'day' 用日支（盲派，gaoji:7912
+            「先以日支为主…年支亦需同查」），'year' 用年支（传统）。
+            默认 'day'（F13 配置断路修复）。
     """
 
-    def __init__(self, bazi_data: Dict[str, Any], shensha_reference: str = 'year'):
+    def __init__(self, bazi_data: Dict[str, Any], shensha_reference: str = 'day'):
         bazi = bazi_data.get('bazi', {})
         self.shensha_reference = shensha_reference
         self.year_gz: str = bazi.get('year', '')
@@ -692,7 +693,7 @@ def calc_mangpai_full(
     year: int, month: int, day: int, hour: int, minute: int,
     gender: str, city_lon: float,
     yin_method: str = 'same_as_yang',
-    shensha_reference: str = 'year',
+    shensha_reference: str = 'day',
 ) -> Dict[str, Any]:
     """盲派完整排盘便捷函数。
 
@@ -708,8 +709,8 @@ def calc_mangpai_full(
         city_lon: 城市经度
         yin_method: 阴干起运方向，默认 'same_as_yang'（盲派阴阳同生同死）。
             （F1 标注：透传形参，calc_bazi_full 接收不用，全链路无消费方）
-        shensha_reference: 神煞参考柱，默认 'year'
-            （F1 标注：全库 0 处传 'day'，配置断路，口径分歧留 shensha 修复批）
+        shensha_reference: 神煞参考柱，默认 'day'（F13 起；gaoji:7912
+            日支为主、年支同查，year_ref/day_ref 子键恒在）
 
     Returns:
         完整盲派排盘结果

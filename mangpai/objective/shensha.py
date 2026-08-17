@@ -3,7 +3,9 @@ shensha — 盲派扩展神煞
 
 理论来源：《三命通会》《神峰通考》；盲派常用神煞
 流派共识：盲派在传统神煞基础上增加羊刃、劫煞、灾煞、孤辰寡宿、桃花、驿马
-已知争议：羊刃只取阳干为盲派严格做法，部分流派配阴刃；桃花盲派通常以日支起
+已知争议：羊刃只取阳干为盲派严格做法，部分流派配阴刃；灾祸三煞书=空亡/亡神/
+  劫煞（gaoji:7907-7908），灾煞三书无载（随劫煞双查保留）；戊刃书内两口径
+  （理象学:2086「午、未」vs :4977/zhongji:1520「未或巳」，本模块取前者）。
 神煞三层收口（高级篇灾祸章+中级篇核心5）：
   盲派核心5（禄神/羊刃/墓库/驿马/空亡）= 盲派默认取用；羊刃/驿马/马星在本模块，
     禄神=constants.LU、墓库=muku.py、空亡=detect_relations(kong_wang=) 消费侧。
@@ -11,10 +13,23 @@ shensha — 盲派扩展神煞
   传统6（天乙/文昌/华盖/桃花/孤辰/寡宿）= 降级 traditional_shensha，本模块保留计算。
   本函数所算各项均带 'layer' 字段（见 SHENSHA_LAYER），供消费侧按层取用/裁剪。
 置信度：中
+F13（2026-08-17）：
+  - 起算主支默认 year→day（gaoji:7912「先以日支（为主）查空亡、亡神、劫煞。
+    年支亦需同查」）；亡神/劫煞/灾煞/桃花/驿马一律年日双查，year_ref/day_ref
+    子键恒在（年日同支时省略），不再随 reference 翻转丢次柱值（旧配置断路）。
+  - 劫煞/灾煞补双查（gaoji:7789「以年支或日支查，见地支即为劫煞」）。
+  - 桃花重建：书桃花=「禄合财官杀伤食为桃花」（zhongji:1517/2792/4349；
+    gaoji:13259-13310 禄绊桃花口诀+案例八/九）——非地支煞而是禄合十神之象，
+    见 桃花['lu_ban']（detect_lu_ban_taohua_zhi 供给）；咸池五书无「咸池」
+    明文，保留于传统（降级）层、日支起算。
 """
 from typing import Dict, List, Optional
 
-from mangpai.objective.constants import DI_ZHI
+from mangpai.objective.constants import (
+    BAN_HE, CANG_GAN_MANGPAI, DI_ZHI, GAN_WX, LIU_HE, LU, WX_KE, WX_SHENG,
+)
+
+_YANG_GANS = {'甲', '丙', '戊', '庚', '壬'}
 
 _YANG_REN: Dict[str, str] = {
     '甲': '卯', '丙': '午', '戊': '午',
@@ -60,7 +75,9 @@ _GUA_SU: Dict[str, str] = {
 }
 
 # ── 桃花（咸池）──
-# 以三合局第一位为基准，见沐浴位为桃花。盲派通常以日支起桃花。
+# 以三合局第一位为基准，见沐浴位为桃花。⚠️批8 勘误：咸池整套段氏五书无
+# 「咸池」明文（书桃花=禄合财官杀伤食，见 detect_lu_ban_taohua_zhi），
+# 本表属传统（降级）层；起算以日支为主（gaoji:7912），兼看年支。
 # 申子辰见酉、寅午戌见卯、亥卯未见子、巳酉丑见午
 _TAO_HUA: Dict[str, str] = {
     '申': '酉', '子': '酉', '辰': '酉',
@@ -156,40 +173,107 @@ def _find_any_in_pillars(target_zhis: List[str], zhis: List[str]) -> List[str]:
     return [_PILLAR_KEYS[i] for i, z in enumerate(zhis) if z in target_set]
 
 
-def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'year') -> Dict:
+def _shishen_cat(day_gan: str, gan: str) -> str:
+    """十神归类（财/官杀/食伤/印/比劫）。"""
+    day_wx = GAN_WX.get(day_gan, '')
+    gan_wx = GAN_WX.get(gan, '')
+    if not day_wx or not gan_wx:
+        return ''
+    if gan_wx == day_wx:
+        return '比劫'
+    if WX_SHENG.get(day_wx) == gan_wx:
+        return '食伤'
+    if WX_SHENG.get(gan_wx) == day_wx:
+        return '印'
+    if WX_KE.get(day_wx) == gan_wx:
+        return '财'
+    if WX_KE.get(gan_wx) == day_wx:
+        return '官杀'
+    return ''
+
+
+# 书桃花（禄绊桃花）：合到伤官、官杀、财为桃花；合印/比劫不为桃花
+_LU_BAN_CATS = {'财', '官杀', '食伤'}
+
+
+def detect_lu_ban_taohua_zhi(day_gan: str, zhis: List[str]) -> List[Dict]:
+    """禄绊桃花（书桃花口径）检测。
+
+    zhongji:1517「合到伤官、官杀、财为禄绊桃花，禄逢三合也是桃花；合到
+    夫妻宫不为桃花」、:4349「禄合印不是，是禄印相随」；gaoji:13259-13310
+    口诀「日主之禄与他合，便是情缘起动关」+案例八（歌女，辰酉合禄、辰藏
+    癸=食神）/案例九（卯戌合禄、戌藏财杀）。
+    规则：日干之禄与他支六合/半合，且所合之支藏干十神属财/官/杀/伤/食
+    → 桃花；所合之支为日支（夫妻宫）不论桃花。
+    """
+    hits: List[Dict] = []
+    lu = LU.get(day_gan, '')
+    if not lu or lu not in zhis:
+        return hits
+    he_pairs = {frozenset(p) for p in LIU_HE}
+    he_pairs |= {frozenset(k) for k in BAN_HE}
+    for i, z in enumerate(zhis):
+        if not z or i == 2:  # 合到日支（夫妻宫）不为桃花
+            continue
+        if frozenset((lu, z)) not in he_pairs:
+            continue
+        cats = sorted({c for c in (_shishen_cat(day_gan, g)
+                                   for g, _q in CANG_GAN_MANGPAI.get(z, []))
+                       if c in _LU_BAN_CATS})
+        if cats:
+            hits.append({'lu': lu, 'partner': z,
+                         'pillar': _PILLAR_KEYS[i], 'cats': cats})
+    return hits
+
+
+def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day') -> Dict:
     """计算盲派扩展神煞。
 
     Args:
         day_gan: 日干
         zhis: 四柱地支列表 [year_zhi, month_zhi, day_zhi, hour_zhi]
-        reference: 神煞参考柱，'year' 用年支（传统做法），
-            'day' 用日支（盲派做法）。默认 'year'。
+        reference: 神煞参考柱，'day' 用日支（盲派做法），
+            'year' 用年支（传统做法）。默认 'day'
+            （gaoji:7912「先以日支（为主）查空亡、亡神、劫煞。年支亦需同查」）。
 
     Returns:
         含羊刃/天乙贵人/文昌/劫煞/灾煞/亡神/孤辰/寡宿/桃花/驿马/华盖/马星
         的字典；各项均带 'layer' 字段（盲派核心/灾祸/传统(降级)）。
+        亡神/劫煞/灾煞/桃花/驿马恒年日双查：主键=reference 所定柱，
+        次柱值在 'year_ref'/'day_ref' 子键（年日异支且查出异值时），
+        键名恒定、不随 reference 翻转（F13 配置断路修复）。
     """
     year_zhi = zhis[0] if zhis else ''
     day_zhi = zhis[2] if len(zhis) >= 3 else ''
-
-    if reference == 'day':
-        ref_zhi = day_zhi
-        ref_label = 'day_zhi'
-        other_zhi = year_zhi
-        other_key = 'year_ref'
-        other_label = 'year_zhi'
-    else:
-        # F1 标注：生产全链路 0 处传 'day'（engine.py 默认 'year'），reference
-        # 形参=配置断路（默认 year 与 gaoji:7912「日支为主」的分歧留 shensha 修复批）。
-        # 次柱键名随 reference 翻转（day_ref↔year_ref）：桃花 day_ref 全库无读者
-        # （死数据）；亡神等 day_ref 有 zaihuo 读者，勿整体删键。
-        ref_zhi = year_zhi
-        ref_label = 'year_zhi'
-        other_zhi = day_zhi
-        other_key = 'day_ref'
-        other_label = 'day_zhi'
+    primary_is_day = (reference == 'day')
 
     result: Dict = {}
+
+    def _dual_ref(name: str, table: Dict, multi: bool = False) -> None:
+        """年日双查装配（gaoji:7912 日支为主、年支同查；gaoji:7789 劫煞
+        「以年支或日支查」）。multi=True 时表值为支列表（驿马三支皆马）。"""
+        def _one(ref_z: str, label: str) -> Optional[Dict]:
+            v = table.get(ref_z) if ref_z else None
+            if not v:
+                return None
+            if multi:
+                return {'zhi': v[0], 'zhis': v,
+                        'in_pillars': _find_any_in_pillars(v, zhis),
+                        'reference': label}
+            return {'zhi': v, 'in_pillars': _find_in_pillars(v, zhis),
+                    'reference': label}
+
+        d = _one(day_zhi, 'day_zhi')
+        y = _one(year_zhi, 'year_zhi')
+        primary = (d if primary_is_day else y) or d or y
+        if primary is None:
+            return
+        result[name] = dict(primary)
+        if d and y and year_zhi != day_zhi:
+            same = set(d.get('zhis', [d['zhi']])) == set(y.get('zhis', [y['zhi']]))
+            if not same:
+                result[name]['year_ref'] = y
+                result[name]['day_ref'] = d
 
     if day_gan in _YANG_REN:
         # 段氏全刃位检测：戊取午、未双刃，任一落柱皆计羊刃在局（M2 口径统一）；
@@ -236,36 +320,15 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'year') 
             'in_pillars': [],
         }
 
+    # ── 灾祸三煞（年日双查）── gaoji:7907-7908 空亡/亡神/劫煞；
+    # 灾煞三书无「灾煞」明文（灾祸章 14818-16567 零命中），随劫煞双查保留。
+    _dual_ref('劫煞', _JIE_SHA)
+    _dual_ref('灾煞', _ZAI_SHA)
+    _dual_ref('亡神', _WANG_SHEN)
+
+    # ── 孤辰/寡宿 ── 单参考柱（跟 reference 走；书仅歌诀提及，无双查明文）
+    ref_zhi = day_zhi if primary_is_day else year_zhi
     if ref_zhi:
-        js_zhi = _JIE_SHA.get(ref_zhi, '')
-        result['劫煞'] = {
-            'zhi': js_zhi,
-            'in_pillars': _find_in_pillars(js_zhi, zhis),
-        }
-
-        zs_zhi = _ZAI_SHA.get(ref_zhi, '')
-        result['灾煞'] = {
-            'zhi': zs_zhi,
-            'in_pillars': _find_in_pillars(zs_zhi, zhis),
-        }
-
-        # ── 亡神（凶性三煞，高级篇灾祸章）── 与劫煞对偶，跟 reference 走兼看另一柱
-        ws_zhi = _WANG_SHEN.get(ref_zhi, '')
-        if ws_zhi:
-            result['亡神'] = {
-                'zhi': ws_zhi,
-                'in_pillars': _find_in_pillars(ws_zhi, zhis),
-                'reference': ref_label,
-            }
-            if other_zhi and other_zhi != ref_zhi:
-                ws_zhi_o = _WANG_SHEN.get(other_zhi, '')
-                if ws_zhi_o and ws_zhi_o != ws_zhi:
-                    result['亡神'][other_key] = {
-                        'zhi': ws_zhi_o,
-                        'in_pillars': _find_in_pillars(ws_zhi_o, zhis),
-                        'reference': other_label,
-                    }
-
         gc_zhi = _GU_CHEN.get(ref_zhi, '')
         gs_zhi = _GUA_SU.get(ref_zhi, '')
         result['孤辰'] = {
@@ -277,48 +340,27 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'year') 
             'in_pillars': _find_in_pillars(gs_zhi, zhis),
         }
 
-    # ── 桃花（咸池）── 跟 reference 走，兼看另一柱
-    # 段建业《段氏理象学》以日支为主；卜文《命理瑰宝》提及年支亦可用
-    if ref_zhi:
-        th_zhi = _TAO_HUA.get(ref_zhi, '')
-        if th_zhi:
-            result['桃花'] = {
-                'zhi': th_zhi,
-                'in_pillars': _find_in_pillars(th_zhi, zhis),
-                'reference': ref_label,
-            }
-            if other_zhi and other_zhi != ref_zhi:
-                th_zhi_o = _TAO_HUA.get(other_zhi, '')
-                if th_zhi_o and th_zhi_o != th_zhi:
-                    result['桃花'][other_key] = {
-                        'zhi': th_zhi_o,
-                        'in_pillars': _find_in_pillars(th_zhi_o, zhis),
-                        'reference': other_label,
-                    }
+    # ── 桃花 ── 两层口径：
+    #   书桃花=禄绊桃花（'lu_ban' 子键）：禄合财官杀伤食为桃花
+    #   （zhongji:1517/4349；gaoji:13259-13310 口诀+案例八/九），detect 见下；
+    #   咸池=传统层地支煞（五书无「咸池」明文，降级），日支起算兼看年支。
+    _dual_ref('桃花', _TAO_HUA)
+    lu_ban_hits = detect_lu_ban_taohua_zhi(day_gan, zhis)
+    if lu_ban_hits or '桃花' in result:
+        result.setdefault('桃花', {})['lu_ban'] = {
+            'is_lu_ban': bool(lu_ban_hits),
+            'hits': lu_ban_hits,
+        }
 
-    # ── 驿马 ── 段氏三支皆马：跟 reference 走，兼看另一柱
+    # ── 驿马 ── 段氏三支皆马（zhongji:1563-1565/理象学:5042-5045 逐字）：
+    #   年日双查（理象学:5047「以年支和日支为主」）；
     #   'zhi'=对冲三支首位（长生之冲，传统单点驿马，向后兼容）；
     #   'zhis'=对冲三支全列；'in_pillars'=四柱中落三支任一之柱位。
-    if ref_zhi:
-        ym_zhis = _YI_MA.get(ref_zhi, [])
-        if ym_zhis:
-            result['驿马'] = {
-                'zhi': ym_zhis[0],
-                'zhis': ym_zhis,
-                'in_pillars': _find_any_in_pillars(ym_zhis, zhis),
-                'reference': ref_label,
-            }
-            if other_zhi and other_zhi != ref_zhi:
-                ym_zhis_o = _YI_MA.get(other_zhi, [])
-                if ym_zhis_o and set(ym_zhis_o) != set(ym_zhis):
-                    result['驿马'][other_key] = {
-                        'zhi': ym_zhis_o[0],
-                        'zhis': ym_zhis_o,
-                        'in_pillars': _find_any_in_pillars(ym_zhis_o, zhis),
-                        'reference': other_label,
-                    }
+    _dual_ref('驿马', _YI_MA, multi=True)
 
     # ── 盲派多马星（盲派核心）── 四柱地支各以其三合局对冲三支为马，取并集，可多颗
+    #   ⚠️ 'count'=并集马支数（恒≥3，批8 实锤死判据供给侧），消费在局马数
+    #   请用 'in_pillars'（zaihuo 车祸 F13 已切换）。
     ma_zhis: List[str] = []
     ma_seen: set = set()
     for z in zhis:
@@ -368,13 +410,13 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'year') 
 def resolve_shensha(
     day_gan: str, zhis: List[str],
     shensha_result: Optional[Dict] = None,
-    reference: str = 'year',
+    reference: str = 'day',
 ) -> Dict:
     """神煞结果解析：优先用 engine 透传的 shensha_result，未传入则就地重算。
 
     下游主观模块（caiming/guanming/hunyin/zhiye/gongmen_wuzhi/zaihuo）经此函数
     取神煞，可避免与 engine 的 shensha_reference 口径不一致（engine 已按设定
-    reference 算过一次，下游不再以默认 'year' 重算覆盖）。
+    reference 算过一次，下游不再以默认 'day' 重算覆盖）。
     """
     if shensha_result is not None:
         return shensha_result

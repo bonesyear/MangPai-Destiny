@@ -851,12 +851,13 @@ def detect_xiongdi_keshun(
     if any(a.get('type') == '刑' for a in wa):
         markers.append('三刑夹刑（损兄弟）')
 
-    # 羊刃逢冲
+    # 羊刃逢冲（F13：全刃表口径，戊刃在午、未双刃——旧 zhi 单值对
+    # 刃在未盘漏检；取首个落柱刃位查冲）
     try:
         ss = compute_shensha_ext(day_gan, zhis)
-        yr = (ss.get('羊刃') or {}).get('zhi', '')
-        if yr and yr in zhis:
-            yr_pillar = zhis.index(yr)
+        yr_zhis = (ss.get('羊刃') or {}).get('zhi_all') or []
+        yr_pillar = next((i for i, z in enumerate(zhis) if z in yr_zhis), None)
+        if yr_pillar is not None:
             if any(a.get('type') == '冲' and (a.get('from_pos') == f'{PILLAR_KEYS[yr_pillar]}_zhi'
                    or a.get('to_pos') == f'{PILLAR_KEYS[yr_pillar]}_zhi') for a in wa):
                 markers.append('羊刃逢冲（必应凶）')

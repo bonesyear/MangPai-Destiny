@@ -326,7 +326,8 @@ def detect_chehuo(
 ) -> Dict:
     """车祸论断（11.3）：车象 + 多马星 + 穿冲触发。
 
-    车象五支：辰丑申酉子。盲派多马星（compute_shensha_ext 马星 count）。
+    车象五支：辰丑申酉子。盲派多马星（compute_shensha_ext 马星在局马数，
+    F13 起消费 in_pillars 而非并集 count）。
     触发：穿（酉戌/寅巳/丑午）冲（卯酉/子午/寅申/辰戌）落于车象或马星支；
     禄身受损（日主禄被冲穿）；凶神汇聚（七杀/羊刃/劫煞/亡神+车象）。
 
@@ -343,10 +344,11 @@ def detect_chehuo(
     # 车象
     che_xiang = [z for z in zhis if z in _CHE_ZHIS]
 
-    # 多马星
+    # 多马星——F13 改消费在局马数（in_pillars）：供给层 'count'=并集马支数
+    # 恒≥3（批8 实锤死判据），在局马数（马支实际落柱）才有判别力。
     try:
         ss = resolve_shensha(day_gan, zhis, shensha_result)
-        ma_count = (ss.get('马星') or {}).get('count', 0)
+        ma_count = len((ss.get('马星') or {}).get('in_pillars') or [])
     except Exception:
         ss = {}
         ma_count = 0
@@ -385,8 +387,9 @@ def detect_chehuo(
     xiong_shen: List[str] = []
     if any(_cat(_compute_shishen(day_gan, g)) == '官杀' for g in gans if g):
         xiong_shen.append('七杀')
-    yr = (ss.get('羊刃') or {}).get('zhi', '') if ss else ''
-    if yr and yr in zhis:
+    # F13：羊刃用全刃表口径（in_pillars 已按 _YANG_REN_FULL 检出，
+    # 戊日刃在未盘旧 zhi 单值 '午' 漏检——理象学:2086 戊刃在午、未）
+    if ss and (ss.get('羊刃') or {}).get('in_pillars'):
         xiong_shen.append('羊刃')
     for key in ('劫煞', '亡神'):
         v = ss.get(key) if ss else None

@@ -667,10 +667,14 @@ def detect_lu_ban_taohua(
     gender: str = '男', relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
 ) -> Dict:
-    """禄绊桃花（高级篇 ch9）：日干之禄与桃花同柱或相合，禄被桃花绊。
+    """禄绊桃花（书桃花口径）：日干之禄与他支六合/半合，所合之支藏干
+    十神属财/官/杀/伤/食 → 禄被桃花绊（zhongji:1517「合到伤官、官杀、
+    财为禄绊桃花，禄逢三合也是桃花；合到夫妻宫不为桃花」、:4349
+    「禄合印不是，是禄印相随」；gaoji:13259-13310 口诀+案例八/九）。
 
-    禄=日主身体临官位，桃花=情欲。禄与桃花同支、或桃花合禄支（地支合/半合），
-    -> 禄被桃花绊住，主情欲重、为情所累（禄受桃花之累）。男女同论。
+    禄=日主身体临官位，桃花=情欲。男女同论。
+    ⚠️F13 重建：旧实现以咸池地支煞为桃花（五书无「咸池」明文），
+    现改消费 shensha 桃花['lu_ban']（detect_lu_ban_taohua_zhi 供给）。
 
     Returns:
         {'is_lu_ban': bool, 'factors': [str]}
@@ -684,35 +688,15 @@ def detect_lu_ban_taohua(
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'is_lu_ban': False, 'factors': ['四柱不全']}
-    day_lu = LU.get(day_gan, '')
-    if not day_lu or day_lu not in zhis:
-        return {'is_lu_ban': False, 'factors': []}
     try:
         shen = resolve_shensha(day_gan, zhis, shensha_result)
     except Exception:
         shen = {}
-    th = (shen.get('桃花') or {}).get('zhi', '')
-    if not th:
-        return {'is_lu_ban': False, 'factors': []}
-    factors: List[str] = []
-    if th == day_lu:
-        factors.append(f'禄({day_lu})与桃花同支，禄桃花同柱，禄受情欲之累')
-    else:
-        rel = _ensure_relations(day_gan, gans, zhis, relations)
-        wa: List[Dict] = rel.get('work_actions') or []
-        for a in wa:
-            if a.get('type') not in ('地支合', '半合'):
-                continue
-            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
-            pair = set()
-            for pk in (fp, tp):
-                k = pk.split('_')[0]
-                if pk.endswith('_zhi') and k in PILLAR_KEYS:
-                    pair.add(zhis[PILLAR_KEYS.index(k)])
-            if {th, day_lu} <= pair:
-                factors.append(f'桃花{th}合禄{day_lu}（{a.get("desc","")}），禄被桃花绊')
-                break
-    return {'is_lu_ban': bool(factors), 'factors': factors}
+    hits = (((shen.get('桃花') or {}).get('lu_ban') or {}).get('hits')) or []
+    factors = [f'禄{h["lu"]}合{h["partner"]}（{"/".join(h["cats"])}），'
+               f'禄被桃花绊（{h["pillar"]}柱），主情欲重、为情所累'
+               for h in hits]
+    return {'is_lu_ban': bool(hits), 'factors': factors}
 
 
 # ───────────────────── 8. 结婚四法 / 独身四格 ─────────────────────
@@ -767,12 +751,14 @@ def classify_jiehun_sifa(
     if any(i in (day_idx, PILLAR_KEYS.index('hour')) for i in star_idxs):
         methods.append('星居主位（配偶星在日/时柱）')
 
-    # 法四·桃花合宫/居宫
+    # 法四·桃花合宫/居宫（F13：取日支起算口径——day_ref 子键恒在，
+    # engine 默认 reference='day' 时主键即日支口径，gaoji:7912）
     try:
         shen = resolve_shensha(day_gan, zhis, shensha_result)
     except Exception:
         shen = {}
-    th = (shen.get('桃花') or {}).get('zhi', '')
+    _tao = shen.get('桃花') or {}
+    th = (_tao.get('day_ref') or _tao).get('zhi', '')
     if th:
         if th == day_zhi:
             methods.append('桃花居夫妻宫')

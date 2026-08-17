@@ -197,8 +197,11 @@ def classify_junguan(
     ev: List[str] = []
 
     has_qisha = _has_cat(day_gan, gans, zhis, '官杀')
-    yr_zhi = (ss.get('羊刃') or {}).get('zhi', '')
-    has_yangren = bool(yr_zhi) and yr_zhi in zhis
+    # F13：全刃表口径（戊刃在午、未双刃，旧 zhi 单值对刃在未盘漏检）
+    yr_hits = [z for z in ((ss.get('羊刃') or {}).get('zhi_all')
+                           or [(ss.get('羊刃') or {}).get('zhi', '')])
+               if z and z in zhis]
+    has_yangren = bool(yr_hits)
     # 羊刃库=未（劫财库），七杀库=丑/戌
     has_yangren_ku = '未' in zhis
     open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
@@ -206,7 +209,7 @@ def classify_junguan(
     # 组合1：七杀配羊刃/羊刃库（杀入羊刃墓）
     if has_qisha and (has_yangren or has_yangren_ku):
         combos.append('七杀配羊刃/羊刃库')
-        detail = f'羊刃{yr_zhi}' if has_yangren else '羊刃库未'
+        detail = f'羊刃{yr_hits[0]}' if has_yangren else '羊刃库未'
         ev.append(f'七杀配{detail}（以暴制暴得兵权）')
         if has_yangren_ku and ('丑' in open_tombs or '戌' in open_tombs):
             ev.append('羊刃库未冲刑七杀库（权力入军队）')
@@ -386,9 +389,12 @@ def detect_gongmen_wuzhi_xiang(
         wuzhi.append('丑（阴库，公安刑警）')
     if {'巳', '午'} & set(zhis):
         wuzhi.append('巳午（枪炮灯光）')
-    yr = (ss.get('羊刃') or {}).get('zhi', '')
-    if yr and yr in zhis:
-        wuzhi.append(f'羊刃{yr}（刀枪暴力）')
+    # F13：全刃表口径（戊双刃午未，旧 zhi 单值漏检刃在未盘）
+    yr2 = (ss.get('羊刃') or {})
+    yr2_hits = [z for z in (yr2.get('zhi_all') or [yr2.get('zhi', '')])
+                if z and z in zhis]
+    if yr2_hits:
+        wuzhi.append(f'羊刃{"".join(yr2_hits)}（刀枪暴力）')
     if _has_cat(day_gan, gans, zhis, '官杀'):
         wuzhi.append('七杀（权威暴力）')
 

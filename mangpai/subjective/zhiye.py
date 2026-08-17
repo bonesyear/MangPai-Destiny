@@ -50,9 +50,10 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME, TOMB_MAP,
-    PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
+    PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars, LU,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.xiangfa import get_liushi_ganzhi_xiang
@@ -531,7 +532,7 @@ def _score_teacher(day_gan, gans, zhis, wa, ss=None) -> Tuple[int, List[str]]:
                       if '财' in _main_qi_cats(day_gan, gans, zhis, i))
     _n_gs_main = sum(1 for i in range(4)
                      if '官杀' in _main_qi_cats(day_gan, gans, zhis, i))
-    _has_tao = bool(((ss or {}).get('桃花') or {}).get('in_pillars'))
+    _has_tao = bool(_tao_day(ss).get('in_pillars'))
     if _n_ss_main >= 3 and _n_cai_main >= 2 and not _has_tao and _n_yin_main == 0:
         score += 3
         ev.append(f'食伤{_n_ss_main}柱吐秀+财{_n_cai_main}位（食伤鬻文，以文为业）')
@@ -932,13 +933,27 @@ def _score_military(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     if (ss.get('羊刃') or {}).get('in_pillars'):
         score += 1
         ev.append('羊刃（武斗/兵刃）')
-    if (ss.get('灾煞') or {}).get('in_pillars'):
+    # 灾煞：三书无「灾煞」明文（批8 P1，入灾祸层无据），本条款系象法自造、
+    # 校准于旧年支供给口径（阎锡山年支未→灾煞酉在局锚；复例四日支巳→灾煞卯
+    # 若计入则 military 7:7 tie 翻掉 merchant 书锚「经商」）——F13 供给默认
+    # 改日支后，本条款固定读 year_ref 保持校准口径；牢狱/灾祸域（gaoji:7912
+    # 书锚所在）经 zaihuo 走日支主查+年支同查。
+    _zs = ss.get('灾煞') or {}
+    if ((_zs.get('year_ref') or _zs).get('in_pillars')):
         score += 1
         ev.append('灾煞（凶险/非常之职）')
     if any(z in ('申', '酉') for z in zhis) or any(g == '辛' for g in gans):
         score += 1
         ev.append('申酉金/辛（律令/兵刃）')
     return score, ev
+
+
+def _tao_day(ss: Optional[Dict]) -> Dict:
+    """桃花取日支起算口径（F13 day-ref 接线：gaoji:7912「先以日支为主」；
+    shensha 侧 day_ref 子键年日异支时恒在，engine 默认 reference='day'
+    时主键即日支口径，两者取一即得日支锚）。"""
+    tao = ((ss or {}).get('桃花')) or {}
+    return tao.get('day_ref') or tao
 
 
 def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
@@ -951,9 +966,33 @@ def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     ev: List[str] = []
     has_shishang = _has_cat(day_gan, gans, zhis, '食伤')
     has_cai = _has_cat(day_gan, gans, zhis, '财')
-    tao = ss.get('桃花') or {}
-    has_tao = bool(tao.get('in_pillars'))
+    tao = _tao_day(ss)
+    # F13 桃花重建（书口径；咸池=传统降级层，仅日支起一路信号）：
+    #   ① 咸池日支起在局（传统层）；
+    #   ② 丙火食伤透干（zhenbao14期「丙火主艺术，演技」；gaoji:1610 刘晓庆
+    #     「丙火食神透出泄秀…丙火为表演、光芒之象」；shouke:6170 li154 摇滚
+    #     歌星「伤官旺而透干泄秀」；zhenbao-14a 名演员丙透同型——壬食透=文
+    #     （梁羽生）、丁食透+财重=商（zhenbao-01 反锚）不入此路，故限丙）；
+    #   ③ 日主坐禄+禄参与做功+食伤透（chuji:5871 吕丽萍「日主坐禄…禄神与
+    #     食神做功，应是个艺人」/5877 梦露同型）。
+    _ss_bing_tou = any(g == '丙' and _cat(_compute_shishen(day_gan, g)) == '食伤'
+                       for g in gans if g)
+    _ss_any_tou = any(_cat(_compute_shishen(day_gan, g)) == '食伤'
+                      for g in gans if g)
+    _lu_day = zhis[2] == LU.get(day_gan, '')
+    _lu_yiren = _lu_day and _ss_any_tou and any(
+        'day_zhi' in (a.get('from_pos', ''), a.get('to_pos', ''))
+        for a in wa if not a.get('auxiliary'))
+    has_tao = bool(tao.get('in_pillars')) or _ss_bing_tou or _lu_yiren
+    # 桃花居日柱：咸池日支起落日柱 / 日主坐禄从艺（③即日柱象）/ 日主坐沐浴
+    # 败地（gaoji:13311-13313「甲子、乙巳…亦主风流多情，然不可一见便断」
+    # ——沐浴不独立成立桃花，仅作 has_tao 已立时的居日柱修饰）。
     tao_in_day = 'day' in (tao.get('in_pillars') or [])
+    if not tao_in_day and has_tao:
+        if _lu_day:
+            tao_in_day = True
+        elif get_changsheng_mangpai(day_gan, zhis[2]) == '沐浴':
+            tao_in_day = True
     cnt = _wx_count(day_gan, gans, zhis)
     if has_shishang and has_tao and has_cai:
         score += 4
@@ -1277,7 +1316,7 @@ def classify_zhiye(
                                  shensha_result=ss)
         has_guansha = _has_cat(day_gan, gans, zhis, '官杀')
         has_cai = _has_cat(day_gan, gans, zhis, '财')
-        has_tao = bool((ss.get('桃花') or {}).get('in_pillars'))
+        has_tao = bool(_tao_day(ss).get('in_pillars'))
         # 换象（制尽则换）：换官象→律师/公门/军职，换财象→商人，换食伤象→演艺/医生/教师
         for f in (xo.get('huanxiang') or []):
             dom = f.get('domain', '')
@@ -1449,7 +1488,7 @@ def classify_zhiye(
     # 压平 3 分——同一书锚命带桃花（子居日柱）而书判「做帐的」：财入印墓
     # 之象优先于桃花演艺之象（压平幅度≈桃花居日柱+桃花+财两条之量；桃花
     # 条款本身不动，仅财入印墓命中者让位）。
-    if _acc_mu_hit and (ss.get('桃花') or {}).get('in_pillars') \
+    if _acc_mu_hit and _tao_day(ss).get('in_pillars') \
             and scores.get('performer', 0) > 0:
         scores['performer'] = max(scores.get('performer', 0) - 3, 0)
         evidence['performer'] = evidence.get('performer', []) + [
