@@ -607,6 +607,9 @@ def _score_lawyer(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
             score += 2
             ev.append(f'{"".join(pair)}{t}（依律破例）')
             break
+    # （F15 试案撤回注：8.2「伤官合杀/食神制杀」lawyer 条款曾落地又撤——
+    #  与既有「伤官制官」同动作复计，误伤 li154 摇滚歌星/董竹君门户锚，红线
+    #  回退勿重试，详见 CHANGELOG F15）
     return score, ev
 
 
@@ -618,6 +621,9 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     主位合制宾财），共现仅留门户与五行行业辅证：
       财星入局做功 +2 / 主位合制宾财 +2 / 食伤生财做功 +2 /
       财印门户 +1 / 官杀当财被制 +1 / 冲财做功（贸易运输）+1 —— 上限 9。
+    F15 试案撤回注：食伤生财主气化/冲财合财去重之收窄曾误伤 heldout merchant
+    既有✅（ans33/li131/li133，冲财双计等旧口径恰是其过阈来源），按红线回退，
+    勿重试（详见 CHANGELOG F15 与 KB §7.15）。
     """
     score = 0
     ev: List[str] = []
@@ -866,13 +872,20 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     #    主企业内部生产、创造」「内食神格：地支食神做功，或食神生财，主实体企业、
     #    生产经营」（7.3 商人口诀：内食神格厂生产）。内食神=食神为地支本气且不透干
     #    （透干为外食神主口才技艺，不在此象）。
+    #    F15 收窄（批7 P0-4）：旧版存在即 +2，丢书「地支食神做功，或食神生财」限定
+    #    （教师例六/校长例七等文职书例皆被喂 +2）——补做功/生财闸：内食神支参与
+    #    非辅助做功动作，或食伤生财信号已立（ss_cai），方计。
     if not any(_compute_shishen(day_gan, g) == '食神' for g in gans if g):
         inner = [z for z in zhis
                  if get_canggan_mangpai(z)
                  and _compute_shishen(day_gan, get_canggan_mangpai(z)[0][0]) == '食神']
-        if inner:
+        _act_zhis = {zhis[_pos_idx(p)] for a in non_aux
+                     if a.get('type') in (_HE_TYPES | _ZHI_TYPES)
+                     for p in (a.get('from_pos', ''), a.get('to_pos', ''))
+                     if _pos_idx(p) >= 0}
+        if inner and (ss_cai or any(z in _act_zhis for z in inner)):
             score += 2
-            ev.append(f'内食神格（{"".join(inner)}藏食神本气不透，办厂/生产经营）')
+            ev.append(f'内食神格（{"".join(inner)}藏食神本气不透且做功/生财，办厂/生产经营）')
     # 8. 坐根制财（制财得财）+2——《段氏理象学》复例四：「丁巳日之巳合制年上
     #    财星，卯木助巳火之力，地支是制财之功…下海经商，应巳申之合取财，发
     #    财数百万」。日支本气比劫=日主坐根（我之身，非宾位他人之劫——宾主
@@ -945,6 +958,106 @@ def _score_military(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     if any(z in ('申', '酉') for z in zhis) or any(g == '辛' for g in gans):
         score += 1
         ev.append('申酉金/辛（律令/兵刃）')
+
+    # ── F15：gaoji 8.2 公门武职明文组合（批7 P0-3：书明列而引擎全未实现，军警
+    #    书例 4 中 1；批8：gongmen_wuzhi 虽有实现但 11 条 P0 偏差且 is_wuzhi 近
+    #    恒真，F1 已标记弃用——决策=本模块按书重写窄条款，不接该模块）──
+    #    书心法（gaoji:11964「先观格局，有无贵气。再查组合，特定字眼」）：组合
+    #    计分须先有武贵之底=官杀主气≥2 柱且透干（透干/支本气粒度，中气藏干
+    #    带入不算；火金相战、阳制阴、金水见火等字级组合无贵气门槛则逢盘泛
+    #    触——会计例三/复例四经商/合例一富命/宾馆服务员书例实证；羊刃在局腿
+    #    曾纳入，法院例七（卯刃在局而书断伤官制官法院副院长）被戌武库/火金
+    #    组合压过 lawyer，撤——刃之武贵信号由 classify 层羊刃驾杀+3 通道独
+    #    立承担，不经此门），组合合计封顶 +6（多象定一象，防堆叠虚高，同
+    #    corro 封顶先例）。
+    non_aux = [a for a in wa if not a.get('auxiliary')]
+
+    def _end_char(pos: str) -> str:
+        i = _pos_idx(pos)
+        if i < 0:
+            return ''
+        return gans[i] if pos.endswith('_gan') else zhis[i]
+
+    def _has_pair_action(chars_a: Set[str], chars_b: Set[str],
+                         types: Set[str]) -> bool:
+        """两端字分别落在字集 chars_a/chars_b 的非辅助动作（字级粒度）。"""
+        for a in non_aux:
+            if a.get('type') not in types:
+                continue
+            fc, tc = _end_char(a.get('from_pos', '')), _end_char(a.get('to_pos', ''))
+            if (fc in chars_a and tc in chars_b) or (fc in chars_b and tc in chars_a):
+                return True
+        return False
+
+    _ALL_ACT = _HE_TYPES | _ZHI_TYPES
+    _GS_TOMB82 = {'木': '未', '火': '戌', '金': '丑', '水': '辰', '土': '辰'}
+    _gs_wx82 = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '')
+    _guiqi = (
+        sum(1 for i in range(4)
+            if '官杀' in _main_qi_cats(day_gan, gans, zhis, i)) >= 2
+        and any(g and _cat(_compute_shishen(day_gan, g)) == '官杀' for g in gans)
+    )
+    _combo = 0  # 七组合合计（封顶 +6）
+
+    def _combo_add(n: int, text: str) -> None:
+        nonlocal _combo
+        if _combo < 6:
+            _combo += n
+            ev.append(text)
+
+    if _guiqi:
+        # ① 戌武库做功 +3（gaoji:11620「戌为火库、枪弹库、武库…戌土做功，多与
+        #    军队、武警、公安相关」——须做功，存在不计，批8 P0-8 类象做功限定
+        #    同此；口诀「戌土为库枪炮象」为武职首类象，故权重高于他组）
+        if '戌' in zhis and _has_pair_action({'戌'}, set('子丑寅卯辰巳午未申酉戌亥'), _ALL_ACT):
+            _combo_add(3, '戌武库做功（火库/枪弹库，8.2：多与军队武警公安相关）')
+        # ② 火金相战 +2（gaoji:11648「火金相战，必主刀兵」/11593：丙丁火见申酉
+        #    庚辛金，巳申合、午酉破、丙辛合等——字级五行一火一金有制/合动作）
+        if _has_pair_action(set('丙丁巳午'), set('庚辛申酉'), _ALL_ACT):
+            _combo_add(2, '火金相战（巳申合/午酉破/丙辛合类，8.2：必主刀兵）')
+        # ③ 金水见火 +2（gaoji:11654「金水成势，见火来制，多入兵营或执法部门」）
+        _wx_all = [GAN_WX.get(g, '') for g in gans] + [ZHI_WX.get(z, '') for z in zhis]
+        if sum(1 for w in _wx_all if w in ('金', '水')) >= 4 and '火' in _wx_all:
+            _combo_add(2, '金水成势见火（8.2：金水见火，多入兵营）')
+        # ④ 比劫库（未）/羊刃库（辰）制印——不落地（书明文 gaoji:11655 但双侧
+        #    锚冲突：政委例十 未穿子=掌军权 vs 复例四 辰穿卯=下海经商，两造皆
+        #    库穿印而书断异，引擎无区分特征；其唯一书例又被贵气门所挡，留着
+        #    只烧锁定锚，按铁律16 撤，书内多象定一象判断备案）
+        # ⑤ 申酉丑寅组合 +2（gaoji:11658「此四字交互作用，多为公安、武警之
+        #    象」：≥3 字在局且四字之间有做功动作=交织；2 字一合过松——
+        #    罗斯切尔德丑寅暗合误触实证）
+        _sgcy = {'申', '酉', '丑', '寅'}
+        if len(_sgcy & set(zhis)) >= 3 and _has_pair_action(_sgcy, _sgcy, _ALL_ACT):
+            _combo_add(2, '申酉丑寅交织做功（8.2：公安/武警之象）')
+        # ⑥ 伤官合杀/食神制杀（gaoji:11661「多为检察院、纪委等执法监督部门」）
+        #    ——公检法司归 lawyer 桶（律师/法务/公检法），在 _score_lawyer 计。
+        # ⑦ 丑戌刑 / 阳制阴 +2（gaoji:11785-11788：丑戌相刑扫黑破案；阳气丙丁
+        #    巳午戊戌 制 阴气辛酉癸子丑=正义制邪恶，公安之职——书口径含天干、
+        #    子归阴；制类动作须阳为制方（from 端=阳——复例四 癸克丁=阴制阳，
+        #    方向相反不计），合类双向互制不限方向；丑戌刑与阳制阴同属公安象，
+        #    并见只计一次）
+        if _has_pair_action({'丑'}, {'戌'}, {'刑'}):
+            _combo_add(2, '丑戌相刑（8.2：阴库刑火库，扫黑破案公安象）')
+        else:
+            _yang82 = set('丙丁戊巳午戌')
+            _yin82 = set('辛癸酉子丑')
+            _yang_zhi_yin = _has_pair_action(_yang82, _yin82, _HE_TYPES) or any(
+                a.get('type') in _ZHI_TYPES
+                and _end_char(a.get('from_pos', '')) in _yang82
+                and _end_char(a.get('to_pos', '')) in _yin82
+                for a in non_aux)
+            if _yang_zhi_yin:
+                _combo_add(2, '阳制阴（丙丁巳午戊戌制辛酉癸子丑，8.2：正义制邪恶，公安之职）')
+        # ⑧ 戌武库刑冲开官杀库 +2（口诀二「比劫库冲杀库动，麾下兵众听号响」+
+        #    案例四 戌未刑开杀库「刑杀库做功，乃入兵营掌权之象」
+        #    gaoji:11745-11751——限戌（武库）刑冲官杀之墓，普通库刑库不计：
+        #    罗斯切尔德丑未刑冲（官统财，官入库库逢冲）非兵营象，不误触）
+        _gs_tomb = _GS_TOMB82.get(_gs_wx82, '')
+        if _gs_tomb and _has_pair_action({'戌'}, {_gs_tomb}, {'冲', '刑'}):
+            _combo_add(2, '戌武库刑冲开官杀库（8.2：刑杀库做功，入兵营掌权之象）')
+        score += min(_combo, 6)
+        if _combo > 6:
+            ev.append(f'8.2组合{_combo}分封顶+6（防堆叠虚高）')
     return score, ev
 
 
@@ -1470,6 +1583,17 @@ def classify_zhiye(
                     f'段氏：干体力活维生，不为商）')
             scores['merchant'] = 0
             evidence['merchant'] = [gate]
+
+    # F15 C4 审查结论（宾馆服务员 zhongji:3477-3478「财多身弱…富屋贫人，干体
+    # 力活维生」 vs caiming tier=巨富→merchant 12 独高）：曾试 zhiye 消费侧
+    # 「身弱+财官主气≥4+日支无比劫」扩展 gating，假阳锚检验失败——7.2 案例一
+    # （庚子辛巳甲辰癸酉，书断内食神格上市公司董事长）同构被误 gate（两造在
+    # 引擎特征下同形：身弱+财官主气各4字），真阳/假阳双锚不可分，按铁律16
+    # 撤回。根因在上游：caiming 财统官(b)腿（caiming.py:779-785，财生官相连+
+    # 少方仅一位）不验身弱（书 zhongji:2853 巨富例与 3478 富屋贫人例同构而异
+    # 断，书内张力），且 gongliang 同判 L3——C4 硬绑定把上游错档原样放大，
+    # 修复须在 caiming/gongliang 侧，留后续批；zhiye 侧维持旧富屋贫人 gating
+    # （身弱+财≥2+无印+无主位比劫）不动。
 
     # ── K3 职业批4 窄通道（书锚驱动，137 例网格验证零误伤）──
     # 食生财财入墓复合 +2（书锚 zj-注册会计师原话「食伤生财，财星入印墓在宾位，

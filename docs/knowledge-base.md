@@ -21,7 +21,7 @@
 | 财命 | 59✅ = **52.21%** (n=113) | 46✅/15⚠️/8❌ = **66.67%** (n=69) |
 | 职业 | 43✅/15⚠️/27❌ = **50.59%** (n=85) | 24✅ = **46.15%** (n=52) |
 
-- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 585 collected（565 passed+1 xfailed+19 xpassed，F13 实测；F12 记 576、F11 记 543、F10 记 536、F9 记 532、F7 记 517、F6 记 529、批10 旧记 499 均作废——F2/F3/F4/F6/F7/F9/F10/F11/F12/F13 哨兵各 +11/+8/+6/+2/+8/+10/+4/+7/+13/+9）+ blind_eval 快照零翻转 + 双 seed 逐字节一致（旧 853 口径 2026-07-17 起作废）。
+- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 606 collected（586 passed+1 xfailed+19 xpassed，F15 实测；F13 记 585、F12 记 576、F11 记 543、F10 记 536、F9 记 532、F7 记 517、F6 记 529、批10 旧记 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致（旧 853 口径 2026-07-17 起作废）。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
 - **十批全模块审计已收官**（2026-08-17）：P0=96/P1=245/P2=259，修复批次 F0-F19 已批准（见 `docs/audit-progress-20260816.md`）；审计勘误本文件记录见 §10。
 
@@ -64,7 +64,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 - `MangpaiEngine.compute_all()` → 各 subjective `analyze_*`；`result['gongshen']` 已接入但**不进** `_build_summary`（verify_dayun 文案断言约束）。
 - 官命判定链：`classify_guanming_combo`（制用四类**皆双向**（F12 补全）+印配比禄+生用化用，G0-G4/G6-G7/G9 门——G5 杀刃制化条款 F12 废除）→ `is_guanming_raw` → `analyze_guanming` veto 链（反局/岁运反局/牢狱/比劫夺财/过河拆桥/R2/R3/N1/N2/官杀入墓/主位体坏），门槛保护 `_has_positive_guanming`（**从强一律非正向**——贪财坐牢例锚；**F12 起身弱同收窄**：官杀有根/官带财帽于身弱者非正向——丁未孪生造反局牢狱锚；须有官杀有根/印化官杀/官禄格/印带官帽/官带财帽）。
 - 财命双轨（P0-a）：`tier_static/summary_static/level_static`（原局轨，yunfan 不入链）+ `tier/summary`（含 yunsui_delta 全量轨）。**「凶向在档」强制标注仅写全量轨**——静态轨结构性不可见凶向，rubric 对破财/凶断语一律评全量轨（v7）。
-- 职业：`classify_zhiye` 七桶打分（military/lawyer/teacher/doctor/accountant/merchant/performer + laborer/unemployed base_career），`_MIN_SCORE_THRESHOLD=6` 以下为「无明确职业倾向」fallback；同分按 tie_pri 序；base_career 以 caiming `tier`（**全量轨**，zhiye.py:1074——⚠️批7 勘误：非 tier_static，岁运 delta 可改变 laborer/unemployed 判定；tier_static 仅用于官杀为忌 gating :1372）贫/小康为闸（财命-职业硬绑定，已知缺陷 C4）。
+- 职业：`classify_zhiye` 七桶打分（military/lawyer/teacher/doctor/accountant/merchant/performer + laborer/unemployed base_career），`_MIN_SCORE_THRESHOLD=6` 以下为「无明确职业倾向」fallback；同分按 tie_pri 序；base_career 以 caiming `tier`（**全量轨**，zhiye.py:1074——⚠️批7 勘误：非 tier_static，岁运 delta 可改变 laborer/unemployed 判定；tier_static 仅用于官杀为忌 gating :1372）贫/小康为闸（财命-职业硬绑定，已知缺陷 C4——**F15 审查**：根因=caiming 财统官（b）腿不验身弱（caiming.py:779-785），zhiye 消费侧扩展 gating 与 7.2 案例一董事长双锚同构不可分已撤回，修复留 caiming 后续批）。
 
 ---
 
@@ -91,7 +91,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
   - v6 运锚层级断语判轨：断语干支锚=所喂运岁且原局轨差≥2 → 评 delta 轨（**差≥2 门槛是关键**，裸锚匹配会误杀 li001/li131/qi22 乙亥发财）；
   - v7 破财/凶断语一律评全量轨（凶向在档仅全量轨可见）；
   - v8 `_ZY_EXCLUDE['military']` 增「冠军」（体育冠军=比劫做功，substring 误命中）。
-- **M5 快照**：`heldout/snapshots/*.json` 入 git（.gitignore 例外），带 `_meta`（git_sha/rubric_version/note，加载剥离）。基线链：`…→20260808_q(官命批)→r(职批1,rubric v8 rescore)→20260814_a(职批2)→b(职批3)→c(职批4)→20260817_f2~f7(F2-F7 修复批)→f8(yunfan 三P0)→f9(laoyu 四P0)→f10(yingqi_subj 寿元域四缺口)→f11(yongshen+caiming 四P0)→f12(guanming 六P0+juefa 断语7,当前)`。全 20 份快照 meta 完整（2026-08-14 核验，5 份空 note 已补）。
+- **M5 快照**：`heldout/snapshots/*.json` 入 git（.gitignore 例外），带 `_meta`（git_sha/rubric_version/note，加载剥离）。基线链：`…→20260808_q(官命批)→r(职批1,rubric v8 rescore)→20260814_a(职批2)→b(职批3)→c(职批4)→20260817_f2~f7(F2-F7 修复批)→f8(yunfan 三P0)→f9(laoyu 四P0)→f10(yingqi_subj 寿元域四缺口)→f11(yongshen+caiming 四P0)→f12(guanming 六P0+juefa 断语7)→f13(shensha 五改)→f14(zaihuo+LLM 红线)→f15(zhiye 8.2 军警组合,当前)`。全 20 份快照 meta 完整（2026-08-14 核验，5 份空 note 已补）。
 - **用法**：`python3 mangpai/tests/heldout/blind_eval.py --out snapshots/<批>.json --note "<验证状态>" --baseline snapshots/<上一批>.json`
 
 ### 2.3 评估纪律要点
@@ -190,7 +190,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 - merchant：真实做功信号（财入局/主位合制财/食伤生财+2、财印门户/官杀当财被制/冲财+1，上限**15**——⚠️批7 勘误：旧记「上限9」不实，批2-4 新增条款后律师例九 merchant=11 实证；且 merchant 桶系统性过宽，7.3 职业章 12 书例探针仅中 1，内食神格丢书「地支食神做功或生财」限定存在即+2、冲财与财入局双计）；时柱门户按**主气**粒度（食伤主气门户保留）；卯酉冲/破+财主气+1（酒家门户）；夺财动作不计经营；财反局 gating（fanju_caixing→merchant=0）。
 - performer：桃花栈（食伤+桃花+财俱现+4/桃花居日柱+2 等）**一律不动**（刘晓庆/li154 靠其过阈——⚠️批7 勘误：「靠其过阈」是拟合事实非书证，刘晓庆书锚=食神泄秀木火 gaoji:1610 非桃花，桃花栈本身无书锚）；**F13 已重建**：桃花信号=咸池日支起（_tao_day）∨丙食伤透（zhenbao14「丙火主艺术演技」/gaoji:1610/shouke:6170 三锚）∨日主坐禄+禄做功+食伤透（chuji:5871/5877 吕丽萍/梦露），居日柱补沐浴修饰（gaoji:13311 不可一见便断→仅 has_tao 已立时）；无桃花通道=柱级食伤≥2+食伤做功+无桃花+无主气明财+3（乔布斯豁免闸）；金水声音+4（金日主+水食伤主气+食≥2柱+比劫≥3）；桃花让位-3（仅财入印墓宾位命中者）。
-- military：官杀主气≥2+阳刃+刃支与官杀动作+未成势+财做功未触发+3（驾杀）；corro 每桶封顶+2；mingju_xiong gating；官杀为忌克身贫贱 gating（官杀主气≥3+身弱/从弱+tier 贫/小康 → 撤 military/lawyer）。
+- military：官杀主气≥2+阳刃+刃支与官杀动作+未成势+财做功未触发+3（驾杀）；corro 每桶封顶+2；mingju_xiong gating；官杀为忌克身贫贱 gating（官杀主气≥3+身弱/从弱+tier 贫/小康 → 撤 military/lawyer）。**F15 落地 8.2 组合**（gaoji:11620-11964）：戌武库做功+3/火金相战+2/金水成势见火+2/申酉丑寅≥3字交织+2/丑戌刑·阳制阴+2（制类须阳为制方）/戌武库刑冲开官杀库+2，贵气门=官杀主气≥2柱且透干+组合封顶+6；④比劫库制印不落地（政委例十 vs 复例四双锚同构）；接入决策=不接 gongmen_wuzhi（F1 弃用，11 P0），本模块重写；军警书例探针 1/10→3/10（军官例二/纪检例九归位）。
 - lawyer：伤官制官须主气克动作+2/柱级共存+1；食神制官条款删；mingju_xiong lawyer gating（伤官见官为忌=困顿非律师）。
 - teacher：木火通明（天干甲乙见丙丁+2/仅地支+1）；印重馆阁+2（主气印≥2+食伤0+金<3）；印食文墨授业+4（月令主气印+印食共现+木火+财主气≥1+金<3+无卯酉冲，三型居一：纯文职/吐秀授业/印化文书）；食伤鬻文+3（食主气≥3+财主气≥2+无桃花+印0）；纯食伤文人+5（食≥3+印0+财0+金<3+非 mingju_xiong）；月令印主气化（藏干中气虚印不计）。
 - accountant：金成势金融须金为日主之印（+收窄庚日金4=比劫者）；财入印墓于宾位+3（**墓支本气为印**，干携带不算）；日支财库+官杀透干+库合闭+2；食生财财入墓复合+2（**财墓坐日支排除**——财归己库非替人做帐）；水局成势+4（亥子辰≥2+**申子辰三合局**+财主气——半合版被 sim 否决）；从强金财+5（金财≥2 位+从强）。
@@ -333,7 +333,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 ### 6.1 职业残留 27❌（批4 收官收档）
 
 - **中医 3 簇**（cj-中医/李阳波/yx-中医）：merchant 7-11 分差过大，火盖头金同柱相克模拟+4 仍不够；须 merchant fp 侧收窄=最大回归面（批1 警示 22✅ 中 merchant 占15，批7 复核成立）→收档。
-- **军警备案簇**：岳飞（官杀0）/戴笠（无官杀特务）/警察墓库（墓用库制库未实现）/公安×2/刑警——⚠️批7/8 勘误定性修正：非「结构性无解」，gaoji 8.2 七组明文组合（火金相战/金水见火/申酉丑寅/丑戌刑/阳制阴/比劫库制印/戌武库）**已在 gongmen_wuzhi.py 实现**但有 11 条 P0 级偏差，真问题=**zhiye 不消费该模块**（engine 并行独立计算）+is_wuzhi 近恒真致输出无信息量——盲区=「已实现未接入且实现偏差大」；岁运反局 gate 撤后军警分亦不可及。另批7/8 补记：岳飞实际输出=performer「演艺/色情求财」8 分（比未分类更糟）——year-ref 桃花子落日柱驱动（切 day 仅 1 分），无书锚桃花栈所致，根因闭环。**F13 已修**：performer 8→1（test_f13 哨兵锁定），primary 落 merchant（军警盲区备案不动）。
+- **军警备案簇**：岳飞（官杀0）/戴笠（无官杀特务）/警察墓库（墓用库制库未实现）/公安×2/刑警——⚠️批7/8 勘误定性修正：非「结构性无解」，gaoji 8.2 七组明文组合（火金相战/金水见火/申酉丑寅/丑戌刑/阳制阴/比劫库制印/戌武库）**已在 gongmen_wuzhi.py 实现**但有 11 条 P0 级偏差，真问题=**zhiye 不消费该模块**（engine 并行独立计算）+is_wuzhi 近恒真致输出无信息量——盲区=「已实现未接入且实现偏差大」；岁运反局 gate 撤后军警分亦不可及。另批7/8 补记：岳飞实际输出=performer「演艺/色情求财」8 分（比未分类更糟）——year-ref 桃花子落日柱驱动（切 day 仅 1 分），无书锚桃花栈所致，根因闭环。**F13 已修**：performer 8→1（test_f13 哨兵锁定），primary 落 merchant（军警盲区备案不动）。**F15**：zhiye 本模块落地 8.2 六组组合（贵气门=官杀主气≥2 柱且透干，不接 gongmen_wuzhi），军警书例探针 1/10→3/10（军官例二/纪检例九归位）；残留备案=例三/例五（凶向 gating）、例四（贵气门所挡，无官杀主气）、例六（lawyer 桶抢）、例七/例八（公检法/武职桶界张力，performer tie/羊刃合杀落 military）、例十（无官杀不过门）、yx-科级 trainset collateral（会计→军警，金水成势见火固有声纳）。
 - **lawyer yx-2/3**：无官杀律师盲区+merchant 11-12 分差。
 - **performer 阿炳/帕瓦罗蒂/导演**：财明现挡无桃花通道+桃花 veto 双锁。
 - **accountant 残留**：cj-2075（银行主任官/商/会计三可，C6）/yx-14085；yx-2658 金5重需+6 不现实。
@@ -387,7 +387,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 12. **绿≠无回归**：432 自洽检查与方向/veto 场景正交；principled judge cat4 曾绕 veto 失明（已改 engine 路径）。
 13. **存量回归识别**：famous/calib 回归先 stash 实证——⚠️批7 勘误：罗斯切尔德已自愈移出（见 §6.4），常驻现仅 zhenbao-01。
 14. **Edit 工具**：长块 old_string 易因全角标点/em-dash/箭头失配，拆小改+ASCII 锚点。
-15. **被否决修法勿重试**：方向门（10 书锚）/mingju 宽撤 merchant/桃花压平/桃花宽让位/GZ 主气收窄/SSK fallback 收窄/纯强度 MAX 聚合/不成 capL2/克链≥3 提阈/库源自墓排除/身弱财旺 cap/中气原神收窄/mingju_xiong 宽撤——全部有书锚或 sim 否决记录（见各批记忆）。
+15. **被否决修法勿重试**：方向门（10 书锚）/mingju 宽撤 merchant/桃花压平/桃花宽让位/GZ 主气收窄/SSK fallback 收窄/纯强度 MAX 聚合/不成 capL2/克链≥3 提阈/库源自墓排除/身弱财旺 cap/中气原神收窄/mingju_xiong 宽撤——全部有书锚或 sim 否决记录（见各批记忆）。**F15 增补三条**：①merchant 收窄（食伤生财主气化/冲财合财去重——误伤 heldout 既有✅ ans33/li131/li133，旧双计口径恰是过阈来源）；②lawyer 伤官合杀/食神制杀条款（与伤官制官同动作复计，误伤 li154/董竹君门户锚）；③C4 富屋贫人扩展 gating（身弱+财官主气≥4——与 7.2 案例一董事长同构不可分）。
 16. **锚双侧卡**：每条新规则须真阳锚（保）+假阳锚（杀）双端验证；单端规则必翻船。
 17. **heldout>trainset 不反常**：训练集更难（新矿）；acc 跨集不可比。
 18. **gongshen/gongfei 同音**：勿「修正」命名一致性（见 §0）。
