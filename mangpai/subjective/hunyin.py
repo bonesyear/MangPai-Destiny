@@ -6,16 +6,20 @@ hunyin - 盲派婚姻专辑·主观层（subjective）
           与婚姻宫的喜忌、刑冲合害；多婚/独身/水中捞月看星宫结构与神煞；
           结离婚应期看大运流年引动妻/夫星与婚姻宫。
 
-五项判定：
-  1. 婚姻好坏：妻/夫星明现不被克破、婚姻宫(日支)为喜用不被冲合穿刑 -> 好；
-     星被克破/争合/入墓、婚姻宫被冲合穿刑、男财多身弱/女官杀混杂伤官见官 -> 差。
+五项判定（F16 按书重写前四项机制，锚 zhongji 婚姻章 4271-5393/gaoji 9.2-9.3）：
+  1. 婚姻好坏：宫为主星为辅——宫安静/宫制去夫妻星忌神（制得住）/宫为忌被
+     星制去/星合入宫/宫坐库喜刑冲 -> 好；宫有用被刑冲破穿/合他星/制不住
+     反坏/杂透多现/比劫争夫争妻 -> 差。冲穿刑非一律凶（:4294/4300/4493/4504）。
   2. 多婚：男财星多(正偏财混杂)/女官杀多(正官七杀混杂)、婚姻宫被冲合多次、
      比劫克财(男)/伤官克官(女) -> 多婚（离婚再婚之象）。
-  3. 独身：无妻星/夫星且婚姻宫坏、星入墓、纯阳/纯阴、华盖孤辰寡宿重 -> 独身（僧道/清居）。
-  4. 水中捞月：妻/夫星与他人争合、或与日主合而被冲开 -> 婚姻虚象、求而不得。
+  3. 独身四格：宫占比劫禄印星难入/宫星互害反成克/星入墓库不开/水中捞月
+     偏星扰（gaoji:13068-13070/zhongji:4924-4928）。
+  4. 水中捞月三要素：正星坐宫+日主与日支自合+天干偏星干扰
+     （zhongji:5081-5083）-> 理想过高、求而不得。
   5. 结离婚应期：
      结婚--大运流年到妻/夫星、合妻/夫星、婚姻宫被合冲引动；
-     离婚--男比劫到运年克财、女伤官到运年克官、妻/夫星被冲合走、婚姻宫被冲。
+     离婚--男比劫到运年克财、女伤官到运年克官、妻/夫星被冲合走、婚姻宫被冲；
+     女命关财门--运岁比劫夺财（财是官之原神），gaoji:12963-12967。
 
 消费关系：
   - objective.zuogong_detect.detect_relations（日支冲合穿刑、星被克合）
@@ -39,8 +43,49 @@ from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
+from mangpai.subjective.zhengfan import _compute_qishi
 
 _YANG_GANS = set('甲丙戊庚壬')
+
+# 势党（书第一章口径，复用 zhengfan._compute_qishi）：金水湿土党/火土燥土党。
+# 婚姻喜忌由此定：宫方成势则星为忌、星方成势则宫为忌（zhongji:4294/4300/4340）。
+_SHI_ZHIS = frozenset('申酉亥子丑辰')
+_ZAO_ZHIS = frozenset('巳午未戌')
+_KU_ZHIS = frozenset('辰戌丑未')
+
+
+def _zhi_party(z: str) -> str:
+    if z in _SHI_ZHIS:
+        return 'shi'
+    if z in _ZAO_ZHIS:
+        return 'zao'
+    return ''
+
+
+def _qishi_dang(gans: List[str], zhis: List[str]) -> Dict:
+    """成势之党与对方党计数（{'dang': 'shi'/'zao'/'', 'opp': int}）。
+
+    婚姻喜忌由此定：宫方成势则星为忌、星方成势则宫为忌（zhongji:4294/4300/4340）；
+    对方党 ≥2 为「制不住」（书「原局水火之力量相当…制不住夫星」:4303-4308）。
+    仅采书明文势党（复用 zhengfan._compute_qishi），单向/两神不定喜忌。
+    """
+    try:
+        q = _compute_qishi(gans, zhis)
+    except Exception:
+        q = None
+    if not (q and q.get('kind') == '势党'):
+        return {'dang': '', 'opp': 0}
+    dang = 'shi' if q.get('pair') == ['金', '水'] else 'zao'
+    counts = {wx: 0 for wx in ('金', '水', '火')}
+    for g in (gans or []):
+        if GAN_WX.get(g) in counts:
+            counts[GAN_WX[g]] += 1
+    for z in (zhis or []):
+        if ZHI_WX.get(z) in counts:
+            counts[ZHI_WX[z]] += 1
+    shi = counts['金'] + counts['水'] + sum(1 for z in (zhis or []) if z in ('丑', '辰'))
+    zao = counts['火'] + sum(1 for z in (zhis or []) if z in ('未', '戌'))
+    return {'dang': dang, 'opp': zao if dang == 'shi' else shi}
 
 
 def _compute_shishen(day_gan: str, gan: str) -> str:
@@ -155,6 +200,50 @@ def _dayzhi_attacked(wa: List[Dict]) -> List[str]:
     return kinds
 
 
+def _is_star_zhi(day_gan: str, z: str, gender: str) -> bool:
+    """支是否为配偶星之支（本气或藏干含配偶星五行，含余气——戴安娜丑中辛锚）。"""
+    swx = _spouse_wx(day_gan, gender)
+    if not swx or not z:
+        return False
+    if ZHI_WX.get(z) == swx:
+        return True
+    return any(GAN_WX.get(cg) == swx for cg, _q in get_canggan_mangpai(z))
+
+
+def _zhi_main_cat(day_gan: str, z: str) -> str:
+    """支本气十神大类（合宫对象判印/禄用，zhongji:4351）。"""
+    cg = get_canggan_mangpai(z)
+    return _cat(_compute_shishen(day_gan, cg[0][0])) if cg else ''
+
+
+def _gong_actions(wa: List[Dict], zhis: List[str]) -> tuple:
+    """日支(婚姻宫)涉入的作用拆两类：冲穿刑(攻制) / 合(地支合·半合·暗合)。
+
+    每项 (type, other_zhi, action)；自刑（同支）非攻击，排除
+    （zhenbao-05 锚：自刑/伏吟非反制）。
+    """
+    day_zhi = zhis[PILLAR_KEYS.index('day')]
+    adv: List = []
+    he: List = []
+    for a in wa:
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        if 'day_zhi' not in (fp, tp):
+            continue
+        other = tp if fp == 'day_zhi' else fp
+        k = other.split('_')[0]
+        if k not in PILLAR_KEYS or not other.endswith('_zhi'):
+            continue
+        oz = zhis[PILLAR_KEYS.index(k)]
+        t = a.get('type', '')
+        if t in ('冲', '穿', '刑'):
+            if oz == day_zhi:
+                continue  # 自刑
+            adv.append((t, oz, a))
+        elif t in ('地支合', '半合', '暗合'):
+            he.append((oz, a))
+    return adv, he
+
+
 # ───────────────────── 1. 婚姻好坏 ─────────────────────
 
 # 宫/星加权（M3）：源文《盲派中级命理学》第十章第一节「看婚姻的好坏，应以
@@ -220,11 +309,71 @@ def classify_hunyin_quality(
     if day_zhi_wx == swx:
         signals.append('配偶星居婚姻宫（日支），星宫得位')
         score += _STAR_IN_GONG_W
-    # 婚姻宫被冲合穿刑（宫为主：按破坏程度加权扣分）
-    if gong_attacked:
-        gong_loss = sum(_GONG_ATTACK_W.get(k, 1.0) for k in gong_attacked)
-        signals.append(f'婚姻宫(日支)被{"、".join(gong_attacked)}（破坏度-{gong_loss:g}）')
-        score -= gong_loss
+    # ── 婚姻宫（宫为主）：冲穿刑非一律凶，按书喜忌定吉凶（F16 重写）──
+    # 书口径（zhongji:4286-4351）：宫安静=好；宫制去夫妻星忌神（制得住）=好；
+    # 宫为忌被夫妻星制去=较好；宫有用被刑冲破穿/合他星=差；宫坐库喜刑冲（开库）；
+    # 合正偏印与禄不论坏（:4351）；制不住反为坏婚姻（:4290，戴安娜:4516-4518）。
+    adv, he_acts = _gong_actions(wa, zhis)
+    day_zhi = zhis[day_idx]
+    qs = _qishi_dang(gans, zhis)
+    dang, opp = qs['dang'], qs['opp']
+    gong_attacked = sorted({t for t, _oz, _a in adv} | ({'合'} if he_acts else set()))
+
+    # 宫坐四库：非星支之冲/刑/穿=开库为喜（库喜刑冲，zhongji:4493/4500；
+    # 「无刑冲克破者也易独身」:4927），免罚；星支攻制仍入宫星互制（戴安娜
+    # 未被戌刑坏=制不住 :4516-4518，不开库）
+    ku_open = False
+    if day_zhi in _KU_ZHIS and adv:
+        kept = []
+        for t, oz, a in adv:
+            if not _is_star_zhi(day_gan, oz, gender):
+                ku_open = True
+            else:
+                kept.append((t, oz, a))
+        adv = kept
+    if ku_open:
+        signals.append(f'婚姻宫坐库（{day_zhi}），刑冲开库为喜（库喜刑冲）')
+        score += 1.0
+
+    star_adv = [(t, oz, a) for t, oz, a in adv if _is_star_zhi(day_gan, oz, gender)]
+    nonstar_adv = [(t, oz, a) for t, oz, a in adv
+                   if not _is_star_zhi(day_gan, oz, gender)]
+    gong_good = False
+    if star_adv and dang:
+        gong_dang = _zhi_party(day_zhi)
+        star_dangs = {_zhi_party(oz) for _t, oz, _a in star_adv}
+        if gong_dang == dang and dang not in star_dangs \
+                and len(star_adv) == 1 and not nonstar_adv and opp < 2:
+            # 宫制去夫妻星忌神且制得住→好婚姻（zhongji:4289-4294/4300）
+            signals.append('婚姻宫制去夫妻星忌神（宫方成势，制之得住），好婚姻')
+            score += 2.0
+            gong_good = True
+        elif dang in star_dangs and gong_dang != dang:
+            # 配偶宫为忌神被夫妻星制去（去之为吉），婚姻较好（zhongji:4291/4340/4504）
+            signals.append('配偶宫为忌神，被夫妻星制去（去之为吉），婚姻较好')
+            score += 2.0
+            gong_good = True
+
+    # 合宫三分（zhongji:4351/4318）：星合入宫=吉；合印/禄=不论坏；合他星=差
+    he_bad: List[str] = []
+    for oz, a in he_acts:
+        if _is_star_zhi(day_gan, oz, gender):
+            signals.append(f'配偶星({oz})合入婚姻宫，星宫相合为吉')
+            score += 1.0
+        elif _zhi_main_cat(day_gan, oz) not in ('印', '比劫'):
+            he_bad.append(oz)
+
+    if gong_good:
+        loss = len(he_bad) * _GONG_ATTACK_W['合']
+        if loss:
+            signals.append(f'婚姻宫(日支)合他星{"、".join(he_bad)}（破坏度-{loss:g}）')
+            score -= loss
+    elif adv or he_bad:
+        loss = sum(_GONG_ATTACK_W.get(t, 1.0) for t, _oz, _a in adv)
+        loss += len(he_bad) * _GONG_ATTACK_W['合']
+        kinds = [t for t, _oz, _a in adv] + (['合'] if he_bad else [])
+        signals.append(f'婚姻宫(日支)被{"、".join(kinds)}（破坏度-{loss:g}）')
+        score -= loss
     else:
         signals.append('婚姻宫(日支)安稳无冲合穿刑')
         score += _GONG_SAFE_W
@@ -396,67 +545,42 @@ def classify_dushen(
     gender: str = '男', relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
 ) -> Dict:
-    """独身命理判定。
+    """独身命理判定（F16：书独身=四格，委托 classify_dushen_sige）。
 
-    无配偶星且婚姻宫坏、星入墓、纯阳/纯阴、华盖孤辰寡宿重 -> 独身（僧道/清居）。
+    书诀 gaoji:13068-13070/zhongji:4924-4928：宫占比劫禄印/宫星互害反成克/
+    星入墓库不开/水中捞月偏星扰。旧「无星宫坏/纯阳纯阴/华盖孤辰寡宿」条款
+    无书锚（「华盖」四书 grep 0 命中），已废。
 
     Returns:
         {'is_dushen': bool, 'factors': [str]}
     """
-    if is_pillars(day_gan):
-        p = day_gan
-        gans = [p.year_gan, p.month_gan, p.day_gan, p.hour_gan]
-        zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
-        day_gan = p.day_gan
-    gans = gans or []
-    zhis = zhis or []
-    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
-        return {'is_dushen': False, 'factors': ['四柱不全']}
-
-    rel = _ensure_relations(day_gan, gans, zhis, relations)
-    wa: List[Dict] = rel.get('work_actions') or []
-    factors: List[str] = []
-    star_count = _star_mingxian_count(day_gan, gans, zhis, gender)
-
-    if star_count == 0:
-        factors.append('配偶星全无（无妻星/夫星）')
-    gong_attacked = _dayzhi_attacked(wa)
-    if gong_attacked:
-        factors.append(f'婚姻宫被{"、".join(gong_attacked)}坏')
-
-    # 纯阳/纯阴
-    all_gans = [g for g in gans if g]
-    all_yang = all(g in _YANG_GANS for g in all_gans)
-    all_yin = all(g not in _YANG_GANS for g in all_gans)
-    if all_gans and (all_yang or all_yin):
-        factors.append('四柱天干纯' + ('阳' if all_yang else '阴') + '，性偏孤')
-
-    # 神煞：华盖/孤辰/寡宿
-    try:
-        shen = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        shen = {}
-    lonely = [n for n in ('华盖', '孤辰', '寡宿') if shen.get(n, {}).get('in_pillars')]
-    if lonely:
-        factors.append('神煞孤（' + '、'.join(lonely) + '）')
-
-    # 独身：无星+宫坏，或纯阳阴+孤神煞，或无星+孤神煞
-    is_dushen = (star_count == 0 and bool(gong_attacked)) or \
-                (all_gans and (all_yang or all_yin) and bool(lonely)) or \
-                (star_count == 0 and bool(lonely))
-    return {'is_dushen': is_dushen, 'factors': factors}
+    sige = classify_dushen_sige(day_gan, gans, zhis, gender, relations,
+                                shensha_result=shensha_result)
+    return {'is_dushen': sige.get('is_dushen', False),
+            'factors': sige.get('grids', [])}
 
 
 # ───────────────────── 4. 水中捞月 ─────────────────────
+
+# 正星之偏（偏星干扰用，zhongji:5081-5083；扩大型含自合对象之偏:5099-5105）
+_PIAN_OF = {'正财': '偏财', '正官': '七杀', '正印': '偏印',
+            '食神': '伤官', '比肩': '劫财', '偏财': '正财', '七杀': '正官'}
+
 
 def detect_shuizhong_laoyue(
     day_gan: str, gans: List[str], zhis: List[str],
     gender: str = '男', relations: Optional[Dict] = None,
 ) -> Dict:
-    """水中捞月：婚姻虚象、求而不得。
+    """水中捞月：婚姻虚象、求而不得（F16 按书三要素重写）。
 
-    配偶星与他人争合（非日主）、或与日主合而被冲开 -> 水中捞月。
-    星明现却被合走/合住不得、或星与他柱合 -> 求而不得。
+    书三要素（zhongji:5081-5083 闲注明文；gaoji:12904-12910 同）：
+      1. 夫妻星的正星坐夫妻宫（男=正财、女=正官，日支本/中气藏）；
+      2. 日主与日支自合（日干合日支所藏之干，自合柱戊子/壬午/己亥/丁亥/
+         辛巳/癸巳，zhongji:5098）；
+      3. 天干出现偏星干扰（正星之偏：正财→偏财、正官→七杀；扩大型含
+         自合对象之偏，zhongji:5099-5105 壬午造丙火偏财例）。
+    机制：正星自合=内心理想配偶形象，偏星透干=现实所遇皆偏缘，过分挑剔
+    而独身。旧实现（星与他干合/争合/宫被冲）与书义全错已废。
 
     Returns:
         {'is_laoyue': bool, 'factors': [str]}
@@ -471,35 +595,35 @@ def detect_shuizhong_laoyue(
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'is_laoyue': False, 'factors': ['四柱不全']}
 
-    rel = _ensure_relations(day_gan, gans, zhis, relations)
-    wa: List[Dict] = rel.get('work_actions') or []
+    day_idx = PILLAR_KEYS.index('day')
+    cg_list = get_canggan_mangpai(zhis[day_idx])
+    zheng = '正财' if gender == '男' else '正官'
+
+    # 要素1：正星坐宫（日支本/中气藏正星）
+    gong_star = next((cg for idx, (cg, _q) in enumerate(cg_list)
+                      if idx <= 1 and _compute_shishen(day_gan, cg) == zheng), '')
+    # 要素2：日主与日支自合（日干之合干藏于日支）
+    he_target = TIAN_GAN_HE.get(day_gan, '')
+    zihe_gan = next((cg for cg, _q in cg_list if cg == he_target), '')
+    # 要素3：偏星透干（正星之偏，或自合对象十神之偏——扩大型）
+    pians = {_PIAN_OF.get(zheng, '')}
+    if zihe_gan:
+        pians.add(_PIAN_OF.get(_compute_shishen(day_gan, zihe_gan), ''))
+    pians.discard('')
+    pian_gans = [g for i, g in enumerate(gans)
+                 if i != day_idx and g and _compute_shishen(day_gan, g) in pians]
+
     factors: List[str] = []
-    swx = _spouse_wx(day_gan, gender)
-    star_idxs = _star_positions(day_gan, gans, zhis, gender)
-
-    # 配偶星(天干)与他人合（非日干合）
-    for a in wa:
-        if a.get('type') == '天干合':
-            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
-            # 日干合配偶星=正合（非捞月）；非日干之间合配偶星=争合
-            if 'day_gan' in (fp, tp):
-                continue
-            for pk in (fp, tp):
-                if pk.endswith('_gan'):
-                    idx = PILLAR_KEYS.index(pk.split('_')[0])
-                    if idx < len(gans) and GAN_WX.get(gans[idx]) == swx:
-                        factors.append(f'配偶星({gans[idx]})与他干合（{a.get("desc","")}），婚象被他合走')
-                        break
-    # 争合（日干被两干以上合）
-    if rel.get('zheng_he') and star_idxs:
-        factors.append('日干争合，配偶星被争（求而不得）')
-
-    # 婚姻宫被冲（合而被冲开之象）
-    gong_attacked = _dayzhi_attacked(wa)
-    if '冲' in gong_attacked and star_idxs:
-        factors.append('婚姻宫被冲，婚象冲散（水中捞月）')
-
-    return {'is_laoyue': bool(factors), 'factors': factors}
+    if gong_star:
+        factors.append(f'正星({gong_star}{zheng})坐夫妻宫')
+    if zihe_gan:
+        factors.append(f'日主与日支自合（{day_gan}{zihe_gan}合），心存理想配偶')
+    if pian_gans:
+        factors.append(f'偏星({"".join(pian_gans)})透干干扰，所遇皆偏缘')
+    is_laoyue = bool(gong_star) and bool(zihe_gan) and bool(pian_gans)
+    if is_laoyue:
+        factors.append('三要素齐备：水中捞月，理想过高求而不得')
+    return {'is_laoyue': is_laoyue, 'factors': factors}
 
 
 # ───────────────────── 5/6. 结离婚应期 ─────────────────────
@@ -606,15 +730,21 @@ def _star_in_tomb(day_gan: str, gans: List[str], zhis: List[str], gender: str) -
 def detect_guan_caimen(
     day_gan: str, gans: List[str], zhis: List[str],
     gender: str = '男', relations: Optional[Dict] = None,
+    dayun_gan: str = '', dayun_zhi: str = '',
+    liunian_gan: str = '', liunian_zhi: str = '',
 ) -> Dict:
-    """关财门（高级篇 ch9）：配偶星入墓或被合锁，婚姻门关。
+    """关财门（F16 按书重写）：女命专属，运岁比劫夺财→离婚应期。
 
-    男命财门=财星，女命官门=官杀。配偶星入墓（墓库收星五行）或被地支合锁住
-    无冲开 -> 财门/官门关，婚姻难成或丧偶之象。与「水中捞月」区别：关财门是
-    星被锁死（入墓/合住），捞月是星被合走（求而不得）。
+    书口径（gaoji:12963-12967「女命关财门最验」；zhongji:3578 同）：
+    女命以官杀为夫，财星是官杀之原神（财生官）。原局财星在，行运流年
+    遇比劫将财星克夺，称为「关财门」——财门一关，官星无生，必被伤官
+    克倒，婚姻破裂。轻重：伤官旺者财被穿倒→必离；伤官轻者财受冲→
+    闹离（gaoji:12979-12980，案例十二卯运冲酉=闹离）。
+    旧实现（男女对称、原局星入墓/合锁冠名「关财门」）名同实异已废——
+    书「入墓不开」实属独身格三（zhongji:4927），移至 classify_dushen_sige。
 
     Returns:
-        {'is_guanmen': bool, 'factors': [str]}
+        {'is_guanmen': bool, 'severity': '必离'|'闹离'|'', 'factors': [str]}
     """
     if is_pillars(day_gan):
         p = day_gan
@@ -624,42 +754,47 @@ def detect_guan_caimen(
     gans = gans or []
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
-        return {'is_guanmen': False, 'factors': ['四柱不全']}
-    rel = _ensure_relations(day_gan, gans, zhis, relations)
-    wa: List[Dict] = rel.get('work_actions') or []
-    factors: List[str] = []
-    door = '财门' if gender == '男' else '官门'
+        return {'is_guanmen': False, 'severity': '', 'factors': ['四柱不全']}
+    if gender != '女':
+        return {'is_guanmen': False, 'severity': '',
+                'factors': ['关财门为女命专属（财是官之原神），男命不论']}
 
-    # 入墓
-    tombs = _star_in_tomb(day_gan, gans, zhis, gender)
-    if tombs:
-        # 入墓且墓不开（无冲刑开库）方为关门
-        opened = any(a.get('type') in ('冲', '刑') for a in wa
-                     if (a.get('from_pos', '').split('_')[0] in PILLAR_KEYS and
-                         zhis[PILLAR_KEYS.index(a.get('from_pos', '').split('_')[0])] in tombs) or
-                     (a.get('to_pos', '').split('_')[0] in PILLAR_KEYS and
-                      zhis[PILLAR_KEYS.index(a.get('to_pos', '').split('_')[0])] in tombs))
-        if not opened:
-            factors.append(f'配偶星入墓{"".join(set(tombs))}且墓不开，{door}关')
+    day_wx = GAN_WX.get(day_gan, '')
+    cai_wx = WX_KE.get(day_wx, '')
+    # 原局财星明现（干或支本气）——财是官之原神，无财则无门可关
+    cai_zhis = [z for z in zhis if z and ZHI_WX.get(z) == cai_wx]
+    cai_ming = bool(cai_zhis) or any(g and GAN_WX.get(g) == cai_wx for g in gans)
+    if not (cai_wx and cai_ming):
+        return {'is_guanmen': False, 'severity': '', 'factors': ['原局无财星，无关财门']}
 
-    # 配偶星支被合锁（地支合/半合锁住配偶星所在支，无冲开）
-    star_idxs = _star_positions(day_gan, gans, zhis, gender)
-    star_zhis = {zhis[i] for i in star_idxs if i < len(zhis) and zhis[i]}
-    locked: Set[str] = set()
-    for a in wa:
-        if a.get('type') not in ('地支合', '半合'):
+    # 运岁比劫夺财：运岁干为比劫（同我），或运岁支冲/穿原局财支
+    hits: List[str] = []
+    cai_chuan = False
+    for label, dg, dz in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
+        if not dg and not dz:
             continue
-        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
-        for pk in (fp, tp):
-            k = pk.split('_')[0]
-            if pk.endswith('_zhi') and k in PILLAR_KEYS:
-                zv = zhis[PILLAR_KEYS.index(k)]
-                if zv in star_zhis:
-                    locked.add(zv)
-    if locked:
-        factors.append(f'配偶星支{"".join(sorted(locked))}被合锁，{door}闭')
+        if dg and GAN_WX.get(dg) == day_wx:
+            hits.append(f'{label}干{dg}为比劫，克夺财星（财是官之原神），关财门')
+        if dz:
+            for cz in cai_zhis:
+                if (dz, cz) in LIU_CHONG or (cz, dz) in LIU_CHONG:
+                    hits.append(f'{label}支{dz}冲财星{cz}，财受劫官无源，关财门')
+                elif (dz, cz) in LIU_HAI or (cz, dz) in LIU_HAI:
+                    hits.append(f'{label}支{dz}穿倒财星{cz}，财被穿倒，关财门')
+                    cai_chuan = True
+    if not hits:
+        return {'is_guanmen': False, 'severity': '', 'factors': []}
 
-    return {'is_guanmen': bool(factors), 'factors': factors}
+    # 轻重（gaoji:12979-12980）：伤官旺+财被穿倒=必离；伤官轻+财受冲=闹离
+    shangguan = sum(1 for i, g in enumerate(gans)
+                    if i != PILLAR_KEYS.index('day') and g
+                    and _compute_shishen(day_gan, g) == '伤官')
+    shangguan += sum(1 for z in zhis if z and
+                     _compute_shishen(day_gan, get_canggan_mangpai(z)[0][0]) == '伤官')
+    severity = '必离' if (cai_chuan and shangguan >= 2) else '闹离'
+    factors = hits + [f'伤官{"旺" if shangguan >= 2 else "轻"}（{shangguan}位），'
+                      f'财被{"穿倒" if cai_chuan else "冲克"}→{severity}']
+    return {'is_guanmen': True, 'severity': severity, 'factors': factors}
 
 
 def detect_lu_ban_taohua(
@@ -780,13 +915,17 @@ def classify_dushen_sige(
     gender: str = '男', relations: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
 ) -> Dict:
-    """独身四格（高级篇 ch9）：独身命的四种格局细分。
+    """独身四格（F16 按书诀重写，gaoji:13068-13070/zhongji:4924-4928）。
 
-      格一·无星宫坏：配偶星全无且婚姻宫被冲合穿刑；
-      格二·星入墓：配偶星入墓且墓不开（关财门/官门）；
-      格三·纯阳纯阴孤神：四柱天干纯阳或纯阴+孤辰寡宿/华盖；
-      格四·华盖重见/僧道：华盖≥2位或孤辰寡宿并现，性孤向道。
-    为 classify_dushen 的格局细分（不替代其综合判定）。
+    书诀：「宫占比劫星难家/宫星互害反成克/星入墓库不开花/水中捞月偏星扰」。
+      格一·宫占比劫禄印，夫妻星不易进入（日支本气为比劫/印 + 星全无或
+        星支被冲穿刑克，gaoji 案例六/七、zhongji:4946 教授例）；
+      格二·宫坐制星之星，制之不成星反坏宫（宫五行克星五行 + 星支冲穿刑宫
+        + 星有援：透干或得合，gaoji 案例八；力量相当无援不论，:4303 反锚）；
+      格三·星入墓库不开（宫占星之墓 或 星透干入墓，无冲刑开库，gaoji 案例九；
+        书「入墓不开」正位在此，非关财门）；
+      格四·水中捞月偏星扰（=detect_shuizhong_laoyue，zhongji:4939-4940）。
+    旧格「纯阳纯阴/华盖重见」系自造（「华盖」四书 grep 0 命中），已废。
 
     Returns:
         {'grids': [str], 'is_dushen': bool}
@@ -803,31 +942,76 @@ def classify_dushen_sige(
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
     grids: List[str] = []
+    day_idx = PILLAR_KEYS.index('day')
+    day_zhi = zhis[day_idx]
+    swx = _spouse_wx(day_gan, gender)
     star_count = _star_mingxian_count(day_gan, gans, zhis, gender)
-    gong_attacked = _dayzhi_attacked(wa)
+    adv, _he = _gong_actions(wa, zhis)
+    star_adv = [(t, oz) for t, oz, _a in adv if _is_star_zhi(day_gan, oz, gender)]
 
-    # 格一·无星宫坏
-    if star_count == 0 and gong_attacked:
-        grids.append('无星宫坏格')
-    # 格二·星入墓（关财门）
-    guanmen = detect_guan_caimen(day_gan, gans, zhis, gender, relations)
-    if guanmen.get('is_guanmen') and any('入墓' in f for f in guanmen.get('factors', [])):
-        grids.append('星入墓格')
-    # 格三·纯阳纯阴孤神
-    all_gans = [g for g in gans if g]
-    all_yang = bool(all_gans) and all(g in _YANG_GANS for g in all_gans)
-    all_yin = bool(all_gans) and all(g not in _YANG_GANS for g in all_gans)
-    try:
-        shen = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        shen = {}
-    lonely = [n for n in ('孤辰', '寡宿') if shen.get(n, {}).get('in_pillars')]
-    if (all_yang or all_yin) and lonely:
-        grids.append('纯阳纯阴孤神格')
-    # 格四·华盖重见/僧道
-    huagai_pillars = shen.get('华盖', {}).get('in_pillars', [])
-    if len(huagai_pillars) >= 2 or len(lonely) >= 2:
-        grids.append('华盖重见僧道格')
+    # 星被夫妻宫所拒（宫与星支间冲/穿/刑/克，书「妻星无法进入妻宫」）
+    def _other_zhi_of_day(a: Dict) -> str:
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        other = tp if fp == 'day_zhi' else (fp if tp == 'day_zhi' else '')
+        k = other.split('_')[0]
+        if other.endswith('_zhi') and k in PILLAR_KEYS:
+            return zhis[PILLAR_KEYS.index(k)]
+        return ''
+
+    gong_rejects_star = any(
+        a.get('type') in ('冲', '穿', '刑', '克')
+        # 克须宫为施事方（宫克星=拒星；星克宫=宫被坏，非拒）
+        and (a.get('type') != '克' or a.get('from_pos') == 'day_zhi')
+        and (oz := _other_zhi_of_day(a))
+        and ZHI_WX.get(oz, '') == swx  # 本气星支方论（案例十二丑余气官不算）
+        for a in wa)
+
+    # 格一·宫占比劫禄印，星不得入（gaoji 案例六/七、zhongji:4946 教授例）
+    # 三型居一：星全无 / 宫拒星（案例六·教授）/ 宫占印+时柱占禄刃（案例七）
+    gong_main = _zhi_main_cat(day_gan, day_zhi)
+    hour_main = _zhi_main_cat(day_gan, zhis[PILLAR_KEYS.index('hour')])
+    if gong_main in ('比劫', '印') and (
+            star_count == 0 or gong_rejects_star
+            or (gong_main == '印' and hour_main == '比劫')):
+        grids.append('宫占比劫禄印格')
+
+    # 格二·宫星互害反成克（宫坐制星之星，制之不成星反坏宫）
+    if swx and WX_KE.get(ZHI_WX.get(day_zhi, '')) == swx and star_adv:
+        star_tou = any(g and GAN_WX.get(g) == swx for g in gans)
+        star_tombs = {z for z in zhis if z and swx in TOMB_MAP.get(z, [])}
+        star_he = False
+        for a in wa:
+            if a.get('type') not in ('地支合', '半合'):
+                continue
+            pair = [zhis[PILLAR_KEYS.index(pk.split('_')[0])]
+                    for pk in (a.get('from_pos', ''), a.get('to_pos', ''))
+                    if pk.endswith('_zhi') and pk.split('_')[0] in PILLAR_KEYS]
+            for oz in pair:
+                if ZHI_WX.get(oz, '') == swx:  # 本气星支（辰余气癸不算）
+                    partner = next((z for z in pair if z != oz), '')
+                    # 合入己墓=星被收（教授例子入辰墓），非得援
+                    if partner not in star_tombs:
+                        star_he = True
+        if star_tou or star_he:
+            grids.append('宫星互害反成克格')
+
+    # 格三·星入墓库不开（宫占星之墓 或 星透干入墓，无冲刑开库）
+    tombs = _star_in_tomb(day_gan, gans, zhis, gender)
+    gong_is_tomb = bool(swx) and swx in TOMB_MAP.get(day_zhi, [])
+    star_tou_ru_mu = bool(tombs) and any(g and GAN_WX.get(g) == swx for g in gans)
+    if tombs and (gong_is_tomb or star_tou_ru_mu):
+        opened = any(
+            a.get('type') in ('冲', '刑') and any(
+                pk.endswith('_zhi') and pk.split('_')[0] in PILLAR_KEYS
+                and zhis[PILLAR_KEYS.index(pk.split('_')[0])] in tombs
+                for pk in (a.get('from_pos', ''), a.get('to_pos', '')))
+            for a in wa)
+        if not opened:
+            grids.append('星入墓不开格')
+
+    # 格四·水中捞月偏星扰
+    if detect_shuizhong_laoyue(day_gan, gans, zhis, gender, relations).get('is_laoyue'):
+        grids.append('水中捞月偏星扰格')
 
     return {'grids': grids, 'is_dushen': len(grids) >= 1}
 
@@ -878,7 +1062,9 @@ def analyze_hunyin(
     dushen = classify_dushen(day_gan, gans or [], zhis or [], gender, relations,
                              shensha_result=ss)
     laoyue = detect_shuizhong_laoyue(day_gan, gans or [], zhis or [], gender, relations)
-    guanmen = detect_guan_caimen(day_gan, gans or [], zhis or [], gender, relations)
+    guanmen = detect_guan_caimen(day_gan, gans or [], zhis or [], gender, relations,
+                                 dayun_gan=dayun_gan, dayun_zhi=dayun_zhi,
+                                 liunian_gan=liunian_gan, liunian_zhi=liunian_zhi)
     luban = detect_lu_ban_taohua(day_gan, gans or [], zhis or [], gender, relations,
                                  shensha_result=ss)
     jiehun_fa = classify_jiehun_sifa(day_gan, gans or [], zhis or [], gender, relations,
@@ -907,7 +1093,7 @@ def analyze_hunyin(
     if laoyue.get('is_laoyue'):
         parts.append('水中捞月(婚虚)')
     if guanmen.get('is_guanmen'):
-        parts.append('关财门(星被锁)')
+        parts.append(f'关财门(离婚应期·{guanmen.get("severity","")})')
     if luban.get('is_lu_ban'):
         parts.append('禄绊桃花')
     if jiehun_fa.get('methods'):
