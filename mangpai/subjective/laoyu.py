@@ -106,12 +106,16 @@ def _mingxian_cats(day_gan: str, gans: List[str], zhis: List[str]) -> List[Set[s
 
 
 def _has_shen_in_mingxian(day_gan: str, gans: List[str], zhis: List[str],
-                          target_ss: Set[str]) -> bool:
-    """天干或藏干本/中气是否含目标十神（明现）。"""
+                          target_ss: Set[str], skip_day_gan: bool = False) -> bool:
+    """天干或藏干本/中气是否含目标十神（明现）。
+
+    skip_day_gan=True 时日干自身不计（比劫 actor 不含日主，KB§7.3）。
+    """
     for i in range(4):
         if i < len(gans) and gans[i]:
-            if _compute_shishen(day_gan, gans[i]) in target_ss:
-                return True
+            if not (skip_day_gan and i == PILLAR_KEYS.index('day')):
+                if _compute_shishen(day_gan, gans[i]) in target_ss:
+                    return True
         if i < len(zhis) and zhis[i]:
             for idx, (cg, _) in enumerate(get_canggan_mangpai(zhis[i])):
                 if idx > 1:
@@ -136,6 +140,41 @@ def _ensure_relations(day_gan, gans, zhis, relations):
 
 
 # ───────────────────── 1. 牢狱字 ─────────────────────
+
+def _yang_ke_he_zhi_laoyu(wa: List[Dict], gans: List[str], zhis: List[str]) -> bool:
+    """阳火柱（丙/丁干、巳/午支）以克合制牢狱字（亥/丑/辰）。
+
+    书 中级:5582「如是阳制阴不为牢狱」——阳火克合牢狱字=制之（如李嘉诚
+    午亥克合制亥，同制四点书锚），阴灭阳不成立。克合=合而相克（午火vs亥水），
+    生合（寅亥合灭丙火式，中级:5638 闲注仍论以阴灭阳）不计。
+    """
+    for a in wa:
+        if a.get('type') not in ('地支合', '暗合', '天干合'):
+            continue
+        ends = (a.get('from_pos', ''), a.get('to_pos', ''))
+        for fire_pos, other_pos in (ends, ends[::-1]):
+            if not fire_pos or '_' not in fire_pos or not other_pos or '_' not in other_pos:
+                continue
+            fpk, fkind = fire_pos.split('_')
+            opk, okind = other_pos.split('_')
+            if fpk not in PILLAR_KEYS or opk not in PILLAR_KEYS:
+                continue
+            fidx, oidx = PILLAR_KEYS.index(fpk), PILLAR_KEYS.index(opk)
+            if fkind == 'gan':
+                if gans[fidx] not in ('丙', '丁'):
+                    continue
+                fwx = GAN_WX.get(gans[fidx], '')
+            else:
+                if zhis[fidx] not in ('巳', '午'):
+                    continue
+                fwx = ZHI_WX.get(zhis[fidx], '')
+            if okind != 'zhi' or zhis[oidx] not in _LAOYU_ZI:
+                continue
+            owx = ZHI_WX.get(zhis[oidx], '')
+            if WX_KE.get(fwx) == owx or WX_KE.get(owx) == fwx:
+                return True
+    return False
+
 
 def detect_laoyu_zi(
     day_gan: str, gans: List[str], zhis: List[str],
@@ -211,16 +250,18 @@ def detect_laoyu_zi(
                                 yin_mie_yang = True
 
     # 阴灭阳补充：湿土(辰/丑)晦阳火(丙/丁/巳/午)——段氏最常见的「以阴灭阳」
-    # 湿土晦火使火用神(食神/印/财/禄身)失能，为牢狱象。
+    # 湿土晦火使火用神(食神/印/财/禄身)失能，为牢狱象（书例「辰丑有牢象，阳被
+    # 阴晦」中级:5832-5834，无具名动作；批5 P0-4 收窄：阳火克合制牢狱字者=
+    # 阳制阴，书 5582「如是阳制阴不为牢狱」，李嘉诚假阳锚）。
     if not yin_mie_yang:
         shi_tu = [z for z in zhis if z in ('辰', '丑')]
         yang_huo = [g for g in gans if g in ('丙', '丁')] + \
                    [z for z in zhis if z in ('巳', '午')]
-        if shi_tu and yang_huo:
+        if shi_tu and yang_huo and not _yang_ke_he_zhi_laoyu(wa, gans, zhis):
             yin_mie_yang = True
 
     # 阳制阴：阳性柱制去牢狱字（反不主牢狱）
-    yang_zhi_yin = False
+    yang_zhi_yin = _yang_ke_he_zhi_laoyu(wa, gans, zhis)  # 阳火克合制（中级:5582）
     for a in wa:
         t = a.get('type', '')
         if t not in control_types:
@@ -372,7 +413,8 @@ def detect_jieshang_guansha(
         return {'jieshang_guansha': False, 'has_jie': False, 'has_shang': False,
                 'has_guansha': False, 'duikang': False, 'details': ['四柱不全']}
 
-    has_jie = _has_shen_in_mingxian(day_gan, gans, zhis, {'劫财', '比肩'})
+    has_jie = _has_shen_in_mingxian(day_gan, gans, zhis, {'劫财', '比肩'},
+                                    skip_day_gan=True)  # 日主不算比劫 actor（KB§7.3）
     has_shang = _has_shen_in_mingxian(day_gan, gans, zhis, {'伤官'})
     has_guansha = _has_shen_in_mingxian(day_gan, gans, zhis, {'正官', '七杀'})
     duikang = has_jie and has_shang and has_guansha
@@ -420,9 +462,16 @@ def detect_fanju_chen_chou(
         return {'fanju': False, 'fanju_type': '', 'has_chen_chou': False,
                 'chen_chou': [], 'laoyu': False, 'details': ['四柱不全']}
 
-    rel = _ensure_relations(day_gan, gans, zhis, relations)
     try:
-        zf = analyze_zhengfan(day_gan, gans, zhis, relations=rel)
+        # analyze_zhengfan 签名=(work_actions, day_he_type, gans, zhis)——
+        # 与 yongshen._ensure_zhengfan 同径（旧调用误传 relations= 实抛
+        # TypeError 被吞，法五上线即死，批5 P0-1；书 中级:5592）。
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        zg = analyze_zuogong(
+            day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+        )
+        wa = zg.get('work_actions') or []
+        zf = analyze_zhengfan(wa, None, gans, zhis)
     except Exception:
         zf = {}
     fanju = zf.get('type') == 'fan'
@@ -460,7 +509,7 @@ def detect_shaqie_zhi(
     段氏（资料未提，闲注归纳）：七杀夹制日主或七杀无制，都有牢狱之象。
     判定：
       - 七杀无制：七杀明现且无食神制、无印化；
-      - 七杀夹克：日柱前后（年月或日时）两柱皆现七杀，夹克日主。
+      - 七杀夹克：月柱与时柱皆现七杀，夹克日主（日柱本身无杀）。
 
     Returns:
         {'sha_wu_zhi': bool, 'sha_jia_ke': bool, 'details': [str]}
@@ -492,11 +541,10 @@ def detect_shaqie_zhi(
     has_yin = _has_shen_in_mingxian(day_gan, gans, zhis, {'正印', '偏印'})  # 印化杀
     sha_wu_zhi = len(sha_pillars) > 0 and not has_shi and not has_yin
 
-    # 七杀夹克：日柱(idx=2)两侧（年月1/日时3）皆有七杀
-    sha_jia_ke = 2 in sha_pillars and (1 in sha_pillars or 0 in sha_pillars) and (3 in sha_pillars)
-    # 放宽：日柱本身带杀 + 前后任一带杀
-    if not sha_jia_ke and 2 in sha_pillars and ((0 in sha_pillars or 1 in sha_pillars) and 3 in sha_pillars):
-        sha_jia_ke = True
+    # 七杀夹克：月、时两柱皆现七杀夹日主（书 中级:5825-5829 上海庄家「双杀夹
+    # 克身」=月时双己未、:445-447「七杀夹克日主…已被枪毙」=月时双丁——两书锚
+    # 日柱均无杀；旧判据要求日柱带杀，方向反致书锚漏检，批5 P0-2）。
+    sha_jia_ke = 1 in sha_pillars and 3 in sha_pillars
 
     details: List[str] = []
     if sha_wu_zhi:
@@ -788,7 +836,8 @@ def analyze_laoyu(
     r_gshm = detect_guansha_rumu(day_gan, gans, zhis, relations)
 
     methods: List[str] = []
-    if r_zi.get('yin_mie_yang'):
+    if r_zi.get('yin_mie_yang') and not r_zi.get('yang_zhi_yin'):
+        # 书 中级:5582「如是阳制阴不为牢狱」——阳制阴在场则阴灭阳法不成立
         methods.append('牢狱字(阴灭阳)')
     if r_shui.get('shui_duo_jin_chen'):
         methods.append('水多金沉')
@@ -817,7 +866,9 @@ def analyze_laoyu(
     elif hit_count == 2:
         risk = '中'
     elif hit_count == 1:
-        risk = '低' if r_zi.get('yang_zhi_yin') else '低'
+        # 阳制阴减凶（书 中级:5582「如是阳制阴不为牢狱」）：单一弱信号+
+        # 阳制阴在场 -> 无；旧码两分支同值「低」，减凶从未兑现（批5 P0-3）。
+        risk = '无' if r_zi.get('yang_zhi_yin') else '低'
     else:
         # 仅有牢狱字无阴灭阳，且阳制阴 -> 无；否则低
         if r_zi.get('laoyu_zi') and not r_zi.get('yang_zhi_yin'):
