@@ -3,7 +3,11 @@
 检查点：
   A. 方向判断（assess_direction_signals）：10例全部产出方向/凶向信号
   B. 官命否决（guanming veto）：应否决例(乞丐/贪财坐牢)被否决；正当官命例(阎锡山/厅级)不被否决
-  C. 阎锡山L4：第12期层功level=4 + 官命level=4
+  C. 阎锡山L3：第12期层功level=3 + 官命level=3
+     （F6 修正：旧锁 L4 与书锚正面冲突——理象学 7182-7188 纯制局读法
+     「旺杀入墓…杀库制比劫库…功量有三层强一点」、授课38期「旺忌神弱制」
+     非从杀；旧 L4 系 gongliang 化用高层+1 校准自我撤销所致（批3 P0-2），
+     以书为准改锁 L3）
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -85,21 +89,23 @@ yan = gm_results.get('第12期·阎锡山半壁天下/勿冒头', {})
 tingji = gm_results.get('第5期·厅级官壬午升丁亥到顶', {})
 check('阎锡山 官命成立(is=True,门槛保护)', yan.get('is_guanming')==True, f"is={yan.get('is_guanming')}")
 check('厅级 官命成立(is=True)', tingji.get('is_guanming')==True, f"is={tingji.get('is_guanming')}")
-# 阎锡山官阶=高官(厅局以上)，未被否决降级
+# 阎锡山官阶未被否决降级（F6：层功 L3 合书「三层强一点」理象学7188；
+# guanming grade_map L3->中高(处级) 与 gongliang _RANK_GRADE L3->厅级-省部级
+# 的口径差为 F12 联动项，本批不动 grade_map，仅锁「未被否决」）
 yan_grade = str(yan.get('level',{}).get('grade',''))
-check('阎锡山 官阶=高官(未被否决降级)', '高官' in yan_grade and '否决' not in yan_grade, f'grade={yan_grade}')
+check('阎锡山 官阶未被否决(grade非否决/非官命)', '否决' not in yan_grade and '非官命' not in yan_grade, f'grade={yan_grade}')
 
-print('── C. 阎锡山L4 ──')
-# 层功 level=4 + 官命 level=4
+print('── C. 阎锡山L3（书「三层强一点」理象学7188）──')
+# 层功 level=3 + 官命 level=3
 yan_gl = None
 for name, gans, zhis, gender, year in CASES:
     if '阎锡山' in name:
         gl = analyze_gongliang(day_gan=gans[2], gans=gans, zhis=zhis)
         yan_gl = gl; break
-check('阎锡山 层功level=4(极富极贵)', yan_gl and yan_gl.get('level')==4, f"level={yan_gl.get('level') if yan_gl else None}")
-check('阎锡山 层功tier=极富极贵', yan_gl and '极富' in str(yan_gl.get('tier_name','')), f"tier={yan_gl.get('tier_name') if yan_gl else None}")
+check('阎锡山 层功level=3(三层强一点，大富大贵)', yan_gl and yan_gl.get('level')==3, f"level={yan_gl.get('level') if yan_gl else None}")
+check('阎锡山 层功tier=大富大贵', yan_gl and '大富' in str(yan_gl.get('tier_name','')), f"tier={yan_gl.get('tier_name') if yan_gl else None}")
 yan_gm_lv = yan.get('level',{}).get('level') if isinstance(yan.get('level'),dict) else None
-check('阎锡山 官命level=4', yan_gm_lv==4, f'官命level={yan_gm_lv}')
+check('阎锡山 官命level=3', yan_gm_lv==3, f'官命level={yan_gm_lv}')
 
 print('='*60)
 print(f'验证结果: {passed} passed, {failed} failed, total {passed+failed}')

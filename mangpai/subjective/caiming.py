@@ -1553,7 +1553,12 @@ def assess_caiming_level(
                 '上浮（制库得财，开库同制财与原神，量级同制尽）'
         else:
             adjust = '上浮（官杀当财量级高）'
-    elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin:
+    # F6：制库得财（has_zhiku）为制尽级财命定式，「非禄/食伤当财之量级有限路径」
+    # （本模块 _detect_zhiku_degui docstring 明载；理象学制例一 6470-6474 奥纳西斯
+    # 「开库的同时将库中的伤官与财星全制服了，所以能成巨富」）——gongliang 制库门
+    # 修复后奥纳西斯基阶 2->4，elif 落入此下浮 巨富->富 误降（批 F6 红线：巨富
+    # 三锚不得降）。制库得财在档者免此下浮。
+    elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin and not has_zhiku:
         tier_idx -= 1
         adjust = '下浮（禄/食伤当财量级有限）'
     # A13-b（K3-294批5）：从强格官杀藏月令墓库、自党成势制之不净——「官杀

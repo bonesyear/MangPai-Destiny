@@ -109,9 +109,12 @@ cases:
     gender: 男
     year: 1883
     items:
-      - {dim: 官命, gold: {is_guanming: true, level: 4, note: 半壁天下}, baseline: ✅}
+      # F6：层功 gold 4->3——理象学 7182-7188 纯制局读法明文「功量有三层强一点」、
+      # 授课38期「旺忌神弱制」非从杀；旧 gold=4 系郝金阳「半壁天下」L4 双标准
+      # （KB §6.4 备案），checkpoint 旧锁 L4 与书锚正面冲突，以书为准改 L3。
+      - {dim: 官命, gold: {is_guanming: true, level: 3, note: 半壁天下；层功书断三层强一点(理象学7188)}, baseline: ✅}
       - {dim: 职业, gold: {primary_in: [military], note: 军阀/武职}, baseline: ✅}
-      - {dim: 层功, gold: {level: 4, note: 半壁天下=L4极富极贵}, baseline: ✅}
+      - {dim: 层功, gold: {level: 3, note: 理象学7188「功量有三层强一点」；郝金阳L4双标准以书为准(F6)}, baseline: ✅}
 
   - id: zhenbao-14a
     name: 第14期·刘XX名演员卖身/三婚/无子

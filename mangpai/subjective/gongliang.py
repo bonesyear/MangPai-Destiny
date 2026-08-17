@@ -21,11 +21,13 @@ gongliang - 段氏做功等级量化（四层功量）·主观层
      （印+印原神(官杀)、食伤+食伤原神(比劫) 同制同理，唯源文未单列富贵量级。）
      多候选位时偏好「财/官杀」为用神（段氏富贵用神），其次偏好含官杀之位
      （利七杀当财叠加），如例八寅(食伤+比劫)与申(财+食伤)同现取申方达三层。
-  2. 制墓库 -> +2 点（成势制墓库地支为功量也是两层；保守须 san_he_formed）
+  2. 制墓库 -> +2 点（制局中制墓库为两层，理象学 6037 无三合条件；守门=同制成立
+     +冲/刑真制库动作+墓库为制用目标，同制位为墓库者不重计）
   3. 七杀当财 -> +1 点（七杀当财富比财当财富量级高一层；官杀透干且与制局目标同根）
   4. 入墓为功 -> +1 点（局中有入墓(墓用)做功者，算一层功量）
   5. 库源/连墓 -> +1 点（被制元素之墓库在局，源头得库加一层；须原神用神同制成立）
-  6. 包局/包制 -> +1 点（三合成势围制，段氏包制为围猎式合围，须成势方可）
+  6. 包局/包制 -> +1 点（三合成势围制；方局(三会)成势围制同计——法则6+奥纳西斯
+     巳午未书例，理象学 6470-6474）
   7. 层层相制 -> +1 点（克链长≥2，乾隆式金字塔逐级相制；保守仅认有向「克」链）
   7a. 金字塔冲链 -> +1 点（乾隆式：zb 党势重算冲链，链长≥3 覆盖四支+冲边≥2
       以冲为骨+zb 净制佐证方采信；补 _chain_length 不判冲向之局限）
@@ -486,14 +488,30 @@ def analyze_gongliang(
             )
 
     # ── 2. 制墓库 -> +2（制局中制墓库地支为两层功）──
-    #   保守判定：须三合成势(成势制库)且墓库为制用目标(to_pos of 冲克穿刑破)。
-    #   无成势时墓库被冲克多为偶然（如例七寅克戌），不计制墓库，避免误加。
-    if san_he_formed and day_wx and gans and zhis:
-        for pos in sorted(zhi_targets):  # sorted：首个命中即 break，理由文本须定序
-            elem = _elem_of(pos, gans, zhis)
-            if elem and _is_tomb(elem):
+    #   书（理象学 6037）「制局中制墓库为功量也是两层」——无三合条件；书内两制库
+    #   实例皆非三合（奥纳西斯丑未冲 6470-6474、克林顿戌刑丑）。旧 san_he_formed
+    #   门系按书例反例立法（批3 P0-1a），F6 去除，改守门三件套防偶然误加：
+    #   制局成立（原神用神同制）+ 真制库动作冲/刑（书两例即冲/刑；穿例——例六
+    #   子未穿、岳飞子未穿——书均未计制库；单纯相克多为偶然，如例七寅克戌、
+    #   普例五寅克辰）+ 墓库为制用目标（冲互向，from 端亦计——丑未冲制丑）。
+    #   去重：同制位本身为墓库时，其制库之功即同制 +2（书 6470-6474 奥纳西斯
+    #   总账「制库两层功」即丑财与财原神同制之述），不重计。
+    _zhiku_tombs: List[str] = []
+    if yuanshen_hit and day_wx and gans and zhis:
+        _ys_elem_zk = _elem_of(yuanshen_pos, gans, zhis) if yuanshen_pos else ''
+        _zk_pos: Set[str] = set()
+        for wa in non_aux:
+            if wa.get('type') not in ('冲', '刑'):
+                continue
+            _zk_pos.add(wa.get('to_pos', ''))
+            if wa.get('type') == '冲':  # 冲互向，from 端亦被制
+                _zk_pos.add(wa.get('from_pos', ''))
+        for pos in sorted(_zk_pos):  # sorted：首个命中即 break，理由文本须定序
+            elem = _elem_of(pos, gans, zhis) if pos else ''
+            if elem and _is_tomb(elem) and elem != _ys_elem_zk:
                 points += 2
-                reasons.append(f'制墓库：成势制墓库「{elem}」（+2层）')
+                _zhiku_tombs.append(elem)
+                reasons.append(f'制墓库：制局冲/刑制墓库「{elem}」（+2层）')
                 break
 
     # ── 3. 七杀当财 -> +1（七杀当财富比财当财量级高一层）──
@@ -574,9 +592,33 @@ def analyze_gongliang(
     # ── 6. 包局/包制 -> +1（年时包局或包制之局加一层）──
     #   判定：三合局成势（围制）。段氏包制为围猎式合围，须成势方可，单凭多柱
     #   制用不足以判定（避免误加），故仅认 san_he_formed。
+    #   F6 补：方局（三会）成势围制同计——层功法则6「三合、三会局…进而制之
+    #   或化之…增加一层功」明载三会；书例奥纳西斯巳午未火与燥土成势围制丑
+    #   （理象学 6470-6474「加包制一层功」）。方局三支全 + 方局支参与非辅助
+    #   制化动作（「进而制之或化之」）方计。
+    _fang_ju_formed = False
+    if not san_he_formed and day_wx and gans and zhis and len(zhis) == 4:
+        for _fj in ({'寅', '卯', '辰'}, {'巳', '午', '未'},
+                    {'申', '酉', '戌'}, {'亥', '子', '丑'}):
+            if _fj <= set(zhis):
+                for wa in non_aux:
+                    # 方局支以冲/刑作用于方局外之支（围制/被制之制化链接；
+                    # 合/克/穿/破偏弱或偶然——cj-工薪亥子丑水方局仅暗合/
+                    # 克/破链接，书判「工薪阶层所发财不大」，不计）
+                    if wa.get('type') not in ('冲', '刑'):
+                        continue
+                    _fe = _elem_of(wa.get('from_pos', ''), gans, zhis)
+                    _te = _elem_of(wa.get('to_pos', ''), gans, zhis)
+                    if (_fe in _fj) != (_te in _fj):
+                        _fang_ju_formed = True
+                        break
+                break
     if san_he_formed:
         points += 1
         reasons.append('包局/包制：三合局成势围制（+1层）')
+    elif _fang_ju_formed:
+        points += 1
+        reasons.append('包局/包制：方局（三会）成势围制（+1层）')
 
     # ── 7. 层层相制 -> +1（乾隆式金字塔逐级相制，保守判定）──
     #   仅认有向「克」链（克方->被克方方向明确）≥2 级。冲为互向、其势方向须
@@ -601,7 +643,7 @@ def analyze_gongliang(
     _zb_bao_counted = False
     _zb_boost = 0.0  # bao/clian 计入的功量点（供边界判定：翻转是否 decisive）
     if (_zb_bao and _zb_bao.get('detected') and _zb_jing == '净'
-            and not san_he_formed):
+            and not san_he_formed and not _fang_ju_formed):
         points += 1
         _zb_boost += 1
         _zb_bao_counted = True
@@ -646,8 +688,10 @@ def analyze_gongliang(
     #   反局破包：年干与时干十神性质相反（官杀×食伤、财×比劫——「年干为
     #   正官，时干为伤官；年干为正财，时干为劫财…包局力量减弱或破局」），
     #   干系十神包局不计（支系同字包围不受此限）。
-    #   去重：san_he_formed（法则6三合口径）或 zb 包制已计者不重计。
-    if not san_he_formed and not _zb_bao_counted and day_wx and gans and zhis \
+    #   去重：san_he_formed（法则6三合口径）/方局（法则6三会口径）或 zb 包制
+    #   已计者不重计。
+    if not san_he_formed and not _fang_ju_formed and not _zb_bao_counted \
+            and day_wx and gans and zhis \
             and len(gans) == 4 and len(zhis) == 4:
         _gy, _gh = gans[0], gans[3]
         _zy, _zh = zhis[0], zhis[3]
@@ -753,6 +797,10 @@ def analyze_gongliang(
     #   原神用神同制成立时，同制位若为墓库其库性已含于 +2 核心铁律，不再单计；
     #   入墓为功/制墓库已计者同为墓库之功，亦不重复。仅「墓库参与做功而三者俱未
     #   计」（如体之库作功神）方独立加层。
+    #   F6 注（批3 P0-1b）：「杀库作功一层功」（理象学 6470-6474 奥纳西斯未杀库）
+    #   之路径由 block 2 制墓库承担（冲互向 from 端计入），7f 放门（同制成立时
+    #   计未覆盖墓库）实证误伤 zj-邢铭芬（书判「发不了大财」平命，+1 越 L4 致
+    #   caiming 巨富 ❌），故本门维持 yuanshen_hit is None 不放。
     _tomb_elems_involved: List[str] = []
     if day_wx and gans and zhis:
         for pos in sorted(involved_positions | set(gshen)):  # sorted：join 文本定序
@@ -760,7 +808,7 @@ def analyze_gongliang(
             if el and _is_tomb(el) and el not in _tomb_elems_involved:
                 _tomb_elems_involved.append(el)
     _rumu_counted = bool(active_tomb_works)   # 入墓为功已计（block 4）
-    _zhiku_counted = any('制墓库' in r for r in reasons)  # 制墓库已计（block 2）
+    _zhiku_counted = bool(_zhiku_tombs)       # 制墓库已计（block 2）
     if (yuanshen_hit is None and not _rumu_counted and not _zhiku_counted
             and _tomb_elems_involved):
         points += 1
@@ -852,25 +900,35 @@ def analyze_gongliang(
                 )
                 # hua_chengju 豁免制不净封顶 + 高层功量加分（化用路径可达四层）：
                 # (1) 真从杀格（杀党势>=5，杀极旺日主极弱）为纯化用路径——7d 块仅在
-                #     yuanshen_hit=None（无原神用神同制）时运行，杀党势>=5 时无制用可
-                #     与之竞争，如阎锡山造（杀金6字）半壁天下。杀党势3-4 为偏从杀，
-                #     可能有制用并存，保守不豁免。
+                #     yuanshen_hit=None（无原神用神同制）时运行。F6 收窄（批3 P0-2）：
+                #     杀党>=5 触发须纯化用无制局竞争（无墓用做功、无非辅助制用/合制
+                #     动作）——阎锡山造（杀金6字）为纯制局读法（理象学 7182-7188
+                #     「旺杀入墓…杀库制比劫库…功量有三层强一点」，全段无化用/从杀；
+                #     授课38期「旺忌神弱制」明文非从杀），旧码 :799 降 +2 校准后又在
+                #     此处以杀党>=5 把 +1 加回（校准自我撤销），去之阎锡山 3.5->L3 合书。
                 # (2) 杀印相生为显式真做功（非 auxiliary）。
                 # 制用为主的命（复例二：原神用神同制+2）yuanshen_hit 已设 -> 7d 块被
                 # 跳过，不至此处；普通四柱（PUTONG）虽偶触发从杀格启发式但被普通四柱
                 # 降档封顶覆盖，不受加分影响。
-                if sha_cnt >= 5 or any(wa.get('type') == '杀印相生'
-                                       and not wa.get('auxiliary') for wa in non_aux):
+                _chun_hua = not active_tomb_works and not any(
+                    wa.get('type') in _CONTROL_TYPES for wa in non_aux)
+                if any(wa.get('type') == '杀印相生'
+                       and not wa.get('auxiliary') for wa in non_aux) \
+                        or (sha_cnt >= 5 and _chun_hua):
                     hua_chengju = True
                     # 纯化用成局为高层功量：杀印相生无制用竞争，化用路径能量效率高于
-                    # 制局（段氏：化用成局可达四层，如阎锡山造半壁天下）。+1 层使纯化用
-                    # 命越过制用三层天花板。普通四柱（PUTONG）虽偶触发从杀格启发式，
-                    # 但被普通四柱降档封顶覆盖，不受此加分影响。
+                    # 制局（段氏：化用成局可达四层）。+1 层使纯化用命越过制用三层
+                    # 天花板。普通四柱（PUTONG）虽偶触发从杀格启发式，但被普通四柱
+                    # 降档封顶覆盖，不受此加分影响。
                     points += 1
                     reasons.append('化用成局高层功量：纯杀印相生化用、无制用做功竞争，'
                                    '化用路径效率高于制局（+1层，可达四层）')
 
     # ── 8. 制净程度（调节封顶，不加点）──
+    # 方局围制+制库双结构（奥纳西斯型）：书明断四层功量（理象学 6470-6474「制库
+    # 两层功，杀库作功一层功，加包制一层功，有四层功量」）——方局成势围制下
+    # 透干泄秀书未视为不净，不净封顶不适用（同 hua_chengju 豁免例）。
+    _fangju_zhiku = _fang_ju_formed and bool(_zhiku_tombs)
     zhi_jing, jing_note = _assess_zhi_jing(
         day_wx, involved_cats, zhi_targets, gan_cats, fei_cats, non_aux, has_severe_harm,
     )
@@ -900,6 +958,8 @@ def analyze_gongliang(
     elif zhi_jing == '不净':
         if hua_chengju:
             reasons.append('制不净：' + jing_note + '（化用成局/从杀格为化用路径，制净框架不适用，不封顶）')
+        elif _fangju_zhiku:
+            reasons.append('制不净：' + jing_note + '（方局围制+制库双结构，书判四层功量（理象学6470-6474），不净封顶不适用）')
         else:
             reasons.append('制不净：' + jing_note + '，封顶于三层（达不到四层）')
 
@@ -915,8 +975,9 @@ def analyze_gongliang(
     raw_level = 4 if points >= 4 else 3 if points >= 3 else 2 if points >= 2 else 1
     level = raw_level
     # 制不净 -> 封顶三层（段氏：制之不净达不到四层，如蒋介石）；
-    #   化用成局/从杀格为化用路径非制局，制净框架不适用，不受此封顶。
-    if zhi_jing == '不净' and level > 3 and not hua_chengju:
+    #   化用成局/从杀格为化用路径非制局，制净框架不适用，不受此封顶；
+    #   方局围制+制库双结构书明断四层（理象学 6470-6474），同不适用。
+    if zhi_jing == '不净' and level > 3 and not hua_chengju and not _fangju_zhiku:
         level = 3
     # 普通四柱降档封顶（源文 6282-6376 三种小功情形）：
     #   相生之功 -> 封顶一层（相生效率低，源文普通例二「相生之功，功不算大」=普通）；
