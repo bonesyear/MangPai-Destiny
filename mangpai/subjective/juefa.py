@@ -426,8 +426,9 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
         y_zhi_bad = bool(_zhi_rel(zhis[1:], zhis[0], LIU_CHONG) or
                          _zhi_rel(zhis[1:], zhis[0], XING_PAIRS) or
                          _zhi_rel(zhis[1:], zhis[0], LIU_HAI))
-        y_gan_ke = any(WX_KE_ME.get(GAN_WX.get(g, ''), '') == GAN_WX.get(gans[0], '')
-                       for g in gans[1:])
+        # 书「提纲（月柱）克年柱，亦主父母不全」（gaoji:20230）——方向=月干
+        # 克年干（F12 修正：旧码 WX_KE_ME 检出「年干克他干」，方向接反）
+        y_gan_ke = WX_KE.get(GAN_WX.get(gans[1], ''), '') == GAN_WX.get(gans[0], '')
         if y_zhi_bad or y_gan_ke:
             emit(7, '；'.join(star_bad) + '，且年柱（父母宫）受坏——星宫双坏，父母缘薄可断')
         else:
