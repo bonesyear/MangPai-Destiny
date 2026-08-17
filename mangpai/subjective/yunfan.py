@@ -378,6 +378,11 @@ def _detect_dayun_fan(
     # 巨富丑运丙子运子破酉刃、书明文该运入狱锚）。
     hits_gong = [x for x in inter
                  if x['target_pos'] in gong_pos and x['type'] in ('冲', '穿')]
+    # F8 冲开墓库豁免：运冲原局墓库支=冲开库之应期（吉应），非毁功神——
+    # zj 案例五同盘丙戌运戌冲辰，书明文「戌运冲开辰库…发5年财，有5亿资产」
+    # （中级903/2853「行戌运，冲开辰墓，发财数亿」）。穿无开库义，不豁免。
+    hits_gong = [x for x in hits_gong
+                 if not (x['type'] == '冲' and x['target_elem'] in TOMB_MAP)]
     if op_zhi and day_gan:
         from mangpai.objective.shensha import _YANG_REN_FULL as _YR
         lr_chars = {LU.get(day_gan, '')} | set(_YR.get(day_gan, []))
@@ -488,7 +493,23 @@ def _detect_dayun_fan(
                     and WX_KE.get(GAN_WX.get(g, ''), '') == _ow
                     and TIAN_GAN_HE.get(g) != op_gan), '')
         if _ke:
-            fy.append(f'{op_gan}伏吟被原局{_ke}克坏')
+            # F8「所透之墓为功神」前提（案例五书锚 中级903/2853：「乙这里可以
+            # 代表辰，乙透被原局中辛金克坏，等于坏了辰」——克干=坏墓仅当伏吟
+            # 干为原局主位墓库之透干）：干为墓透之代表，墓在主位（日/时）做功
+            # 方成立。宾位墓透/无墓可透者不论——reg67 资本运营丁酉运丁伏吟被
+            # 癸克，丁所透之未墓在宾位（年支），书明文「行酉运，亿万巨富」
+            # （理象学:7720），假阳锚。
+            from mangpai.objective.canggan import get_canggan_mangpai
+            _tomb_gs = any(
+                i < len(natal_zhis) and natal_zhis[i]
+                and natal_zhis[i] in TOMB_MAP
+                and PILLAR_KEYS[i] in ('day', 'hour')
+                and f'{PILLAR_KEYS[i]}_zhi' in gong_pos
+                and any(cg == op_gan for cg, _q in get_canggan_mangpai(natal_zhis[i]))
+                for i in range(len(PILLAR_KEYS))
+            )
+            if _tomb_gs:
+                fy.append(f'{op_gan}伏吟被原局{_ke}克坏')
     sx = _detect_sanxing_dayun(op_zhi, natal_zhis)
     if fy or sx:
         fans.append({
@@ -591,9 +612,14 @@ def _detect_liunian_fan(
                           f'——激烈冲击原局，伤残死别在须臾',
             })
         # 三刑：流年支+大运支+原局构成完整三刑
-        pool = set(z for z in natal_zhis if z) | {op_zhi, dy_zhi}
+        # F8 补全闸：须岁/运支参与补全方触发——原局本已齐全的三刑是原局结构，
+        # 非「岁运联动组成」（大运侧 _detect_sanxing_dayun/流年侧 _detect_sanxing
+        # 均有此闸）。案例九锚（gaoji:3799）：癸未年未补全原局丑戌→三刑入狱，
+        # 仍触发；案例一盘甲子年丙午运/医师盘癸亥年（原局寅巳申已齐）假阳豁免。
+        _natal_set = set(z for z in natal_zhis if z)
+        pool = _natal_set | {op_zhi, dy_zhi}
         for g in _SANXING_GROUPS:
-            if g <= pool:
+            if g <= pool and not g <= _natal_set:
                 sui_fans.append({
                     'fan_type': '岁运联动·三刑',
                     'severity': '极重',

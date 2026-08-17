@@ -99,6 +99,74 @@ def test_no_fan_when_peaceful():
 
 
 # ---------------------------------------------------------------------------
+# F8 书例哨兵：批4 yunfan 三 P0（先红后绿）
+# ---------------------------------------------------------------------------
+
+def test_f8_case5_fuyin_gan_kehuai_true():
+    """案例五（乙己壬辛/巳丑辰丑）乙酉运：乙伏吟被辛克坏=坏辰墓——真阳不动。
+
+    书锚 中级903/2853：「乙这里可以代表辰，乙透被原局中辛金克坏，等于坏了
+    辰，所以此运大凶…坐牢。没收所有的财产。」（乙为主位辰墓之透，前提成立）"""
+    r = analyze_yunfan(['乙', '己', '壬', '辛'], ['巳', '丑', '辰', '丑'], '壬',
+                       dayun_list=[{'gz': '乙酉'}])
+    assert any('伏吟三刑' in t for t in _dy_fan_types(r))
+
+
+def test_f8_case5_bingxu_chong_kai_ku_exempt():
+    """案例五同盘丙戌运：戌冲辰=冲开财库应期，豁免 T1——假阳修复。
+
+    书锚 中级903/2853：「行戌运，冲开辰墓，发财数亿…发5年财，有5亿资产」。"""
+    r = analyze_yunfan(['乙', '己', '壬', '辛'], ['巳', '丑', '辰', '丑'], '壬',
+                       dayun_list=[{'gz': '丙戌'}])
+    assert not any('破坏功神' in t for t in _dy_fan_types(r))
+
+
+def test_f8_reg67_dingyou_no_fuyin_gan_fan():
+    """reg67 资本运营（丁未癸丑丙子壬辰）丁酉运：丁伏吟被癸克，但丁所透之
+    未墓在宾位（年支）非主位功神——不判 T3。假阳修复。
+
+    书锚 理象学:7720：「行酉运，亿万巨富」。"""
+    r = analyze_yunfan(['丁', '癸', '丙', '壬'], ['未', '丑', '子', '辰'], '丙',
+                       dayun_list=[{'gz': '丁酉'}])
+    assert not any('伏吟三刑' in t for t in _dy_fan_types(r))
+
+
+def test_f8_liandong_sanxing_requires_completion():
+    """岁运联动·三刑补全闸：原局寅巳申已齐者，岁运不补全不触发（假阳修复）；
+    原局缺一支岁运补全者仍触发（案例九真阳不动，gaoji:3799 癸未年入狱）。"""
+    # 医师盘（壬寅丁未壬申乙巳）原局寅巳申已齐：癸亥年癸卯运不误报（审计假阳例）
+    r = analyze_yunfan(['壬', '丁', '壬', '乙'], ['寅', '未', '申', '巳'], '壬',
+                       liunian_list=[{'gz': '癸亥', 'year': 1983}],
+                       current_dayun={'gz': '癸卯'})
+    assert '岁运联动·三刑' not in _liandong_types(r)
+    # 案例九（丙午辛丑戊戌戊午）癸未年未补全丑戌：仍触发
+    r = analyze_yunfan(['丙', '辛', '戊', '戊'], ['午', '丑', '戌', '午'], '戊',
+                       liunian_list=[{'gz': '癸未', 'year': 2003}],
+                       current_dayun={'gz': '甲午'})
+    assert '岁运联动·三刑' in _liandong_types(r)
+
+
+def test_f8_true_yang_guards():
+    """四个真阳锚不得误伤：
+    巨富丑运丙子运入狱（yanjiu:5962，破刃+伏吟激刑）、
+    破财工程酉运强拆反赔（yanjiu:2763，酉冲卯功神）、
+    b67 复例二丙子运破财（shouke-ans34:2872，杀临攻身）、
+    医师卯运年入百万（yanjiu:7048，吉运无反局）。"""
+    r = analyze_yunfan(['庚', '己', '庚', '乙'], ['戌', '卯', '子', '酉'], '庚',
+                       dayun_list=[{'gz': '丙子'}])
+    assert any('破坏功神' in t or '伏吟三刑' in t for t in _dy_fan_types(r))
+    r = analyze_yunfan(['辛', '癸', '丁', '癸'], ['亥', '巳', '未', '卯'], '丁',
+                       dayun_list=[{'gz': '己酉'}])
+    assert any('破坏功神' in t for t in _dy_fan_types(r))
+    r = analyze_yunfan(['甲', '癸', '丁', '庚'], ['寅', '酉', '丑', '子'], '丁',
+                       dayun_list=[{'gz': '丙子'}])
+    assert any('杀临攻身' in t for t in _dy_fan_types(r))
+    r = analyze_yunfan(['壬', '丁', '壬', '乙'], ['寅', '未', '申', '巳'], '壬',
+                       dayun_list=[{'gz': '癸卯'}])
+    assert r['dayun_fan'] == []
+
+
+# ---------------------------------------------------------------------------
 # A1：岁运反局切片入方向否决链（caiming 封顶 / guanming 否决+门槛 / zhiye gating）
 # ---------------------------------------------------------------------------
 from mangpai.subjective.yunfan import current_fan_slice
