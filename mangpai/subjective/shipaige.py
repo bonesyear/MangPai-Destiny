@@ -1,113 +1,104 @@
 """
 shipaige — 郑民生十排歌扩展：断语集锦 + 方法论
 
-理论来源：郑民生《十排歌》体系
-内容分两层：
-  1. 断语集锦：按人生六域（父母/婚姻/子女/事业/牢狱/寿元）
-     基于已知郑氏十排歌公开内容的常见断语整理
-  2. 方法论：阴阳组合→单柱→十神三层入手推演框架
+理论来源：郑民生《十排歌》公开碎片（mangpai/docs/zhengminsheng-shipaige-fragments.md，
+          下称「碎片:行号」）。段氏五书 grep「一财是财/十排歌」零命中，对照源仅此。
 
 与 shenshu.py 分工：shenshu = 数量歌诀（词典），shipaige = 断语+方法论（语法书）
 
-置信度：低（公开碎片拼凑，未校订原文）—— 留多处 TODO 待原文确认
+⚠️ F1 批（2026-08-17）补注（批8 审计定）：断语层不可作书证；唯数量诀层
+  （shenshu）与碎片逐字吻合可用。
 
-⚠️ F1 批（2026-08-17）补注（批8 审计定）：断语层与郑氏碎片 39 条几乎零对应，
-且两处冠名冲突（官杀为子/劫财抗杀）+「食神生旺」与自身数量诀自相矛盾——
-**断语层不可作书证**；唯数量诀层（shenshu）与碎片逐字吻合可用。
+F18 批（2026-08-17）断语层重写（批8 审计 P0×3 + P1：旧六域断语多为泛子平
+常识冠名「郑氏」，与碎片 39 条几乎零对应）——逐域按碎片原文重写，仅收录
+可机械检测者，未实现条目列入 todos：
+  - P0-1「官杀为子」冠名错误 → 碎片:81「身旺财为子，身弱印作儿」
+  - P0-2「劫财抗杀入牢狱」冠名冲突 → 碎片:90「劫财七杀两相连，要到边疆
+    去从军」（归事业域）
+  - P0-3「食神生旺子女聪慧」与自身数量诀「二食贪吃/三食愚钝」矛盾 → 废，
+    子女域按碎片重建
+
+置信度：低（公开碎片拼凑，未校订原文）—— 断语层不可作书证
 """
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from mangpai.objective.constants import (
-    GAN_WX, DI_ZHI,
-    WX_KE, WX_SHENG,
-    PILLAR_KEYS, PILLAR_NAMES_CN,
+    GAN_WX, ZHI_WX, DI_ZHI, WX_KE_ME,
 )
+from mangpai.objective.canggan import CANG_GAN_MANGPAI
 from mangpai.objective.shenshu import (
-    _compute_shishen, _grade, SHENSHU_GE,
+    _compute_shishen,
     analyze_shenshu,
-    JI_SHISHEN, XIONG_SHISHEN, ZHONGXING_SHISHEN,
 )
 
 # ══════════════════════════════════════════════════════════════
-# 第一层：断语集锦（六大人生领域）
-# ⚠️ 置信度：低 — 基于公开碎片整理，待郑氏原文校订
+# 关系/神煞基础表（检测辅助）
+# ══════════════════════════════════════════════════════════════
+
+_CHONG = {frozenset(p) for p in ('子午', '丑未', '寅申', '卯酉', '辰戌', '巳亥')}
+_CHUAN = {frozenset(p) for p in ('子未', '丑午', '寅巳', '卯辰', '申亥', '酉戌')}
+_XING = {frozenset(p) for p in
+         ('丑戌', '戌未', '丑未', '寅巳', '巳申', '寅申', '子卯')}
+_LU = {'甲': '寅', '乙': '卯', '丙': '巳', '丁': '午', '戊': '巳',
+       '己': '午', '庚': '申', '辛': '酉', '壬': '亥', '癸': '子'}
+_TOMB = {'木': '未', '火': '戌', '金': '丑', '水': '辰', '土': '辰'}
+# 沐浴位（阴阳同生同死 + 火土同宫，盲派口径）
+_MUYU = {'木': '子', '火': '卯', '土': '卯', '金': '午', '水': '酉'}
+
+# ══════════════════════════════════════════════════════════════
+# 第一层：断语集锦（六大人生领域）—— 逐条=碎片原文
 # ══════════════════════════════════════════════════════════════
 
 # ── 1. 父母 ──
-# 郑氏理念：印为母，偏印为继母/长辈；财为父，偏财为父缘薄
 PARENT_APHORISMS: Dict[str, str] = {
-    '印多母众': '正印≥3则母缘多而杂，偏印≥3则继母/养母之象',
-    '财多父杂': '偏财≥3主父缘薄或父亲多波折',
-    '印被财克': '财星克印，父母关系紧张或有损',
-    '年月印星': '年月柱见印星，祖荫深厚',
-    '枭神夺食': '偏印克食神，母缘有损或幼年体弱',
-    '财印两停': '财印平衡则父母双全且和睦',
-    # TODO: 确认「年月官杀混杂」对父母的具体断语
+    '印在年月被财坏': '印在年月被财坏，命与父无缘（必须过继）［碎片:62］',
+    '伏吟不见祖': '年日、年时伏吟不见祖，5岁前祖上少一人［碎片:64］',
+    '母明父暗是偷生': '母明父暗是偷生（私生子）［碎片:66］',
 }
 
 # ── 2. 婚姻 ──
-# 郑氏理念：男命以财为妻，女命以官为夫
 MARRIAGE_APHORISMS: Dict[str, str] = {
-    '一财清纯': '男命一财得位，婚姻美满',
-    '多财混杂': '男命正偏财混杂≥3，感情不专或多次婚姻',
-    '财被合': '财星被合，妻缘被夺或被他人介入',
-    '一官清贵': '女命一官清纯，夫贵而专',
-    '官杀混杂': '女命官杀≥3，感情纠葛、多次婚姻之象',
-    '日坐比劫': '日支为比劫，夫妻关系多竞争摩擦',
-    '伤官见官': '女命伤官见正官，婚姻波折、克夫之嫌',
-    '日时相冲': '日时柱相冲，晚婚或婚姻不稳定',
-    # TODO: 确认「官入墓」「财入墓」对婚姻的具体断语
+    '日坐墓库喜刑冲': '日坐墓库喜刑冲，冲开墓库得贤妻［碎片:72］',
+    '劫财穿配偶宫必离': '劫财穿配偶宫，一定离婚［碎片:74］',
+    '婚姻宫入墓难成家': '婚姻宫入墓，难成家［碎片:77］',
+    '一字重现数为双': '一字重现数为双，双婚双姓双上详［碎片:78/133］',
 }
 
 # ── 3. 子女 ──
-# 郑氏理念：食伤为子女，男命以官杀为子女（子平传统有别）
 CHILDREN_APHORISMS: Dict[str, str] = {
-    '食神生旺': '食神生旺有气，子女聪慧有成',
-    '伤官过旺': '伤官≥3，子女叛逆或难养',
-    '枭神夺食': '偏印克食神，不利子女或流产之象',
-    '子女运入墓': '食伤入墓，求子艰难或与子女缘薄',
-    '时柱逢空': '时柱落空亡，子女缘浅或远走他乡',
-    '官杀为子': '郑氏：男命以官杀为子女，官清则子贵',
-    # TODO: 确认「食多伤少」「伤多食少」的子女断语差异
+    '身旺财为子身弱印作儿': '身旺财为子，身弱印作儿［碎片:81］',
+    '命旺无财生女': '命旺无财，光生女孩没有男孩［碎片:82］',
+    '双女双鱼占日支': '双女双鱼占日支，命中定有四个女（巳为双女，亥为双鱼）［碎片:84］',
+    '三辰假子女': '辰月辰日与辰时，假子假女送进坟［碎片:85］',
 }
 
-# ── 4. 事业 ──
-# 郑氏理念：官杀为事业压力，财为事业成果，印为事业支持
+# ── 4. 事业（含从军/武职、职业）──
 CAREER_APHORISMS: Dict[str, str] = {
-    '官印相生': '官生印→印护身，仕途顺畅有靠山',
-    '食伤生财': '食伤生财→才艺变现，技艺致富之路',
-    '财官相生': '财生官→以财求贵，商人从政之象',
-    '杀印相生': '七杀有印制，化压力为权威，掌权之命',
-    '伤官配印': '伤官有印制，才华有约而不狂，贵格',
-    '食神制杀': '食神制七杀，以智胜力，将才之象',
-    '财破印': '财星克印，为财损名或因利失节',
-    '官杀无制': '官杀混杂无制，事业多变压力大',
-    # TODO: 确认「禄神」「羊刃」对事业的具体断语
+    '禄神入杀库': '禄神入杀库，人定进兵营［碎片:88］',
+    '劫财七杀两相连': '劫财七杀两相连，要到边疆去从军［碎片:90］',
+    '阳火克阴金': '阳火克阴金，定然去充军［碎片:91］',
+    '戊坐戌见酉做老师': '戊坐戌见酉做老师（戊戌日柱见酉）［碎片:94］',
+    '己临巳酉是郎中': '己临巳酉是郎中（医生）［碎片:95］',
+    '辛丙合做酒店': '辛遇丙合做酒店，官星化食发大财［碎片:96］',
+    '伤官生财格': '伤官生财格，伤官旺财有根才主富［碎片:97］',
+    '无财禄当财': '原局无财，禄可当财［碎片:99］',
 }
 
-# ── 5. 牢狱 ──
-# 郑氏理念：官杀过旺无制、伤官见官、枭神夺食为牢狱信号
+# ── 5. 牢狱/凶灾 ──
 PRISON_APHORISMS: Dict[str, str] = {
-    '三官是鬼': '正官≥3变为鬼，官非牢狱之象',
-    '三杀牢狱': '七杀≥3无制，暴力和牢狱风险',
-    '伤官见官': '伤官克官，对抗规则制度，官非口舌',
-    '枭神夺食': '偏印克食神+官杀混杂，思维混乱招祸',
-    '财杀相生': '财生七杀无制，为财犯法',
-    '劫财抗杀': '劫财多而七杀少，以暴制暴反招祸',
-    # TODO: 确认「三刑」「自刑」配合十神的牢狱断语
+    '日时两连见四角': '命中见四角（日时两支连着），十人八人易有牢狱［碎片:102］',
+    '劫财伤官遇穿官': '劫财伤官拉帮结派，遇到穿官有死刑［碎片:103］',
+    '用印见财有官灾': '用印若见财，必定有官灾［碎片:106］',
+    '五鬼凶神': '五鬼最凶神：戌巳、辰亥、寅未［碎片:108］',
 }
 
 # ── 6. 寿元 ──
-# 郑氏理念：印为寿，食为福，伤官七杀为损寿信号
 LONGEVITY_APHORISMS: Dict[str, str] = {
-    '印星为寿': '印星有力不被克，根基稳固寿元长',
-    '食神为福': '食神旺而不被夺，福寿绵长',
-    '五杀伤残': '七杀≥5，伤残短寿之象',
-    '六伤短命': '伤官≥6，短寿之兆',
-    '枭神夺食': '偏印夺食，损福折寿',
-    '日主无根': '日主无根又无印比生扶，根基浅薄不利寿',
-    '墓库重重': '日主入墓或多柱入墓，寿元有碍',
-    # TODO: 确认「死绝之地」「胎养之地」的寿元断语
+    '三枭夺财短命': '三枭无比，夺财制财短命［碎片:112］',
+    '食伤被制短命': '食伤被制短命［碎片:112］',
+    '邀合入墓皆凶': '乙见庚戌入鬼门，辛遇丙辰祸缠身（邀合入墓皆凶）［碎片:113］',
+    '丁见丙寅命早没': '丁见丙寅命早没（阳生阴死）［碎片:114］',
+    '沐浴水灾': '沐浴为水灾，沐浴加干杀，死于水中［碎片:115］',
 }
 
 SHIPAI_DOMAINS = {
@@ -120,42 +111,35 @@ SHIPAI_DOMAINS = {
 }
 
 # ══════════════════════════════════════════════════════════════
-# 第二层：方法论 — 郑氏三步骤推演框架
+# 第二层：方法论 — 郑公方法论要点（碎片§四）
 # ══════════════════════════════════════════════════════════════
 
 METHODOLOGY = {
     'step1': {
         'name': '阴阳组合',
-        'description': '先看天干阴阳搭配，后看地支藏干互动。阳干主动在外，阴干主静在内。',
+        'description': '先看阴阳组合，再看单柱结构，再看十神含义［碎片:141］。',
         'rules': [
-            '甲庚冲→改革突破；乙辛冲→细节纠纷',
-            '丙壬冲→水火激荡；丁癸冲→暗流涌动',
-            '戊己土混杂→厚土埋金或浊水之象',
-            '阳干多→外向主动型人格；阴干多→内敛深思型人格',
+            '主抓象意结构，先懂刑冲克合害墓暗合破绝［碎片:142］',
+            '天干为外形地支为实质；天干为外因地支为内因［碎片:147］',
         ],
     },
     'step2': {
         'name': '单柱',
         'description': '逐柱分析四柱独立结构——每柱天干+地支的组合含义。',
         'rules': [
-            '年柱：祖上根基，看天干十神+地支藏干主气',
-            '月柱：父母宫+事业提纲，月令五行定全局旺衰基调',
-            '日柱：自身+配偶宫，日干为命主，日支为内心+配偶',
-            '时柱：子女宫+晚年归宿，时支为最终去向',
-            '单柱天干坐绝/死/墓/胎地则该柱对应人事有损',
+            '墓也是一种方法，冲制也是［碎片:146］',
+            '虚干怕合，合去合走应期［碎片:148］',
         ],
     },
     'step3': {
         'name': '十神三层入手',
-        'description': '核心推演路径：先分十神 → 再按数量歌诀断吉凶 → 后按六域断语定位人生具体领域。',
+        'description': '先分十神 → 再按数量歌诀断吉凶 → 后按六域断语定位人生领域。',
         'rules': [
-            '四吉（正官/正印/食神/正财）宜扶不宜制',
-            '四凶（七杀/伤官/劫财/偏印）宜制不宜扶',
-            '中性（比肩/偏财）看数量与位置定吉凶',
-            '数量1为「清纯」→ 该十神正面特质凸显',
-            '数量2-6为「混杂」→ 该十神负面特质暴露',
-            '数量≥7为「成势」→ 顺势而为反而吉利',
-            '十神组合优先于单十神判断（如「食神制杀」> 单独看食神或七杀）',
+            '四吉（正官/正印/食神/正财）宜扶不宜制［碎片:143］',
+            '四凶（七杀/伤官/劫财/偏印）宜制不宜扶［碎片:143］',
+            '比肩与偏财看成中性［碎片:144］',
+            '禄合/日干合/日支合/食伤合/比肩合 → 自己去做什么去得到什么［碎片:145］',
+            '数量1清纯、2-6混杂为病、≥7成势从格反吉（见 shenshu 数量诀）',
         ],
     },
 }
@@ -177,24 +161,20 @@ def analyze_shipaige(
     shenshu_result: Optional[Dict] = None,
 ) -> Dict:
     """
-    郑氏十排歌扩展分析：断语集锦 + 方法论输出。
+    郑氏十排歌扩展分析：断语集锦（碎片原文） + 方法论输出。
 
     先跑 shenshu 获取十神数量统计（如果未预计算），
-    再基于十神分布 + 柱位特征匹配六域断语 + 方法论指引。
+    再按碎片断语做机械检测（可检测者），未实现条目列入 todos。
 
     Returns:
         {
-            'domains': {  # 六域触发断语
-                '父母': ['印多母众', ...],
-                '婚姻': [...],
-                ...
-            },
-            'methodology_note': '三步骤方法论概要',
+            'domains': {六域: [触发的碎片断语键, ...]},
+            'methodology_note': '方法论概要',
             'confidence': 'low',
-            'todos': ['待校订项...'],
+            'todos': ['未实现碎片条目...'],
+            'shenshu_summary': str,
         }
     """
-    # 1. 先获取 shenshu 统计
     if shenshu_result is None:
         shenshu_result = analyze_shenshu(
             day_gan, day_zhi,
@@ -204,167 +184,184 @@ def analyze_shipaige(
         )
 
     counts = shenshu_result.get('counts', {})
-    grades = shenshu_result.get('grades', {})
 
     gans = [year_gan, month_gan, day_gan, hour_gan]
     zhis = [year_zhi, month_zhi, day_zhi, hour_zhi]
     day_wx = GAN_WX.get(day_gan, '')
 
-    # 辅助函数
     def count_ss(name: str) -> int:
         return counts.get(name, {}).get('count', 0)
 
-    def has_ss_pattern(*pairs: Tuple[str, int]) -> bool:
-        """检查十神是否达到指定数量阈值。"""
-        for ss, min_cnt in pairs:
-            if count_ss(ss) < min_cnt:
-                return False
-        return True
+    def gan_ss(g: str) -> str:
+        return _compute_shishen(day_gan, g) if g else ''
 
-    def zhi_has(gan: str) -> bool:
-        """日支本气是否为指定天干。"""
-        from mangpai.objective.canggan import CANG_GAN_MANGPAI as cang
-        cg = cang.get(day_zhi, [])
-        return bool(cg and cg[0][0] == gan)
+    def zhi_ss(z: str) -> str:
+        """地支本气相对日主的十神。"""
+        cg = CANG_GAN_MANGPAI.get(z, [])
+        return gan_ss(cg[0][0]) if cg else ''
 
-    def get_ss_for_gan(gan: str) -> str:
-        return _compute_shishen(day_gan, gan) if gan else ''
+    def pillar_has(i: int, names) -> bool:
+        return gan_ss(gans[i]) in names or zhi_ss(zhis[i]) in names
 
-    def day_zhi_shishen() -> str:
-        """日支本气天干相对日主的十神。"""
-        from mangpai.objective.canggan import CANG_GAN_MANGPAI as cang
-        cg = cang.get(day_zhi, [])
-        return get_ss_for_gan(cg[0][0]) if cg else ''
+    def pair_in(a: str, b: str, rels) -> bool:
+        return bool(a and b) and frozenset((a, b)) in rels
 
-    def gans_have(gan: str) -> bool:
-        return gan in [year_gan, month_gan, hour_gan]
+    other_zhis = [z for z in (year_zhi, month_zhi, hour_zhi) if z]
+    zhi_set = set(z for z in zhis if z)
+    gan_cai = any(gan_ss(g) in ('正财', '偏财') for g in gans if g)
+    gan_yin = any(gan_ss(g) in ('正印', '偏印') for g in gans if g)
+    cai_cnt = count_ss('正财') + count_ss('偏财')
+    yin_cnt = count_ss('正印') + count_ss('偏印')
+    # 身强弱简化代理（本模块不接 yongshen）：比劫印 vs 财官食伤 数量比
+    self_side = count_ss('比肩') + count_ss('劫财') + yin_cnt
+    other_side = (cai_cnt + count_ss('正官') + count_ss('七杀')
+                  + count_ss('食神') + count_ss('伤官'))
+    shen_qiang = self_side >= other_side
 
-    # 2. 匹配各域断语
-    triggered: Dict[str, List[str]] = {}
-    for domain in ['父母', '婚姻', '子女', '事业', '牢狱', '寿元']:
-        triggered[domain] = []
+    triggered: Dict[str, List[str]] = {
+        d: [] for d in ('父母', '婚姻', '子女', '事业', '牢狱', '寿元')}
 
     # ── 父母 ──
-    if count_ss('正印') >= 3:
-        triggered['父母'].append('印多母众')
-    if count_ss('偏印') >= 3:
-        triggered['父母'].append('印多母众')
-    if count_ss('偏财') >= 3:
-        triggered['父母'].append('财多父杂')
-    if count_ss('正财') >= 2 and count_ss('正印') >= 2:
-        triggered['父母'].append('财印两停')
-    # 年月柱印星
-    for i in [0, 1]:  # 年、月
-        ss = get_ss_for_gan(gans[i])
-        if ss in ('正印', '偏印'):
-            triggered['父母'].append('年月印星')
-            break
-    # 财克印
-    if count_ss('正财') >= 2 and count_ss('正印') >= 1:
-        triggered['父母'].append('印被财克')
+    # 碎片:62（天干共存即计「坏」——简化，无克夺动作检测）
+    if (any(gan_ss(gans[i]) in ('正印', '偏印') for i in (0, 1))
+            and gan_cai):
+        triggered['父母'].append('印在年月被财坏')
+    # 碎片:64
+    if ((year_gan and year_gan == day_gan and year_zhi == day_zhi)
+            or (year_gan and year_gan == hour_gan and year_zhi == hour_zhi)):
+        triggered['父母'].append('伏吟不见祖')
+    # 碎片:66（印透干 + 财不透干而地支本气有财）
+    if (gan_yin and not gan_cai
+            and any(zhi_ss(z) in ('正财', '偏财') for z in zhis if z)):
+        triggered['父母'].append('母明父暗是偷生')
 
     # ── 婚姻 ──
-    if count_ss('正财') == 1 and count_ss('偏财') == 0:
-        triggered['婚姻'].append('一财清纯')
-    if count_ss('正财') + count_ss('偏财') >= 3:
-        triggered['婚姻'].append('多财混杂')
-    if count_ss('正官') == 1 and count_ss('七杀') == 0:
-        triggered['婚姻'].append('一官清贵')
-    if count_ss('正官') + count_ss('七杀') >= 3:
-        triggered['婚姻'].append('官杀混杂')
-    # 日坐比劫：日支本气天干对日主为比肩/劫财
-    if day_zhi_shishen() in ('比肩', '劫财'):
-        triggered['婚姻'].append('日坐比劫')
-    # 伤官见官
-    if count_ss('伤官') >= 1 and count_ss('正官') >= 1:
-        triggered['婚姻'].append('伤官见官')
-    # 日时冲
-    day_z = zhis[2]
-    hour_z = zhis[3]
-    if day_z and hour_z:
-        chong_pairs = {'子午', '丑未', '寅申', '卯酉', '辰戌', '巳亥'}
-        pair = day_z + hour_z
-        if pair in chong_pairs or pair[::-1] in chong_pairs:
-            triggered['婚姻'].append('日时相冲')
+    # 碎片:72
+    if (day_zhi in '辰戌丑未'
+            and any(pair_in(day_zhi, z, _CHONG | _XING) for z in other_zhis)):
+        triggered['婚姻'].append('日坐墓库喜刑冲')
+    # 碎片:74
+    for i in (0, 1, 3):
+        if pair_in(day_zhi, zhis[i], _CHUAN) and pillar_has(i, ('劫财',)):
+            triggered['婚姻'].append('劫财穿配偶宫必离')
+            break
+    # 碎片:77（日支五行之墓在局）
+    tomb = _TOMB.get(ZHI_WX.get(day_zhi, ''), '')
+    if tomb and tomb in other_zhis:
+        triggered['婚姻'].append('婚姻宫入墓难成家')
+    # 碎片:78/133
+    zlist = [z for z in zhis if z]
+    if len(zlist) != len(set(zlist)):
+        triggered['婚姻'].append('一字重现数为双')
 
     # ── 子女 ──
-    if count_ss('食神') >= 2 or (count_ss('食神') == 1 and '食神' in grades.get('清纯', [])):
-        triggered['子女'].append('食神生旺')
-    if count_ss('伤官') >= 3:
-        triggered['子女'].append('伤官过旺')
-    if count_ss('偏印') >= 2 and count_ss('食神') >= 1:
-        triggered['子女'].append('枭神夺食')
-    # 时柱空亡检查简化
-    if count_ss('正官') == 1:
-        triggered['子女'].append('官杀为子')
+    # 碎片:81（身强弱为简化代理）
+    if (shen_qiang and cai_cnt >= 1) or (not shen_qiang and yin_cnt >= 1):
+        triggered['子女'].append('身旺财为子身弱印作儿')
+    # 碎片:82
+    if shen_qiang and cai_cnt == 0:
+        triggered['子女'].append('命旺无财生女')
+    # 碎片:84
+    if day_zhi in ('巳', '亥'):
+        triggered['子女'].append('双女双鱼占日支')
+    # 碎片:85
+    if month_zhi == day_zhi == hour_zhi == '辰':
+        triggered['子女'].append('三辰假子女')
 
     # ── 事业 ──
-    if count_ss('正官') >= 1 and count_ss('正印') >= 1:
-        triggered['事业'].append('官印相生')
-    if count_ss('食神') >= 1 and count_ss('正财') >= 1:
-        triggered['事业'].append('食伤生财')
-    if count_ss('正财') >= 1 and count_ss('正官') >= 1:
-        triggered['事业'].append('财官相生')
-    if count_ss('七杀') >= 1 and count_ss('正印') >= 1:
-        triggered['事业'].append('杀印相生')
-    if count_ss('伤官') >= 1 and count_ss('正印') >= 1:
-        triggered['事业'].append('伤官配印')
-    if count_ss('食神') >= 1 and count_ss('七杀') >= 1:
-        triggered['事业'].append('食神制杀')
-    if count_ss('正财') >= 2 and count_ss('正印') <= 1:
-        triggered['事业'].append('财破印')
-    if (count_ss('正官') + count_ss('七杀') >= 3
-            and count_ss('食神') == 0 and count_ss('伤官') == 0
-            and count_ss('正印') == 0 and count_ss('偏印') == 0):
-        triggered['事业'].append('官杀无制')
+    lu = _LU.get(day_gan, '')
+    sha_wx = WX_KE_ME.get(day_wx, '')
+    # 碎片:88（日主禄在局，且禄支所入之墓=七杀五行之库）
+    if lu and lu in zhis:
+        lu_tomb = _TOMB.get(ZHI_WX.get(lu, ''), '')
+        if lu_tomb and lu_tomb == _TOMB.get(sha_wx) and lu_tomb in zhis:
+            triggered['事业'].append('禄神入杀库')
+    # 碎片:90（相邻柱一柱劫财、一柱七杀）
+    for i in range(3):
+        if ((pillar_has(i, ('劫财',)) and pillar_has(i + 1, ('七杀',)))
+                or (pillar_has(i, ('七杀',)) and pillar_has(i + 1, ('劫财',)))):
+            triggered['事业'].append('劫财七杀两相连')
+            break
+    # 碎片:91（共存即计——简化无动作检测）
+    if (('丙' in gans or {'巳', '午'} & zhi_set)
+            and ('辛' in gans or '酉' in zhi_set)):
+        triggered['事业'].append('阳火克阴金')
+    # 碎片:94
+    if day_gan == '戊' and day_zhi == '戌' and '酉' in zhi_set:
+        triggered['事业'].append('戊坐戌见酉做老师')
+    # 碎片:95
+    if day_gan == '己' and {'巳', '酉'} & zhi_set:
+        triggered['事业'].append('己临巳酉是郎中')
+    # 碎片:96
+    if '辛' in gans and '丙' in gans:
+        triggered['事业'].append('辛丙合做酒店')
+    # 碎片:97（伤官明现 + 财有根=支本气财）
+    if (count_ss('伤官') >= 1
+            and any(zhi_ss(z) in ('正财', '偏财') for z in zhis if z)):
+        triggered['事业'].append('伤官生财格')
+    # 碎片:99
+    if cai_cnt == 0 and lu and lu in zhis:
+        triggered['事业'].append('无财禄当财')
 
     # ── 牢狱 ──
-    if count_ss('正官') >= 3:
-        triggered['牢狱'].append('三官是鬼')
-    if count_ss('七杀') >= 3:
-        triggered['牢狱'].append('三杀牢狱')
-    if count_ss('伤官') >= 1 and count_ss('正官') >= 1:
-        triggered['牢狱'].append('伤官见官')
-    if count_ss('偏印') >= 2 and count_ss('食神') >= 1:
-        triggered['牢狱'].append('枭神夺食')
-    if count_ss('正财') >= 2 and count_ss('七杀') >= 2:
-        triggered['牢狱'].append('财杀相生')
-    if count_ss('劫财') >= 2 and count_ss('七杀') >= 1:
-        triggered['牢狱'].append('劫财抗杀')
+    # 碎片:102（日时两支相同或相邻=「连着」）
+    if day_zhi and hour_zhi:
+        d_i, h_i = DI_ZHI.index(day_zhi), DI_ZHI.index(hour_zhi)
+        if (d_i - h_i) % 12 in (0, 1, 11):
+            triggered['牢狱'].append('日时两连见四角')
+    # 碎片:103
+    has_chuan = any(pair_in(zhis[i], zhis[j], _CHUAN)
+                    for i in range(4) for j in range(i + 1, 4))
+    if (count_ss('劫财') >= 1 and count_ss('伤官') >= 1
+            and count_ss('正官') >= 1 and has_chuan):
+        triggered['牢狱'].append('劫财伤官遇穿官')
+    # 碎片:106（「用印」=印透干之简化代理）
+    if gan_yin and gan_cai:
+        triggered['牢狱'].append('用印见财有官灾')
+    # 碎片:108
+    if any(pair <= zhi_set for pair in
+           ({'戌', '巳'}, {'辰', '亥'}, {'寅', '未'})):
+        triggered['牢狱'].append('五鬼凶神')
 
     # ── 寿元 ──
-    if count_ss('正印') >= 1:
-        triggered['寿元'].append('印星为寿')
-    if count_ss('食神') >= 2:
-        triggered['寿元'].append('食神为福')
-    if count_ss('七杀') >= 5:
-        triggered['寿元'].append('五杀伤残')
-    if count_ss('伤官') >= 6:
-        triggered['寿元'].append('六伤短命')
-    if count_ss('偏印') >= 2 and count_ss('食神') >= 1:
-        triggered['寿元'].append('枭神夺食')
-    # 日主无根
-    if count_ss('比肩') == 0 and count_ss('劫财') == 0 and count_ss('正印') == 0 and count_ss('偏印') == 0:
-        triggered['寿元'].append('日主无根')
+    # 碎片:112a
+    if count_ss('偏印') >= 3 and count_ss('比肩') == 0:
+        triggered['寿元'].append('三枭夺财短命')
+    # 碎片:112b（食伤柱本气支逢冲/穿/刑）
+    for i in range(4):
+        if pillar_has(i, ('食神', '伤官')) and any(
+                pair_in(zhis[i], zhis[j], _CHONG | _CHUAN | _XING)
+                for j in range(4) if j != i):
+            triggered['寿元'].append('食伤被制短命')
+            break
+    # 碎片:113
+    if (('乙' in gans and '庚' in gans and '戌' in zhi_set)
+            or ('辛' in gans and '丙' in gans and '辰' in zhi_set)):
+        triggered['寿元'].append('邀合入墓皆凶')
+    # 碎片:114
+    if '丁' in gans and '寅' in zhi_set:
+        triggered['寿元'].append('丁见丙寅命早没')
+    # 碎片:115
+    muyu = _MUYU.get(day_wx, '')
+    if muyu and muyu in zhi_set:
+        triggered['寿元'].append('沐浴水灾')
 
-    # 3. 方法论指引
+    # 方法论指引（碎片§四.1）
     methodology_note = (
-        f"郑氏三步骤：①阴阳组合→{day_gan}{day_zhi}日主（"
-        f"{'阳' if day_gan in '甲丙戊庚壬' else '阴'}干），"
-        f"四柱{'阳多主动' if sum(1 for g in gans if g in '甲丙戊庚壬') >= 2 else '阴多主静'}；"
-        f"②单柱→年月日时逐柱分析；"
-        f"③十神三层→数量歌诀(见shenshu)→六域断语(见本模块)"
+        f"郑氏三步骤［碎片:141］：①阴阳组合→{day_gan}{day_zhi}日主"
+        f"（{'阳' if day_gan in '甲丙戊庚壬' else '阴'}干）；"
+        f"②单柱结构；③十神含义→数量歌诀(见shenshu)→六域断语(见本模块)"
     )
 
-    # 4. TODO 列表
+    # 未实现碎片条目（性别/空亡/神煞/运岁/年龄段未接入本模块）
     todos = [
-        '父母：确认「年月官杀混杂」的郑氏原文断语',
-        '婚姻：确认「财入墓」「官入墓」的郑氏原文断语',
-        '子女：确认「食多伤少」「伤多食少」的郑氏差异断语',
-        '事业：确认「禄神」「羊刃」配合十神的郑氏原文断语',
-        '牢狱：确认「三刑」「自刑」配合十神的郑氏原文断语',
-        '寿元：确认「死绝之地」「胎养之地」的郑氏原文断语',
-        '全局：六域断语表待郑氏原文全文校订后提升置信度',
+        '父母：印星不能临寡/父星不能临孤（孤辰寡宿未接入）；比劫旺相印空亡父死母再嫁（空亡未接入）；月财合年支犯穿两姓占［碎片:61/63/65］',
+        '婚姻：男命婚姻宫见杀为妻/女命比肩太多主风流/女命月令杀印同一根/日干临养地（性别/长生未接入）；年运来闭库不破大财就婚灾（运岁未接入）［碎片:69-76］',
+        '子女：女命财星穿破难生儿/伤官空亡只生女（性别/空亡未接入）［碎片:83］',
+        '事业：阳火旺盛要水济走到水地去从军（运岁未接入）；劫财为用神可做风险生意（用神未接入）［碎片:89/98］',
+        '牢狱：食伤走墓运/酉金走子运沉体（运岁未接入）；亡神劫煞在时上合克年命（神煞未接入）［碎片:104/107/105］',
+        '寿元：年纪大看财/小看印枭/中看食伤（年龄段未接入）［碎片:111］',
+        '全局：断语层置信度低、不可作书证，待郑氏原文全文校订',
     ]
 
     triggered_any = any(v for v in triggered.values())
@@ -382,7 +379,8 @@ def format_shipaige_report(shipaige_result: Dict) -> str:
     """将 shipaige 分析结果格式化为可读文本。"""
     lines = []
     lines.append('【郑氏十排歌扩展分析】')
-    lines.append(f'置信度：{shipaige_result.get("confidence", "low").upper()}')
+    lines.append(f'置信度：{shipaige_result.get("confidence", "low").upper()}'
+                 '（断语层不可作书证）')
     lines.append('')
 
     domains = shipaige_result.get('domains', {})
@@ -401,7 +399,7 @@ def format_shipaige_report(shipaige_result: Dict) -> str:
     lines.append(shipaige_result.get('methodology_note', ''))
 
     lines.append('')
-    lines.append('── 待校订项 ──')
+    lines.append('── 未实现碎片条目 ──')
     for i, todo in enumerate(shipaige_result.get('todos', []), 1):
         lines.append(f'  {i}. {todo}')
 

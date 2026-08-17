@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F18 批 · shipaige + gongmen_wuzhi（殿后批：批8 P0×3 断语层重写 + 弃用决策落地 + 阳制阴口径）
+
+| 项 | 处理方式 | 书锚 | 文件 |
+|----|----------|------|------|
+| shipaige 断语层与郑氏碎片 39 条零对应+两冠名冲突+自相矛盾（批8 P0×3/P1） | 六域断语层整体重写：逐条=碎片原文+行号，仅收录可机械检测者（父母3/婚姻4/子女4/事业8/牢狱4/寿元5），未实现条目（性别/空亡/神煞/运岁/年龄段未接入本模块）入 todos；「官杀为子」冠名废→碎片:81 身旺财为子身弱印作儿（身强弱=比劫印 vs 财官食伤数量简化代理，本模块不接 yongshen）；「劫财抗杀入牢狱」冠名冲突废→碎片:90 劫财七杀两相连从军（相邻柱一柱劫财一柱七杀）归事业域；「食神生旺子女聪慧」与自身数量诀「二食贪吃/三食愚钝」矛盾→废，子女域按碎片重建；方法论层重写为碎片§四 8 条 | 碎片:61-115（mangpai/docs/zhengminsheng-shipaige-fragments.md） | subjective/shipaige.py |
+| gongmen_wuzhi 接入决策（F1 标记弃用，决策留 F18） | **正式弃用：不接 zhiye**（F15 已在 zhiye._score_military 按书重写 8.2 六组组合，本模块仅存档）；隔离=narrative `_gongmen_wuzhi_line` 结论行通道切断（is_wuzhi 近恒真、零信息量行不再进 LLM 结论），engine result 键因 schools selectors 保护链保留；docstring 改正式弃用 | 批8 审计 11 P0 + F15 决策 | subjective/gongmen_wuzhi.py、subjective/narrative.py |
+| 阳制阴口径与书相反（批8 P0-5） | 旧=标准阳支集纯地支「克」（子算阳）→ 书口径：阳气=丙丁巳午戊戌 制 阴气=辛酉癸子丑，**含天干**（按 _gan/_zhi 位置后缀取字）、**子归阴**、制类（克/冲/穿/刑）须阳为制方；与 F15 zhiye.py:1042-1050 同口径 | gaoji:11787-11788 | subjective/gongmen_wuzhi.py |
+| 哨兵（先红后绿） | 新建 test_f18_shipaige_gongmen.py 18 测（先红 17）：三 P0 修复探针+碎片断语 11 例+阳制阴正反两例（丁克辛含天干/子克巳反向不计）+正式弃用标注+narrative 隔离 | 见上 | tests/test_f18_shipaige_gongmen.py |
+
+验证：哨兵先红 17 后绿 18/18、verify 432 全绿、pytest 644 passed（+18）、blind 对照 20260817_f17——**heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动**（shipaige/gongmen 不进 blind rubric 与快照字段）；67 例 0 回归、famous 0 新增回归、calib 4 REGRESSION stash 实证=存量（0 新增）、双 seed 剥 _meta 逐字节一致。引擎基线=`snapshots/20260817_f18.json`。残留封存：shipaige 未实现碎片条目（性别/空亡/神煞/运岁接入）入 todos；gongmen_wuzhi 其余 10 条 P0 随正式弃用封存不修。
+
 ## 2026-08-17 F17 批 · xueli + liuqin（批7 P0：xueli X1 破坏之神 + liuqin L2/L4 + 三节补齐）
 
 | 项 | 处理方式 | 书锚 | 文件 |

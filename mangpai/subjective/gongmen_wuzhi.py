@@ -1,11 +1,13 @@
 """
 gongmen_wuzhi - 盲派公门武职专辑·主观层（subjective）
 
-⚠️ F1 批（2026-08-17）标记弃用（deprecated，暂不删除）：
-  zhiye 零消费本模块（engine 中并行独立计算），is_wuzhi 聚合口径近恒真
-  （任一武职类象即 True，几乎逢盘必中），当前输出信息量趋零；
-  且实现与 gaoji 8.2 有 11 条 P0 级偏差（批8 审计）。接入 zhiye 的决策
-  留 F18 批，届时须先修实现偏差。删除/_zhi_doi 等死代码本批已清。
+⚠️ F18 批（2026-08-17）**正式弃用**（F1 标记弃用 → 本批决策落地）：
+  接入决策=**不接 zhiye**——F15 已在 zhiye._score_military 按书重写 8.2
+  六组组合（贵气门+组合封顶），本模块仅存档备查。is_wuzhi 聚合口径近恒真
+  （任一武职类象即 True，几乎逢盘必中），输出信息量趋零——narrative LLM
+  结论行通道本批已切断（engine result 键因 schools selectors 保护链保留）。
+  实现与 gaoji 8.2 的 11 条 P0 级偏差（批8 审计）不再逐条修，唯阳制阴口径
+  按书 11787-11788 修正存档。删除/_zhi_doi 等死代码 F1 已清。
 
 理论来源：段建业《盲派命理高级内容篇》8.2「公门武职」（源文 11588-11971 行）
 核心思想：公门武职以「干支类象 + 组合做功」定位——寅为公门、戌为火药枪弹
@@ -55,7 +57,6 @@ from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 
 _YANG_GANS = set('甲丙戊庚壬')
-_YANG_ZHIS = set('子寅辰午申戌')
 
 
 # ───────────────────── 共用小工具 ─────────────────────
@@ -286,17 +287,25 @@ def classify_gongjianfa(
             gong_an_score += 1
             ev.append('丑戌相刑（扫黑破案）')
         # 阳制阴——仅在公安基象成立时计入
-        has_yang = bool(present & _YANG_ZHIS)
-        has_yin = bool(present - _YANG_ZHIS)
+        # F18 按书修正口径（批8 P0-5，gaoji:11787-11788）：阳气=丙丁巳午戊戌、
+        # 阴气=辛酉癸子丑——**含天干、子归阴**（旧码=标准阳支集纯地支「克」、
+        # 子算阳，与书相反）；制类动作（克/冲/穿/刑）须阳为制方。
+        _YANG82 = set('丙丁戊巳午戌')
+        _YIN82 = set('辛癸酉子丑')
+
+        def _end_ch(pos: str) -> str:
+            i = _pos_idx(pos)
+            if i < 0:
+                return ''
+            return gans[i] if pos.endswith('_gan') else zhis[i]
+
         yang_ke_yin = any(
-            a.get('type') == '克' and
-            (_pos_idx(a.get('from_pos', '')) >= 0) and
-            (_pos_idx(a.get('to_pos', '')) >= 0) and
-            zhis[_pos_idx(a.get('from_pos', ''))] in _YANG_ZHIS and
-            zhis[_pos_idx(a.get('to_pos', ''))] not in _YANG_ZHIS
+            a.get('type') in ('克', '冲', '穿', '刑')
+            and _end_ch(a.get('from_pos', '')) in _YANG82
+            and _end_ch(a.get('to_pos', '')) in _YIN82
             for a in wa
         )
-        if yang_ke_yin and has_yang and has_yin:
+        if yang_ke_yin:
             gong_an_score += 1
             ev.append('阳制阴（正义制邪恶）')
     if gong_an_score >= 1:

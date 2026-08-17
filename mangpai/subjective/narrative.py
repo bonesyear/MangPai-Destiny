@@ -204,19 +204,6 @@ def _liuqin_line(lq: dict) -> str:
     return f"六亲：{sm}" if sm else ''
 
 
-def _gongmen_wuzhi_line(gw: dict) -> str:
-    """公门武职：是否 + 主象/摘要。"""
-    if not gw:
-        return ''
-    is_wz = gw.get('is_wuzhi')
-    primary = gw.get('primary', '') or ''
-    sm = gw.get('summary', '') or ''
-    if is_wz is None and not primary and not sm:
-        return ''
-    head = '是' if is_wz else ('否' if is_wz is not None else '')
-    return f"公门武职：{head}（{primary or sm}）".strip('（）')
-
-
 def _shipaige_line(sp: dict) -> str:
     """郑氏十排歌：神数摘要 / 域计数。"""
     if not sp:
@@ -283,7 +270,6 @@ def summarize_engine_result(engine_result: Dict[str, Any]) -> str:
     ly = engine_result.get('laoyu') or {}
     xe = engine_result.get('xueli') or {}
     lq = engine_result.get('liuqin') or {}
-    gw = engine_result.get('gongmen_wuzhi') or {}
     sp = engine_result.get('shipaige') or {}
     ty = engine_result.get('tiyong') or {}
     gsh = engine_result.get('gongshen') or {}
@@ -306,7 +292,8 @@ def summarize_engine_result(engine_result: Dict[str, Any]) -> str:
         _laoyu_line(ly),
         _xueli_line(xe),
         _liuqin_line(lq),
-        _gongmen_wuzhi_line(gw),
+        # F18：gongmen_wuzhi 正式弃用隔离——is_wuzhi 近恒真零信息量，
+        # 结论行通道切断（engine result 键因 schools selectors 保护链保留）
         _shipaige_line(sp),
         _tiyong_line(ty),
         _gongshen_line(gsh),
