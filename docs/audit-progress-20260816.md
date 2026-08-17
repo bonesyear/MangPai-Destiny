@@ -14,12 +14,12 @@
 | 5 岁运层 | dayun/liunian/jiaoyun/laoyu | ✅ | 4/22/18 |
 | 6 判定层A | caiming/guanming/yongshen/juefa | ✅ | 11/33/24 |
 | 7 判定层B | zhiye/hunyin/zaihuo/xueli/liuqin | ✅ | 29/57/45 |
-| **累计** | | | **P0=62 / P1=180 / P2≈177** |
-| 8 杂项层 | shensha/shenshu/shipaige/gongshen/gongfei/gongmen_wuzhi | ⏸ 等配额 | — |
+| **累计（十批收官）** | | | **P0=96 / P1=245 / P2=259（共 600 项）** |
+| 8 杂项层 | shensha/shenshu/shipaige/gongshen/gongfei/gongmen_wuzhi | ✅ | 24/44/31 |
 | 7 判定层B | zhiye/hunyin/zaihuo/xueli/liuqin | ⏸ | — |
 | 8 杂项层 | shensha/shenshu/shipaige/gongshen/gongfei/gongmen_wuzhi | ⏸ | — |
-| 9 辅助层 | bazi_calc/advanced/biqi/body_parts/chuangong/soil/virtual/wood/anhe | ⏸ | — |
-| 10 主观层 | narrative/schools/engine编排/payload | ⏸ | — |
+| 9 辅助层 | bazi_calc/advanced/biqi/body_parts/chuangong/soil/virtual/wood/anhe | ✅ | 10/15/40 |
+| 10 主观层 | narrative/schools/engine编排/payload | ✅ | 0/6/11 |
 
 ## 已发现的重磅问题（修复规划时按此优先级）
 
@@ -47,3 +47,14 @@
 
 ## 归档位置
 `/root/.claude/projects/-root-metaphysics/memory/kimi-audit-{1,2,3,4,5}-*.md`（批 1-5 全落盘）
+
+## 十批收官总结（2026-08-17）
+
+**核心结论**：
+1. 算法 P0 全集中在上游检测/判定层（zhengfan/laoyu/guanming/zhiye 等），主观编排层无新 P0（narrative/schools/engine 干净）
+2. 主要风险 = **GIGO**：上游低质/敏感字段未经护栏直喂 LLM——**寿元红线只堵一半**（zaihuo.siwang 死亡档直进 LLM 通道，prompt 无一字禁令）
+3. **死数据总清单 19 项**：整模块零消费 5（chuangong/body_parts/advanced/gongmen_wuzhi/zaihuo）+ 配置断路 4（桃花 day_ref/shensha_reference 等）+ 死字段 7（zihe/direction 等）+ 死函数分支 3
+4. **失效模式定型**：「docstring 冠名引用≠实现合书义」贯穿判定层；「伪标置信度高+测试锁自造 spec」chuangong 最典型
+5. 知识库勘误共 46 条（含 pytest 499≠KB 473、SOUL.md 验证数字过期、KB:247 例6 破从与书相反已传导代码注释）
+
+**修复规划素材**：P0 96 条按优先级分档（确定性 bug > 传导断口 > 方向大修 > 死数据清理），每个 P0 修复前回原著重验。
