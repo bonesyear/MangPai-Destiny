@@ -14,7 +14,7 @@
 | `nayin.py` | -> foundation（计算已迁移） | 纯计算（NAYIN_TABLE/NAYIN_WUXING/get_nayin）已迁至 `foundation.objective.nayin`；本模块仅保留盲派纳音权重与做功分析（get_nayin_mangpai/analyze_nayin_work），并 `from foundation.objective.nayin import *` 重新导出 |
 | `ganqing`（滴天髓干支性情） | 在 `foundation/objective/` | 滴天髓天干/地支性情赋，结构化为「条件->行为」规则，附原注与任氏曰；中性，不依附盲派机制 |
 | `constants.py` | 混合（中性常量 + 盲派特异常量） | 含中性数据（DI_ZHI/WU_XING/LIU_HE/LIU_CHONG/NAYIN_TABLE 等）与盲派特异常量（CANG_GAN_MANGPAI/CHANGSHENG_START_MANGPAI/NAYIN_WEIGHT/TOMB_MAP 等）；纳音表已与 foundation 同源（未删本处副本以不动其余模块逻辑）|
-| `anhe.py` | 盲派特异 | 暗合（寅丑/午亥/卯申/子巳）——盲派独有，私下联系/隐秘之事 |
+| `anhe.py` | 盲派特异 | 暗合（寅丑/午亥/卯申，仅三对——初级:3218 排他）——盲派独有，私下联系/隐秘之事 |
 | `biqi.py` | 盲派特异 | 闭气——六合闭墓库藏干（子丑闭丑金、辰酉闭辰水…），逢冲方解 |
 | `binzhu.py` | 盲派特异 | 宾主——四柱分主/宾/远宾三层，看日柱做功取外物还是内聚 |
 | `tiyong.py` | 盲派特异 | 体用——日主+印+比劫+禄为体，财+官杀为用，食伤居中 |

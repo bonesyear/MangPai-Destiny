@@ -3,13 +3,15 @@ muku — 盲派墓库规则
 
 理论来源：《渊海子平》墓库篇 + 盲师口传墓库体系
 核心思想：墓库是盲派重要的做功手段。
-  木墓在未, 火墓在戌, 金墓在丑, 水墓在辰, 土墓在辰（盲派）
+  木墓在未, 火墓在戌, 金墓在丑, 水墓在辰, 土墓在辰、戌（盲派，理象学:2035 双位）
   开库：墓库逢冲或刑则开（段氏「不冲不刑是墓（死的）」），开则可用
   闭库：墓库逢合则闭，闭则不可用
-  多而入墓：同类多则入墓
+  多而墓之：天干地支合在一起同类≥2，见墓即入（理象学:3002-3005）
+  四库之土直接入辰墓：丑入辰墓，未也入辰墓，无「多」前提（理象学:3008）
   透干引拔：墓库透干则引出
   坐墓不墓：自坐墓库不入墓
-已知争议：土墓在辰有争议，部分流派认为土无墓或土墓在戌
+已知争议：土墓流派有争议（土无墓/土墓在戌诸说）；段氏明言双位「土墓在辰、戌」
+  （理象学:2035），本模块从段氏。
 ⚠ 设计决策：己土墓位双轨并存——
   · changsheng.py 用火土同宫（己长生寅 → 墓在戌），管长生效率折扣
   · muku.py 用《五行精纪》戊寄戌己寄辰（己墓在辰），管天干入墓
@@ -115,7 +117,7 @@ def _tou_gan_elements(elements: List[str], gans: List[str]) -> List[str]:
     盲师口传墓库体系："墓库透干引拔方为真开"。墓库逢冲须天干透出所收五行，
     方把库中之物引出可用；无透干则虽冲亦闭。对应关系：
       辰为水/土库 → 壬癸（水）或 戊己（土）透
-      戌为火库   → 丙丁透
+      戌为火/土库 → 丙丁（火）或 戊己（土）透（土墓在辰、戌，理象学:2035）
       丑为金库   → 庚辛透
       未为木库   → 甲乙透
 
@@ -132,31 +134,37 @@ def _tou_gan_elements(elements: List[str], gans: List[str]) -> List[str]:
     return [e for e in elements if e in gan_wx_present]
 
 
-def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str]) -> bool:
+def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
+              all_gans: Optional[List[str]] = None) -> bool:
     """盲派入墓判定（段建业《段氏理象学》墓库篇）。
 
     规则：
-      - 基础条件：tombed_zhi 的五行须为 tomb_zhi 所收之五行（TOMB_MAP）
+      - 基础条件：tombed_zhi 的五行须为 tomb_zhi 所收之五行（TOMB_MAP；
+        土墓在辰、戌双位，理象学:2035）
       - 生位（四生 寅申巳亥）见墓库 → 入墓
-      - 旺位（四正 子午卯酉）不入墓，作半合/拱局看；
-        除非"多而入墓"——除墓库外同五行地支 ≥ 2 时方入墓（如两酉见丑）
-      - 墓位（四库 辰戌丑未）本身即墓库，与四正同走"多而入墓"，
-        不无条件入墓（段氏：四库为墓，唯"多"方收）
+      - 四库之土见辰 → 直接入墓，无「多」前提（理象学:3008「丑入辰墓，未也
+        入辰墓」；书例 :3080-3084 卯未辰寅「未入辰墓，自己控制着军队」）
+      - 旺位（四正 子午卯酉）/ 墓位（四库见戌）→ 多而墓之：天干地支合在
+        一起同五行 ≥ 2，见墓即入（理象学:3002-3005「多而墓之，即只要是
+        天干地支合在一起，有两个或两个以上，见墓即入，如辛酉柱见丑，即
+        辛酉入丑墓，不论酉丑拱局」）
       - 天干坐墓不入墓（如辛丑柱，辛不入丑墓）：本函数只判地支入地支墓，
         天干坐墓由调用方另行处理，此处不涉及
-      - 戌论冲开不入墓（段氏两书）：戌为火库，被冲/刑开时循冲开论（释火不入
-        墓）；未开（无辰戌冲、未遭丑戌未刑）时火支巳午正常入戌墓（《理象学》
-        :3058 两午见戌以入墓看、《理象学研究》:6200 蒋介石例巳午同入戌墓加一
-        层功）。戌作入墓方入辰墓仍依上述四库"多而入墓"规则
+      - 戌论冲开不入墓（段氏两书）：戌被冲/刑开时循冲开论（释出所藏不入
+        墓，《理象学研究》:12311「未运刑开戌中之火使巳火不入戌」）；未开
+        时火支巳午正常入戌墓（《理象学》:3058 两午见戌以入墓看、《理象学
+        研究》:6200 蒋介石例巳午同入戌墓加一层功）。土支皆冲/刑戌，「多」
+        要件成立时戌必已开，故土支入戌实际不成立（书亦无此明文）
 
-    "多而入墓"计数排除墓库自身：墓库为容器而非被收之物。四正之墓库五行
-    （土）恒异于入墓方五行，排除与否同值；四库之墓库五行（土）与入墓方
-    （土）相同，须排除方不误判（如辰戌同土，戌入辰不应仅因辰在盘即入墓）。
+    "多而墓之"计数排除墓库自身：墓库为容器而非被收之物。all_gans 提供时
+    天干参与计数（书:3002「天干地支合在一起」）；缺省为 None 时维持旧口径
+    仅数地支（兼容不传天干的调用方）。
 
     Args:
         tombed_zhi: 被收入墓的地支
         tomb_zhi: 墓库地支
-        all_zhis: 四柱全部地支（用于"多而入墓"计数）
+        all_zhis: 四柱全部地支（用于"多而墓之"计数）
+        all_gans: 四柱天干（可选，提供时计入"多而墓之"同五行数）
 
     Returns:
         是否入墓
@@ -165,24 +173,36 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str]) -> bool:
         return False
     if tomb_zhi not in TOMB_MAP:
         return False
-    # 戌论冲开不入墓（段氏两书）：戌为火库，被冲/刑开时循冲开论（释火不入墓，
+    tombed_wx = ZHI_WX.get(tombed_zhi, '')
+    if not tombed_wx or tombed_wx not in TOMB_MAP[tomb_zhi]:
+        return False
+    # 戌论冲开不入墓（段氏两书）：戌被冲/刑开时循冲开论（释出所藏不入墓，
     # 《理象学研究》:12311「未运刑开戌中之火使巳火不入戌」）；未开（无辰戌冲、
     # 未遭丑戌未刑）时火支巳午正常入戌墓（《理象学》:3058「两午并见见戌便以入
     # 墓看」、《理象学研究》:6200 蒋介石例「主位巳、午同入戌墓，墓加一层功」）。
-    # 戌作入墓方入辰墓仍依下述四库"多而入墓"规则（戌作 tombed 不经此分支）。
+    # 注：土支（辰丑未）皆冲/刑戌，「多而墓之」要件成立时戌必已开，故土支入戌
+    # 实际不成立；书亦无土支入戌明文（原则5 仅言丑未入辰，:3008）——维持旧口径。
     if tomb_zhi == '戌' and _is_tomb_opened('戌', all_zhis):
-        return False
-    tombed_wx = ZHI_WX.get(tombed_zhi, '')
-    if not tombed_wx or tombed_wx not in TOMB_MAP[tomb_zhi]:
         return False
     # 生位（四生）见墓库 → 入墓
     if tombed_zhi in SI_SHENG:
         return True
-    # 旺位（四正）/ 墓位（四库）：多而入墓——除墓库自身外同五行地支 ≥ 2
+    # 四库之土直接入辰墓（理象学:3008「丑入辰墓，未也入辰墓」，无「多」前提；
+    # 书例 :3080-3084 卯未辰寅「未入辰墓」）。土支即四库（辰戌丑未），
+    # 排除辰自身（辰不入辰墓）。
+    if tomb_zhi == '辰' and tombed_wx == '土' and tombed_zhi != '辰':
+        return True
+    # 旺位（四正）/ 墓位（四库见戌）：多而墓之——天干地支合在一起，除墓库
+    # 自身外同五行 ≥ 2（理象学:3002-3005）
     same_wx_count = sum(
         1 for z in all_zhis
         if z and z != tomb_zhi and ZHI_WX.get(z, '') == tombed_wx
     )
+    if all_gans:
+        same_wx_count += sum(
+            1 for g in all_gans
+            if g and GAN_WX.get(g, '') == tombed_wx
+        )
     return same_wx_count >= 2
 
 
@@ -273,7 +293,8 @@ def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
 
     # tomb_relations: 检测哪些地支入了哪些墓库
     # 单遍历上三角，双向检查（z1入z2墓 或 z2入z1墓）
-    # 入墓判定遵循盲派规则：四正不入墓（除非多而入墓），四生入墓
+    # 入墓判定遵循盲派规则：四正多而墓之（天干地支合计数），四生入墓，
+    # 四库之土直接入辰墓（见 muku.is_entomb）
     for i in range(len(zhis)):
         for j in range(i + 1, len(zhis)):
             z1, z2 = zhis[i], zhis[j]
@@ -282,13 +303,13 @@ def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
             wx1 = WU_XING_DZ[DI_ZHI.index(z1)] if z1 in DI_ZHI else ''
             wx2 = WU_XING_DZ[DI_ZHI.index(z2)] if z2 in DI_ZHI else ''
 
-            if is_entomb(z1, z2, zhis):
+            if is_entomb(z1, z2, zhis, gans):
                 tomb_relations.append({
                     'from': {'zhi': z1, 'pillar': _PILLAR_NAMES[i]},
                     'to': {'zhi': z2, 'pillar': _PILLAR_NAMES[j]},
                     'relation': f'{z1}({wx1})入{z2}墓',
                 })
-            if is_entomb(z2, z1, zhis):
+            if is_entomb(z2, z1, zhis, gans):
                 tomb_relations.append({
                     'from': {'zhi': z2, 'pillar': _PILLAR_NAMES[j]},
                     'to': {'zhi': z1, 'pillar': _PILLAR_NAMES[i]},

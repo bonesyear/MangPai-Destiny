@@ -562,10 +562,12 @@ anhe_actions2 = [wa for wa in zg_anhe2.get('work_actions', []) if wa.get('type')
 check('非日支暗合不计入做功', len(anhe_actions2) == 0,
       f'检测到非日支暗合: {anhe_actions2}')
 
-# AN_HE表双向验证
-for a, b in [('寅', '丑'), ('午', '亥'), ('卯', '申'), ('子', '巳')]:
+# AN_HE表双向验证（仅三对——理象学:2555 全列、初级:3218「只有三个」排他）
+for a, b in [('寅', '丑'), ('午', '亥'), ('卯', '申')]:
     check(f'暗合 {a}→{b}', AN_HE.get(a) == b)
     check(f'暗合 {b}→{a}', AN_HE.get(b) == a)
+# 子巳非暗合（初级:3218 排他表述，批1 P1-2→批9 升级 P0，F2 删除）
+check('暗合无子巳（仅三对）', '子' not in AN_HE and '巳' not in AN_HE)
 
 # ── 10. 克破方向 ──
 print('\n── 10. 克破方向（WX_KE_ME）──')
@@ -654,6 +656,7 @@ check('火墓在戌', '火' in TOMB_MAP.get('戌', []))
 check('金墓在丑', '金' in TOMB_MAP.get('丑', []))
 check('水墓在辰', '水' in TOMB_MAP.get('辰', []))
 check('土墓在辰', '土' in TOMB_MAP.get('辰', []))
+check('土墓亦在戌', '土' in TOMB_MAP.get('戌', []))  # 理象学:2035「土墓在辰、戌」双位
 
 # ── 13. 六冲/六合/六害表验证 ──
 print('\n── 13. 六冲/六合/六害表 ──')
@@ -811,16 +814,17 @@ check('work_types不含降级合用', '合用' not in zg_wt.get('work_types', []
 check('work_types保留日制用', '制用' in zg_wt.get('work_types', []),
       f"work_types={zg_wt.get('work_types')}")
 
-# ── 16. 四库入墓误判修复（P0-2）──
-print('\n── 16. 四库入墓误判修复（四库走多而入墓）──')
+# ── 16. 四库入墓（四库之土直接入辰墓）──
+print('\n── 16. 四库入墓（四库之土直接入辰墓）──')
 
 # is_entomb 单元验证
-# 四库(戌)入辰墓：辰戌同土，盘上仅一戌（非多）→ 不入墓
-check('is_entomb 四库非多不入墓(戌入辰)',
-      is_entomb('戌', '辰', ['子', '寅', '辰', '戌']) is False)
-# 四库多而入墓：未+戌两土（除墓库辰）→ 入墓
-check('is_entomb 四库多而入墓(戌入辰)',
-      is_entomb('戌', '辰', ['未', '寅', '辰', '戌']) is True)
+# 四库之土入辰墓无「多」前提：理象学:3008「丑入辰墓，未也入辰墓」——
+# 盘上仅一戌（非多）亦直接入辰墓（F2 批改锁：旧锁「非多不入」所托注释与段书原文相反）
+check('is_entomb 四库之土直接入辰墓(戌入辰)',
+      is_entomb('戌', '辰', ['子', '寅', '辰', '戌']) is True)
+# 书例直锁：理象学:3080-3084 卯未辰寅「未入辰墓，自己控制着军队」
+check('is_entomb 四库之土直接入辰墓(未入辰书例)',
+      is_entomb('未', '辰', ['卯', '未', '辰', '寅']) is True)
 # 四生入墓不变：亥(水,四生)见辰(水墓) → 入墓
 check('is_entomb 四生入墓不变(亥入辰)',
       is_entomb('亥', '辰', ['寅', '午', '辰', '亥']) is True)
@@ -831,13 +835,13 @@ check('is_entomb 四正非多不入墓(子入辰)',
 check('is_entomb 四正多而入墓(两酉见丑)',
       is_entomb('酉', '丑', ['酉', '酉', '丑', '午']) is True)
 
-# 端到端：辰戌冲的盘不应产生戌入辰墓
-# zhis=[子,寅,辰,戌]，日辰时戌辰戌冲；辰戌同土但仅一戌（非多）→ 无墓用
+# 端到端：辰戌冲的盘，戌（土）仍直接入辰墓（书:3008 原则5 无「多」前提；
+# 辰戌冲=开库，开库不碍入墓关系）
 zg_cv = analyze_zuogong('戊', '辰', '甲', '子', '丙', '寅', '庚', '戌')
 cv_tombs = zg_cv.get('tomb_works', [])
-check('辰戌冲不产生戌入辰墓',
-      not any(wa.get('type') == '墓用' and '戌' in wa.get('to', '')
-              and '辰' in wa.get('from', '') for wa in cv_tombs),
+check('辰戌冲盘戌直接入辰墓',
+      any(wa.get('type') == '墓用' and '戌' in wa.get('to', '')
+          and '辰' in wa.get('from', '') for wa in cv_tombs),
       f'tomb_works={cv_tombs}')
 # 多而入墓端到端：未+戌两土 → 戌入辰墓应产生
 zg_duo = analyze_zuogong('戊', '辰', '己', '未', '丙', '寅', '庚', '戌')
@@ -1040,7 +1044,9 @@ if hlu_kw_act:
 # 禄不在主位（在宾位月柱）且日柱确无做功：primary_work 保持通用禄比 label，无禄action
 # 注：此柱组刻意避开日柱六合/暗合/天干克，以纯化"俱不做功"fallback 的覆盖
 # （日柱有做功的情形由下方 禄分支触发守卫 三例覆盖）。
-zg_nolu = analyze_zuogong('丙', '辰', '甲', '未', '乙', '巳', '丁', '午')
+# F2 改盘：旧盘年支=未，书:3008「未也入辰墓」直接入墓后日支辰有墓用做功，
+# 前提失效；年支未→巳（火支无墓可入、与辰无冲合穿刑），保持"日柱俱不做功"纯化意图。
+zg_nolu = analyze_zuogong('丙', '辰', '甲', '巳', '乙', '巳', '丁', '午')
 check('禄在宾位 不升级(通用label)',
       zg_nolu['primary_work'].get('lu_in_zhu') is None
       and '俱不做功' in zg_nolu['primary_work'].get('path', ''),

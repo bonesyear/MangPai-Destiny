@@ -78,6 +78,7 @@ from mangpai.objective.constants import (
     CANG_GAN_MANGPAI, TOMB_MAP, PILLAR_KEYS,
     is_pillars,
 )
+from mangpai.objective.muku import is_entomb
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.caiming import classify_caifu_view
 from mangpai.subjective.yongshen import (
@@ -523,7 +524,11 @@ def analyze_gongliang(
     #   源文（李嘉诚例）：「亥出自辰，从辰墓中引出，亥水有源头得到一个大的库，
     #   再加一层功量」。须原神用神同制成立(真实制局)方计，被制元素之墓库在局即此。
     #   同制位为墓库时其藏干原神/用神出自同类墓库亦属引出（zhenbao-05 厅级官：
-    #   辰中癸水原神出自另一辰水库），不按自墓排除。
+    #   辰中癸水原神出自另一辰水库），不按自墓排除；但墓库元素与制局目标同字
+    #   （如戌之墓库=戌自身，TOMB_MAP 戌兼火/土墓后可能自指）不为源——书无自墓
+    #   为源说（批3 P1-3 潜伏，F2 TOMB_MAP 加戌后激活：理象学例六 戌(土)目标
+    #   自计库源 +1 致 L2→L3 越书「定层功2层」），同字即排除（zhenbao-05 锚为
+    #   干癸≠支辰，不受影响）。
     #   同源去重（K3 base3 批）：被制元素已计「入墓为功」（元素入该墓=被收藏）
     #   者，同一元素-墓库对不得再以「出自墓库=源头得库」重计——引出(李嘉诚)与
     #   入墓(收藏)为同一墓对之相反读法，入墓在案者源头说自相矛盾（qi15-伤官
@@ -542,6 +547,7 @@ def analyze_gongliang(
                 idx = PILLAR_KEYS.index(pk)
                 z = zhis[idx] if idx < len(zhis) else ''
                 if (z and _is_tomb(z) and ys_wx in _tomb_wx(z)
+                        and z != ys_elem
                         and (ys_elem, z) not in _entombed_pairs):
                     points += 1
                     reasons.append(
@@ -550,10 +556,13 @@ def analyze_gongliang(
                     )
                     # 连墓加层：月令提纲入墓于源头之库，加大库之功量（源文李嘉诚例
                     # 「再看这个辰本身又是未的墓库，月令己未全部入墓于辰，又加大了
-                    # 辰的功量」）。须月令支五行入同一已计源头之库，且该入墓对未经
+                    # 辰的功量」）。须月令支与源头之库成立真实入墓关系（走
+                    # muku.is_entomb 统一口径——裸五行匹配会把刑冲已开之库误计
+                    # 入墓，如戌被丑戌刑开则午火不入戌），且该入墓对未经
                     # 入墓为功计点（同源去重）。
                     _mz = zhis[PILLAR_KEYS.index('month')] if len(zhis) > 1 else ''
-                    if (_mz and _mz != z and ZHI_WX.get(_mz, '') in _tomb_wx(z)
+                    if (_mz and _mz != z
+                            and is_entomb(_mz, z, zhis, gans)
                             and (_mz, z) not in _entombed_pairs):
                         points += 1
                         reasons.append(

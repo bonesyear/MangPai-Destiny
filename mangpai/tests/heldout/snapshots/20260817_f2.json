@@ -1,0 +1,7226 @@
+{
+ "heldout": {
+  "shouke-ans05-文秘转行政": {
+   "verdict_labels": {
+    "官命": "是·行政升职",
+    "职业": "文秘→行政"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年辛未(1960)：流年反局·类型一(破坏功神)；岁运反局·流年辛未(1960)：流年反局·破从(日主得根)；伤官见官为忌：从弱正官为用神，伤官明现实伤其官（1处），段氏「伤官见官贵气损」（官非/贵气受损；官为忌神之伤官去官格不在此列））"
+   }
+  },
+  "shouke-ans05-保卫科长升副处长": {
+   "verdict_labels": {
+    "官命": "是·副处长",
+    "职业": "官员·医院保卫科长调入某厅"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans06-车祸身亡": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·大运乙卯：大运反局·类型二(冲变合)；岁运反局·大运乙卯：大运反局·类型二(合闭墓库)；岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)；岁运反局等共4条）"
+   }
+  },
+  "shouke-ans07-仇甫全作家": {
+   "verdict_labels": {
+    "官命": "否·文化系统职员（民办教师→县文教局机关→报社负责人庚午年年底免职）",
+    "职业": "文化·作家编辑教师"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans07-李后启校长": {
+   "verdict_labels": {
+    "官命": "是·小学校长",
+    "职业": "教师·22岁当小学校长"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans09-任氏落魄文人": {
+   "verdict_labels": {
+    "官命": "否·不能做官",
+    "职业": "文化·落魄文人"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-ans10-梦露": {
+   "verdict_labels": {
+    "职业": "演员·美国影星"
+   },
+   "scores": {
+    "职业": "⚠️"
+   },
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而年支寅（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）；下浮封顶2阶（一般凶向：岁运反局·流年壬寅(1960)：流年反局·类型一(破坏功神)；岁运反局·流年壬寅(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "shouke-ans10-下海百万": {
+   "verdict_labels": {
+    "财命": "富·百万之富",
+    "职业": "商人·辞职下海创业"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运庚辰：大运反局·类型二(冲变合)）"
+   }
+  },
+  "shouke-ans10-林青霞": {
+   "verdict_labels": {
+    "职业": "演员·名演员"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运壬申：大运反局·类型一(破坏功神)）"
+   }
+  },
+  "shouke-ans11-贱命无赖": {
+   "verdict_labels": {
+    "财命": "贫·贫困度日",
+    "职业": "农民·无赖讹诈"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans12-下岗财会": {
+   "verdict_labels": {
+    "财命": "小康·96年起收入丰厚庚辰年买房",
+    "职业": "财会·管理账务"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "shouke-ans12-下岗穷命": {
+   "verdict_labels": {
+    "财命": "贫·下岗后一直找不到工作很穷",
+    "职业": "无业·下岗"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "shouke-ans12-靠绊大款": {
+   "verdict_labels": {
+    "财命": "平·靠绊大款为生不劳而获"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans15-银行董事长": {
+   "verdict_labels": {
+    "财命": "富·创办银行",
+    "职业": "银行家·董事长"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "shouke-ans17-虚名骗子型": {
+   "verdict_labels": {
+    "官命": "否·无官杀无牢狱",
+    "职业": "骗子·骗得虚名"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "岁运反局·大运辛亥：大运反局·类型一(破坏功神)",
+     "岁运反局·流年己卯(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年己卯(1960)：流年反局·类型一(伏吟三刑)"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans18-CCTV编导": {
+   "verdict_labels": {
+    "职业": "文化·电视台编导"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "doctor",
+    "zhiye_label": "医生/医疗",
+    "veto_reasons": [
+     "岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)）"
+   }
+  },
+  "shouke-ans19-格林斯潘": {
+   "verdict_labels": {
+    "官命": "是·美联储主席",
+    "职业": "官员·央行行长"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "lawyer",
+    "zhiye_label": "律师/法务/公检法",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·流年丁卯(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丁卯(1960)：流年反局·类型一(引动忌神)；岁运反局·流年丁卯(1960)：流年反局·类型一(合变冲)；岁运反局等共4条）"
+   }
+  },
+  "shouke-ans21-双妻妻私通": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·大运甲午：大运反局·类型一(破坏功神)；岁运反局·流年丙寅(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丙寅(1960)：流年反局·类型一(引动忌神)；岁运反局等共7条；用神被合绊：从弱，2处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发）；过河拆桥破财）"
+   }
+  },
+  "shouke-ans25-比尔盖茨": {
+   "verdict_labels": {
+    "财命": "巨富·大富翁",
+    "职业": "技术·尖端技术产业"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)；岁运反局·流年庚辰(1960)：流年反局·类型一(伏吟三刑)；岁运反局等共4条）"
+   }
+  },
+  "shouke-ans29-领导司机": {
+   "verdict_labels": {
+    "官命": "否·侍候当官的命",
+    "职业": "司机·给领导开车"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "shouke-ans29-一贫如洗": {
+   "verdict_labels": {
+    "财命": "贫·一贫如洗一生未赚过一千元"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans30-从禄格有钱": {
+   "verdict_labels": {
+    "财命": "富·丙子丁丑年赚钱最多"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "shouke-ans31-为财坐牢": {
+   "verdict_labels": {
+    "财命": "凶·为财坐牢几次穷困不堪"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [
+     "岁运反局·大运丙子：大运反局·类型一(破坏功神)",
+     "官非牢狱·魁罡逢冲官兼枭神夺食（段氏牢狱五法占多灾重）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans32-丙戌运发财": {
+   "verdict_labels": {
+    "财命": "富·丙戌运发财"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-ans33-博彩大发": {
+   "verdict_labels": {
+    "财命": "平·丁巳年大发戊午年大破财",
+    "职业": "博彩/小生意"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-ans37a-女强人理财": {
+   "verdict_labels": {
+    "财命": "富·为别人理财赚钱事业干得大",
+    "职业": "理财·女强人"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "shouke-ans37b-得200万": {
+   "verdict_labels": {
+    "财命": "富·初恋情人给200万"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运戊申：大运反局·类型一(破坏功神)；岁运反局·大运戊申：大运反局·类型二(合变冲)；岁运反局·大运戊申：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "shouke-ans38-成不了大气": {
+   "verdict_labels": {
+    "官命": "否·成不了大气"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "shouke-ans45-第三者": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星入墓未开，财被收藏难取，封顶小康）"
+   }
+  },
+  "shouke-ans46-银行行长": {
+   "verdict_labels": {
+    "官命": "是·银行行长沾岳父光",
+    "职业": "银行"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "shouke-li001-乙亥发财": {
+   "verdict_labels": {
+    "财命": "富·乙亥年后发财数十万"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·流年乙亥(1960)：流年反局·类型一(破坏功神)）"
+   }
+  },
+  "shouke-li001-患妻思夫": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li001-四个男人": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "shouke-li001-要女": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li001-康熙": {
+   "verdict_labels": {
+    "官命": "是·制官得官省级（帝王康熙）",
+    "职业": "皇帝"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "doctor",
+    "zhiye_label": "医生/医疗",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li001-妻二手货离婚": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li001-贷巨款骗子": {
+   "verdict_labels": {
+    "财命": "凶·贷巨款兼并企业达10亿无一赢利携款潜逃",
+    "职业": "商人·骗子"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "岁运反局·大运戊午：大运反局·类型一(破坏功神)",
+     "岁运反局·大运戊午：大运反局·类型二(冲变合)",
+     "岁运反局·流年戊寅(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局等共5条"
+    ],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：岁运反局·大运戊午：大运反局·类型一(破坏功神)；岁运反局·大运戊午：大运反局·类型二(冲变合)；岁运反局·流年戊寅(1960)：流年反局·类型一(破坏功神)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li002-炒股有钱": {
+   "verdict_labels": {
+    "财命": "富·炒股年赚十几万",
+    "职业": "炒股"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "shouke-li002-闹离婚": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "岁运反局·大运甲午：大运反局·类型一(破坏功神)",
+     "岁运反局·大运甲午：大运反局·破从(日主得根)",
+     "岁运反局·流年辛巳(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局等共5条"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运甲午：大运反局·类型一(破坏功神)；岁运反局·大运甲午：大运反局·破从(日主得根)；岁运反局·流年辛巳(1960)：流年反局·类型一(破坏功神)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li002-早婚必离": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；过河拆桥富格直判（制尽净制，制官得财定式），基阶不落下富；上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：岁运反局·大运甲寅：大运反局·类型一(破坏功神)；岁运反局·大运甲寅：大运反局·类型二(合变冲)；岁运反局·大运甲寅：大运反局·类型三(伏吟三刑)；岁运反局等共4条）"
+   }
+  },
+  "shouke-li002-城建处长两婚": {
+   "verdict_labels": {
+    "官命": "是·城建处处长",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li002-梅加瓦蒂三婚": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；上浮（开财库，墓中之财复出主大发）"
+   }
+  },
+  "shouke-li002-无子要子": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "shouke-li002-办事处主任": {
+   "verdict_labels": {
+    "官命": "是·总参四部山西办事处主任",
+    "财命": "富·私企收入很高未运做生意赚十几万",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·流年辛未(1960)：流年反局·类型一(破坏功神)；岁运反局·流年辛未(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "shouke-li002-去印得权降职": {
+   "verdict_labels": {
+    "官命": "是·去印得权",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "从财有原神转化（22期例1从财格乙亥年发财），基阶不落下富"
+   }
+  },
+  "shouke-li002-亥年结婚": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·印夺食：从弱食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "shouke-li002-牟其中": {
+   "verdict_labels": {
+    "财命": "凶·信用诈骗判刑",
+    "职业": "商人·民营企业家"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)；岁运反局·流年庚辰(1960)：流年反局·类型一(冲变合)）"
+   }
+  },
+  "shouke-li003-二婚夫外遇": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "shouke-li003-离异重娶": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li003-五次婚姻": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：比劫夺财·破财：从弱财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下）；用神被合绊：从弱，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "shouke-li003-七次婚姻": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li003-少年被抢奸": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li003-福建厅长": {
+   "verdict_labels": {
+    "官命": "是·福建省某厅厅长",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li003-人贩子": {
+   "verdict_labels": {
+    "职业": "犯罪·人贩子"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)；岁运反局·流年庚辰(1960)：流年反局·类型一(冲变合)；岁运反局等共4条）"
+   }
+  },
+  "shouke-li004-波折未离": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "shouke-li004-车祸死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li006-坏在老婆": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "shouke-li009-两个妻": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "shouke-li020-离婚同居秘书": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：忌神制用神·财坏印：身弱印为用神、财为忌神，1处财制印（财3柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "shouke-li027-处长调校长": {
+   "verdict_labels": {
+    "官命": "是·原民政厅处长调任盲校校长清官",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·流年壬申(1960)：流年反局·类型一(破坏功神)；岁运反局·流年壬申(1960)：流年反局·类型一(引动忌神)；岁运反局·流年壬申(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "shouke-li037-两子送终": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li040-段建业造": {
+   "verdict_labels": {
+    "职业": "文化·命理研究者"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年丁丑(1960)：流年反局·类型一(引动忌神)；岁运反局·流年丁丑(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "shouke-li046-辛巳年死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局）；岁运反局·大运辛酉：大运反局·类型一(破坏功神)；岁运反局·大运辛酉：大运反局·类型二(冲变合)；岁运反局·大运辛酉：大运反局·类型二(合闭墓库)；岁运反局等共8条；忌神制用神·印夺食：身强食伤为用神、印为忌神，2处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "shouke-li048-中年丧母": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年丙辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丙辰(1960)：流年反局·类型一(引动忌神)）"
+   }
+  },
+  "shouke-li050-嫁厅长子夫外遇": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li054-掌兵权大贵": {
+   "verdict_labels": {
+    "官命": "是·大贵掌兵权",
+    "职业": "军"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "doctor",
+    "zhiye_label": "医生/医疗",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而年支寅（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运庚申：大运反局·类型一(破坏功神)；岁运反局·大运庚申：大运反局·类型二(合变冲)；岁运反局·大运庚申：大运反局·类型三(伏吟三刑)；岁运反局等共6条）"
+   }
+  },
+  "shouke-li064-很穷": {
+   "verdict_labels": {
+    "财命": "贫·很穷什么都没有"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li066-副部长": {
+   "verdict_labels": {
+    "官命": "是·副部长",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "lawyer",
+    "zhiye_label": "律师/法务/公检法",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "shouke-li068-靳如超": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运辛卯：大运反局·类型三(伏吟三刑)；岁运反局·流年辛巳(1960)：流年反局·类型一(破坏功神)；岁运反局·流年辛巳(1960)：流年反局·类型一(引动忌神)；岁运反局等共6条）"
+   }
+  },
+  "shouke-li069-戚继光": {
+   "verdict_labels": {
+    "官命": "是·贵",
+    "职业": "军·名将"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "shouke-li077-预测部经理": {
+   "verdict_labels": {
+    "财命": "富·发财",
+    "职业": "预测部经理"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "shouke-li078-早夭": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li083-差点当皇帝": {
+   "verdict_labels": {
+    "官命": "否·差一点当皇帝印重当不了"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年辛亥(1960)：流年反局·类型一(破坏功神)；岁运反局·流年辛亥(1960)：流年反局·类型一(引动忌神)；岁运反局·流年辛亥(1960)：流年反局·类型一(禄刃倒戈)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li084-夫不要她": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li087-冯玉祥": {
+   "verdict_labels": {
+    "官命": "是·领兵打仗",
+    "职业": "军"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "shouke-li088-台湾将军": {
+   "verdict_labels": {
+    "官命": "是·将军",
+    "职业": "军·台湾将军"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "忌神制用神·印夺食：从弱食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女））"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li094-走私坐牢": {
+   "verdict_labels": {
+    "财命": "凶·走私犯罪坐牢"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li099-南怀瑾": {
+   "verdict_labels": {
+    "职业": "文化·大文学家出大量作品"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li099-洪秀全": {
+   "verdict_labels": {
+    "官命": "是·金田起义天王"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li101-穷命": {
+   "verdict_labels": {
+    "财命": "贫·穷命"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "shouke-li101-印破无成": {
+   "verdict_labels": {
+    "官命": "否·官印格有破印破无成"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局）；忌神制用神·财坏印：身弱印为用神、财为忌神，1处财制印（财1柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位））；财生杀攻身：身弱财旺（明现3位）生七杀贴身、杀无制、印化无力，段氏「财党杀、杀攻身」因财致祸凶格）"
+   }
+  },
+  "shouke-li101-不贵": {
+   "verdict_labels": {
+    "官命": "否·身弱无印官星合身不贵"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "shouke-li111-无官": {
+   "verdict_labels": {
+    "官命": "否·无官"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "shouke-li112-足球队教练": {
+   "verdict_labels": {
+    "官命": "否·杀刃俱全格局为贵本为领兵打仗武将，申杀空亡非真兵刃相击，实为足球队教练",
+    "职业": "体育·国家足球队教练"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li115-乙亥年死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li117-当官累": {
+   "verdict_labels": {
+    "官命": "是·当官的但当官累",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：忌神制用神·印夺食：从弱食伤为用神、印为忌神，1处印制食伤（印1柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "shouke-li121-两次婚姻": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "shouke-li121-克夫再嫁": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "shouke-li128-开除后地产富": {
+   "verdict_labels": {
+    "官命": "是·曾任公职癸亥年开除",
+    "财命": "富·丙申运做地产生意很有钱",
+    "职业": "公职→地产商"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运乙未：大运反局·类型一(破坏功神)；岁运反局·流年癸亥(1960)：流年反局·类型一(破坏功神)；岁运反局·流年癸亥(1960)：流年反局·类型一(合变冲)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li128-壬子运穷": {
+   "verdict_labels": {
+    "财命": "贫·壬子运穷了财得多破也多"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [
+     "岁运反局·大运壬子：大运反局·类型三(伏吟三刑)",
+     "比劫夺财·破财：从弱财为用神，1处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li131-乙亥发财": {
+   "verdict_labels": {
+    "财命": "富·壬申运乙亥年发财丙子年发财"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li131-金昌盛": {
+   "verdict_labels": {
+    "官命": "否·不是当官的",
+    "财命": "富·钢材生意一年赚六百多万",
+    "职业": "商人·钢材"
+   },
+   "scores": {
+    "官命": "❌",
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·流年辛未(1960)：流年反局·类型一(破坏功神)）"
+   }
+  },
+  "shouke-li133-房地产倒卖": {
+   "verdict_labels": {
+    "财命": "富·房地产倒卖商发财",
+    "职业": "教师→商人"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（日主自合合财，48期「日主因合而从支」，财为我合得）"
+   }
+  },
+  "shouke-li139-靠丈夫富": {
+   "verdict_labels": {
+    "财命": "富·资金运作好效益高"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "shouke-li141-从财非常穷": {
+   "verdict_labels": {
+    "财命": "贫·非常穷"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "从财伏吟单一无转化（段氏「没有转化，缺乏连贯性」），从财亦贫"
+   }
+  },
+  "shouke-li141-仕至黄堂": {
+   "verdict_labels": {
+    "官命": "是·仕至黄堂很贵",
+    "财命": "富·百万富翁"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li141-辛酉运当官": {
+   "verdict_labels": {
+    "官命": "是·当官的"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li141-名笔杆子": {
+   "verdict_labels": {
+    "财命": "破财·壬戌运群比夺财赚不了钱反而破财",
+    "职业": "文化·名笔杆子作家编辑"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li151-穷教书匠": {
+   "verdict_labels": {
+    "财命": "贫·很穷",
+    "职业": "教师·教60年书穷教书匠"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li154-摇滚歌星": {
+   "verdict_labels": {
+    "职业": "演艺·摇滚歌星"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "shouke-li154-演员吸毒亡": {
+   "verdict_labels": {
+    "职业": "演员"
+   },
+   "scores": {
+    "职业": "⚠️"
+   },
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运庚申：大运反局·类型一(破坏功神)；岁运反局·大运庚申：大运反局·类型二(合变冲)；岁运反局·大运庚申：大运反局·类型三(伏吟三刑)；岁运反局等共4条）"
+   }
+  },
+  "shouke-li158-舞蹈家胆癌": {
+   "verdict_labels": {
+    "职业": "艺术·舞蹈家"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "shouke-li158-富超百万": {
+   "verdict_labels": {
+    "财命": "富·富超百万"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "shouke-li158-发财无子女": {
+   "verdict_labels": {
+    "财命": "富·甲戌年发大财占人便宜"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [
+     "岁运反局·流年甲戌(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年甲戌(1960)：流年反局·类型一(引动忌神)",
+     "岁运联动·甲戌(1960)：岁运联动·相刑",
+     "用神被合绊：身强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li161-二子一死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "岁运反局·大运辛丑：大运反局·类型一(破坏功神)",
+     "岁运反局·流年乙亥(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年乙亥(1960)：流年反局·类型一(引动忌神)",
+     "岁运反局等共5条"
+    ],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运辛丑：大运反局·类型一(破坏功神)；岁运反局·流年乙亥(1960)：流年反局·类型一(破坏功神)；岁运反局·流年乙亥(1960)：流年反局·类型一(引动忌神)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li175-慈禧": {
+   "verdict_labels": {
+    "官命": "是·管皇帝的"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运甲午：大运反局·类型一(破坏功神)；岁运反局·大运甲午：大运反局·类型二(冲变合)；岁运反局·大运甲午：大运反局·类型二(合闭墓库)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li181-经济博士生": {
+   "verdict_labels": {
+    "职业": "文化·经济博士生"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li181-梁启超A": {
+   "verdict_labels": {
+    "官命": "是·任教育总长司法总长",
+    "职业": "官员·梁启超"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [
+     "比劫夺财·破财：身强财为用神，1处比劫制财（比劫3柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶1阶（严重凶向：比劫夺财·破财：身强财为用神，1处比劫制财（比劫3柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫））"
+   }
+  },
+  "shouke-li191-大财主": {
+   "verdict_labels": {
+    "财命": "巨富·资产几个亿"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；过河拆桥富格直判（制尽净制，制官得财定式），基阶不落下富；下浮封顶2阶（一般凶向：用神被合绊：身强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "shouke-li191-换妻": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "用神被合绊：身强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li191-从财富有": {
+   "verdict_labels": {
+    "财命": "富·从财得别人之财很富有"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "从财成局（段氏「巳酉丑合财局…发大财」），基阶不落下富"
+   }
+  },
+  "shouke-li191-发大财大富": {
+   "verdict_labels": {
+    "财命": "巨富·发大财大富"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "从财成局（段氏「巳酉丑合财局…发大财」），基阶不落下富"
+   }
+  },
+  "shouke-li200-夫死地产发财": {
+   "verdict_labels": {
+    "财命": "富·丁酉年房地产开发商发财",
+    "职业": "房地产商"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运戊戌：大运反局·破从(日主得根)；岁运反局·流年庚午(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚午(1960)：流年反局·破从(日主得根)）"
+   }
+  },
+  "shouke-li202-乞丐": {
+   "verdict_labels": {
+    "财命": "贫·身弱不胜财乞丐"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "shouke-li207-副市长秘书": {
+   "verdict_labels": {
+    "官命": "是·副市长的秘书",
+    "职业": "官员·秘书"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "shouke-li208-淫贱": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "shouke-li209-从儿亡": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运丙申：大运反局·类型一(破坏功神)；岁运反局·大运丙申：大运反局·类型三(伏吟三刑)；岁运反局·大运丙申：大运反局·破从(日主得根)）"
+   }
+  },
+  "shouke-li211-台湾总统": {
+   "verdict_labels": {
+    "官命": "是·曾任台湾总统"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）；制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）"
+   }
+  },
+  "shouke-li213-董竹君": {
+   "verdict_labels": {
+    "财命": "富·第一个女企业家锦江饭店",
+    "职业": "企业家"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "岁运反局·大运丁丑：大运反局·类型二(冲变合)"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li214-李敖": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li215-名演员忧郁亡": {
+   "verdict_labels": {
+    "职业": "演员·名演员表演有成就"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [
+     "岁运反局·大运辛酉：大运反局·类型一(破坏功神)",
+     "岁运反局·流年乙亥(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年乙亥(1960)：流年反局·类型一(引动忌神)",
+     "岁运反局等共4条"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li222-戊寅升官": {
+   "verdict_labels": {
+    "官命": "是"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（制库得财，开库同制财与原神，量级同制尽）"
+   }
+  },
+  "shouke-li224-火灾烧死": {
+   "verdict_labels": {
+    "职业": "教育·小干事"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li234-吴佩孚": {
+   "verdict_labels": {
+    "官命": "是·直系首领",
+    "职业": "军"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "lawyer",
+    "zhiye_label": "律师/法务/公检法",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·流年己卯(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己卯(1960)：流年反局·类型一(引动忌神)；岁运反局·流年己卯(1960)：流年反局·类型一(冲变合)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li237-革命阳萎": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运丙申：大运反局·类型一(破坏功神)；岁运反局·大运丙申：大运反局·类型三(伏吟三刑)；岁运反局·大运丙申：大运反局·破从(日主得根)；岁运反局等共6条）"
+   }
+  },
+  "shouke-li238-徐世昌寿高": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年己卯(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己卯(1960)：流年反局·类型一(冲变合)；岁运反局·流年己卯(1960)：流年反局·类型一(合变冲)；岁运反局等共4条）"
+   }
+  },
+  "shouke-li240-戊辰年死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "shouke-li244-亿万富翁寿长": {
+   "verdict_labels": {
+    "财命": "巨富·亿万富翁"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "shouke-li249-张之洞": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女））"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li263-书法家": {
+   "verdict_labels": {
+    "官命": "否·伤官制官不为官",
+    "职业": "文化·书法家"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li263-三婚牢狱": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-li263-歌厅小姐": {
+   "verdict_labels": {
+    "职业": "色情业·歌厅小姐"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女））"
+    ],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "shouke-li263-财税所长被打死": {
+   "verdict_labels": {
+    "官命": "是·财税所所长",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li263-三陪女": {
+   "verdict_labels": {
+    "职业": "色情业·三陪女"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "shouke-li263-死大女儿": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "shouke-li263-死丈夫": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运庚子：大运反局·类型三(伏吟三刑)；岁运反局·流年丁丑(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丁丑(1960)：流年反局·类型一(引动忌神)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li263-车祸死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：岁运反局·大运辛酉：大运反局·类型一(破坏功神)；岁运反局·大运辛酉：大运反局·类型二(冲变合)；岁运反局·大运辛酉：大运反局·类型二(合闭墓库)；岁运反局等共8条）"
+   }
+  },
+  "shouke-li263-亿万富翁": {
+   "verdict_labels": {
+    "财命": "巨富·亿万富翁"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li263-公路局长": {
+   "verdict_labels": {
+    "官命": "是·公路局长",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-li263-被父辈强奸": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运辛亥：大运反局·类型一(破坏功神)；岁运反局·大运辛亥：大运反局·类型二(合变冲)；岁运反局·大运辛亥：大运反局·类型三(伏吟三刑)；岁运反局等共5条）"
+   }
+  },
+  "shouke-li263-五婚养子": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "shouke-li263-走私被扣": {
+   "verdict_labels": {
+    "财命": "凶·走私被扣破财几十万取保"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运丁亥：大运反局·类型二(冲变合)；岁运反局·流年丙子(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丙子(1960)：流年反局·类型一(禄刃倒戈)；岁运反局等共4条）"
+   }
+  },
+  "shouke-qi01-子胎死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "shouke-qi02-被偷破财": {
+   "verdict_labels": {
+    "财命": "破财·庚辰年被偷劫破财后追回部分；祖上有祖产分给兄弟与她无缘"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi02-工商局长贪官": {
+   "verdict_labels": {
+    "官命": "是·工商局局长大贪官",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年癸亥(1960)：流年反局·类型一(破坏功神)；岁运反局·流年癸亥(1960)：流年反局·类型一(引动忌神)；岁运反局·流年癸亥(1960)：流年反局·类型一(冲变合)）"
+   }
+  },
+  "shouke-qi02-王立军易学家": {
+   "verdict_labels": {
+    "财命": "破财·丙子年亏损100多万把家底亏了",
+    "职业": "文化·知名易学家"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [
+     "官非牢狱·魁罡逢冲官兼枭神夺食（段氏牢狱五法占多灾重）"
+    ],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年丙子(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丙子(1960)：流年反局·破从(忌神通根)；官非牢狱·魁罡逢冲官兼枭神夺食（段氏牢狱五法占多灾重））"
+   }
+  },
+  "shouke-qi02-禄当财被欠债": {
+   "verdict_labels": {
+    "财命": "平·赚到钱老被别人欠债或借走"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi02-夫死": {
+   "verdict_labels": {
+    "财命": "平·辛未运做生意赚钱"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi02-普通干部": {
+   "verdict_labels": {
+    "官命": "是·普通干部",
+    "职业": "干部"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi02-家业破尽": {
+   "verdict_labels": {
+    "财命": "凶·家业破尽而亡"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi02-市长": {
+   "verdict_labels": {
+    "官命": "是·教委主任后升市长",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运丙午：大运反局·类型一(破坏功神)；岁运反局·大运丙午：大运反局·类型二(合变冲)；岁运反局·大运丙午：大运反局·破从(忌神通根)）"
+   }
+  },
+  "shouke-qi02-辛未做生意": {
+   "verdict_labels": {
+    "财命": "平·以前穷光蛋辛未年起做生意赚钱丙子年关门"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运癸丑：大运反局·类型三(伏吟三刑)；岁运反局·流年辛未(1960)：流年反局·类型一(破坏功神)；岁运联动·辛未(1960)：岁运联动·相刑）"
+   }
+  },
+  "shouke-qi02-甲辰出门工作": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运丁酉：大运反局·类型一(破坏功神)；岁运反局·流年甲辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年甲辰(1960)：流年反局·类型一(冲变合)；岁运反局等共5条）"
+   }
+  },
+  "shouke-qi02-父胃癌": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi03-赵宇丁丑发财": {
+   "verdict_labels": {
+    "财命": "平·丁丑年发财戊寅己卯年破财",
+    "职业": "炒股·干什么都不行最后走上炒股的路"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：反局（反局）；岁运反局·流年丁丑(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丁丑(1960)：流年反局·类型一(引动忌神)；岁运反局·流年丁丑(1960)：流年反局·类型一(冲变合)；岁运反局等共5条）"
+   }
+  },
+  "shouke-qi05-财运一般": {
+   "verdict_labels": {
+    "财命": "平·富命不大财运一般95/97年有财"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：过河拆桥破财）"
+   }
+  },
+  "shouke-qi05-当官后下海": {
+   "verdict_labels": {
+    "官命": "是·戌运当官86/89年升职后下海",
+    "财命": "富·97/98年发财生意火",
+    "职业": "官员→商人"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年丁丑(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丁丑(1960)：流年反局·类型一(禄刃倒戈)）"
+   }
+  },
+  "shouke-qi05-对象多自由职业": {
+   "verdict_labels": {
+    "官命": "否·不喜欢当官",
+    "职业": "自由职业·大学老师记者律师型"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（制库得财，开库同制财与原神，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·流年辛巳(1960)：流年反局·类型一(引动忌神)；岁运反局·流年辛巳(1960)：流年反局·类型一(冲变合)；岁运反局·流年辛巳(1960)：流年反局·类型一(伏吟三刑)；用神被合绊：从强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "shouke-qi05-和珅": {
+   "verdict_labels": {
+    "官命": "是·升为中堂",
+    "财命": "凶·贪得财最多后被捕赐死"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "小康",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年己未(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己未(1960)：流年反局·类型一(引动忌神)；岁运反局·流年己未(1960)：流年反局·类型一(冲变合)）"
+   }
+  },
+  "shouke-qi06-眼睛瞎": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年丁丑(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丁丑(1960)：流年反局·类型一(引动忌神)；岁运反局·流年丁丑(1960)：流年反局·类型一(禄刃倒戈)；岁运反局等共5条）"
+   }
+  },
+  "shouke-qi06-庚辰离婚": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "财星反局（财本气支在冲对中被坏，主大凶）"
+    ],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：反局（反局）；财星反局（财本气支在冲对中被坏，主大凶）；岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(冲变合)；岁运反局·流年庚辰(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "shouke-qi07-同门师兄": {
+   "verdict_labels": {
+    "财命": "平·癸亥至丁卯发财戊辰赔光欠债"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi07-晚婚": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运辛亥：大运反局·类型二(冲变合)；岁运反局·流年己巳(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己巳(1960)：流年反局·类型一(引动忌神)；岁运反局等共6条）"
+   }
+  },
+  "shouke-qi07-死父": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)；岁运反局·流年庚辰(1960)：流年反局·类型一(冲变合)）"
+   }
+  },
+  "shouke-qi10-子夭": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "比劫夺财·破财：从弱财为用神，2处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi13-咸宁市长": {
+   "verdict_labels": {
+    "官命": "是·咸宁一位市长",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "shouke-qi14-亿万企业家": {
+   "verdict_labels": {
+    "财命": "巨富·掌管亿万财富大企业家",
+    "职业": "企业家"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi15-伤官当财": {
+   "verdict_labels": {
+    "财命": "平·发财不大有投机性来得猛破得快"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi15-房地产千万": {
+   "verdict_labels": {
+    "财命": "富·壬申癸酉甲戌三年资产近千万后身无分文",
+    "职业": "房地产商"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi16-王虎应手术": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年甲戌(1960)：流年反局·类型一(破坏功神)；岁运反局·流年甲戌(1960)：流年反局·类型一(冲变合)；岁运反局·流年甲戌(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "shouke-qi16-两地分居": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运癸丑：大运反局·类型一(破坏功神)；岁运反局·大运癸丑：大运反局·类型二(合变冲)）"
+   }
+  },
+  "shouke-qi18-局长": {
+   "verdict_labels": {
+    "官命": "是·局长92年科级95年副处",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）；下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(冲变合)；岁运反局·流年庚辰(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "shouke-qi19-伤官去官官员": {
+   "verdict_labels": {
+    "官命": "是·32岁后官运亨通",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "shouke-qi20-好嫖": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi20-歌厅小姐": {
+   "verdict_labels": {
+    "财命": "平·大运行财收入大好",
+    "职业": "色情业·歌厅小姐"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [
+     "用神被合绊：身强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高）；过河拆桥富格直判（制尽净制，制官得财定式），基阶不落下富；下浮封顶2阶（一般凶向：用神被合绊：身强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "shouke-qi20-泡歌厅": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi20-李连英": {
+   "verdict_labels": {
+    "官命": "是·贵命上了副总理级（太监李连英）"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而年支申（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）"
+   }
+  },
+  "shouke-qi21-庚辰赚钱": {
+   "verdict_labels": {
+    "财命": "平·庚辰年赚了一笔钱"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运己酉：大运反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(合变冲)）"
+   }
+  },
+  "shouke-qi22-己巳年死": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·流年己巳(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己巳(1960)：流年反局·类型一(引动忌神)；岁运反局·流年己巳(1960)：流年反局·类型一(伏吟三刑)；岁运反局等共4条）"
+   }
+  },
+  "shouke-qi22-乙亥发财": {
+   "verdict_labels": {
+    "财命": "富·从财格乙亥年发财"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi23-闹婚不离": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运癸卯：大运反局·类型一(破坏功神)；岁运反局·大运癸卯：大运反局·类型二(合变冲)；岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)）"
+   }
+  },
+  "shouke-qi27-比劫去杀连升": {
+   "verdict_labels": {
+    "官命": "是·官职连升"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi27-厅级": {
+   "verdict_labels": {
+    "官命": "是·官职连升至厅级",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "shouke-qi29-逃兵老农民": {
+   "verdict_labels": {
+    "官命": "否·一辈子当老农民",
+    "职业": "农民·曾参军逃出"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "lawyer",
+    "zhiye_label": "律师/法务/公检法",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-qi30-张克东": {
+   "verdict_labels": {
+    "财命": "巨富·资产过十亿后破产入狱",
+    "职业": "商人"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运甲寅：大运反局·类型一(破坏功神)；岁运反局·大运甲寅：大运反局·类型二(合变冲)；岁运反局·大运甲寅：大运反局·类型三(伏吟三刑)；岁运反局等共6条）"
+   }
+  },
+  "shouke-qi31-贪污坐牢": {
+   "verdict_labels": {
+    "财命": "凶·贪污公款收审破财两万"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年丙子(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丙子(1960)：流年反局·类型一(引动忌神)；岁运反局·流年丙子(1960)：流年反局·类型一(伏吟三刑)；过河拆桥破财）"
+   }
+  },
+  "shouke-qi32-过路财神": {
+   "verdict_labels": {
+    "官命": "是·日禄归时贵命",
+    "财命": "富·有钱但过路财神无法积累"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运癸卯：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "shouke-qi35-检察长": {
+   "verdict_labels": {
+    "官命": "是·地区检察长",
+    "职业": "公检法"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）"
+   }
+  },
+  "shouke-qi35-贸易公司经理": {
+   "verdict_labels": {
+    "官命": "是·处级贸易公司经理",
+    "职业": "国企经理"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局）；岁运反局·大运辛亥：大运反局·类型二(冲变合)）"
+   }
+  },
+  "shouke-qi35-肾炎住院": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi37-袁世凯": {
+   "verdict_labels": {
+    "官命": "是·主贵（袁世凯）",
+    "职业": "官员·大官"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "shouke-qi37-梁启超B月干异文": {
+   "verdict_labels": {
+    "官命": "是·梁启超（与li181版月干丙/甲异文）",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [
+     "比劫夺财·破财：身强财为用神，1处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶1阶（严重凶向：比劫夺财·破财：身强财为用神，1处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫））"
+   }
+  },
+  "shouke-qi37-普金": {
+   "verdict_labels": {
+    "官命": "是·行甲寅运得权（普金）",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运甲寅：大运反局·类型二(冲变合)）"
+   }
+  },
+  "shouke-qi37-周恩来": {
+   "verdict_labels": {
+    "官命": "是·得势有戊去癸病（周恩来）",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-qi37-黄兴": {
+   "verdict_labels": {
+    "官命": "是·得势有土金之病（黄兴）",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "shouke-qi37-曹锟": {
+   "verdict_labels": {
+    "官命": "是·水伤食得势有官杀之病（曹锟）",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-qi37-处级经理": {
+   "verdict_labels": {
+    "官命": "是·处级干部",
+    "职业": "经理"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi40-好婚姻": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-qi40-家道丰盈": {
+   "verdict_labels": {
+    "财命": "富·家道丰盈"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi40-恋爱失败": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "shouke-qi40-夫病拖累": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi41-歌女淫贱": {
+   "verdict_labels": {
+    "职业": "色情业·歌舞厅歌女"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi41-与人同居要钱": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）；上浮（财有原神且为我所及，源头畅通）"
+   }
+  },
+  "shouke-qi41-流产同居": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年辛巳(1960)：流年反局·类型一(破坏功神)；岁运反局·流年辛巳(1960)：流年反局·类型一(伏吟三刑)；岁运反局·流年辛巳(1960)：流年反局·破从(合去日主)）"
+   }
+  },
+  "shouke-qi41-离婚同居": {
+   "verdict_labels": {
+    "财命": "富·有钱长得好"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "shouke-qi47-朱元璋": {
+   "verdict_labels": {
+    "官命": "是·戊申年登基皇帝"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "shouke-qi49-安全局": {
+   "verdict_labels": {
+    "官命": "是·去印得官",
+    "职业": "官员·当兵转政府秘书入安全局"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·财坏印：从强印为用神、财为忌神，1处财制印（财2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "shouke-qi50-下岗": {
+   "verdict_labels": {
+    "职业": "打工·丑运单位倒闭下岗后打工"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；过河拆桥富格直判（制尽净制，制官得财定式），基阶不落下富；上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：岁运反局·大运丑：大运反局·类型一(破坏功神)；岁运反局·大运丑：大运反局·类型二(合变冲)；岁运反局·大运丑：大运反局·类型三(伏吟三刑)；岁运反局等共7条）"
+   }
+  },
+  "shouke-qi50-外企研究生": {
+   "verdict_labels": {
+    "财命": "小康·收入颇好",
+    "职业": "外企·研究生离开公职收入颇好"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "unemployed",
+    "zhiye_label": "无业",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：比劫夺财·破财：从弱财为用神，2处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫））"
+   }
+  },
+  "shouke-qi50-诊所": {
+   "verdict_labels": {
+    "财命": "富·效益极好",
+    "职业": "医生·医院工作辞职开诊所"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "shouke-qi50-因夫离职": {
+   "verdict_labels": {
+    "职业": "离职·因丈夫原因失去工作"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（制库得财，开库同制财与原神，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·大运壬辰：大运反局·类型一(破坏功神)；岁运反局·大运壬辰：大运反局·类型二(合变冲)）"
+   }
+  },
+  "qi04-双胞胎弟弟丧妻": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "财星反局（财本气支在冲对中被坏，主大凶）"
+    ],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：反局（反局）；财星反局（财本气支在冲对中被坏，主大凶））"
+   }
+  },
+  "qi04-阮玲玉": {
+   "verdict_labels": {
+    "职业": "演员·影星阮玲玉"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "qi14-美容师": {
+   "verdict_labels": {
+    "职业": "美容师·长相平平不性感伤食单纯表现为技艺"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "unemployed",
+    "zhiye_label": "无业",
+    "veto_reasons": [
+     "比劫夺财·破财：身强财为用神，1处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "qi04-卜文命学禄当财": {
+   "verdict_labels": {
+    "财命": "破财·己亥大运丙子流年破财"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运己亥：大运反局·类型一(破坏功神)；岁运反局·流年丙子(1960)：流年反局·类型一(破坏功神)）"
+   }
+  }
+ },
+ "trainset": {
+  "zhenbao-12": {
+   "verdict_labels": {
+    "官命": "是·半壁天下",
+    "职业": "军阀·武职"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "b67-复例二副总": {
+   "verdict_labels": {
+    "财命": "破财·戊寅己卯庚辰年"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "veto_reasons": [
+     "岁运反局·大运丙子：大运反局·类型一(杀临攻身)"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运丙子：大运反局·类型一(杀临攻身)）"
+   }
+  },
+  "b67-李嘉诚": {
+   "verdict_labels": {
+    "财命": "巨富·香港首富",
+    "职业": "企业家"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "b67-建筑": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：忌神制用神·财坏印：身弱印为用神、财为忌神，1处财制印（财2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位））；财生杀攻身：身弱财旺（明现3位）生七杀贴身、杀无制、印化无力，段氏「财党杀、杀攻身」因财致祸凶格）"
+   }
+  },
+  "zhenbao-10": {
+   "verdict_labels": {
+    "官命": "是·公检法",
+    "职业": "公检法"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "lawyer",
+    "zhiye_label": "律师/法务/公检法",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运戊寅：大运反局·类型三(伏吟三刑)；岁运反局·流年庚辰(1960)：流年反局·类型一(引动忌神)；岁运反局·流年庚辰(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "b67-初中": {
+   "verdict_labels": {
+    "官命": "否",
+    "职业": "兵→学画"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [
+     "反局（反局）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "zhenbao-09": {
+   "verdict_labels": {
+    "官命": "否",
+    "财命": "贫·乞丐",
+    "职业": "无业·讨饭"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "unemployed",
+    "zhiye_label": "无业",
+    "veto_reasons": [
+     "比劫夺财·破财：身强财为用神，1处比劫制财（比劫3柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "b67-化例三中堂": {
+   "verdict_labels": {
+    "官命": "是·主大贵",
+    "职业": "官员·刘中堂"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：用神被合绊：身弱，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "b67-过河拆桥": {
+   "verdict_labels": {
+    "财命": "富·壬申癸酉年发财"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "zhenbao-04": {
+   "verdict_labels": {
+    "官命": "否",
+    "财命": "破财·赔六万",
+    "职业": "司机·开车运输"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "doctor",
+    "zhiye_label": "医生/医疗",
+    "veto_reasons": [
+     "岁运反局·流年戊寅(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年戊寅(1960)：流年反局·类型一(禄刃倒戈)",
+     "岁运反局·流年戊寅(1960)：流年反局·类型一(冲变合)",
+     "岁运反局等共4条"
+    ],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "zhenbao-01": {
+   "verdict_labels": {
+    "官命": "否",
+    "财命": "破财·戊辰年",
+    "职业": "个体·烧窑/银元生意"
+   },
+   "scores": {
+    "官命": "❌",
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "小康",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：岁运反局·流年戊辰(1960)：流年反局·类型一(伏吟三刑)；岁运反局·流年戊辰(1960)：流年反局·破从(日主得根)；岁运联动·戊辰(1960)：岁运联动·双冲）"
+   }
+  },
+  "b67-制例三": {
+   "verdict_labels": {
+    "财命": "富·几百万富翁"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运乙卯：大运反局·类型一(破坏功神)；岁运反局·大运乙卯：大运反局·类型二(合变冲)）"
+   }
+  },
+  "b67-岳飞": {
+   "verdict_labels": {
+    "官命": "是·民族英雄",
+    "职业": "军"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运辛亥：大运反局·类型一(破坏功神)；岁运反局·大运辛亥：大运反局·类型二(合变冲)；岁运反局·流年辛酉(1960)：流年反局·类型一(破坏功神)；岁运反局等共7条；忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "zhenbao-05": {
+   "verdict_labels": {
+    "官命": "是·厅级",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "b67-克林顿": {
+   "verdict_labels": {
+    "官命": "是·总统",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：比劫夺财·破财：从弱财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下））"
+   }
+  },
+  "b67-生例四企业家": {
+   "verdict_labels": {
+    "官命": "是·国企董事长",
+    "职业": "企业家"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [
+     "岁运反局·大运丙午：大运反局·类型一(破坏功神)"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "zhenbao-14a": {
+   "verdict_labels": {
+    "财命": "富·卖身起家",
+    "职业": "演员·名演员"
+   },
+   "scores": {
+    "财命": "❌",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：忌神制用神·财坏印：从强印为用神、财为忌神，2处财制印（财2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "zhenbao-14b": {
+   "verdict_labels": {
+    "官命": "否",
+    "财命": "凶·贪财坐牢"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [
+     "反局（反局）"
+    ],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "zhenbao-23a": {
+   "verdict_labels": {
+    "官命": "否",
+    "财命": "破财·清家荡产"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [
+     "比劫夺财·破财：身强财为用神，1处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶1阶（严重凶向：岁运反局·大运辛卯：大运反局·类型三(伏吟三刑)；岁运反局·流年己卯(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己卯(1960)：流年反局·类型一(引动忌神)；岁运反局等共6条；比劫夺财·破财：身强财为用神，1处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫））"
+   }
+  },
+  "zhenbao-23b": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "b67-抢劫": {
+   "verdict_labels": {
+    "官命": "否"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [
+     "岁运反局·大运己巳：大运反局·类型一(破坏功神)",
+     "岁运反局·流年壬申(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年壬申(1960)：流年反局·类型一(引动忌神)",
+     "岁运反局等共5条"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运己巳：大运反局·类型一(破坏功神)；岁运反局·流年壬申(1960)：流年反局·类型一(破坏功神)；岁运反局·流年壬申(1960)：流年反局·类型一(引动忌神)；岁运反局等共5条）"
+   }
+  },
+  "b67-制例一奥纳西斯": {
+   "verdict_labels": {
+    "财命": "巨富·船王"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）"
+   }
+  },
+  "b67-蒋介石": {
+   "verdict_labels": {
+    "官命": "是·当总统的命",
+    "职业": "军阀/总统"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "reg67-丁目": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "reg67-乾隆": {
+   "verdict_labels": {
+    "官命": "是·帝王"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而年支卯（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）"
+   }
+  },
+  "reg67-伤食当财": {
+   "verdict_labels": {
+    "财命": "富·几百万家业"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "reg67-例6副省级": {
+   "verdict_labels": {
+    "官命": "是·副省级",
+    "职业": "官员·执法部门"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）"
+   }
+  },
+  "reg67-例7厅级": {
+   "verdict_labels": {
+    "官命": "是·厅级",
+    "职业": "官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "reg67-例8数十亿": {
+   "verdict_labels": {
+    "财命": "巨富·数十亿富翁"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "reg67-例9金融矿业": {
+   "verdict_labels": {
+    "财命": "巨富·数十亿",
+    "职业": "金融与矿产"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "reg67-公安": {
+   "verdict_labels": {
+    "官命": "是·警局为官",
+    "职业": "公安"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：比劫夺财·破财：从弱财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下））"
+   }
+  },
+  "reg67-军官师级": {
+   "verdict_labels": {
+    "官命": "是·师级",
+    "职业": "军官"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "reg67-制例二": {
+   "verdict_labels": {
+    "财命": "富·数千万",
+    "职业": "国际贸易"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（制库得财，开库同制财与原神，量级同制尽）；下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "reg67-劫刃制官杀": {
+   "verdict_labels": {
+    "官命": "是·公安系统",
+    "职业": "公安"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "reg67-化例一": {
+   "verdict_labels": {
+    "官命": "是·当官的命"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "reg67-化例二": {
+   "verdict_labels": {
+    "官命": "是·国营企业董事长",
+    "职业": "企业家·国营企业"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运丙寅：大运反局·类型一(破坏功神)；岁运反局·大运丙寅：大运反局·类型三(伏吟三刑)；岁运反局·大运丙寅：大运反局·破从(日主得根)）"
+   }
+  },
+  "reg67-博士": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：忌神制用神·印夺食：从弱食伤为用神、印为忌神，1处印制食伤（印1柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "reg67-印制伤食市长": {
+   "verdict_labels": {
+    "官命": "是·市长",
+    "职业": "官员·市长"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "reg67-受贿": {
+   "verdict_labels": {
+    "官命": "是·市政府办公室主任",
+    "职业": "官员·政府办公室"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运辛酉：大运反局·类型二(冲变合)；岁运反局·大运辛酉：大运反局·类型二(合闭墓库)；岁运反局·流年癸未(1960)：流年反局·类型一(破坏功神)；岁运反局等共5条）"
+   }
+  },
+  "reg67-合例一富命": {
+   "verdict_labels": {
+    "财命": "富·数千万",
+    "职业": "房地产"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；上浮（开财库，墓中之财复出主大发）"
+   }
+  },
+  "reg67-合例八暗合": {
+   "verdict_labels": {
+    "官命": "是·最高人民法院副院长",
+    "职业": "官员·法院"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "lawyer",
+    "zhiye_label": "律师/法务/公检法",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "reg67-合例六两妻": {
+   "verdict_labels": {
+    "财命": "富"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "reg67-墓例一经理": {
+   "verdict_labels": {
+    "职业": "经理·企业经理人"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "reg67-墓例三电厂官": {
+   "verdict_labels": {
+    "官命": "是·官员",
+    "职业": "官员·管理大电厂"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）"
+   }
+  },
+  "reg67-曾国藩乙未": {
+   "verdict_labels": {
+    "官命": "是·官至极品"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "reg67-复例一数学家": {
+   "verdict_labels": {
+    "职业": "数学家·计算数学专家"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "reg67-复例四老师经商": {
+   "verdict_labels": {
+    "财命": "富·庚申运发财数百万",
+    "职业": "教师→经商"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "reg67-外贸商": {
+   "verdict_labels": {
+    "财命": "富·发财千万",
+    "职业": "贸易·海外贸易"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "reg67-官杀当财": {
+   "verdict_labels": {
+    "财命": "富·数百万"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运未：大运反局·类型一(破坏功神)；岁运反局·大运未：大运反局·破从(日主得根)）"
+   }
+  },
+  "reg67-寅卯借妻宫": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "reg67-带帽银行副处": {
+   "verdict_labels": {
+    "官命": "是·银行副处级",
+    "职业": "银行"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·流年甲申(1960)：流年反局·类型一(破坏功神)；岁运反局·流年甲申(1960)：流年反局·类型一(引动忌神)；岁运反局·流年甲申(1960)：流年反局·类型一(冲变合)；岁运反局等共5条）"
+   }
+  },
+  "reg67-建筑设计": {
+   "verdict_labels": {
+    "官命": "是·国家公务员",
+    "职业": "建筑设计"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "reg67-普例1普通人": {
+   "verdict_labels": {
+    "官命": "否·普通人"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "reg67-普例2小职权": {
+   "verdict_labels": {
+    "官命": "是·小职权"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "reg67-普例3收入较高": {
+   "verdict_labels": {
+    "财命": "小康·收入较高"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：过河拆桥破财）"
+   }
+  },
+  "reg67-普例4千万": {
+   "verdict_labels": {
+    "财命": "富·富有千万"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "reg67-普例5酒店主管": {
+   "verdict_labels": {
+    "财命": "小康·高工资",
+    "职业": "酒店主管·管理餐饮"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "从财有原神转化（22期例1从财格乙亥年发财），基阶不落下富"
+   }
+  },
+  "reg67-服装": {
+   "verdict_labels": {
+    "职业": "服装生意·开门店"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "reg67-比劫包局争夫": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "用神被合绊：从强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发）"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "reg67-生例一富婆": {
+   "verdict_labels": {
+    "财命": "富·富有千万"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "reg67-生例二经理": {
+   "verdict_labels": {
+    "职业": "经理·国有商业企业"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "reg67-甲子地矿局长": {
+   "verdict_labels": {
+    "官命": "是·县地矿局局长",
+    "职业": "官员·地矿局"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运庚申：大运反局·类型一(破坏功神)；岁运反局·大运庚申：大运反局·类型二(冲变合)；忌神制用神·财坏印：身弱印为用神、财为忌神，2处财制印（财3柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "reg67-申机器工人": {
+   "verdict_labels": {
+    "官命": "否·命平常不贵",
+    "职业": "工人·管机器运转"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "reg67-癸巳管财官": {
+   "verdict_labels": {
+    "官命": "是·管理财的官"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运丁亥：大运反局·类型一(破坏功神)；岁运反局·大运丁亥：大运反局·类型二(合变冲)；岁运反局·流年戊寅(1960)：流年反局·类型一(破坏功神)；岁运反局等共4条）"
+   }
+  },
+  "reg67-离婚": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女））"
+    ],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "reg67-纺织车间主任": {
+   "verdict_labels": {
+    "官命": "是·刺绣厂车间主任",
+    "职业": "刺绣厂·纺织"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "reg67-财制印刑警": {
+   "verdict_labels": {
+    "官命": "是·刑警队长",
+    "职业": "刑警·公检法"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：岁运反局·流年辛巳(1960)：流年反局·类型一(引动忌神)；岁运反局·流年辛巳(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "reg67-资本运营": {
+   "verdict_labels": {
+    "财命": "巨富·酉运亿万巨富"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "reg67-银行行长央行": {
+   "verdict_labels": {
+    "官命": "是·中央银行行长",
+    "职业": "银行·金融官员"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "reg67-银行行长分行": {
+   "verdict_labels": {
+    "官命": "是·地市分行行长",
+    "职业": "银行"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "famous-李世民": {
+   "verdict_labels": {
+    "官命": "是·帝王之命"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（制库得财，开库同制财与原神，量级同制尽）"
+   }
+  },
+  "famous-汉武帝": {
+   "verdict_labels": {
+    "官命": "是·伟大君主"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "famous-唐明皇": {
+   "verdict_labels": {
+    "官命": "是·一代明君"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "famous-曾国藩": {
+   "verdict_labels": {
+    "官命": "是·清朝救命恩人"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "famous-王阳明": {
+   "verdict_labels": {
+    "官命": "是·中进士平宁王之乱"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "famous-希特勒": {
+   "verdict_labels": {
+    "官命": "是·纳粹德国元首"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·财坏印：身弱印为用神、财为忌神，1处财制印（财1柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位））；官杀入墓：身弱，官杀（水五行）入墓辰未开，段氏「墓库不开，反主被官方收藏、关押」（官非失权；从格统杀为权不在此列））"
+   }
+  },
+  "famous-辛普森": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [
+     "反局（反局）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "famous-阿炳": {
+   "verdict_labels": {
+    "职业": "演艺·民间艺人"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "famous-李昌镐": {
+   "verdict_labels": {
+    "官命": "否·不入仕途"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [
+     "反局（反局）"
+    ],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "famous-帕瓦罗蒂": {
+   "verdict_labels": {
+    "职业": "演艺·歌唱家"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：官杀入墓：身弱，官杀（火五行）入墓戌未开，段氏「墓库不开，反主被官方收藏、关押」（官非失权；从格统杀为权不在此列））"
+   }
+  },
+  "famous-迈克尔杰克逊": {
+   "verdict_labels": {
+    "职业": "演艺·流行音乐之王"
+   },
+   "scores": {
+    "职业": "⚠️"
+   },
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "famous-牛顿": {
+   "verdict_labels": {
+    "职业": "科学家·经典物理学奠基人"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "famous-戴安娜": {
+   "verdict_labels": {},
+   "scores": {},
+   "engine": {
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）"
+   }
+  },
+  "famous-王亚樵": {
+   "verdict_labels": {
+    "官命": "否·黑道暗杀"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [
+     "比劫夺财·破财：身强财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：比劫夺财·破财：身强财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下））"
+   }
+  },
+  "famous-巴菲特": {
+   "verdict_labels": {
+    "财命": "巨富·股神世界首富级",
+    "职业": "商人·股神"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "famous-保尔森": {
+   "verdict_labels": {
+    "财命": "巨富·三百亿美元"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）"
+   }
+  },
+  "famous-索罗斯": {
+   "verdict_labels": {
+    "财命": "巨富·伟大投机家"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "famous-马云": {
+   "verdict_labels": {
+    "财命": "巨富·阿里巴巴创始人",
+    "职业": "商人·互联网"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "famous-罗斯切尔德": {
+   "verdict_labels": {
+    "财命": "巨富·金融帝国创始人",
+    "职业": "商人·银行家"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "famous-坤沙": {
+   "verdict_labels": {
+    "财命": "巨富·世界毒王"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）"
+   }
+  },
+  "famous-乔布斯": {
+   "verdict_labels": {
+    "职业": "商人·苹果创始人"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "zj-护士长": {
+   "verdict_labels": {
+    "财命": "平·护士长收入中等",
+    "职业": "医护人员·护士长"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而时支申（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运己丑：大运反局·类型一(破坏功神)）"
+   }
+  },
+  "zj-公司职员": {
+   "verdict_labels": {
+    "财命": "平·工薪族收入不高",
+    "职业": "工薪族·公司职员"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "laborer",
+    "zhiye_label": "农民/工人·体力劳动者（象提示：偏农）",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）；下浮封顶2阶（一般凶向：用神被合绊：从强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "zj-收入普通": {
+   "verdict_labels": {
+    "财命": "平·收入普通",
+    "职业": "工薪族"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）；下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "zj-收入一般": {
+   "verdict_labels": {
+    "财命": "平·收入一般",
+    "职业": "工薪族·坐办公室"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "忌神制用神·印夺食：身强食伤为用神、印为忌神，1处印制食伤（印1柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女））"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "zj-平常八字": {
+   "verdict_labels": {
+    "财命": "平·平常八字",
+    "职业": "工薪族·下岗再就业"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "zj-邢铭芬": {
+   "verdict_labels": {
+    "财命": "平·发不了大财只能发点小财",
+    "职业": "教师·老师无文化"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "zj-图书管理员": {
+   "verdict_labels": {
+    "财命": "平·工薪族挣工资不能大富",
+    "职业": "文化·学校图书管理员"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "gj-合财小康": {
+   "verdict_labels": {
+    "财命": "小康·工薪族收入稳定生活小康",
+    "职业": "工薪族·一技之长"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而日支酉（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）"
+   }
+  },
+  "zj-注册会计师": {
+   "verdict_labels": {
+    "财命": "小康·收入较高月薪很高",
+    "职业": "会计·注册会计师"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局）；岁运反局·大运丙午：大运反局·类型一(破坏功神)；岁运反局·大运丙午：大运反局·类型二(合变冲)）"
+   }
+  },
+  "gj-合财反贫": {
+   "verdict_labels": {
+    "财命": "贫·一生贫苦多灾多难"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：财生杀攻身：地支卯寅辰三会官杀局全会且会日支，官杀极旺克身、财明现生杀有源、杀无制化、印化无力（段氏「官杀极旺克身…身弱不胜财官」），因财致祸 severe）"
+   }
+  },
+  "gj-煤矿工人": {
+   "verdict_labels": {
+    "财命": "贫·煤矿工人贫贱之命",
+    "职业": "工人·煤矿工人体力取财"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "laborer",
+    "zhiye_label": "农民/工人·体力劳动者（象提示：偏工）",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "gj-泄身艺匠": {
+   "verdict_labels": {
+    "财命": "贫·一生消贫"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "zj-独眼乞食": {
+   "verdict_labels": {
+    "财命": "贫·一生穷困潦倒乞食过日"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：主位体坏：日支未（主位之体，藏日主丁之根）欲制月支丑之水，而水有势（干支主气3位）反将日支冲坏——主弱宾强、体被势坏，命差（段氏「金水有势而将未土冲坏…此命差了」））"
+   }
+  },
+  "zgj-财反局苦力": {
+   "verdict_labels": {
+    "财命": "贫·非常穷年收入不过五千",
+    "职业": "工人·干苦力活"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [
+     "反局（反局）",
+     "财星反局（财本气支在冲对中被坏，主大凶）"
+    ],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：反局（反局）；财星反局（财本气支在冲对中被坏，主大凶））"
+   }
+  },
+  "gj-低保伤官": {
+   "verdict_labels": {
+    "财命": "贫·生活困顿靠低保维生",
+    "职业": "无业·无正当职业"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：伤官见官为忌（成势怕见官）：伤官明现5柱成势，伤官本气支与本气正官支冲战，无财通关——土金伤官「怕见官（木官杀无火印通关，伤官见官破格，主困顿/官非）」，格局破败（书锚=gj-低保伤官「土金伤官怕见官…靠低保维生」））"
+   }
+  },
+  "gj-财党杀攻身": {
+   "verdict_labels": {
+    "财命": "凶·因财致祸官非入狱破产",
+    "职业": "商人"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "gj-黑社会头目": {
+   "verdict_labels": {
+    "财命": "凶·非法集资暴富判无期徒刑",
+    "职业": "黑道·黑社会头目"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "zj-数亿坐牢": {
+   "verdict_labels": {
+    "财命": "凶·发财5亿乙酉运经济案坐牢没收财产"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运乙酉：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "gj-入狱一年": {
+   "verdict_labels": {
+    "财命": "凶·癸未年因经济问题入狱一年"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "巨富",
+    "veto_reasons": [
+     "岁运反局·流年癸未(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年癸未(1960)：流年反局·类型一(引动忌神)",
+     "岁运反局·流年癸未(1960)：流年反局·类型一(合变冲)",
+     "岁运反局等共4条"
+    ],
+    "caiming_adjust": "制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·流年癸未(1960)：流年反局·类型一(破坏功神)；岁运反局·流年癸未(1960)：流年反局·类型一(引动忌神)；岁运反局·流年癸未(1960)：流年反局·类型一(合变冲)；岁运反局等共4条）"
+   }
+  },
+  "gj-盲人按摩师": {
+   "verdict_labels": {
+    "财命": "破财·子运破财",
+    "职业": "按摩师·盲人按摩师"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运戊子：大运反局·类型一(破坏功神)；岁运反局·大运戊子：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "gj-纪检官员": {
+   "verdict_labels": {
+    "官命": "是·纪检检察系统官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "gj-公门转商": {
+   "verdict_labels": {
+    "财命": "富·资产数百万小富之局",
+    "职业": "商人·特招入伍转业与人合作办公司"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "gj-副科级": {
+   "verdict_labels": {
+    "官命": "是·某机关副科级干部"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "zj-教师无官": {
+   "verdict_labels": {
+    "官命": "否·坐下官不做功当不了公务员",
+    "职业": "教师·文化机构教师"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富；上浮（开财库，墓中之财复出主大发）"
+   }
+  },
+  "zj-工薪无官": {
+   "verdict_labels": {
+    "官命": "否·制官只表示有工作不表示当官",
+    "职业": "工薪族"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "gj-刘晓庆": {
+   "verdict_labels": {
+    "职业": "演员·著名影星"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：忌神制用神·财坏印：从强印为用神、财为忌神，2处财制印（财2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "gj-影星合杀": {
+   "verdict_labels": {
+    "职业": "演员·著名影星"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "gj-警察墓库": {
+   "verdict_labels": {
+    "职业": "公检法·警察"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "cj-书记": {
+   "verdict_labels": {
+    "官命": "是·癸水成贼神，喜大运行金水运，行癸丑与壬申运升地委副书记"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "cj-财政部长": {
+   "verdict_labels": {
+    "官命": "是·所以是个管财的大官。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-巨富庄家": {
+   "verdict_labels": {
+    "财命": "巨富·大富命资产数十亿",
+    "职业": "搞股票的。一个庄家"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：岁运反局·流年辛巳(1960)：流年反局·类型一(破坏功神)；岁运反局·流年辛巳(1960)：流年反局·类型一(引动忌神)；岁运反局·流年辛巳(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "cj-巨富制尽": {
+   "verdict_labels": {
+    "官命": "否·这个可不是当官的",
+    "财命": "巨富·制财与财原神制尽发财数亿"
+   },
+   "scores": {
+    "官命": "❌",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-处级非总统级": {
+   "verdict_labels": {
+    "官命": "是·制去官与官的原神是当大官的。所以此人是当大官的"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "cj-周恩来": {
+   "verdict_labels": {
+    "官命": "是·因为辰为官杀库，所以力量不弱，当的官就大，上面丁亥造因为火太…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-厅长": {
+   "verdict_labels": {
+    "官命": "是·辰运壬午年升副省级官。辰运庚辰年升山西省公安厅厅长"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运戊辰：大运反局·类型一(破坏功神)；岁运反局·流年壬午(1960)：流年反局·类型一(破坏功神)；岁运反局·流年壬午(1960)：流年反局·类型一(引动忌神)；用神被合绊：身弱，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "cj-种地": {
+   "verdict_labels": {
+    "财命": "贫·干什么赔钱只好种地",
+    "职业": "农民·种地(原搞艺术)"
+   },
+   "scores": {
+    "财命": "❌",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-平财不大": {
+   "verdict_labels": {
+    "官命": "否·应是有官职的，但此人不当官",
+    "财命": "平·财不大(技术求财)",
+    "职业": "是搞技术的。以技术求财的"
+   },
+   "scores": {
+    "官命": "❌",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "cj-1209": {
+   "verdict_labels": {
+    "官命": "是·所以有个小官，要是地支上的杀制了那可就是大官了"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-贫穷命一生无作": {
+   "verdict_labels": {
+    "财命": "贫·穷命一生无作为靠父母吃饭"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-1331": {
+   "verdict_labels": {
+    "官命": "是·子为印，去印得权。印代表权利。是个当官的"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-正处级化杀": {
+   "verdict_labels": {
+    "官命": "是·这种结构就是当官的。化杀得权。是个正处级干部"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-处级": {
+   "verdict_labels": {
+    "官命": "是·官大不了，为正处级干部，走丑运当官"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年癸未(1960)：流年反局·类型一(破坏功神)；岁运反局·流年癸未(1960)：流年反局·类型一(引动忌神)）"
+   }
+  },
+  "cj-1395": {
+   "verdict_labels": {
+    "官命": "否·墓又不开，所以不当官",
+    "职业": "餐饮·国外开餐馆"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-中医": {
+   "verdict_labels": {
+    "财命": "平·无大财不主财",
+    "职业": "此人是有名的中医，又精通周易"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "cj-1493": {
+   "verdict_labels": {
+    "职业": "此人是做汽车修理工作的"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "cj-巨富制好后发财两": {
+   "verdict_labels": {
+    "财命": "巨富·制好后发财两个亿"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：岁运反局·大运壬午：大运反局·类型一(破坏功神)；岁运反局·大运壬午：大运反局·破从(日主得根)）"
+   }
+  },
+  "cj-处级-2": {
+   "verdict_labels": {
+    "官命": "是·合身，肯定是个官，是个文化类的官，正处级干部"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：用神被合绊：从强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "cj-富发财上千万": {
+   "verdict_labels": {
+    "财命": "富·发财上千万"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-1687": {
+   "verdict_labels": {
+    "官命": "否·此人既不当官又不发财",
+    "职业": "以前有过工作，但后来没了工作无事做"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "doctor",
+    "zhiye_label": "医生/医疗",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-主席": {
+   "verdict_labels": {
+    "官命": "是·此人是当官的，辛生了癸，癸合了巳，巳与未一党，巳又生未，官制…"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [
+     "岁运反局·流年癸亥(1960)：流年反局·类型一(伏吟三刑)"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-装修": {
+   "verdict_labels": {
+    "财命": "富·做装修发财几百万",
+    "职业": "食神生财，要用。做自由职业的多。食生财，做企业的，午运前一塌…"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "cj-农民": {
+   "verdict_labels": {
+    "职业": "所以做功不大，此人是个农民。（亥比劫生食，比劫做功是体力劳动…"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-科学家": {
+   "verdict_labels": {
+    "职业": "是年轻的科学家。美国的博士学位"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-厅级": {
+   "verdict_labels": {
+    "官命": "是·行戊戌运，戊癸合，戊为巳，把癸制了，戌到制酉，此运升官，是副…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运戊戌：大运反局·类型一(破坏功神)；财生杀攻身：身弱财旺（明现2位）生七杀贴身、杀无制、印化无力，段氏「财党杀、杀攻身」因财致祸凶格）"
+   }
+  },
+  "cj-副市长": {
+   "verdict_labels": {
+    "官命": "是·换象为日主带了杀帽子。是当官的"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运戊寅：大运反局·类型一(破坏功神)）"
+   }
+  },
+  "cj-处级-3": {
+   "verdict_labels": {
+    "官命": "是·甲午为带象，杀带财帽，说明他是管财的官，是财政局的副局长，副…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "cj-财务总监": {
+   "verdict_labels": {
+    "职业": "此人很有能力，管理跨国海外公司的大企业的财务总监，很有权利"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：用神被合绊：身弱，3处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "cj-校长": {
+   "verdict_labels": {
+    "官命": "是·为什么级别不高呢？因为庚金无制",
+    "职业": "说明是学校、教育行业。三合局中神在坐下，肯定为正职，是学校的…"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "cj-2075": {
+   "verdict_labels": {
+    "职业": "实际此人是民生银行的一个主任"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年庚辰(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚辰(1960)：流年反局·类型一(冲变合)；岁运联动·庚辰(1960)：岁运联动·三刑）"
+   }
+  },
+  "cj-2097": {
+   "verdict_labels": {
+    "官命": "是·癸卯带象，为当文化类的官",
+    "职业": "很有才能很有文化。写了好几本书。在当地非常有名气"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "cj-2206": {
+   "verdict_labels": {
+    "官命": "否·此人不当官？因为是女命。（此造女命不为当官，因夫宫巳火做功，…"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运壬辰：大运反局·类型一(破坏功神)）"
+   }
+  },
+  "cj-老板": {
+   "verdict_labels": {
+    "职业": "是酒楼老板，占四成股份"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "cj-平辛辛苦苦挣钱": {
+   "verdict_labels": {
+    "官命": "否·禄上坐官可不是当官的",
+    "财命": "平·辛辛苦苦挣钱",
+    "职业": "此人也是搞易学的，伤官高露的人，人性不好"
+   },
+   "scores": {
+    "官命": "❌",
+    "财命": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而时支亥（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）；下浮封顶2阶（一般凶向：岁运反局·流年戊寅(1960)：流年反局·类型一(破坏功神)；岁运反局·流年戊寅(1960)：流年反局·类型一(引动忌神)；岁运反局·流年戊寅(1960)：流年反局·类型一(冲变合)；岁运反局等共4条）"
+   }
+  },
+  "cj-妓女": {
+   "verdict_labels": {
+    "财命": "贫·卖身的穷命",
+    "职业": "只能靠卖身挣点吃饭钱。无正当工作"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮封顶（财统官而月支亥（财）遭2方冲破穿，寡不敌众，财弱不能统官，官杀当财量级不成立，封顶富）；下浮封顶2阶（一般凶向：岁运反局·流年辛巳(1960)：流年反局·类型一(破坏功神)；岁运反局·流年辛巳(1960)：流年反局·类型一(合变冲)；岁运反局·流年辛巳(1960)：流年反局·类型一(伏吟三刑)）"
+   }
+  },
+  "cj-教授": {
+   "verdict_labels": {
+    "财命": "小康·收入还可以(教授,有点钱)"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-平财弱财少": {
+   "verdict_labels": {
+    "财命": "平·财弱财少"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [
+     "岁运反局·大运壬辰：大运反局·类型一(破坏功神)",
+     "岁运反局·流年丙辰(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年丙辰(1960)：流年反局·类型一(伏吟三刑)",
+     "岁运反局等共4条"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-组织部宣传": {
+   "verdict_labels": {
+    "职业": "此人是搞政治理论的，是组织部搞宣传教育工作的"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-财务总监-2": {
+   "verdict_labels": {
+    "官命": "否·就不得财了。不当官了，也不发财了，管财务了，是财务总监"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "cj-破财己卯年破大财": {
+   "verdict_labels": {
+    "财命": "破财·己卯年破大财"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）；下浮封顶2阶（一般凶向：岁运反局·流年己卯(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己卯(1960)：流年反局·类型一(引动忌神)；岁运反局·流年己卯(1960)：流年反局·类型一(冲变合)；岁运反局等共4条）"
+   }
+  },
+  "cj-富财墓喜冲发大": {
+   "verdict_labels": {
+    "财命": "富·财墓喜冲发大财"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "cj-县长": {
+   "verdict_labels": {
+    "官命": "是·大运丙寅，当县长。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-老总": {
+   "verdict_labels": {
+    "官命": "否·一当官就有麻烦(故为大企业老总)",
+    "职业": "他很有能力，是大企业的老总。"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "cj-包工头": {
+   "verdict_labels": {
+    "官命": "否·所以不当官，壬主管理与控制，不主官。",
+    "财命": "富·壬卯运发财·包工头数千万"
+   },
+   "scores": {
+    "官命": "❌",
+    "财命": "❌"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：用神被合绊：身弱，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "cj-校长-2": {
+   "verdict_labels": {
+    "官命": "是·此人当官，印在主位作功代表文化行业，食也主文类行业。故此人是…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·印夺食：从弱食伤为用神、印为忌神，2处印制食伤（印2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（枭神夺食（食伤主财源/自由/子女）））"
+   }
+  },
+  "cj-巨富刑开财库成亿": {
+   "verdict_labels": {
+    "财命": "巨富·刑开财库成亿万富翁"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：岁运反局·大运甲戌：大运反局·类型二(冲变合)）"
+   }
+  },
+  "cj-厅级-2": {
+   "verdict_labels": {
+    "官命": "是·是掌兵权的官。但午未合，闭了羊刃库，不是弄刀枪为刀枪入库。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·财坏印：从强印为用神、财为忌神，1处财制印（财2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "cj-县长-2": {
+   "verdict_labels": {
+    "官命": "是·此人为副县长（甲被三合局带到了位，被日主得到），子水为正，但…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶1阶（严重凶向：比劫夺财·破财：从弱财为用神，1处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）；过河拆桥破财）"
+   }
+  },
+  "cj-县长-3": {
+   "verdict_labels": {
+    "官命": "是·是个官员，运至亥子丑北方水地升到县长，01年当县长。"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [
+     "岁运反局·流年壬戌(1960)：流年反局·类型一(引动忌神)",
+     "岁运反局·流年壬戌(1960)：流年反局·类型一(伏吟三刑)",
+     "岁运反局·流年壬戌(1960)：流年反局·破从(日主得根)"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-中医李阳波": {
+   "verdict_labels": {
+    "职业": "此人是非常有名的中医大夫"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "cj-贫穷命悲惨": {
+   "verdict_labels": {
+    "财命": "贫·穷命悲惨"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-3981": {
+   "verdict_labels": {
+    "职业": "此人做家具装饰的。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-市长": {
+   "verdict_labels": {
+    "官命": "是·这是郝金阳生前断过的最大的官，天津市市长，1950年出生的"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）；下浮封顶2阶（一般凶向：用神被合绊：从强，1处用神紧贴受合（段氏「紧贴相合为绊，谁都无法发挥作用，为失去原性」，用神失用凶；忌神受绊为吉不触发））"
+   }
+  },
+  "cj-处级-4": {
+   "verdict_labels": {
+    "官命": "是·此人是副处级干部。为什么是副职？因为卯木能化尽，但乙木化不尽…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-雍正": {
+   "verdict_labels": {
+    "官命": "是·贵在有甲木和寅木，印星来化旺官杀。有印来生身。所以此命贵。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-贫一生受穷": {
+   "verdict_labels": {
+    "财命": "贫·一生受穷"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星入墓未开，财被收藏难取，封顶小康）"
+   }
+  },
+  "cj-纪检": {
+   "verdict_labels": {
+    "官命": "是·此人为纪检干部。专门查处当官的。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "cj-经理": {
+   "verdict_labels": {
+    "职业": "为一私企的经理，并有股份。原为国企厂长，后成了私企的厂长。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-戴笠": {
+   "verdict_labels": {
+    "官命": "是·它是个将军啊",
+    "职业": "特务·军统头子戴笠"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "岁运反局·流年丙戌(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年丙戌(1960)：流年反局·类型一(伏吟三刑)",
+     "岁运联动·丙戌(1960)：岁运联动·相刑"
+    ],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年丙戌(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丙戌(1960)：流年反局·类型一(伏吟三刑)；岁运联动·丙戌(1960)：岁运联动·相刑）"
+   }
+  },
+  "cj-装璜": {
+   "verdict_labels": {
+    "财命": "富·几百万资产",
+    "职业": "是搞装璜的（土木行业）。"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）"
+   }
+  },
+  "cj-富二十年发财运": {
+   "verdict_labels": {
+    "官命": "否·官杀制不干净当财看，所以不是当官的。",
+    "财命": "富·二十年发财运"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）；从强势制月令库中官杀，制不干净当财看（官杀当财），基阶不落下富"
+   }
+  },
+  "cj-国务院总理": {
+   "verdict_labels": {
+    "官命": "是·是透出戊癸合，是管理财的大官。戊辰运升至国务院总理。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "cj-富发财": {
+   "verdict_labels": {
+    "财命": "富·戊申运发财(格局不是很高)"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）"
+   }
+  },
+  "cj-4937": {
+   "verdict_labels": {
+    "官命": "是·官制比劫，中央政治局委员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "cj-部长": {
+   "verdict_labels": {
+    "官命": "是·行甲子运的子运还是处长，子运开始升官，从组织部长升到省委副书…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运甲子：大运反局·类型一(破坏功神)；岁运反局·大运甲子：大运反局·类型二(合变冲)；岁运反局·大运甲子：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "cj-富海外贸易发财": {
+   "verdict_labels": {
+    "财命": "富·海外贸易发财上千万"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-贫一生不富穷命": {
+   "verdict_labels": {
+    "财命": "贫·一生不富穷命"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-县长-4": {
+   "verdict_labels": {
+    "官命": "是·地支七杀作功当官，乙巳运升县委副书记。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-工薪": {
+   "verdict_labels": {
+    "财命": "平·工薪阶层(所发财不大)"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "cj-撒切尔": {
+   "verdict_labels": {
+    "官命": "是·力量很大，大贵命，是英国前首相撒切尔夫人。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "cj-富火运发财数百": {
+   "verdict_labels": {
+    "财命": "富·火运发财数百万"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）；制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）"
+   }
+  },
+  "cj-5536": {
+   "verdict_labels": {
+    "官命": "是·故能掌重权，当大官，是元朝丞相铁木尔，一品大元"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "从财有原神转化（22期例1从财格乙亥年发财），基阶不落下富"
+   }
+  },
+  "cj-平糊口养家": {
+   "verdict_labels": {
+    "财命": "平·糊口养家(开出租车)",
+    "职业": "不是个贵八字，开出租车的。普通人而已。"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "cj-公安": {
+   "verdict_labels": {
+    "官命": "是·与上造同一天未时有一人，是公安分局局长"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：过河拆桥破财）"
+   }
+  },
+  "cj-富五旬起发财寿": {
+   "verdict_labels": {
+    "财命": "富·五旬起发财寿至九旬"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [
+     "岁运反局·大运乙丑：大运反局·类型一(破坏功神)",
+     "岁运反局·大运乙丑：大运反局·类型二(合变冲)"
+    ],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-处级-5": {
+   "verdict_labels": {
+    "官命": "是·当官的命，也是捕旺贼弱，功不是很高",
+    "财命": "富·申运发财"
+   },
+   "scores": {
+    "官命": "✅",
+    "财命": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-邓小平": {
+   "verdict_labels": {
+    "官命": "是·所以他不仅是军事家，而且是政治家。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-尚书": {
+   "verdict_labels": {
+    "官命": "是·戊子为财来制印，印主权，所以可当官。行至甲午乙未运，官至尚书…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-运动员": {
+   "verdict_labels": {
+    "职业": "所以用比劫作功，是运动员。曾是中国网球冠军，后做网球教练。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "cj-足球": {
+   "verdict_labels": {
+    "财命": "小康·收入很高",
+    "职业": "是足球明星。是国家队球员。"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-齐达内": {
+   "verdict_labels": {
+    "职业": "运动员·足球球星齐达内"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-武术": {
+   "verdict_labels": {
+    "职业": "女子武术全国冠军。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "cj-演员": {
+   "verdict_labels": {
+    "官命": "否·说明自己不能当官。",
+    "职业": "是个名人，所以是著名的评书演员。"
+   },
+   "scores": {
+    "官命": "❌",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）"
+   }
+  },
+  "cj-演员-2": {
+   "verdict_labels": {
+    "职业": "实际是个演员，演过许多影视剧，深受观众喜爱。"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-歌唱家": {
+   "verdict_labels": {
+    "官命": "是·食制杀说明有职务，天干透丙克申，丙又主名气，在军中有军衔",
+    "职业": "宋祖英的八字。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：比劫夺财·破财：从弱财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下））"
+   }
+  },
+  "cj-唱戏": {
+   "verdict_labels": {
+    "职业": "梅兰芳的八字。木火有势结了党，说明是名人。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-唱戏-2": {
+   "verdict_labels": {
+    "职业": "此人丁火为名，合壬水为唱戏的，申金为声音，制的不好，走未运时…"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：忌神制用神·财坏印：身弱印为用神、财为忌神，2处财制印（财2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "cj-歌星": {
+   "verdict_labels": {
+    "职业": "日本著名歌星森健一。"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "cj-老师": {
+   "verdict_labels": {
+    "财命": "富·午运发财(官统财)"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "cj-6155": {
+   "verdict_labels": {
+    "官命": "否·书明断不会当官"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）；基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "cj-富书断能富": {
+   "verdict_labels": {
+    "财命": "富·书断能富"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-房地产": {
+   "verdict_labels": {
+    "职业": "生意·计算机网络与房地产"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "yx-经理": {
+   "verdict_labels": {
+    "财命": "破财·生意被骗辞职赔款",
+    "职业": "企业业务经理·贸易"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运戊午：大运反局·类型一(破坏功神)；岁运反局·大运戊午：大运反局·类型二(合变冲)）"
+   }
+  },
+  "yx-经理-2": {
+   "verdict_labels": {
+    "财命": "巨富·丙戌运发财过亿",
+    "职业": "为一家上市公司经理，高薪加送股"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "反局（反局）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "yx-贫家境贫寒一贫": {
+   "verdict_labels": {
+    "财命": "贫·家境贫寒一贫如洗"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "yx-富富有百万": {
+   "verdict_labels": {
+    "财命": "富·富有百万"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-书记": {
+   "verdict_labels": {
+    "官命": "是·所以官位很高，已卯大运，升任市委书记"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-记者": {
+   "verdict_labels": {
+    "职业": "此人为高级记者、编辑、著名报人"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-导演": {
+   "verdict_labels": {
+    "职业": "可以类象为影视，所以能成为著名导演。他所执导电影中的女演员都…"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "从财有原神转化（22期例1从财格乙亥年发财），基阶不落下富"
+   }
+  },
+  "yx-律师": {
+   "verdict_labels": {
+    "职业": "壬为虚官主名，丁壬相合能成名"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-书法家": {
+   "verdict_labels": {
+    "职业": "命主为画家、书法家田七，少年成名，人称\"鬼才\""
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "从财伏吟单一无转化（段氏「没有转化，缺乏连贯性」），从财亦贫"
+   }
+  },
+  "yx-律师-2": {
+   "verdict_labels": {
+    "职业": "此人职业为律师"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "yx-服装": {
+   "verdict_labels": {
+    "职业": "所以他是一个开店的，开了几家服装店"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-建筑": {
+   "verdict_labels": {
+    "财命": "巨富·搞建筑亿万富翁"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-黑道": {
+   "verdict_labels": {
+    "职业": "此命为黑道老大"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "yx-处级": {
+   "verdict_labels": {
+    "官命": "是·所以是个管财的官。行午运冲子水而官星发用，升至处级"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "yx-2553": {
+   "verdict_labels": {
+    "官命": "是·故他能掌重权，是个政府官员"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "yx-2658": {
+   "verdict_labels": {
+    "职业": "实际此女为一家银行行长，金有金融之意"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-记者-2": {
+   "verdict_labels": {
+    "财命": "富·做生意发财",
+    "职业": "在乙丑运之前，从事记者职业，无大财可发"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-破财工程被强拆反": {
+   "verdict_labels": {
+    "财命": "破财·酉运工程被强拆反赔大钱"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运酉：大运反局·类型一(破坏功神)）"
+   }
+  },
+  "yx-书法家-2": {
+   "verdict_labels": {
+    "职业": "这是一位很有名气的书法家"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "yx-3290": {
+   "verdict_labels": {
+    "官命": "是·实际是在银行管理监督不良资产的官员",
+    "职业": "此人为银行官员"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：忌神制用神·财坏印：从强印为用神、财为忌神，2处财制印（财2柱），段氏「用神制忌神则吉」之逆=忌神制用神凶（贪财坏印（印主学业/名誉/单位/职位）））"
+   }
+  },
+  "yx-酒店": {
+   "verdict_labels": {
+    "职业": "故适合从事酒店业。留学外国学习酒店管理，回国后开酒店，生意一…"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-律师-3": {
+   "verdict_labels": {
+    "职业": "所以必是律师"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-贫满盘偏印无富": {
+   "verdict_labels": {
+    "财命": "贫·满盘偏印无富贵可言"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-梁羽生": {
+   "verdict_labels": {
+    "职业": "作家·梁羽生(写文章声名远播)"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "yx-法官": {
+   "verdict_labels": {
+    "职业": "丙午时日主无贪财之病，反得坐支七杀之权，冲羊刃子水而制财，是…"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "yx-4824": {
+   "verdict_labels": {
+    "职业": "生意人·成天为生意奔波"
+   },
+   "scores": {
+    "职业": "⚠️"
+   },
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）；基阶校准（财星当财·经营带原神+主位，基阶不落下富）"
+   }
+  },
+  "yx-经理-3": {
+   "verdict_labels": {
+    "职业": "实际此人是证券公司总经理，自己股票也做得很好"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-书记-2": {
+   "verdict_labels": {
+    "官命": "是·实际他的职务是纪检委书记"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "yx-5101": {
+   "verdict_labels": {
+    "官命": "是·故是掌兵权的大命格"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-僧": {
+   "verdict_labels": {
+    "职业": "此命是一位僧人，一寺院住持"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-富数百万资产": {
+   "verdict_labels": {
+    "财命": "富·数百万资产"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-种地": {
+   "verdict_labels": {
+    "财命": "贫·差命家徒四壁",
+    "职业": "农民·农村种地"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "yx-营销": {
+   "verdict_labels": {
+    "职业": "事实上她是个营销高手，一直从事营销工作，业绩非凡。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [
+     "比劫夺财·破财：从弱财为用神，2处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶1阶（严重凶向：比劫夺财·破财：从弱财为用神，2处比劫制财（比劫2柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫））"
+   }
+  },
+  "yx-巨富丑运发财几千": {
+   "verdict_labels": {
+    "财命": "巨富·丑运发财几千万后至亿"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运丙子：大运反局·类型一(破坏功神)；岁运反局·大运丙子：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "yx-富丑运发迹数千": {
+   "verdict_labels": {
+    "财命": "富·丑运发迹数千万资产"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-经理-4": {
+   "verdict_labels": {
+    "财命": "巨富·甲辰运发财数亿(后运破尽)",
+    "职业": "我从1994年后，就调到另一个城市政府下属的一个公司当经理，…"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）"
+   }
+  },
+  "yx-围棋": {
+   "verdict_labels": {
+    "职业": "事实上，此人是业余围棋六段，但因没有进人专业段位，又不从事其…"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "military",
+    "zhiye_label": "军警/军阀/武职",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-6061": {
+   "verdict_labels": {
+    "职业": "故此造可以表示是一个文化名人或学问家。事实上是古代一位翰林院…"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-贫一生没有富贵": {
+   "verdict_labels": {
+    "财命": "贫·一生没有富贵农村打工"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "yx-木匠": {
+   "verdict_labels": {
+    "财命": "小康·在农村有小富",
+    "职业": "木匠职业"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-贫打工不赚钱无": {
+   "verdict_labels": {
+    "财命": "贫·打工不赚钱无钱成家"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（一层功=小富小贵，百万级非贫）"
+   }
+  },
+  "yx-泥瓦匠": {
+   "verdict_labels": {
+    "职业": "这种功量太小，手艺之人，是个泥瓦匠，在外打工为生。"
+   },
+   "scores": {
+    "职业": "⚠️"
+   },
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：反局（反局））"
+   }
+  },
+  "yx-富发财数千万": {
+   "verdict_labels": {
+    "财命": "富·壬辰运发财数千万(后运破财)"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）"
+   }
+  },
+  "yx-贫穷命贫困线上": {
+   "verdict_labels": {
+    "财命": "贫·穷命贫困线上挣扎"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "从财有原神转化（22期例1从财格乙亥年发财），基阶不落下富；从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "yx-富钢材生意发财": {
+   "verdict_labels": {
+    "财命": "富·钢材生意发财数千万"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运辛巳：大运反局·类型二(合变冲)；岁运反局·大运辛巳：大运反局·破从(日主得根)）"
+   }
+  },
+  "yx-小康生活富裕": {
+   "verdict_labels": {
+    "财命": "小康·生活富裕(讲学售书取财)",
+    "职业": "讲学售书取财"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-医师": {
+   "verdict_labels": {
+    "财命": "富·癸卯运辞职搞直销年收入超百万",
+    "职业": "事实上她是一家医院主治医师。"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-经理-5": {
+   "verdict_labels": {
+    "职业": "实际此人是外地一家钢结构公司在太原总代理的市场部经理。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）"
+   }
+  },
+  "yx-房地产-2": {
+   "verdict_labels": {
+    "财命": "巨富·房地产发财数十亿",
+    "职业": "开发房地产"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "✅"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财统官须财量级支撑，财无原神或不归主位量级不足，封顶富）；下浮封顶2阶（一般凶向：岁运反局·大运丙申：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "yx-校长": {
+   "verdict_labels": {
+    "官命": "是·虽有官，却官不大。戌为食神主学校，是－一个乡学校校长。",
+    "职业": "乡学校校长"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-宰相": {
+   "verdict_labels": {
+    "官命": "是·所以这是个管理财的大官。行戊辰运，辰土出现被制，升朝中宰相。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "yx-厅级": {
+   "verdict_labels": {
+    "官命": "是·幸大运行至辛亥、壬子运，捕神旺贼神出现，官职连升，至厅级。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·大运壬子：大运反局·类型二(合变冲)）"
+   }
+  },
+  "yx-总理": {
+   "verdict_labels": {
+    "官命": "是·故是个掌大权的命。行戊辰运官职连升，至己巳运升任总理。"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运戊辰：大运反局·类型一(破坏功神)；岁运反局·大运戊辰：大运反局·类型二(合变冲)；岁运反局·大运戊辰：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "yx-煤矿": {
+   "verdict_labels": {
+    "财命": "巨富·庚戌运煤矿发财十几亿",
+    "职业": "搞煤矿"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "巨富",
+    "tier_static": "巨富",
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "制库得财直判（月令财与原神同库被制，净制同制尽），基阶不落下富；上浮（制库得财，开库同制财与原神，量级同制尽）"
+   }
+  },
+  "yx-处级-2": {
+   "verdict_labels": {
+    "官命": "是·故官级能至处级。现在是执法部门的处级官员，因命中带羊刃做功之…"
+   },
+   "scores": {
+    "官命": "❌"
+   },
+   "engine": {
+    "is_guanming": false,
+    "veto_reasons": [
+     "比劫夺财·破财：身强财为用神，1处比劫制财（比劫3柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫）"
+    ],
+    "caiming_adjust": "下浮封顶1阶（严重凶向：比劫夺财·破财：身强财为用神，1处比劫制财（比劫3柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（清家荡产/贫））"
+   }
+  },
+  "yx-7842": {
+   "verdict_labels": {
+    "职业": "集团董事长(书OCR作重张)"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "比劫夺财·破财：从弱财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下）"
+    ],
+    "caiming_adjust": "上浮（开财库，墓中之财复出主大发）；下浮封顶2阶（一般凶向：比劫夺财·破财：从弱财为用神，1处比劫制财（比劫1柱），段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（破财/小康下））"
+   }
+  },
+  "yx-厅级-2": {
+   "verdict_labels": {
+    "官命": "是·并非发财之命，而是一位高官。曾任检察院检察长之职，官至厅级，…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "从儿格食伤成势且有财流通（儿又生儿），基阶不落下富"
+   }
+  },
+  "yx-佛具": {
+   "verdict_labels": {
+    "职业": "佛具用品及玉器生意"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；财有原神且归主位，财量级可任）；下浮封顶2阶（一般凶向：岁运反局·流年丙戌(1960)：流年反局·类型一(引动忌神)；岁运反局·流年丙戌(1960)：流年反局·破从(日主得根)）"
+   }
+  },
+  "yx-建筑-2": {
+   "verdict_labels": {
+    "职业": "多种生意·佛具工艺品兼建筑泥瓦工"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-科级": {
+   "verdict_labels": {
+    "官命": "是·我确实在国家政府单位工作，而且目前是科级干部。",
+    "职业": "我原来是做会计的，后来做审计了。"
+   },
+   "scores": {
+    "官命": "✅",
+    "职业": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "yx-8721": {
+   "verdict_labels": {
+    "职业": "我开始是做业务的，后来换了工作就做了高管，而且我做的行业就是…"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [
+     "岁运反局·流年乙酉(1960)：流年反局·类型一(破坏功神)",
+     "岁运反局·流年乙酉(1960)：流年反局·类型一(伏吟三刑)"
+    ],
+    "caiming_adjust": "下浮（财星入墓未开，财被收藏难取，封顶小康）"
+   }
+  },
+  "yx-老板": {
+   "verdict_labels": {
+    "职业": "后来她告诉我们自己确实是做木材生意的。"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运甲子：大运反局·类型一(破坏功神)；岁运反局·大运甲子：大运反局·类型三(伏吟三刑)）"
+   }
+  },
+  "yx-中医": {
+   "verdict_labels": {
+    "财命": "小康·比较有钱(开诊所)",
+    "职业": "后来朋友告诉我，此人是做中医推拿的，自已开诊所，比较有钱。"
+   },
+   "scores": {
+    "财命": "⚠️",
+    "职业": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "yx-公安": {
+   "verdict_labels": {
+    "职业": "在论坛里得知这个四柱是个卧底公安"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；贼神捕神净制，量级同制尽）；下浮封顶2阶（一般凶向：岁运反局·流年戊寅(1960)：流年反局·类型一(破坏功神)；岁运反局·流年戊寅(1960)：流年反局·类型一(引动忌神)；岁运反局·流年戊寅(1960)：流年反局·类型一(伏吟三刑)；岁运反局等共4条）"
+   }
+  },
+  "yx-鞋厂": {
+   "verdict_labels": {
+    "财命": "破财·庚辰年火灾破财2000多万",
+    "职业": "我就是开鞋厂的"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "小康",
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "yx-保镖": {
+   "verdict_labels": {
+    "职业": "我是私人保镖，以前没人看出我的职业。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "lawyer",
+    "zhiye_label": "律师/法务/公检法",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-中介": {
+   "verdict_labels": {
+    "财命": "破财·戊寅年被骗破财15万",
+    "职业": "我就是做投资生意的，是中介。买东家，打包，再卖西家。在政府和…"
+   },
+   "scores": {
+    "财命": "✅",
+    "职业": "⚠️"
+   },
+   "engine": {
+    "tier": "贫",
+    "tier_static": "贫",
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [
+     "官非牢狱·魁罡逢冲官兼枭神夺食（段氏牢狱五法占多灾重）"
+    ],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-会计": {
+   "verdict_labels": {
+    "职业": "还真行呀，这也能算出来，我就是个会计呀！"
+   },
+   "scores": {
+    "职业": "✅"
+   },
+   "engine": {
+    "zhiye_primary": "accountant",
+    "zhiye_label": "会计/财务",
+    "veto_reasons": [],
+    "caiming_adjust": "基阶校准（财星当财·经营带原神+主位，基阶不落下富）；下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "yx-计算机": {
+   "verdict_labels": {
+    "职业": "你说得对，我就是搞计算机的，有点像管账。"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（财星被合绊，生财路径阻断，封顶小康）"
+   }
+  },
+  "yx-主持人": {
+   "verdict_labels": {
+    "职业": "某电视台节目主持人，与阳明命造相较，便无飞流直通天河之磅瑚气…"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "laborer",
+    "zhiye_label": "农民/工人·体力劳动者（象提示：偏农）",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮（禄/食伤当财量级有限）"
+   }
+  },
+  "yx-期货": {
+   "verdict_labels": {
+    "财命": "破财·期货风险投资巨亏"
+   },
+   "scores": {
+    "财命": "✅"
+   },
+   "engine": {
+    "tier": "小康",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）；下浮封顶2阶（一般凶向：岁运反局·流年丙戌(1960)：流年反局·类型一(破坏功神)；岁运反局·流年丙戌(1960)：流年反局·类型一(引动忌神)）"
+   }
+  },
+  "yx-爱因斯坦": {
+   "verdict_labels": {
+    "职业": "科学家·爱因斯坦(物理学家)"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "teacher",
+    "zhiye_label": "教师/教育",
+    "veto_reasons": [
+     "反局（反局）"
+    ],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：反局（反局）；岁运反局·流年己未(1960)：流年反局·类型一(破坏功神)；岁运反局·流年己未(1960)：流年反局·类型一(伏吟三刑)；岁运反局·流年己未(1960)：流年反局·破从(忌神通根)）"
+   }
+  },
+  "yx-玻尔": {
+   "verdict_labels": {
+    "职业": "科学家·玻尔(量子力学)"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "yx-部长": {
+   "verdict_labels": {
+    "官命": "是·断：这个女命贵，能嫁个当官的丈夫。问：丈夫能有多大的官？答：…"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·流年庚子(1960)：流年反局·类型一(破坏功神)；岁运反局·流年庚子(1960)：流年反局·类型一(引动忌神)；岁运反局·流年庚子(1960)：流年反局·类型一(冲变合)；岁运反局等共5条）"
+   }
+  },
+  "yx-袁隆平": {
+   "verdict_labels": {
+    "职业": "农业科学家·杂交水稻袁隆平"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-诗人": {
+   "verdict_labels": {
+    "职业": "这位诗人的特点是丁官虚透，盲派讲官星虚透主名气。他的名气确实…"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "merchant",
+    "zhiye_label": "商人/经营",
+    "veto_reasons": [],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：官非牢狱·魁罡逢冲官兼枭神夺食（段氏牢狱五法占多灾重））"
+   }
+  },
+  "yx-14085": {
+   "verdict_labels": {
+    "职业": "又断那一定当过兵，对方说是当过兵。我说，那他应该是银行的官员…"
+   },
+   "scores": {
+    "职业": "❌"
+   },
+   "engine": {
+    "zhiye_primary": "performer",
+    "zhiye_label": "演艺/演员",
+    "veto_reasons": [
+     "岁运反局·大运癸未：大运反局·类型一(破坏功神)",
+     "岁运反局·大运癸未：大运反局·类型二(合变冲)",
+     "岁运反局·大运癸未：大运反局·类型三(伏吟三刑)",
+     "岁运反局等共8条"
+    ],
+    "caiming_adjust": "下浮封顶2阶（一般凶向：岁运反局·大运癸未：大运反局·类型一(破坏功神)；岁运反局·大运癸未：大运反局·类型二(合变冲)；岁运反局·大运癸未：大运反局·类型三(伏吟三刑)；岁运反局等共8条）"
+   }
+  },
+  "yx-纺织": {
+   "verdict_labels": {
+    "职业": "赵宇断：这个命年轻时当过兵，当兵后能分到企业，在国有企业工作…"
+   },
+   "scores": {},
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高）"
+   }
+  },
+  "yx-14300": {
+   "verdict_labels": {
+    "职业": "断：适合在银行工作。婚姻2005年可成。同应：是在银行工作，…"
+   },
+   "scores": {
+    "职业": "⚠️"
+   },
+   "engine": {
+    "zhiye_primary": "",
+    "zhiye_label": "未分类",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）"
+   }
+  },
+  "yx-破财那几年负债五": {
+   "verdict_labels": {
+    "财命": "破财·那几年负债五万(饥荒)后好转"
+   },
+   "scores": {
+    "财命": "❌"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  },
+  "yx-左宗棠": {
+   "verdict_labels": {
+    "官命": "是·左宗棠(举人出山入幕建奇功)"
+   },
+   "scores": {
+    "官命": "✅"
+   },
+   "engine": {
+    "is_guanming": true,
+    "veto_reasons": [],
+    "caiming_adjust": "持平"
+   }
+  },
+  "yx-煤矿-2": {
+   "verdict_labels": {
+    "财命": "巨富·壬午运煤矿发财十亿"
+   },
+   "scores": {
+    "财命": "⚠️"
+   },
+   "engine": {
+    "tier": "富",
+    "tier_static": "富",
+    "veto_reasons": [],
+    "caiming_adjust": "上浮（官杀当财量级高；制不尽量级不足，封顶富）"
+   }
+  }
+ },
+ "_meta": {
+  "git_sha": "325637c",
+  "rubric_version": "v8-20260808",
+  "note": "F2: anhe删子巳+TOMB_MAP戌土墓+muku三P0+gongliang库源自墓守卫/连墓走is_entomb+zuogong化用校准限主功墓用"
+ }
+}

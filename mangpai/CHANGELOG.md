@@ -1,5 +1,21 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F2 批 · 底层数据表（暗合子巳 + TOMB_MAP 戌土墓 + muku 三 P0）
+
+| 项 | 处理方式 | 书锚 | 文件 |
+|----|----------|------|------|
+| anhe 删「子巳」 | AN_HE 表删子/巳（仅三对），docstring/注释同步 | 初级:3218「只有三个：卯申、寅丑、午亥」排他；理象学:2555 全列三对 | objective/constants.py:171、anhe.py、zuogong_detect.py:529、he_types.py:17/294、liunian/yunfan/zeishen/dayun（读表自动同步）、prompts/mangpai.md:16 |
+| TOMB_MAP 加戌=土墓 | '戌': ['火'] → ['火', '土']（constants 解锁经批准）；_tou_gan_elements 戌库戊己透引拔随之生效 | 理象学:2035「土墓在辰、戌」双位 | objective/constants.py:263、muku.py（docstring） |
+| muku P0-1 多而墓之计天干 | is_entomb 增 all_gans 形参，同五行计数=地支（除墓库）+天干；analyze_muku/zuogong_detect 三处调用透传 | 理象学:3002-3005「天干地支合在一起…辛酉柱见丑，即辛酉入丑墓」 | objective/muku.py:135、zuogong_detect.py:376/447/800 |
+| muku P0-2 四库之土直接入辰墓 | 删「唯多方收」强加条件（注释反托段氏口径已更正）：土支见辰直接入墓 | 理象学:3008「丑入辰墓，未也入辰墓」无多前提；书例 :3080-3084 卯未辰寅「未入辰墓」 | objective/muku.py:135 |
+| 戌特判维持 blanket | 土支（辰丑未）皆冲/刑戌，「多」要件成立时戌必开→土支入戌实际不成立；书无土支入戌明文（原则5 仅言入辰），维持「戌开不纳」旧口径 | 研究:12311（火支明锚）；KB§4.9 | objective/muku.py |
+| gongliang 库源自墓守卫 | 库源循环加 z != ys_elem（自墓不为源）——批3 P1-3 潜伏，TOMB_MAP 加戌后激活（例六 戌（土）目标自计库源 L2→L3 越书）；zhenbao-05「另一辰」锚（干癸≠支辰）不受影响 | 书无自墓为源说；例六书定层功2层 | subjective/gongliang.py:544 |
+| zuogong 化用校准限主功墓用 | 化用降级条件「'墓用' in work_types」→ tomb_works 非 auxiliary——aux 墓用=宾位入墓「不做主功」，不抑制化用（戌入辰新增 aux 墓用曾误降化例二化用） | 化例二书锚（坐下印化杀为化用主功）；复例一（日支辰墓主功级，仍抑制） | objective/zuogong_detect.py:850 |
+| verify 改锁 | 第16节「四库非多不入墓（戌入辰）」等 3 锁改书：3008 口径；AN_HE 验证删子巳对+增「无子巳」负向锁+增「土墓亦在戌」；计数仍 432 | 理象学:3008/2035；初级:3218 | verify_mangpai.py |
+| 哨兵（先红后绿） | 新建 test_muku.py（8 测：TOMB_MAP 双位/辛酉见丑/卯未辰寅/蒋介石巳午入戌/戌开释火/奥纳西斯开库/无透干虽冲亦闭/未入辰端到端）+test_anhe.py（3 测：仅三对/子巳不报/三对检出）——初跑 6 红 5 绿，修复后 11 全绿 | 见各测 docstring 行号 | tests/test_muku.py、test_anhe.py |
+
+验证：verify 432 全绿、pytest 510（490 passed+1 xfailed+19 xpassed）、blind 对照 20260814_f **heldout 0 翻转**（六维逐字节同，财命 46✅ 66.67% 守住）、67 例 0 回归、famous 0 回归（李世民 gl score 72→68 层级不变）、calib 与基线逐字节一致、双 seed 一致。trainset 6 翻转（改善 2：cj-巨富刑开财库成亿 ⚠️->✅、cj-贫一生受穷 ❌->⚠️，皆 P0-1 计天干驱动；变差 4 逐条审=书锚传导：cj-贫穷命悲惨/yx-木匠=库源「丑土墓戌」书:2035、reg67-化例二职业=戌入辰食伤被困、zhenbao-14a=open_caiku 翻转上浮+凶向入文 v7 直杀）+文本变化 21 条（caiming_adjust 类，score 不变，全部源自戌土墓/开财库传导，已逐条审）。财命 -0.9pp/职业 -1.2pp 均在 M3 噪声带内。
+
 ## 2026-08-17 F1 批 · 死数据/伪标清理（判定算法零改动）
 
 | 项 | 处理方式 | 文件 |

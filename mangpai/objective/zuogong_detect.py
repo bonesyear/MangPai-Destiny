@@ -373,7 +373,7 @@ def detect_relations(
                 continue  # 本气非食伤，不做生用
             # 入墓之物不做功：食伤地支若被墓库所收，其食伤被困，不应泄秀做生用。
             # （如数学家 亥入辰墓，亥藏壬食伤不做生用，主功在制用+墓用；富婆 子不入墓，正常生用。）
-            if any(zk and zk != _zhi and zk in TOMB_MAP and is_entomb(_zhi, zk, zhis)
+            if any(zk and zk != _zhi and zk in TOMB_MAP and is_entomb(_zhi, zk, zhis, gans)
                    for zk in zhis):
                 continue
             _ss = _shishang_of(day_gan, _ss_gan)
@@ -444,7 +444,7 @@ def detect_relations(
                     _nshi_ben = _nshi_cang[0][0]
                     if (_shishang_of(day_gan, _nshi_ben) is not None
                             and not any(zk and zk != _nshi_zhi and zk in TOMB_MAP
-                                        and is_entomb(_nshi_zhi, zk, zhis) for zk in zhis)
+                                        and is_entomb(_nshi_zhi, zk, zhis, gans) for zk in zhis)
                             and any(GAN_WX.get(g, '') == cai_wx for g, _ in _nshi_cang)
                             and not any(GAN_WX.get(g, '') == cai_wx for g in gans)):
                         _nshi_ss = _shishang_of(day_gan, _nshi_ben)
@@ -526,7 +526,7 @@ def detect_relations(
 
     # ── 暗合（合用）──
     # 盲派独有：日支通过暗合获取远方之物，段建业《段氏理象学》做功篇将暗合列为合用。
-    # 暗合组合：寅丑、午亥、卯申、子巳（共4组，AN_HE 表已双向映射）
+    # 暗合组合：寅丑、午亥、卯申（共3组，AN_HE 表已双向映射；初级:3218「只有三个」排他）
     # 做功要求日支参与--日支暗合远方柱支为隐秘做功
     for i in range(4):
         for j in range(i + 1, 4):
@@ -776,7 +776,8 @@ def detect_relations(
                     })
 
     # ── 墓用 ──
-    # 入墓遵循盲派规则：四正不入墓（除非多而入墓），四生入墓（见 muku.is_entomb）
+    # 入墓遵循盲派规则：四生入墓、四库之土直接入辰墓、四正/四库见戌多而墓之
+    # （天干地支合计数，见 muku.is_entomb）
     # from=墓库(做功方/功神)，to=入墓方(被做功方)
     # 日柱为墓库->主动做功；日柱被入墓->被动受制
     # 闭库之墓不收纳：墓库逢合则闭，闭则不能收物入库（见 muku.analyze_muku）
@@ -797,7 +798,7 @@ def detect_relations(
             z2 = zhis[j]
             if not z2:
                 continue
-            if is_entomb(z2, z, zhis):  # M4：不再要求日柱参与（i==2 or j==2）
+            if is_entomb(z2, z, zhis, gans):  # M4：不再要求日柱参与（i==2 or j==2）
                 _non_day_tomb = not (i == 2 or j == 2)
                 tomb_works.append({
                     'type': '墓用',
@@ -846,7 +847,11 @@ def detect_relations(
         # 下印/时上印力弱，仍依原规则降级。墓用双计去重不受此豁免（墓用主功命非化用）。
         _hua_chengju_yueyin = (bool(gans[1])
                                and GAN_WX.get(gans[1], '') == _yin_wx_hua)
-        if (_has_real_zhiyong and not _hua_chengju_yueyin) or '墓用' in work_types:
+        # 墓用双计去重仅认主功级墓用（非 auxiliary）：auxiliary 墓用=宾位入墓
+        # 「不做主功」，不构成命局主功在墓，不抑制化用（化例二 丙日坐寅印化杀，
+        # F2 书:3008 戌直接入辰墓后新增宾位墓用曾误降化用为主制用）。
+        _has_tomb_main = any(not _tw.get('auxiliary') for _tw in tomb_works)
+        if (_has_real_zhiyong and not _hua_chengju_yueyin) or _has_tomb_main:
             for _wa in work_actions:
                 if _wa.get('type') == '杀印相生':
                     _wa['auxiliary'] = True
