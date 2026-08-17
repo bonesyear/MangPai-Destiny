@@ -18,6 +18,9 @@ liuqin - 盲派六亲专辑·主观层（subjective）
      互证：子息星之制尽换象为性别翻转之强证）。
   3. 兄弟姐妹时辰定数法（10.3）：以时支定基数（子午卯酉≈4/寅申巳亥2-3/
      辰戌丑未1），月令旺加数、冲提纲减数、比劫透干加减、满盘比劫物极必反。
+  4. 排行诀（gaoji:14412）/情谊诀（gaoji:14651）/子女优劣（gaoji:14230）
+     ——F17 补齐三节：阳干阳生必为大/日坐冲生定无兄；比劫争财与兄弟宫生克；
+     子息星原神旺衰+星宫有情定优劣。
 
 消费关系：
   - objective.constants（五行生克/藏干/禄/刑冲穿破）
@@ -255,11 +258,14 @@ def detect_parent_zaoshi(
 ) -> Dict:
     """父母早逝标志（口诀二）。
 
-    四标志：
+    总纲（gaoji:13649）：父母星与父母宫**同时**被破坏方断早逝（星宫同坏总门，
+    F17 L2 补回——单标志只录 marker 不即断）。
+    星坏标志：
       1. 财临库地：父星（财/官杀）坐墓库且墓库被刑冲开或父星无原神。
       2. 患父患母：父母星多现杂现（正偏同透/官杀混杂）。
-      3. 三刑夹刑：父母星或父母宫（年月）犯三刑或夹刑。
-      4. 宫星同坏无救助：父母星在年月宫位受冲克穿破、无原神生助。
+    宫坏标志：
+      3. 三刑夹刑：父母宫（年月）犯三刑或夹刑。
+      4. 年月宫受冲穿破。
 
     Returns:
         {'is_zaoshi': bool, 'markers': [str], 'desc': str}
@@ -310,20 +316,27 @@ def detect_parent_zaoshi(
     if xing_hits:
         markers.append('父母宫（年月）犯三刑夹刑')
 
-    # 4. 宫星同坏无救助：父母星在年月受冲克穿破
+    # 4. 宫坏：父母宫（年月）受冲穿破
     attack_kinds: List[str] = []
     for i in parent_palace_idx:
         for k in _attacked_kinds_on_pillar(wa, i):
             if k in ('冲', '穿', '破') and k not in attack_kinds:
                 attack_kinds.append(k)
     if attack_kinds:
-        markers.append(f'父母宫受{"、".join(attack_kinds)}（宫星同坏）')
+        markers.append(f'父母宫受{"、".join(attack_kinds)}')
 
-    is_zaoshi = len(markers) >= 1
+    # 总门（F17 L2）：书总纲「父母星与父母宫同时被破坏，且破坏之力甚剧」方断早逝
+    # （gaoji:13649）。星坏=财临库地/患父患母等星级标志；宫坏=年月宫犯刑冲穿破。
+    # 单标志（仅宫坏或仅星坏）只录 marker 不即断。
+    star_huai = any(('财临库地' in m) or ('患父患母' in m) for m in markers)
+    gong_huai = bool(xing_hits) or bool(attack_kinds)
+    is_zaoshi = star_huai and gong_huai
     return {
         'is_zaoshi': is_zaoshi,
         'markers': markers,
-        'desc': '；'.join(markers) if markers else '无明显父母早逝标志',
+        'desc': ('；'.join(markers) if is_zaoshi
+                 else (f'单标志（星宫未同坏，不即断）：{"；".join(markers)}' if markers
+                       else '无明显父母早逝标志')),
     }
 
 
@@ -568,8 +581,10 @@ def detect_zixi_youwu(
     if bad_kinds:
         markers.append(f'子息宫受{"、".join(bad_kinds)}')
 
-    # 3. 子息星原神被坏：官杀原神=财，食伤原神=比劫
-    yuan_cat = '财' if cat == '官杀' else ('比劫' if cat == '食伤' else '比劫')
+    # 3. 子息星原神被坏：官杀原神=财，食伤原神=比劫，财星统看原神=食伤
+    #    （gaoji:14116-14118「官杀之原神为财，食伤之原神为比劫」；比劫克财是忌神
+    #    非原神——F17 L4 修正取反）
+    yuan_cat = '财' if cat == '官杀' else ('比劫' if cat == '食伤' else '食伤')
     # 原神柱受冲穿破
     for i in range(4):
         if _pillar_has_cat(day_gan, gans[i], zhis[i], yuan_cat):
@@ -880,6 +895,202 @@ def detect_xiongdi_keshun(
     }
 
 
+# ───────────────────── 4. 排行诀 / 情谊诀 / 子女优劣（F17 补节）─────────────────────
+
+def classify_xiongdi_paihang(
+    day_gan: str, gans: List[str], zhis: List[str],
+    relations: Optional[Dict] = None,
+) -> Dict:
+    """兄弟姐妹排行（口诀二，gaoji:14412）。
+
+    阳干阳生必为大；阴干阴生大定准（盲派阴阳同生同死，阴干长生同阳干）；
+    日坐冲生定无兄（日支冲/穿月支长生之地）。
+    阳生=月支为日主长生/临官/帝旺（案例四甲木寅月建禄定为长子，gaoji:14520-14532）。
+    「阳干阴生须逆数、阴干阳生顺数出」书无定量算法，不杜撰，is_eldest=None。
+
+    Returns:
+        {'is_eldest': bool|None, 'basis': str, 'desc': str}
+    """
+    from mangpai.objective.changsheng import get_changsheng_mangpai
+    month_zhi, day_zhi = zhis[1], zhis[2]
+    stage = get_changsheng_mangpai(day_gan, month_zhi)
+    yang_sheng = stage in ('长生', '临官', '帝旺')
+    is_yang = day_gan in _YANG_GANS
+
+    # 日坐冲生：日支冲/穿月支（月支须为日主长生之地）
+    chong_sheng = False
+    if stage == '长生':
+        rel = _ensure_relations(day_gan, gans, zhis, relations)
+        for a in (rel.get('work_actions') or []):
+            if a.get('type') in ('冲', '穿') and \
+                    {a.get('from_pos'), a.get('to_pos')} == {'day_zhi', 'month_zhi'}:
+                chong_sheng = True
+                break
+
+    if chong_sheng:
+        return {'is_eldest': True, 'basis': '日坐冲生定无兄',
+                'desc': f'日支{day_zhi}冲穿月支{month_zhi}（长生之地），定无兄，居长'}
+    if is_yang and yang_sheng:
+        return {'is_eldest': True, 'basis': '阳干阳生必为大',
+                'desc': f'阳干{day_gan}生{month_zhi}月（{stage}），阳干阳生必为大'}
+    if not is_yang and stage == '长生':
+        return {'is_eldest': True, 'basis': '阴干阴生大定准',
+                'desc': f'阴干{day_gan}生{month_zhi}月（长生），阴干阴生大定准'}
+    return {'is_eldest': None, 'basis': '',
+            'desc': f'月支{month_zhi}（{stage or "非生旺"}），排行须顺逆数，不妄断'}
+
+
+def classify_xiongdi_qingyi(
+    day_gan: str, gans: List[str], zhis: List[str],
+    relations: Optional[Dict] = None,
+) -> Dict:
+    """兄弟姐妹情谊（口诀四，gaoji:14651）。
+
+    比劫争财（透干财星+透干比劫含日主≥2，案例十双甲争戊 gaoji:14720）→ 争夺；
+    兄弟宫（月柱）与日柱相合/月支生日主 → 厚；月日刑冲穿破 → 薄。
+
+    Returns:
+        {'verdict': '厚'|'薄'|'争夺'|'平', 'markers': [str], 'desc': str}
+    """
+    rel = _ensure_relations(day_gan, gans, zhis, relations)
+    wa: List[Dict] = rel.get('work_actions') or []
+    markers: List[str] = []
+
+    # 比劫争财：透干财星 + 透干比劫（含日主，日主=比肩）≥2
+    bijie_gan = sum(1 for g in gans if g and _cat(_compute_shishen(day_gan, g)) == '比劫')
+    cai_tou = any(g and _cat(_compute_shishen(day_gan, g)) == '财' for g in gans)
+    zheng_cai = cai_tou and bijie_gan >= 2
+
+    # 月日关系：合/生 → 厚；刑冲穿破 → 薄
+    hou = False
+    bo = False
+    for a in wa:
+        pair = {a.get('from_pos'), a.get('to_pos')}
+        t = a.get('type', '')
+        if pair == {'month_zhi', 'day_zhi'} or pair == {'month_gan', 'day_gan'}:
+            if t in ('地支合', '半合', '三合局', '暗合', '天干合'):
+                hou = True
+                markers.append(f'兄弟宫与日柱相{t}（情谊厚）')
+            elif t in ('冲', '穿', '破', '刑'):
+                bo = True
+                markers.append(f'兄弟宫与日柱相{t}（缘薄是非）')
+    if WX_SHENG.get(ZHI_WX.get(zhis[1], ''), '') == GAN_WX.get(day_gan, ''):
+        hou = True
+        markers.append(f'兄弟宫月支{zhis[1]}生日主{day_gan}（情谊厚）')
+    if zheng_cai:
+        markers.append('比劫争财（因财起争端）')
+
+    if zheng_cai:
+        verdict = '争夺'
+    elif hou and not bo:
+        verdict = '厚'
+    elif bo:
+        verdict = '薄'
+    else:
+        verdict = '平'
+    return {
+        'verdict': verdict,
+        'markers': markers,
+        'desc': '；'.join(markers) if markers else '无明显情谊标志',
+    }
+
+
+def detect_zixi_youlie(
+    day_gan: str, gans: List[str], zhis: List[str], gender: str = '男',
+    relations: Optional[Dict] = None,
+) -> Dict:
+    """子女优劣（口诀三，gaoji:14230）：原神旺衰，星宫有情。
+
+    优秀：子息星居时柱得位；原神（官杀=财/食伤=比劫/财=食伤）明现不被坏。
+    劣质：原神被刑冲穿破；子息星/子息宫犯三刑；子息宫（时柱）受冲穿；枭神夺食（女）。
+    （刑限三刑——书正锚案例八子卯互刑仍判优；破不取——案例八卯子破仍判优
+      gaoji:14236-14252。ponytail: 互刑/破害腿待运岁语境再议）
+
+    Returns:
+        {'verdict': '优'|'劣'|'平', 'you': [str], 'lie': [str], 'desc': str}
+    """
+    rel = _ensure_relations(day_gan, gans, zhis, relations)
+    wa: List[Dict] = rel.get('work_actions') or []
+    cat = _child_star_cat(day_gan, gans, zhis, gender)
+    yuan_cat = '财' if cat == '官杀' else ('比劫' if cat == '食伤' else '食伤')
+    you: List[str] = []
+    lie: List[str] = []
+
+    if _pillar_has_cat(day_gan, gans[3], zhis[3], cat):
+        you.append('子息星居时柱得位')
+
+    # 原神：明现且被坏之字即原神（按动作两端实际字判，非整柱）
+    yuan_present = any(_pillar_has_cat(day_gan, gans[i], zhis[i], yuan_cat)
+                       for i in range(4))
+    yuan_broken = False
+    for a in wa:
+        if a.get('type') not in ('冲', '穿', '破', '刑'):
+            continue
+        for pos in (a.get('from_pos', ''), a.get('to_pos', '')):
+            pk = pos.split('_')[0] if pos else ''
+            if pk not in PILLAR_KEYS:
+                continue
+            idx = PILLAR_KEYS.index(pk)
+            if pos.endswith('_gan'):
+                hit = _cat(_compute_shishen(day_gan, gans[idx])) == yuan_cat
+            else:
+                hit = yuan_cat in _pillar_cats(day_gan, '', zhis[idx])
+            if hit:
+                yuan_broken = True
+    if yuan_present and not yuan_broken:
+        you.append(f'原神（{yuan_cat}）生扶')
+    if yuan_broken:
+        lie.append(f'原神（{yuan_cat}）被坏')
+
+    # 子息星犯刑/子息宫受刑：限三刑（丑未戌/寅巳申）。书正锚案例八子卯互刑仍判优
+    # （gaoji:14236-14252），劣质书锚案例九=丑未戌三刑全（gaoji:14260-14276）。
+    _SX = {frozenset(p) for p in (('丑', '未'), ('未', '戌'), ('丑', '戌'),
+                                  ('寅', '巳'), ('巳', '申'), ('寅', '申'))}
+
+    def _sanxing_pillars() -> Set[int]:
+        out: Set[int] = set()
+        for a in wa:
+            if a.get('type') != '刑':
+                continue
+            ps = [p for p in (a.get('from_pos', ''), a.get('to_pos', ''))
+                  if p.split('_')[0] in PILLAR_KEYS]
+            if len(ps) == 2 and frozenset(
+                    (zhis[PILLAR_KEYS.index(ps[0].split('_')[0])],
+                     zhis[PILLAR_KEYS.index(ps[1].split('_')[0])])) in _SX:
+                for p in ps:
+                    out.add(PILLAR_KEYS.index(p.split('_')[0]))
+        return out
+
+    sx_pillars = _sanxing_pillars()
+    for i in sx_pillars:
+        if _pillar_has_cat(day_gan, gans[i], zhis[i], cat):
+            lie.append('子息星犯三刑')
+            break
+    if 3 in sx_pillars:
+        lie.append('子息宫（时柱）犯三刑')
+
+    # 子息宫（时柱）受冲/穿（破不取，见 docstring）
+    bad_hour = [k for k in _attacked_kinds_on_pillar(wa, 3) if k in ('冲', '穿')]
+    if bad_hour:
+        lie.append(f'子息宫受{"、".join(bad_hour)}')
+
+    # 枭神夺食（女命印旺克食伤）
+    if gender == '女' and cat == '食伤':
+        yin_n = sum(1 for i in range(4) if _pillar_has_cat(day_gan, gans[i], zhis[i], '印'))
+        shi_n = sum(1 for i in range(4) if _pillar_has_cat(day_gan, gans[i], zhis[i], '食伤'))
+        if yin_n >= 2 and yin_n > shi_n:
+            lie.append('枭神夺食（印旺克食伤）')
+
+    verdict = '劣' if lie else ('优' if you else '平')
+    parts = ([f'优：{"、".join(you)}'] if you else []) + ([f'劣：{"、".join(lie)}'] if lie else [])
+    return {
+        'verdict': verdict,
+        'you': you,
+        'lie': lie,
+        'desc': '；'.join(parts) if parts else '子女优劣平',
+    }
+
+
 # ───────────────────── 聚合 ─────────────────────
 
 def analyze_liuqin(
@@ -925,8 +1136,11 @@ def analyze_liuqin(
     pqy = detect_parent_qiyang(day_gan, gans, zhis, relations)
     zx_yw = detect_zixi_youwu(day_gan, gans, zhis, gender, relations)
     zx_xb = detect_zixi_xingbie(day_gan, gans, zhis, gender, relations)
+    zx_yl = detect_zixi_youlie(day_gan, gans, zhis, gender, relations)
     xd_sl = classify_xiongdi_shuliang(day_gan, gans, zhis, relations)
     xd_ks = detect_xiongdi_keshun(day_gan, gans, zhis, relations)
+    xd_ph = classify_xiongdi_paihang(day_gan, gans, zhis, relations)
+    xd_qy = classify_xiongdi_qingyi(day_gan, gans, zhis, relations)
 
     # A3：方向总线信号（缺省自调）
     if direction_result is None:
@@ -947,8 +1161,14 @@ def analyze_liuqin(
         parts.append('子息有阻')
     if zx_xb.get('final_gender'):
         parts.append(f'头胎{zx_xb["final_gender"]}')
+    if zx_yl.get('verdict') in ('优', '劣'):
+        parts.append(f'子女{zx_yl["verdict"]}')
     if xd_ks.get('has_keshun'):
         parts.append('兄弟有克损')
+    if xd_ph.get('is_eldest'):
+        parts.append('排行居长')
+    if xd_qy.get('verdict') in ('薄', '争夺'):
+        parts.append(f'兄弟情谊{xd_qy["verdict"]}')
     parts.append(f'兄弟约{xd_sl.get("estimate", 0)}个')
 
     return {
@@ -958,8 +1178,11 @@ def analyze_liuqin(
         'parent_qiyang': pqy,
         'zixi_youwu': zx_yw,
         'zixi_xingbie': zx_xb,
+        'zixi_youlie': zx_yl,
         'xiongdi_shuliang': xd_sl,
         'xiongdi_keshun': xd_ks,
+        'xiongdi_paihang': xd_ph,
+        'xiongdi_qingyi': xd_qy,
         'direction_signals': direction_brief(direction_result),
         'summary': '；'.join(parts),
     }
@@ -972,7 +1195,10 @@ __all__ = [
     'detect_parent_qiyang',
     'detect_zixi_youwu',
     'detect_zixi_xingbie',
+    'detect_zixi_youlie',
     'classify_xiongdi_shuliang',
-    'detect_xiongdi_keshun',
+    'classify_xiongdi_keshun',
+    'classify_xiongdi_paihang',
+    'classify_xiongdi_qingyi',
     'analyze_liuqin',
 ]

@@ -2,16 +2,15 @@
 xueli - 盲派学历专辑·主观层（subjective）
 
 理论来源：段建业《盲派中级命理学》第十一章「学历专辑」（源文 5394-5577 行）
-核心思想：学历看「学历之神」与「破坏之神」的较量。段氏明言「以官杀、印星、
-          食神当学历之神」--印(正印/偏印)主学问学历、食(食神)主才华科甲、官杀
-          主科名纪律，三者皆为学历之神；财(坏印)与枭(偏印夺食)为破坏之神。
-          学历之神为用且不被坏 -> 高学历；财枭坏印食 -> 低学历/学业中断。
+核心思想：学历看「学历之神」与「破坏之神」的较量。段氏明言「以官杀、印星
+          与食神当学历之神；以财星、伤官、比劫当破坏学历之神」（zhongji:5397）。
+          学历之神为用且不被坏 -> 高学历；财/伤官/比劫坏印食 -> 低学历/学业中断。
 
 三项判定：
   1. 学历之神 vs 破坏之神：
        学历之神=官杀+印+食神（官杀主科名纪律、印主学问、食神主科甲才华）；
-       破坏之神=财（财坏印，学历受损）+ 枭（偏印夺食，才华衣食被夺）。
-  2. 学历高低：印食旺且无财枭坏 -> 高学历；有财枭坏印食 -> 低学历；印食受克中断 -> 中断；
+       破坏之神=财+伤官+比劫（zhongji:5397；财坏印、伤官不守规矩、比劫好动不思学习）。
+  2. 学历高低：印食旺且不被坏 -> 高学历；财/伤官/比劫坏之 -> 低学历；印食受克中断 -> 中断；
        杀制伤官/合杀（杀配伤官/合杀为用）-> 高学历（官杀亦学历之神）。
   3. 文理行业：文科=印/食神/木火旺（主文）；理科=伤官/七杀/金水旺（主理）。
 
@@ -186,18 +185,20 @@ def classify_xueli_shen(
     day_gan: str, gans: List[str], zhis: List[str],
     relations: Optional[Dict] = None,
 ) -> Dict:
-    """学历之神(官杀+印+食神) vs 破坏之神(财+枭)。
+    """学历之神(官杀+印+食神) vs 破坏之神(财+伤官+比劫，zhongji:5397)。
 
-    段氏明言「以官杀、印星、食神当学历之神」。
+    段氏明言「以官杀、印星与食神当学历之神；以财星、伤官、比劫当破坏学历之神」。
     学历之神：官杀(主科名纪律) + 印(正印/偏印，主学问学历) + 食神(主科甲才华)；
-    破坏之神：财(财坏印，学历受损) + 枭(偏印夺食，才华衣食被夺)。
+    破坏之神：财(坏印) + 伤官(不守规矩不爱学习教课书) + 比劫(好动争斗不思学习)。
+    （枭夺食书锚在牢狱章 zhongji:5589-5590，非学历章破坏之神——F17 X1 修正）
 
     Returns:
         {
           'xueli_shen': [str],     # 学历之神命中（官杀/印/食神）
-          '破坏_shen': [str],      # 破坏之神命中（财/枭）
+          '破坏_shen': [str],      # 破坏之神命中（财/伤官/比劫）
           'yin_count': int, 'shi_count': int,
           'cai_count': int, 'guan_count': int, 'xiao_count': int,
+          'shang_count': int, 'bijie_tou': int, 'bijie_gen': int,
           'details': [str],
         }
     """
@@ -210,7 +211,9 @@ def classify_xueli_shen(
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'xueli_shen': [], '破坏_shen': [], 'yin_count': 0, 'shi_count': 0,
-                'cai_count': 0, 'guan_count': 0, 'xiao_count': 0, 'details': ['四柱不全']}
+                'cai_count': 0, 'guan_count': 0, 'xiao_count': 0,
+                'shang_count': 0, 'bijie_tou': 0, 'bijie_tou_ym': 0, 'bijie_gen': 0,
+                'details': ['四柱不全']}
 
     prom = _mingxian_cats(day_gan, gans, zhis)
     yin_count = sum(1 for c in prom if '印' in c)
@@ -218,9 +221,14 @@ def classify_xueli_shen(
     cai_count = sum(1 for c in prom if '财' in c)
     guan_count = sum(1 for c in prom if '官杀' in c)  # 官杀亦学历之神
 
-    # 枭(偏印)夺食：须偏印明现 + 食神明现
+    # 枭(偏印)夺食计数保留（牢狱章口径，不再作学历破坏之神——F17 X1）
     has_pianyin = False
     has_shishen = False
+    # 伤官/比劫明现计数（破坏之神，zhongji:5397）；日主自身不算比劫
+    shang_count = 0
+    bijie_tou = 0
+    bijie_tou_ym = 0  # 年月透干比劫（年月=学业期宫位，zhongji:5484）
+    bijie_gen = 0
     for i in range(4):
         if i < len(gans) and gans[i]:
             ss = _compute_shishen(day_gan, gans[i])
@@ -228,7 +236,16 @@ def classify_xueli_shen(
                 has_pianyin = True
             if ss == '食神':
                 has_shishen = True
+            if i != 2:  # 日主不算比劫/伤官破坏方
+                if ss == '伤官':
+                    shang_count += 1
+                if ss in ('比肩', '劫财'):
+                    bijie_tou += 1
+                    if i in (0, 1):
+                        bijie_tou_ym += 1
         if i < len(zhis) and zhis[i]:
+            zhi_shang = False
+            zhi_bijie = False
             for idx, (cg, _) in enumerate(get_canggan_mangpai(zhis[i])):
                 if idx > 1:
                     break
@@ -237,6 +254,14 @@ def classify_xueli_shen(
                     has_pianyin = True
                 if ss == '食神':
                     has_shishen = True
+                if ss == '伤官':
+                    zhi_shang = True
+                if ss in ('比肩', '劫财'):
+                    zhi_bijie = True
+            if zhi_shang:
+                shang_count += 1
+            if zhi_bijie:
+                bijie_gen += 1
     xiao_count = 1 if (has_pianyin and has_shishen) else 0
 
     xueli_shen: List[str] = []
@@ -247,16 +272,19 @@ def classify_xueli_shen(
         xueli_shen.append('食神')
     if guan_count > 0:
         xueli_shen.append('官杀')  # 段氏：官杀亦学历之神（主科名纪律）
+    # 破坏之神=财/伤官/比劫（zhongji:5397，枭非学历章破坏之神）
     if cai_count > 0:
         po_shen.append('财')
-    if xiao_count:
-        po_shen.append('枭')
+    if shang_count > 0:
+        po_shen.append('伤官')
+    if bijie_tou + bijie_gen > 0:
+        po_shen.append('比劫')
 
     details: List[str] = []
     if xueli_shen:
         details.append(f'学历之神：{"、".join(xueli_shen)}（印{yin_count}位、食神{"有" if has_shishen else "无"}、官杀{guan_count}位）')
     if po_shen:
-        details.append(f'破坏之神：{"、".join(po_shen)}（财{cai_count}位、枭夺食{"是" if xiao_count else "否"}）')
+        details.append(f'破坏之神：{"、".join(po_shen)}（财{cai_count}位、伤官{shang_count}位、比劫透{bijie_tou}根{bijie_gen}）')
 
     return {
         'xueli_shen': xueli_shen,
@@ -266,6 +294,10 @@ def classify_xueli_shen(
         'cai_count': cai_count,
         'guan_count': guan_count,
         'xiao_count': xiao_count,
+        'shang_count': shang_count,
+        'bijie_tou': bijie_tou,
+        'bijie_tou_ym': bijie_tou_ym,
+        'bijie_gen': bijie_gen,
         'details': details,
     }
 
@@ -276,7 +308,7 @@ def classify_xueli_level(
     day_gan: str, gans: List[str], zhis: List[str],
     relations: Optional[Dict] = None,
 ) -> Dict:
-    """学历高低：印食旺且无财枭坏 -> 高；财枭坏印食 -> 低；印食受克中断 -> 中断；
+    """学历高低：印食旺且不被坏 -> 高；财/伤官/比劫坏之 -> 低；印食受克中断 -> 中断；
     杀制伤官/合杀（杀配伤官/合杀为用，官杀亦学历之神）-> 高。
 
     Returns:
@@ -300,7 +332,10 @@ def classify_xueli_level(
     shi = shen.get('shi_count', 0)
     cai = shen.get('cai_count', 0)
     guan = shen.get('guan_count', 0)
-    xiao = shen.get('xiao_count', 0)
+    shang = shen.get('shang_count', 0)
+    bijie_tou = shen.get('bijie_tou', 0)
+    bijie_tou_ym = shen.get('bijie_tou_ym', 0)
+    bijie_gen = shen.get('bijie_gen', 0)
 
     signals: List[str] = []
     # 财坏印：需财五行明现且财克印（元素级）。印五行=生我者。
@@ -339,9 +374,22 @@ def classify_xueli_level(
     elif yin == 0 and cai >= 2:
         score -= 1
         signals.append('财多无印，学历之神不显')
-    if xiao:
+    # 伤官为破坏之神；配印/配官杀做功则学有所成，不扣（zhongji:5405-5407）
+    shang_deduct = shang >= 1 and yin == 0 and guan == 0
+    if shang_deduct:
         score -= 1
-        signals.append('枭夺食，才华衣食被夺，学业受阻')
+        signals.append('伤官明现无印杀相配，不守规矩不爱学习教课书')
+    # 比劫结伙成群主不思学习（zhongji:5408-5409）。年月=学业期宫位，年月比劫成群
+    # 方为重破坏（zhongji:5484「年月比劫是不爱学习的标志」）；年时分布之比劫多主
+    # 帮身泄印（zhongji:5540 例17 闲注「泄的越多学问越高」），按透干有根群轻扣；
+    # 单透无根群不扣（zhongji:5575 例21 甲泄印反锚）。
+    bijie_deduct = bijie_tou_ym >= 2 or (bijie_tou >= 1 and bijie_gen >= 2)
+    if bijie_tou_ym >= 2:
+        score -= 2
+        signals.append('年月比劫成群，好动争斗不思学习')
+    elif bijie_tou >= 1 and bijie_gen >= 2:
+        score -= 1
+        signals.append('比劫透干有根群，主不思学习')
 
     # 杀制伤官/合杀 -> 高学历（段氏：官杀亦学历之神，杀配伤官/合杀为用主科甲高学历）
     # - 合杀：七杀明现 + 伤官明现 + 合动作连接杀位与伤官位（伤官合杀，合杀为用）；
@@ -378,9 +426,9 @@ def classify_xueli_level(
         level = '高'
     elif score >= 3:
         level = '高'
-    elif score <= 0 and (cai_huai_yin or xiao or (yin == 0 and cai >= 2)):
+    elif score <= 0 and (cai_huai_yin or shang_deduct or bijie_deduct or (yin == 0 and cai >= 2)):
         level = '低'
-    elif (cai_huai_yin and cai >= 2 and yin >= 1 and cai >= yin) or (xiao and yin == 0):
+    elif cai_huai_yin and cai >= 2 and yin >= 1 and cai >= yin:
         level = '中断'
     else:
         level = '中'
