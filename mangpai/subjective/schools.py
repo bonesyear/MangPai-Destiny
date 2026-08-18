@@ -29,8 +29,11 @@ MANGPAI_SCHOOL: School = School(
                "he_types", "virtual_solid", "zhengfan", "xiangfa",
                "shenshu", "dayun_analysis", "liunian_analysis",
                # 领域专辑 + 高级技法模块（gongliang/xiangfa 之下游）
+               # 修批A③（R5 block-4）：gongmen_wuzhi 摘除——is_wuzhi 98.8% 恒真
+               # 零信息量（F18 已切断 narrative 通道，本步落 payload 通道），
+               # engine result 键保留（模块内部存档，不进 LLM）。
                "caiming", "guanming", "hunyin", "xueli", "laoyu",
-               "yingqi_subj", "yunfan", "zhiye", "gongmen_wuzhi",
+               "yingqi_subj", "yunfan", "zhiye",
                "liuqin", "zaihuo", "zeishen_bushen", "xiangfa_ops",
                "narrative", "shipaige"),
     desc="盲派宾主体用做功体系，重象法口诀。《段氏理象学》《盲师断命秘诀》",

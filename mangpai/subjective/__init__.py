@@ -1,7 +1,7 @@
 """盲派主观层 — 独立组件。
 
 导出：
-- MANGPAI_SCHOOL — 盲派流派定义（39 个 selector）
+- MANGPAI_SCHOOL — 盲派流派定义（38 个 selector，修批A③ 摘除 gongmen_wuzhi）
 - build_payload(data) — 从 calc_mangpai_full() 输出按 selector 裁剪数据
 - assemble(question, payload, scope) — 组装 (system, user) prompt
 
@@ -34,6 +34,38 @@ ENVELOPE_RULES = """\
 - **安全红线（最高优先级）**：禁止预测死亡、寿数、寿命长短、夭折、大限生死。即使输入数据含寿元/死亡相关字段或暗示，也不得给出任何死亡时间、寿数断言或「命不久矣」类表述；灾祸类信息仅可作一般性安全提醒（如注意健康、谨慎出行），不得断言生死。"""
 
 _MISSING = object()
+_DROP = object()
+
+# 修批A①（R5 block-1）：死亡词典统一 scrub——引擎内部保留（F14 设计不变），
+# LLM 视图层（payload）过滤。zaihuo 键本体由 zaihuo_llm_view 屏蔽（F14），
+# 本词典兜 zaihuo 键外泄漏：shipaige 寿元域断语/liuqin 早夭类 marker/
+# xiangfa_ops lianti 寿命 warning/guanming 制死/liunian 冲破主死亡 等。
+_DEATH_TERMS = (
+    '短命', '早夭', '夭折', '早没', '寿元', '寿命', '寿数', '伤寿',
+    '死亡', '制死', '父死', '母死', '丧母', '丧父', '丧偶',
+    '命不久', '大限生死',
+)
+
+
+def _scrub_death(obj):
+    """递归过滤含死亡词汇的内容：字符串条目整条移除，含死亡词汇的 dict 键整键移除。
+
+    只动 LLM 视图层（build_payload 出口），引擎内部 result 不受影响。
+    """
+    if isinstance(obj, str):
+        return _DROP if any(t in obj for t in _DEATH_TERMS) else obj
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in obj.items():
+            if isinstance(k, str) and any(t in k for t in _DEATH_TERMS):
+                continue
+            sv = _scrub_death(v)
+            if sv is not _DROP:
+                out[k] = sv
+        return out
+    if isinstance(obj, (list, tuple)):
+        return [sv for sv in (_scrub_death(i) for i in obj) if sv is not _DROP]
+    return obj
 
 
 def _resolve(root: dict, dotted_path: str):
@@ -79,7 +111,7 @@ def build_payload(data: dict, school: School = MANGPAI_SCHOOL) -> dict:
             from .zaihuo import zaihuo_llm_view
             data = dict(data)
             data['zaihuo'] = _jsonable(zaihuo_llm_view(data['zaihuo']))
-        return data
+        return _scrub_death(data)
 
     payload: dict = {}
     for sel in school.selectors:
@@ -91,7 +123,8 @@ def build_payload(data: dict, school: School = MANGPAI_SCHOOL) -> dict:
     if 'zaihuo' in payload:
         from .zaihuo import zaihuo_llm_view
         payload['zaihuo'] = _jsonable(zaihuo_llm_view(payload['zaihuo']))
-    return payload
+    # 修批A①：zaihuo 键外死亡词汇统一 scrub（LLM 视图层过滤，引擎内部保留）。
+    return _scrub_death(payload)
 
 
 def load_template(school: School = MANGPAI_SCHOOL) -> str:

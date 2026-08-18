@@ -996,6 +996,7 @@ def huanxiang(
     gans: List[str],
     zhis: List[str],
     relations: Optional[Dict] = None,
+    zb_result: Optional[Dict] = None,
 ) -> List[Dict]:
     """换象原则（高级篇 6.3）：制尽则换，主从易位。
 
@@ -1024,12 +1025,26 @@ def huanxiang(
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
 
-    # 制尽判据：贼神捕神净制（用神+原神俱制、无残存）
+    # 制尽判据：贼神捕神净制（用神+原神俱制、无残存）。
+    # 修批A②（R5 block-3）：净制口径单源化——优先消费调用方（engine）已算的
+    # zeishen_bushen 结果；缺省自算须以 zuogong_confirm 标记后的 work_actions
+    # 为准（auxiliary 过滤在 detect_zeishen_bushen 内生效）。裸 detect_relations
+    # wa 未标 auxiliary，会把宾位互制塞入制局目标集 → 原神同制误净（假「净」，
+    # 蒋介石书锚「制之不净达不到四层功」，zeishen_bushen.py:606-608）。
     bao = detect_bao_zhi(gans, zhis, day_gan)
-    clian = detect_chong_lian(zhis, gans)
-    zb = detect_zeishen_bushen(
-        day_gan, gans, zhis, work_actions=wa, bao_zhi=bao, chong_lian=clian,
-    )
+    if zb_result is not None:
+        zb = zb_result.get('zeishen_bushen') or {}
+        bao = zb_result.get('bao_zhi') or bao
+    else:
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        zg = analyze_zuogong(day_gan, zhis[2], gans[0], zhis[0],
+                             gans[1], zhis[1], gans[3], zhis[3])
+        clian = detect_chong_lian(zhis, gans)
+        zb = detect_zeishen_bushen(
+            day_gan, gans, zhis,
+            work_actions=zg.get('work_actions') or [],
+            bao_zhi=bao, chong_lian=clian,
+        )
     jing_zhi = zb.get('jing_zhi', '')
     zeishen_wx = zb.get('zeishen_wx', '')
     bushen_wx = zb.get('bushen_wx', '')
@@ -1269,6 +1284,7 @@ def analyze_xiangfa_ops(
     relations: Optional[Dict] = None,
     muku_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
+    zeishen_result: Optional[Dict] = None,
 ) -> Dict:
     """象法九原则操作层聚合（中级七原则 + 高级换象/局象）。
 
@@ -1282,6 +1298,8 @@ def analyze_xiangfa_ops(
         relations: detect_relations 输出（缺省自调）
         muku_result: analyze_muku 输出（缺省自调）
         shensha_result: compute_shensha_ext 输出（缺省自调）
+        zeishen_result: analyze_zeishen_bushen 输出（缺省时 huanxiang 以
+            zuogong_confirm 标记后的 work_actions 自算；修批A② 净制口径单源化）
 
     Returns:
         {
@@ -1326,7 +1344,7 @@ def analyze_xiangfa_ops(
     zhi = zhixiang(day_gan, gans, zhis, relations)
     dai = daixiang(day_gan, gans, zhis)
     jie = jiexiang(day_gan, gans, zhis)
-    huan = huanxiang(day_gan, gans, zhis, relations)
+    huan = huanxiang(day_gan, gans, zhis, relations, zb_result=zeishen_result)
     ju = juxiang(day_gan, gans, zhis, relations)
 
     all_findings = gong + he + hua + mu + zhi + dai + jie + huan + ju

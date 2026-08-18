@@ -556,12 +556,14 @@ class MangpaiEngine:
         result['zeishen_bushen'] = zb_res
 
         # 象法九原则操作层（消费 muku/shensha；缺省自调客观检测）
+        # 修批A②：透传引擎已算的 zeishen_bushen 结果（zb_res），换象净制口径单源化
         result['xiangfa_ops'] = self._safe_compute(
             'xiangfa_ops', analyze_xiangfa_ops,
             self.day_gan, self.gans, self.zhis,
             relations=relations,
             muku_result=result.get('muku'),
             shensha_result=result.get('shensha'),
+            zeishen_result=zb_res,
         ) or {}
 
         result['zhiye'] = self._safe_compute(
@@ -573,6 +575,9 @@ class MangpaiEngine:
             caiming_result=result.get('caiming'),  # M2 基础职业类目消费财命tier/取财法
         ) or {}
 
+        # 修批A③：gongmen_wuzhi 正式弃用落 payload 通道——selectors 已摘除
+        # （is_wuzhi 98.8% 恒真零信息量，R5 block-4），result 键保留供内部存档/
+        # 测试消费，不进 LLM。
         result['gongmen_wuzhi'] = self._safe_compute(
             'gongmen_wuzhi', analyze_gongmen_wuzhi,
             self.day_gan, self.gans, self.zhis,

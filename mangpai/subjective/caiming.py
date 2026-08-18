@@ -1317,10 +1317,16 @@ def _zeishen_jingzhi(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
     yx-贫家境贫寒一贫书锚（捕火5.0<贼金6.25 假净制上浮巨富，书判一贫如洗；
     双胞胎甲寅时同构，书判富百万系「戊喜见甲」非净制之功）。巨富锚俱捕强
     于贼（李嘉诚5.75≥4.0/保尔森8.75≥3.25/cj-巨富制尽10≥3.75），不受影响。
+    修批A②（R5）：补传 zuogong_confirm 结果——旧调用不传 zg 致 work_actions
+    为空，制局目标集缺 zuogong 补全（含 auxiliary 过滤），净制口径与引擎
+    zb_res 分叉；现与 engine/gongliang/huanxiang 同源（单源化）。
     """
     try:
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
         from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
-        r = analyze_zeishen_bushen(day_gan, gans, zhis)
+        zg = analyze_zuogong(day_gan, zhis[2], gans[0], zhis[0],
+                             gans[1], zhis[1], gans[3], zhis[3])
+        r = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
         zb = r.get('zeishen_bushen') or {}
         if zb.get('jing_zhi') != '净':
             return False

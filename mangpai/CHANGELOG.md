@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-08-18 修批A · LLM 红线三项（R5 block×3：siwang scrub → zeishen 单源化 → gongmen 摘除）
+
+| 项 | 处理方式 | 书锚/依据 | 文件 |
+|----|----------|------|------|
+| A① siwang 键外泄漏（R5 block-1：shipaige「寿元：食伤被制短命」「父死母再嫁」/liuqin「手足早夭」/xiangfa_ops lianti warning「寿命」/guanming「制死」/liunian「冲破主死亡」） | build_payload 装配层统一死亡词典 scrub（`_scrub_death` 递归过滤：含死亡词字符串条目整条移除、含死亡词 dict 键整键移除），非逐键补丁；只动 LLM 视图层，引擎内部 siwang 保留（F14 设计不变） | F14 寿元红线延续；prompt 禁令之外的物理屏蔽 | subjective/__init__.py |
+| A② 换象假「净」（R5 block-3：huanxiang 用裸 detect_relations wa 缺 zuogong_confirm auxiliary 标记 → 11/509 矛盾例=9 train+2 heldout，payload 换象断语与同帧 zeishen_bushen.jing_zhi 自相矛盾） | 净制口径单源化：huanxiang 改消费引擎已算 zb_res（engine 透传 `zeishen_result`）；缺省 fallback 以 analyze_zuogong 标记后 work_actions 自算（zhiye 内部调用路径同口径）；caiming `_zeishen_jingzhi` 补传 zg（旧 wa=空与引擎口径分叉，27 例 jingzhi False→True 但已评分 heldout 4 例 tier 均不变） | 蒋介石「制之不净达不到四层功」（zeishen_bushen.py:606-608 同源） | subjective/xiangfa_ops.py、subjective/caiming.py、engine.py |
+| A③ gongmen_wuzhi 98.8% 恒真进 payload（R5 block-4） | selectors 摘除（39→38 键），F18 弃用决策落 payload 通道；engine result 键保留（内部存档/测试消费） | F18 正式弃用决策延续 | subjective/schools.py、engine.py 注释 |
+| 预注册（本批铁律） | heldout 例=shouke-qi15-房地产千万（戊子辛酉戊戌乙卯）：预期**不翻转**——merchant 7→6 与 lawyer 6 平，tie_pri(merchant>lawyer) 保 primary；财命⚠️不经净制豁免路径。实测确认 0 翻转 ✓（另一 heldout shouke-li048 仅应期 verdict，unscorable） | — | 本表+汇报 |
+| 哨兵（先红后绿） | 新建 test_a_llm_redline.py 9 测（先红：ImportError+行为红——zhenbao-09 不净仍换财象/死亡盘 payload 命中 5 词/selectors 39）：scrub 单元+两死亡盘零命中+引擎内部 siwang 保留/矛盾例不换象+fallback 同口径+李嘉诚净制锚保留+caiming 与引擎同口径/selectors 38+payload 无 gongmen | 见上 | tests/test_a_llm_redline.py |
+
+验证：哨兵先红后绿 9/9、verify 432 全绿、pytest 657 passed（+9，test_subjective 39→38 同步）、blind 对照 20260817_f19——**heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转**（预注册 qi15 确认不翻转）、trainset 0 翻转；文本抖动 3 条（heldout qi05+trainset yx-处级/yx-科级）逐条审=意图内（caiming_adjust 文案「制不尽量级不足，封顶富」→「贼神捕神净制，量级同制尽」，tier 由后续凶向封顶决定不变，rubric outcome 全不变）；67 例 0 回归（5 IMPROVE）、famous 0 回归（6 IMPROVE）、calib 4 REGRESSION stash 实证=存量（与 F6-F19 同清单，0 新增）、双 seed 剥 _meta 逐字节一致。引擎基线=`snapshots/20260818_fa.json`。509 例语料复跑：换象矛盾 11→0、is_wuzhi 出 payload。
+
 ## 2026-08-17 F19 批 · P1/P2 扫尾（收尾批：yunfan 两 P1 修 + 全遗留条目清账）
 
 | 项 | 处理方式 | 书锚 | 文件 |

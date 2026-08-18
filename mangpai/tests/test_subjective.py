@@ -30,9 +30,11 @@ class TestSchoolDefinition:
     def test_school_prompt_file(self):
         assert MANGPAI_SCHOOL.prompt == "mangpai.md"
 
-    def test_school_has_39_selectors(self):
-        # 24 基础 + 15 领域专辑/高级技法模块（caiming/guanming/hunyin/...）
-        assert len(MANGPAI_SCHOOL.selectors) == 39
+    def test_school_has_38_selectors(self):
+        # 24 基础 + 14 领域专辑/高级技法模块（caiming/guanming/hunyin/...）
+        # 修批A③：gongmen_wuzhi 摘除（is_wuzhi 98.8% 恒真零信息量），39→38
+        assert len(MANGPAI_SCHOOL.selectors) == 38
+        assert 'gongmen_wuzhi' not in MANGPAI_SCHOOL.selectors
 
     def test_selectors_include_blind_fields(self):
         for field in ("binzhu", "tiyong", "zuogong", "gongliang", "muku",
