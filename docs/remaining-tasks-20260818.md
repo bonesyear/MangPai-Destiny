@@ -4,7 +4,7 @@
 > 本文件是 08-18 引擎+LLM 通道双轨终态。所有里程碑 commit 均在 GitHub。
 > **08-19 D1 数据批已执行**（见下方「D1 快报」），三、四、五节仍有效。
 
-## D1 快报（2026-08-19，commit `08f3636`）
+## D1 快报（2026-08-19，commit `7eb7ca5`）
 
 - **改动**：gold 标注错 5 条（calib zhenbao-05 官命 lv4→3/层功[3,4]→[2,3]、zhenbao-23a 层功 max1→2；trainset cj-处级-5 财 富→小康、cj-足球 财 小康→富）+ source 锚漂移 15 处 + raw_quote 张冠剔除（cj-贫穷命）+ calib zhenbao-10 dayun 误录删除（戊寅=1998 流年非大运，50qi:313-315）+ cj-老总口径注。**纯数据批，引擎零改动**。任务书 `docs/tasks/kimi-d1-data-batch-20260819.md`。
 - **验证（Hermes 复核）**：calib 常驻回归 4→2（余 zhenbao-01 官命/zhenbao-14a 财命=引擎错存量）；trainset 财 51.33→**52.21%**（59✅/44⚠️/10❌，翻转 2 条皆改善）；heldout vs fb **零翻转零抖动**（官 72.73/财 68.12/职 46.15）；verify 432 全绿；pytest 704（684+1xf+19xp）。
