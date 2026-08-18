@@ -43,7 +43,6 @@ commit 链：审计 `d056cb1` → F 系列 `3a8fda1..cdb184a` → 修批 `6264b4
 
 - **Kimi CLI**：`/root/.kimi-code/bin/kimi -p "先读 knowledge-base.md，然后…"`——任务开头必带知识库（记忆替代机制）；kimi 配额=5h 账单周期非整点重置
 - **push 通道**：GitHub 直连超时 → 临时 URL（gh-proxy+token）push，`ls-remote` 验证；origin 保持干净 URL
-- **cronjob**：调度 tick 分钟级延迟（08-18 实测 18:02 设定 18:10 才触发）——设任务预留 10 分钟余量；08-07 有系统时钟漂移前科（NTP 校准）
 - **DeepSeek 峰谷**：北京 09-12/14-18 = peak（涨价价），其余半价；大批量跑低峰期
 - **验证六件套**：verify_mangpai 432 / verify_dayun 70 / layer1 64 / layer3 20 / pytest / blind_eval（基线快照链）
 - **铁律**：heldout 是闸门（财 47✅/官 48✅/职 24✅ 不回退）；书锚铁律（规则改动带书明文行号）；LLM 输出永不入 compute_all dict；prompt 调优只吃 trainset
