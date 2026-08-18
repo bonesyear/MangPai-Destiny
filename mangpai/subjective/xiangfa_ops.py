@@ -305,16 +305,22 @@ def _domains_of_ganzhi(gan: str, zhi: str) -> Set[str]:
 
 
 def _shensha_by_pillar(shensha_result: Optional[Dict]) -> Dict[str, List[str]]:
-    """compute_shensha_ext 结果 -> {柱位键: [神煞名]}（反转 in_pillars）。"""
+    """compute_shensha_ext 结果 -> {柱位键: [神煞名]}（反转 in_pillars）。
+
+    修批B：并入 year_ref/day_ref 子键落柱——F13 后主键=reference 所定柱，
+    只读主键时次柱（年支侧）命中漏进共象映射（gaoji:7912 年支同查）。"""
     by_p: Dict[str, List[str]] = {k: [] for k in PILLAR_KEYS}
     if not shensha_result:
         return by_p
     for name, info in shensha_result.items():
         if not isinstance(info, dict):
             continue
-        for pk in info.get('in_pillars', []) or []:
-            if pk in by_p and name not in by_p[pk]:
-                by_p[pk].append(name)
+        subs = [info] + [info[k] for k in ('year_ref', 'day_ref')
+                         if isinstance(info.get(k), dict)]
+        for sub in subs:
+            for pk in sub.get('in_pillars', []) or []:
+                if pk in by_p and name not in by_p[pk]:
+                    by_p[pk].append(name)
     return by_p
 
 

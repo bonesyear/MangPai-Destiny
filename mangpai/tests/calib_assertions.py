@@ -73,11 +73,15 @@ def run_case(case):
         'has_yunsui': bool(dayun or liunian),  # P0-a：财命断语性质判别用
     }
     if dayun or liunian:
+        # 修批B：传 age（has_daxian 不再恒 False，R1 P1）——age 锚定事件年
+        # （流年公历年-出生年），与断语所断事件时段同口径；无流年则缺省不变。
+        age = (liunian[2] - year) if liunian else None
         out['yq'] = infer_comprehensive_yingqi(
             dg, gans, zhis,
             dayun_gan=(dayun[0] if dayun else ''), dayun_zhi=(dayun[1] if dayun else ''),
             liunian_gan=(liunian[0] if liunian else ''),
-            liunian_zhi=(liunian[1] if liunian else ''))
+            liunian_zhi=(liunian[1] if liunian else ''),
+            age=age)
     return out
 
 

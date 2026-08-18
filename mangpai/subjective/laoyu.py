@@ -34,7 +34,7 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.zuogong_detect import detect_relations
-from mangpai.objective.shensha import compute_shensha_ext
+from mangpai.objective.shensha import resolve_shensha
 from mangpai.subjective.zhengfan import analyze_zhengfan
 
 _YANG_GANS = set('甲丙戊庚壬')
@@ -612,6 +612,7 @@ def detect_xiaotou(
 def detect_jiesha_wangshen(
     day_gan: str, gans: List[str], zhis: List[str],
     relations: Optional[Dict] = None,
+    shensha_result: Optional[Dict] = None,
 ) -> Dict:
     """劫煞亡神（高级篇 ch11）：劫煞主官非牢狱，亡神主失财官非。
 
@@ -637,15 +638,25 @@ def detect_jiesha_wangshen(
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'has_jiesha': False, 'has_wangshen': False, 'laoyu_signal': False, 'details': ['四柱不全']}
     try:
-        shen = compute_shensha_ext(day_gan, zhis)
+        shen = resolve_shensha(day_gan, zhis, shensha_result)
     except Exception:
         shen = {}
     js = shen.get('劫煞') or {}
     ws_ = shen.get('亡神') or {}
-    has_jiesha = bool(js.get('in_pillars'))
-    has_wangshen = bool(ws_.get('in_pillars'))
-    jiesha_zhi = js.get('zhi', '')
-    wangshen_zhi = ws_.get('zhi', '')
+    # 修批B：主键=日支侧（F13），并入 year_ref/day_ref 子键——year-only
+    # 劫煞/亡神漏检（gaoji:7912「年支亦需同查」）；zhi 取实际落柱一侧。
+    def _hit(v: Dict) -> tuple:
+        in_p = list(v.get('in_pillars') or [])
+        zhi = v.get('zhi', '') if in_p else ''
+        for ref in ('year_ref', 'day_ref'):
+            r = v.get(ref)
+            if isinstance(r, dict) and r.get('in_pillars'):
+                in_p += r['in_pillars']
+                if not zhi:
+                    zhi = r.get('zhi', '')
+        return bool(in_p), zhi
+    has_jiesha, jiesha_zhi = _hit(js)
+    has_wangshen, wangshen_zhi = _hit(ws_)
 
     # 与官杀并 / 与刑冲并
     has_guansha = _has_shen_in_mingxian(day_gan, gans, zhis, {'正官', '七杀'})
@@ -795,6 +806,7 @@ def analyze_laoyu(
     zhis: Optional[List[str]] = None,
     *,
     relations: Optional[Dict] = None,
+    shensha_result: Optional[Dict] = None,
 ) -> Dict:
     """牢狱综合：五法 + 附加犯罪特征 + 劫煞亡神/魁罡/官杀入墓 聚合。
 
@@ -831,7 +843,8 @@ def analyze_laoyu(
     r_fanju = detect_fanju_chen_chou(day_gan, gans, zhis, relations)
     r_sha = detect_shaqie_zhi(day_gan, gans, zhis)
     r_xt = detect_xiaotou(day_gan, gans, zhis)
-    r_jsws = detect_jiesha_wangshen(day_gan, gans, zhis, relations)
+    r_jsws = detect_jiesha_wangshen(day_gan, gans, zhis, relations,
+                                    shensha_result=shensha_result)
     r_kg = detect_kuigang(day_gan, gans, zhis, relations)
     r_gshm = detect_guansha_rumu(day_gan, gans, zhis, relations)
 

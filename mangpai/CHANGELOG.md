@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-08-18 修批B · 引擎 P1（神煞 year_ref×3 + calib 传 age，R1/R2 P1 清单）
+
+| 项 | 处理方式 | 书锚/依据 | 文件 |
+|----|----------|------|------|
+| zaihuo 双查合并漏 year_ref（R2 同型新发现：:394-398/:584-592 读主键+day_ref，day_ref 实为死代码——主键即日支侧，year-only 劫煞/亡神/灾煞静默丢失） | 车祸 xiong_shen 与死亡 xiong_sha 两处并入 year_ref 子键 in_pillars；实证盘（年支申→劫煞巳落时柱、日支午→劫煞亥不在局）修前未入 xiong_shen 可翻转 risk 档 | gaoji:7912「先以日支为主…年支亦需同查」 | subjective/zaihuo.py |
+| laoyu 就地重算 shensha 不读子键（R2：:640-648 裸 compute_shensha_ext+只读顶层，配置断路+顶层语义 F13 后静默翻转） | detect_jiesha_wangshen 改走 resolve_shensha + 并入 year_ref/day_ref（zhi 取实际落柱一侧）；analyze_laoyu/engine 链路补透传 shensha_result | gaoji:7912 | subjective/laoyu.py、engine.py |
+| calib 不传 age（R1 P1：calib_assertions.py:76 has_daxian 恒 False，应期断言评旧口径） | run_case 传 age=流年公历年−出生年（锚定事件年，与断语时段同口径；无流年缺省不变）；应期 6 断言传 age 后 6/6✅ 口径一致 | 与 engine F10 传 age 同族 | tests/calib_assertions.py |
+| 同型扫描 | xiangfa_ops `_shensha_by_pillar`（R1/R2 P2 存量）一并修复：共象映射并入 year_ref/day_ref 子键落柱；**备案**：liuqin:872/gongmen_wuzhi×3 就地重算仅消费羊刃（day_gan 起算，非 reference 敏感，无双查子键问题）；hunyin:892/zhiye:955 为带注释的显式 day_ref/year_ref 健康读者（灾煞 year_ref=阎锡山锚） | — | subjective/xiangfa_ops.py |
+| 哨兵（先红后绿） | 新建 test_fb_shensha_yearref.py 5 测（先红 5）：实证盘劫煞/灾煞 year-only→zaihuo 车祸+死亡、laoyu has_jiesha、xiangfa 落柱、calib daxian 定位 | 见上 | tests/test_fb_shensha_yearref.py |
+
+验证：哨兵先红 5 后绿 5/5、verify 432 全绿、pytest 662 passed（+5）、blind 对照 20260818_fa——**heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动、trainset 0 翻转**；67 例 0 回归（5 IMPROVE）、famous 0 回归（9 IMPROVE）、calib 4 REGRESSION stash 实证=存量（与修批A 同清单，0 新增）、双 seed 剥 _meta 逐字节一致。引擎基线=`snapshots/20260818_fb.json`。
+
 ## 2026-08-18 修批A · LLM 红线三项（R5 block×3：siwang scrub → zeishen 单源化 → gongmen 摘除）
 
 | 项 | 处理方式 | 书锚/依据 | 文件 |

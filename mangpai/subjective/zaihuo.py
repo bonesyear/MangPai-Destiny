@@ -391,10 +391,13 @@ def detect_chehuo(
     # 戊日刃在未盘旧 zhi 单值 '午' 漏检——理象学:2086 戊刃在午、未）
     if ss and (ss.get('羊刃') or {}).get('in_pillars'):
         xiong_shen.append('羊刃')
+    # F13 双查主键=日支侧、次柱在 year_ref 子键；修批B 并入 year_ref——
+    # 只读主键+day_ref 时 year-only 劫煞/亡神静默丢失（gaoji:7912 年支同查）
     for key in ('劫煞', '亡神'):
         v = ss.get(key) if ss else None
         if v and (v.get('in_pillars') or
-                  (isinstance(v.get('day_ref'), dict) and v['day_ref'].get('in_pillars'))):
+                  (isinstance(v.get('day_ref'), dict) and v['day_ref'].get('in_pillars')) or
+                  (isinstance(v.get('year_ref'), dict) and v['year_ref'].get('in_pillars'))):
             xiong_shen.append(key)
 
     score = 0
@@ -588,6 +591,9 @@ def detect_siwang(
         in_p = v.get('in_pillars') or []
         if isinstance(v.get('day_ref'), dict):
             in_p = in_p + v['day_ref'].get('in_pillars', [])
+        # 修批B：并入 year_ref（年支侧命中漏检，gaoji:7912 年支同查）
+        if isinstance(v.get('year_ref'), dict):
+            in_p = in_p + v['year_ref'].get('in_pillars', [])
         if in_p:
             xiong_sha.append(key)
     if xiong_sha and kong_wang_zhis:

@@ -549,6 +549,7 @@ class MangpaiEngine:
             'laoyu', analyze_laoyu,
             self.day_gan, self.gans, self.zhis,
             relations=relations,
+            shensha_result=result.get('shensha'),
         ) or {}
 
         # 贼神捕神/包制/冲链：已于 gongliang 之前算得（zb_res，供 gongliang 二次
