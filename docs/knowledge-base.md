@@ -460,7 +460,7 @@ python3 mangpai/tests/backtest/regression_famous.py  # 0 回归（罗斯切尔�
 
 ## 9. 当前基线与残留总账（2026-08-14 收官态）
 
-- baseline=`snapshots/20260814_c.json`（rubric v8-20260808，git 866baa9）。
+- baseline=`snapshots/20260817_f19.json`（rubric v8-20260808，git cdb184a）。
 - trainset 294：官 83.48%（19❌=§6.2）/ 财 52.21%（❌22=§6.3）/ 职 50.59%（27❌=§6.1）。
 - heldout 215：官 74.24% / 财 66.67% / 职 44.23%（全部零翻转守护中）。
 - 三维攻坚正式收官；后续方向（若重启）：官命 fp 窄修簇 A12-A18（各1例窄修）+检测簇 A8/A11/A19、财命 A13/A4/G5 残簇、职业中医/军警/lawyer 盲区（均须新突破面，旧窄通道已尽）。
