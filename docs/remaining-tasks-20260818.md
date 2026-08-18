@@ -2,6 +2,15 @@
 
 > 上一份收工记录（remaining-tasks-20260808.md）已归档到 docs/archive/（如需历史对照）。
 > 本文件是 08-18 引擎+LLM 通道双轨终态。所有里程碑 commit 均在 GitHub。
+> **08-19 D1 数据批已执行**（见下方「D1 快报」），三、四、五节仍有效。
+
+## D1 快报（2026-08-19，commit `08f3636`）
+
+- **改动**：gold 标注错 5 条（calib zhenbao-05 官命 lv4→3/层功[3,4]→[2,3]、zhenbao-23a 层功 max1→2；trainset cj-处级-5 财 富→小康、cj-足球 财 小康→富）+ source 锚漂移 15 处 + raw_quote 张冠剔除（cj-贫穷命）+ calib zhenbao-10 dayun 误录删除（戊寅=1998 流年非大运，50qi:313-315）+ cj-老总口径注。**纯数据批，引擎零改动**。任务书 `docs/tasks/kimi-d1-data-batch-20260819.md`。
+- **验证（Hermes 复核）**：calib 常驻回归 4→2（余 zhenbao-01 官命/zhenbao-14a 财命=引擎错存量）；trainset 财 51.33→**52.21%**（59✅/44⚠️/10❌，翻转 2 条皆改善）；heldout vs fb **零翻转零抖动**（官 72.73/财 68.12/职 46.15）；verify 432 全绿；pytest 704（684+1xf+19xp）。
+- **基线**：trainset 新基线 `snapshots/20260819_d1.json`（全量）；KB §0/§6.3/§6.4/§9 已同步。
+- **存量备案（非本批引入）**：①verify_dayun 69/70——selectors 总数断言 39 vs 实际 38（修批A③ 摘 gongmen_wuzhi 后断言未同步，KB §10.1 #42 已载 38 键口径）；②KB pytest 记 682 过期（实测 704）——均留修批D/下批顺手。
+- **下一批候选**：D2 入口批（E1 性别缺省策略须用户拍板：显式必填 vs payload 标注；E3 界外年份 guard；E4 lon 校验）→ D3 供给批（E2 dayun_analysis 死 selector：摘死键 vs engine 补供，用户拍板）→ D4 prompt 迭代 5（L1 职业锚定+L2 应期逐年锚定，S1 复验闸门）。规划详见 `docs/kimi-review3-t4-summary-20260818.md` §2。
 
 ## 一、引擎终态（2026-08-18 复跑确认）
 

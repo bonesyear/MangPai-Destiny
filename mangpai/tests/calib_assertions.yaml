@@ -68,10 +68,10 @@ cases:
     dayun: [丙, 子]
     liunian: [壬, 午, 2002]
     items:
-      - {dim: 官命, gold: {is_guanming: true, level: 4, note: 厅级}, baseline: ⚠️}
+      - {dim: 官命, gold: {is_guanming: true, level: 3, note: 厅级(书断「居厅级之职」zhenbao50qi:157；L3=厅级-省部级 yanjiu:6103-6104)}, baseline: ⚠️}
       - {dim: 职业, gold: {primary_in: [], note: 官员(伤官去官)，无对应职业码}, baseline: ❌}
       - {dim: 应期, gold: {commit: true, note: 壬午年升}, baseline: ✅}
-      - {dim: 层功, gold: {level_min: 3, level_max: 4, note: 厅级官}, baseline: ✅}
+      - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 厅级官；书「伤官与官不紧贴故官职不大」无L4据}, baseline: ✅}
 
   - id: zhenbao-09
     name: 第9期·乞丐(丙午运讨乞)
@@ -93,7 +93,7 @@ cases:
     zhis: [子, 寅, 辰, 巳]
     gender: 男
     year: 1972
-    dayun: [戊, 寅]
+    # D1：删 dayun——书(50qi:313-315)明「戊寅年寅刑巳动火而调动」，戊寅=1998流年非大运；书未给此人真实大运
     liunian: [庚, 辰, 2000]
     items:
       - {dim: 官命, gold: {is_guanming: true, industry_contains: [公检法, 执法, 司法, 律师], note: 公检法}, baseline: ⚠️}
@@ -154,7 +154,7 @@ cases:
       - {dim: 官命, gold: {is_guanming: false, note: 打官司普通人}, baseline: ✅}
       - {dim: 职业, gold: {allow_empty: true, note: 普通人}, baseline: ✅}
       - {dim: 应期, gold: {commit: true, note: 己卯年官司破财}, baseline: ✅}
-      - {dim: 层功, gold: {level_max: 1, note: 清家荡产}, baseline: ✅}
+      - {dim: 层功, gold: {level_max: 2, note: 清家荡产；但家底可破+地委书记贵人+后续有转机(50qi:761-765)，至少小康}, baseline: ✅}
 
   - id: zhenbao-23b
     name: 第23期·找二婚妻(大姑娘找不成)
