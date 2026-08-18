@@ -92,7 +92,7 @@ class TestDuShenSiGe:
         assert any('宫占比劫' in g for g in r['grids']) and r['is_dushen']
 
     def test_ge2_gong_zhi_xing_fan_huai(self):
-        # 坤 丁壬庚壬/未寅子午：子宫伤官欲制午官，木火有势反坏宫（gaoji 案例八）
+        # 坤 丁壬庚壬/未寅子午：子宫伤官欲制午官，木火有势反坏宫（gaoji:12862 案例八）
         r = classify_dushen_sige('庚', ['丁', '壬', '庚', '壬'], ['未', '寅', '子', '午'], '女')
         assert any('互' in g or '反' in g for g in r['grids']) and r['is_dushen']
 

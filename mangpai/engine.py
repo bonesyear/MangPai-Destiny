@@ -227,10 +227,11 @@ class MangpaiEngine:
             'shensha', compute_shensha_ext, self.day_gan, self.zhis,
             reference=self.shensha_reference,
         ) or {}
-        # 已知（端到端断路审计·部分覆盖项）：shensha 透传给 caiming/guanming/
-        # hunyin/zhiye/gongmen_wuzhi/zaihuo（经 resolve_shensha 优先取本值、缺省才
-        # 就地重算），随本处 shensha_reference 联动；xiangfa/xiangfa_ops/zeishen 等
-        # 其余下游仍各自就地重算神煞/取象（默认 'year'，不随本处 reference 联动）。
+        # 神煞单源透传（R2 复核后口径）：hunyin/zhiye/gongmen_wuzhi/zaihuo/
+        # laoyu 经 resolve_shensha 优先取本值、随 shensha_reference 联动
+        # （默认 'day'，F13）；xiangfa_ops 直接消费本值（engine.py:566）；
+        # caiming/guanming 仅有预留形参、尚未消费（caiming.py:1803、
+        # guanming.py:906）；liuqin.py:872 仍就地重算（配置断路备案，R2 P2）。
 
         result['binzhu'] = self._safe_compute(
             'binzhu', analyze_binzhu,
@@ -395,6 +396,9 @@ class MangpaiEngine:
             liunian_data = self._auto_liunian_list()
             if liunian_data:
                 self._auto_liunian_injected = True
+                # R2 P3 备案：本属性仅此处条件赋值、__init__ 未初始化（读点
+                # engine.py:497 getattr 兜底）；同实例复调 compute_all 会残留
+                # True，无风险路径，文档批不初始化引擎仅标注。
 
         if liunian_data:
             ln_list = liunian_data if isinstance(liunian_data, list) else liunian_data.get('liunian', [])

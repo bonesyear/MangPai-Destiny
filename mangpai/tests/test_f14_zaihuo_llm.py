@@ -74,7 +74,7 @@ def test_siwang_book_case1_jue_only_not_high():
 
 
 def test_siwang_book_case10_kong_only_not_high():
-    """书死例十（食神空亡溺水，gaoji:16455 乙巳戊子壬子壬寅）——单一空亡只到中。"""
+    """书死例十（食神空亡溺水，gaoji:16455-16457 乙巳戊子壬子壬寅）——单一空亡只到中。"""
     gans, zhis, rel = _rel('乙巳戊子壬子壬寅')
     sw = detect_siwang('壬', gans, zhis, rel)
     assert any('空亡' in m for m in sw['mu_jue_kong'])

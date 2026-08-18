@@ -101,6 +101,9 @@ LONGEVITY_APHORISMS: Dict[str, str] = {
     '沐浴水灾': '沐浴为水灾，沐浴加干杀，死于水中［碎片:115］',
 }
 
+# 六域→断语表映射。修批C 注：唯一消费者 format_shipaige_report 系死函数
+# （全库零调用，R2 死数据清单）已删；本表与六域断语表现存为碎片原文档案
+# （F18 逐条=碎片原文+行号），analyze_shipaige 触发键为内联检测不读本表。
 SHIPAI_DOMAINS = {
     '父母': PARENT_APHORISMS,
     '婚姻': MARRIAGE_APHORISMS,
@@ -373,34 +376,3 @@ def analyze_shipaige(
         'todos': todos,
         'shenshu_summary': shenshu_result.get('summary', ''),
     }
-
-
-def format_shipaige_report(shipaige_result: Dict) -> str:
-    """将 shipaige 分析结果格式化为可读文本。"""
-    lines = []
-    lines.append('【郑氏十排歌扩展分析】')
-    lines.append(f'置信度：{shipaige_result.get("confidence", "low").upper()}'
-                 '（断语层不可作书证）')
-    lines.append('')
-
-    domains = shipaige_result.get('domains', {})
-    domain_names = ['父母', '婚姻', '子女', '事业', '牢狱', '寿元']
-    for dn in domain_names:
-        triggered = domains.get(dn, [])
-        if triggered:
-            lines.append(f'── {dn} ──')
-            for key in triggered:
-                aph_map = SHIPAI_DOMAINS.get(dn, {})
-                desc = aph_map.get(key, key)
-                lines.append(f'  ● {key}：{desc}')
-            lines.append('')
-
-    lines.append('── 方法论指引 ──')
-    lines.append(shipaige_result.get('methodology_note', ''))
-
-    lines.append('')
-    lines.append('── 未实现碎片条目 ──')
-    for i, todo in enumerate(shipaige_result.get('todos', []), 1):
-        lines.append(f'  {i}. {todo}')
-
-    return '\n'.join(lines)

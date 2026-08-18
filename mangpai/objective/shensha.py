@@ -272,6 +272,9 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day') -
         if d and y and year_zhi != day_zhi:
             same = set(d.get('zhis', [d['zhi']])) == set(y.get('zhis', [y['zhi']]))
             if not same:
+                # R2 死数据备案：year_ref/day_ref 子键多数无生产读者（驿马消费
+                # 全走主键 in_pillars；亡神/劫煞/桃花读主键/day_ref；灾煞
+                # year_ref 为唯一活读者 zhiye.py:955）。保留供 verify/payload。
                 result[name]['year_ref'] = y
                 result[name]['day_ref'] = d
 
@@ -393,6 +396,7 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day') -
             if year_zhi and year_zhi != day_zhi:
                 hg_year = _HUA_GAI.get(year_zhi, '')
                 if hg_year and hg_year != hg_day:
+                    # R2 死数据备案：华盖 year_ref 无生产读者（仅 verify+payload）。
                     result['华盖']['year_ref'] = {
                         'zhi': hg_year,
                         'in_pillars': _find_in_pillars(hg_year, zhis),

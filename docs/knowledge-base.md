@@ -2,7 +2,7 @@
 
 > **用途**：新会话（任何 CLI，含 Kimi code）读本文件即获得 2026-07 ~ 2026-08 全部攻坚历史的关键结论，
 > 替代逐次会话上下文。来源 = `~/.claude/projects/-root-metaphysics/memory/` 62 份归档 + 十批审计归档（kimi-audit-1~10）的提炼。
-> 最后更新：2026-08-18（修批B · 引擎 P1（R1/R2 清单）：神煞 year_ref 并入×3——zaihuo 车祸/死亡两处双查合并补 year_ref 子键（旧「主键+day_ref」day_ref 实为死代码，year-only 劫煞/亡神/灾煞静默丢失，gaoji:7912 年支同查）；laoyu detect_jiesha_wangshen 裸 compute_shensha_ext 改走 resolve_shensha+并入双查子键、engine 链路补透传 shensha_result（配置断路修复）；xiangfa_ops `_shensha_by_pillar` 共象映射并入子键落柱；calib_assertions run_case 传 age=流年公历年−出生年（has_daxian 恒 False 旧口径修复，应期 6 断言 6/6✅）；同型备案=liuqin:872/gongmen_wuzhi×3 仅消费羊刃（非 reference 敏感）。哨兵=test_fb_shensha_yearref.py 5 测先红后绿；引擎基线=`snapshots/20260818_fb.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 0 翻转 0 文本抖动、trainset 0 翻转，67/famous 0 回归、calib 4 REGRESSION stash 实证=存量。早前：修批A · LLM 红线三项（R5 block×3）：A① siwang 死亡词典 scrub——zaihuo 键外泄漏（shipaige 寿元断语/liuqin 早夭/xiangfa_ops lianti 寿命 warning/guanming 制死/liunian 冲破主死亡）经 build_payload 统一 `_scrub_death` 过滤，引擎内部 siwang 保留（F14 不变）；A② zeishen 单源化——huanxiang 改消费引擎已算 zb_res（缺省 fallback 以 zuogong_confirm 标记后 wa 自算，裸 detect_relations wa 缺 auxiliary 标记曾致假「净」，11/509 矛盾例=9 train+2 heldout 口径统一），caiming `_zeishen_jingzhi` 补传 zg（27 例 jingzhi False→True 但已评分 heldout 4 例 tier 均不变）；A③ gongmen_wuzhi 从 selectors 摘除（is_wuzhi 98.8% 恒真，39→38 键，engine result 键保留）；预注册 heldout 例=shouke-qi15-房地产千万，预期不翻转（merchant 7→6 与 lawyer 平靠 tie_pri 保 primary）实测确认；哨兵=test_a_llm_redline.py 9 测先红后绿；引擎基线=`snapshots/20260818_fa.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 0 翻转，67/famous 0 回归（11 项 IMPROVE）、calib 4 REGRESSION stash 实证=存量。早前：F19 yunfan 两P1+扫尾备案。早前：F18 shipaige+gongmen_wuzhi 殿后批：shipaige 断语层按郑氏碎片整体重写（批8 P0×3——「官杀为子」冠名废→碎片:81 身旺财为子身弱印作儿（身强弱=比劫印 vs 财官食伤数量简化代理）；「劫财抗杀入牢狱」冠名冲突→碎片:90 劫财七杀两相连从军归事业域；「食神生旺」与数量诀「二食贪吃/三食愚钝」矛盾废），六域断语逐条=碎片原文+行号、未实现条目（性别/空亡/神煞/运岁/年龄段未接入）入 todos，方法论层重写为碎片§四；gongmen_wuzhi 决策落地=**正式弃用不接 zhiye**（F15 已在 zhiye._score_military 按书重写 8.2 六组），narrative 结论行通道切断（is_wuzhi 近恒真零信息量），engine result 键因 schools selectors 保护链保留；阳制阴口径按书修正（gaoji:11787-11788 阳气丙丁巳午戊戌制阴气辛酉癸子丑，含天干、子归阴、制类须阳为制方，与 F15 zhiye 同口径）；哨兵=test_f18_shipaige_gongmen.py 18 测先红 17 后绿；引擎基线=`snapshots/20260817_f18.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动（shipaige/gongmen 不进 blind rubric 与快照字段），67/famous 0 回归、calib 4 REGRESSION stash 实证=存量。早前：F17 xueli+liuqin：xueli 破坏之神改书口径财/伤官/比劫（zhongji:5397，枭移出学历章）——21 书例 5→9（test_f17 探针），年月比劫成群重扣（:5484）、配印/配杀伤官不扣（:5405-5407）；liuqin 星宫同坏总门补回（is_zaoshi=星坏∧宫坏，gaoji:13649）+子息原神取反修正（财星统看原神=食伤非比劫，:14116-14118）+三节补齐（排行诀/情谊诀/子女优劣，:14412/:14651/:14230）；哨兵=test_f17_xueli_liuqin.py 19 测先红后绿；引擎基线=`snapshots/20260817_f17.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动（xueli/liuqin 不进 blind rubric），67/famous/calib 0 回归。早前：F16 hunyin 四格机制重写：好婚姻宫星互制按势党定喜忌（冲穿刑非一律凶，四吉例 zhongji:4294/4300/4493/4504 差→好，制不住反锚戴安娜/4303 守差）+水中捞月三要素（正星坐宫+日主日支自合+偏星透干，zhongji:5081-5083）+关财门改女命专属运岁比劫夺财（gaoji:12963-12967）+独身四格按书诀（宫占比劫禄印/宫星互害反成克/星入墓不开/水中捞月，gaoji:13068-13070，纯阳纯阴/华盖自造格废）；哨兵=test_f16_hunyin.py 21 测先红 12 后绿；引擎基线=`snapshots/20260817_f16.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动（hunyin 不进 blind rubric），67/famous/calib 0 新增回归。早前：F13 shensha 五改：桃花书口径重建（lu_ban=禄合财官杀伤食 zhongji:1517，岳飞 performer 8→1 根因修复；performer 桃花信号=咸池日支起∨丙食伤透∨坐禄从艺 chuji:5871，居日柱补沐浴修饰 gaoji:13311）+起算主支默认 day（gaoji:7912，亡神/劫煞/灾煞/桃花/驿马恒年日双查、year_ref/day_ref 子键恒在不翻转）+zaihuo 马星 count 死判据改 in_pillars+戊双刃四处全刃表+reference 配置断路修复；哨兵=test_f13_shensha.py 9 测先红 7 后绿；引擎基线=`snapshots/20260817_f13.json`，heldout 官 48✅/财 47✅ 68.12% 不动、职 23→**24✅**（46.15%，梦露 ⚠️→✅），trainset collateral 备案 3 条（生例二经理 ✅→❌/带帽银行副处/yx-14300 ⚠️→❌——日支起算后咸池正检，非检测错误），帕瓦罗蒂 ❌→✅。早前：F12 guanming+juefa 七 P0：官禄格按书改「印生禄禄在主位」（zhongji:3969，慈禧书例哨兵）/制用四类补三反向（zhongji:3700/3842/3868，布莱尔戊癸合杀恢复）+印配比禄新检（总编羊刃制印库，三收窄：禄刃支/时支/印不透干——robber/ans17 反锚）/主位字门槛（zhongji:3683，印类豁免——ans46 沾岳父光书例存书内张力）/grade 映射收书（理象学:6103-6104，F6 口径差收口）/G5 杀刃制化条款废除（庭长羊刃合杀恢复，丁未孪生改由反局否决+positive 身弱收窄承担）/juefa 断语7 月克年方向（gaoji:20230）；联动 R1GUAN3（制去官之原神不否决）+N3GUAN（藏杀被制=统杀得权不否决，希特勒恢复）；哨兵=test_f12_guanming_juefa.py 13 测先红 12 后绿；引擎基线=`snapshots/20260817_f12.json`，heldout 官 50→**48✅**（72.73%，Δ-3.0% 噪声带内，collateral 备案 2 条 li002/li207 见 §6.2）、财 47✅ 68.12%/职 23✅ 守住，famous gm 三改善（慈禧/希特勒/李昌镐 ❌→✅）。早前：F11 yongshen+caiming 四 P0：22期例6 从官格修复（根被坏补第四式「晦」湿土晦火+成势闸根坏宽口径）/例7 未从修复（conc≥6 粗闸加「透干印有根不被坏」例外落细则判身弱）/财统官前置补「财生官相连且少方仅一位」腿（zhongji:2853 巨富书例补出）/过河拆桥验财生官位置相连（ans12 假富格撤销——⚠️→✅ 翻转确认，§6.3 必损移出坐实）；哨兵=test_f11_yongshen_caiming.py 7 测先红后绿；引擎基线 = `snapshots/20260817_f11.json`，heldout 财命 46→**47✅**（68.12%）、官 50✅/职 23✅ 守住，collateral 备案 2 条（li202/zj-工薪无官，见 §6.3）。早前：F10 yingqi_subj 寿元域四缺口：寿元星定位补印级+支/藏干食伤、坏关系补克/绝（正克限到位语境、盲派破按书收窄子卯/卯午）、寿元星藏干根被坏检出、engine 传 age 三要素 commit 名副其实——高级寿元章两书例哨兵先红后绿；引擎基线 = `snapshots/20260817_f10.json`，heldout/trainset 0 翻转 0 文本抖动，官 50✅/财 46✅ 66.67%/职 23✅ 守住，红线维持不进 engine 消费链，见 §4.10）。早前：F7 zhengfan 方向性大修：气势补势党识别（金水湿土党/火土燥土党，中级:186/234/246/255）+合坏接入 K2-3（:200/215 官坐实之支克合坏体）+日支「追求之意」（:147-148/240-242）+日支被得势方反制（同性冲+临月令党众，:266-275）+无势做功=正局（:139-140，旧「局未定」废，prompts 残留备案）——书第一章 7 书例 2→7 全命中，丙子戊戌/癸未丙辰两方向相反修正，见 §4.4；引擎基线 = `snapshots/20260817_f7.json`，heldout 财命 46✅ 66.67% 守住、官 49→50✅、职不动，trainset 财 58✅ 持平。早前：F6 gongliang 批（阎锡山解锁 L4→L3 合书「三层强一点」（化用高层+1 杀党≥5 加收纯化用门；checkpoint/calib 反锁以书为准改 L3）+奥纳西斯制库门 L2→L4（制墓库去 san_he 门改 同制+冲/刑 门、方局三会包制检出、方局围制+制库不净豁免、caiming 制库得财免禄/伤食下浮），见 §4.2；引擎基线 = `snapshots/20260817_f6.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F5 zeishen 传导断口批（zeishen 消费 work_actions 滤 auxiliary——蒋介石 zb 误净→不净（书 6122-6126）；gongfei 删 auxiliary 排除——辅助功神仍是功神（理象学 6008-6010）；引擎基线 = `snapshots/20260817_f5.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F4 虚实木性批（virtual_solid 只就一柱+坐印皆实、wood_type 水不生木之根=死木（岳飞/戴妃死木化），见 §4.12；引擎基线 = `snapshots/20260817_f4.json`，heldout/trainset 0 翻转 0 抖动、财命 46✅ 66.67% 守住）。早前：F3 岁运地基批（起运岁整数虚岁+整日差/晚子时推转一轮/交运年虚岁-1，见 §4.11；基线 `snapshots/20260817_f3.json`）；F2 数据表层批（anhe 删子巳+TOMB_MAP 加戌=土墓+muku 三 P0+传导两守卫，见 §4.9/§4.11）；F0 知识库勘误批（十批审计 46 条勘误+批1-4 散见 8 条落盘，见 §10）。
+> 最后更新：2026-08-18（修批C · 文档批（R4 数字过期×7+R3 行号微瑕+R1/R2 P2 散项，引擎判定零改动）：§0 成绩表/§2.3/§9 同步修批B 实测（heldout 官 48✅72.73/财 47✅68.12/职 24✅46.15，trainset 官 96✅83.48/财 58✅51.33/职 40✅47.06）；§6.1 职业残留 27→33❌、§6.3 财命残留 8/22→9/11；calib 常驻回归 1→4 条（zb-01官/05官/05层功/14a财）§2.3/§6.4/§7.13/§8 同步；§8 pytest 499→682 实测（任务书所引 668/648 系修批A/B 加 14 测前口径，以实测 682 为准）；R3 行号微瑕——test_yunfan+KB§5.5 理象学：7720→7586-7594、test_f12 6103-6104 标注研究版（＝理象学版：6022）、test_qiyun 「研究版」标签更正为理象学版、test_f15 gaoji:11964→11956/11053→11040、test_f14 :16455→16455-16457、test_f16 案例八补 :12862、test_gongliang 双锚行号更正（6470-6474→6467-6474、7182-7188→7181-7188）+KELINTUN 陈旧「偏低」注清（test_gongfei ±1 复核引用属实不动）；R1/R2 P2——engine.py:230 注释按 R2 口径重写（默认 day/透传名单更正/真重算者=liuqin）、xiangfa_ops `_shensha_by_pillar` 修批B 已修确认、shensha year_ref 子键簇死数据标注（仅灾煞 year_ref 活 zhiye:955）、format_shipaige_report 死函数删除（全库零引用；SHIPAI_DOMAINS 六域表留作碎片原文档案）、_auto_liunian_injected 标注不初始化（P3 无风险路径）；R4 P2 baseline67/famous_baseline 已 --write-baseline 刷新（IMPROVE 5+9 悬挂清零、0 回归）。早前：修批B · 引擎 P1（R1/R2 清单）：神煞 year_ref 并入×3——zaihuo 车祸/死亡两处双查合并补 year_ref 子键（旧「主键+day_ref」day_ref 实为死代码，year-only 劫煞/亡神/灾煞静默丢失，gaoji:7912 年支同查）；laoyu detect_jiesha_wangshen 裸 compute_shensha_ext 改走 resolve_shensha+并入双查子键、engine 链路补透传 shensha_result（配置断路修复）；xiangfa_ops `_shensha_by_pillar` 共象映射并入子键落柱；calib_assertions run_case 传 age=流年公历年−出生年（has_daxian 恒 False 旧口径修复，应期 6 断言 6/6✅）；同型备案=liuqin:872/gongmen_wuzhi×3 仅消费羊刃（非 reference 敏感）。哨兵=test_fb_shensha_yearref.py 5 测先红后绿；引擎基线=`snapshots/20260818_fb.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 0 翻转 0 文本抖动、trainset 0 翻转，67/famous 0 回归、calib 4 REGRESSION stash 实证=存量。早前：修批A · LLM 红线三项（R5 block×3）：A① siwang 死亡词典 scrub——zaihuo 键外泄漏（shipaige 寿元断语/liuqin 早夭/xiangfa_ops lianti 寿命 warning/guanming 制死/liunian 冲破主死亡）经 build_payload 统一 `_scrub_death` 过滤，引擎内部 siwang 保留（F14 不变）；A② zeishen 单源化——huanxiang 改消费引擎已算 zb_res（缺省 fallback 以 zuogong_confirm 标记后 wa 自算，裸 detect_relations wa 缺 auxiliary 标记曾致假「净」，11/509 矛盾例=9 train+2 heldout 口径统一），caiming `_zeishen_jingzhi` 补传 zg（27 例 jingzhi False→True 但已评分 heldout 4 例 tier 均不变）；A③ gongmen_wuzhi 从 selectors 摘除（is_wuzhi 98.8% 恒真，39→38 键，engine result 键保留）；预注册 heldout 例=shouke-qi15-房地产千万，预期不翻转（merchant 7→6 与 lawyer 平靠 tie_pri 保 primary）实测确认；哨兵=test_a_llm_redline.py 9 测先红后绿；引擎基线=`snapshots/20260818_fa.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 0 翻转，67/famous 0 回归（11 项 IMPROVE）、calib 4 REGRESSION stash 实证=存量。早前：F19 yunfan 两P1+扫尾备案。早前：F18 shipaige+gongmen_wuzhi 殿后批：shipaige 断语层按郑氏碎片整体重写（批8 P0×3——「官杀为子」冠名废→碎片:81 身旺财为子身弱印作儿（身强弱=比劫印 vs 财官食伤数量简化代理）；「劫财抗杀入牢狱」冠名冲突→碎片:90 劫财七杀两相连从军归事业域；「食神生旺」与数量诀「二食贪吃/三食愚钝」矛盾废），六域断语逐条=碎片原文+行号、未实现条目（性别/空亡/神煞/运岁/年龄段未接入）入 todos，方法论层重写为碎片§四；gongmen_wuzhi 决策落地=**正式弃用不接 zhiye**（F15 已在 zhiye._score_military 按书重写 8.2 六组），narrative 结论行通道切断（is_wuzhi 近恒真零信息量），engine result 键因 schools selectors 保护链保留；阳制阴口径按书修正（gaoji:11787-11788 阳气丙丁巳午戊戌制阴气辛酉癸子丑，含天干、子归阴、制类须阳为制方，与 F15 zhiye 同口径）；哨兵=test_f18_shipaige_gongmen.py 18 测先红 17 后绿；引擎基线=`snapshots/20260817_f18.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动（shipaige/gongmen 不进 blind rubric 与快照字段），67/famous 0 回归、calib 4 REGRESSION stash 实证=存量。早前：F17 xueli+liuqin：xueli 破坏之神改书口径财/伤官/比劫（zhongji:5397，枭移出学历章）——21 书例 5→9（test_f17 探针），年月比劫成群重扣（:5484）、配印/配杀伤官不扣（:5405-5407）；liuqin 星宫同坏总门补回（is_zaoshi=星坏∧宫坏，gaoji:13649）+子息原神取反修正（财星统看原神=食伤非比劫，:14116-14118）+三节补齐（排行诀/情谊诀/子女优劣，:14412/:14651/:14230）；哨兵=test_f17_xueli_liuqin.py 19 测先红后绿；引擎基线=`snapshots/20260817_f17.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动（xueli/liuqin 不进 blind rubric），67/famous/calib 0 回归。早前：F16 hunyin 四格机制重写：好婚姻宫星互制按势党定喜忌（冲穿刑非一律凶，四吉例 zhongji:4294/4300/4493/4504 差→好，制不住反锚戴安娜/4303 守差）+水中捞月三要素（正星坐宫+日主日支自合+偏星透干，zhongji:5081-5083）+关财门改女命专属运岁比劫夺财（gaoji:12963-12967）+独身四格按书诀（宫占比劫禄印/宫星互害反成克/星入墓不开/水中捞月，gaoji:13068-13070，纯阳纯阴/华盖自造格废）；哨兵=test_f16_hunyin.py 21 测先红 12 后绿；引擎基线=`snapshots/20260817_f16.json`，heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 文本抖动（hunyin 不进 blind rubric），67/famous/calib 0 新增回归。早前：F13 shensha 五改：桃花书口径重建（lu_ban=禄合财官杀伤食 zhongji:1517，岳飞 performer 8→1 根因修复；performer 桃花信号=咸池日支起∨丙食伤透∨坐禄从艺 chuji:5871，居日柱补沐浴修饰 gaoji:13311）+起算主支默认 day（gaoji:7912，亡神/劫煞/灾煞/桃花/驿马恒年日双查、year_ref/day_ref 子键恒在不翻转）+zaihuo 马星 count 死判据改 in_pillars+戊双刃四处全刃表+reference 配置断路修复；哨兵=test_f13_shensha.py 9 测先红 7 后绿；引擎基线=`snapshots/20260817_f13.json`，heldout 官 48✅/财 47✅ 68.12% 不动、职 23→**24✅**（46.15%，梦露 ⚠️→✅），trainset collateral 备案 3 条（生例二经理 ✅→❌/带帽银行副处/yx-14300 ⚠️→❌——日支起算后咸池正检，非检测错误），帕瓦罗蒂 ❌→✅。早前：F12 guanming+juefa 七 P0：官禄格按书改「印生禄禄在主位」（zhongji:3969，慈禧书例哨兵）/制用四类补三反向（zhongji:3700/3842/3868，布莱尔戊癸合杀恢复）+印配比禄新检（总编羊刃制印库，三收窄：禄刃支/时支/印不透干——robber/ans17 反锚）/主位字门槛（zhongji:3683，印类豁免——ans46 沾岳父光书例存书内张力）/grade 映射收书（理象学:6103-6104，F6 口径差收口）/G5 杀刃制化条款废除（庭长羊刃合杀恢复，丁未孪生改由反局否决+positive 身弱收窄承担）/juefa 断语7 月克年方向（gaoji:20230）；联动 R1GUAN3（制去官之原神不否决）+N3GUAN（藏杀被制=统杀得权不否决，希特勒恢复）；哨兵=test_f12_guanming_juefa.py 13 测先红 12 后绿；引擎基线=`snapshots/20260817_f12.json`，heldout 官 50→**48✅**（72.73%，Δ-3.0% 噪声带内，collateral 备案 2 条 li002/li207 见 §6.2）、财 47✅ 68.12%/职 23✅ 守住，famous gm 三改善（慈禧/希特勒/李昌镐 ❌→✅）。早前：F11 yongshen+caiming 四 P0：22期例6 从官格修复（根被坏补第四式「晦」湿土晦火+成势闸根坏宽口径）/例7 未从修复（conc≥6 粗闸加「透干印有根不被坏」例外落细则判身弱）/财统官前置补「财生官相连且少方仅一位」腿（zhongji:2853 巨富书例补出）/过河拆桥验财生官位置相连（ans12 假富格撤销——⚠️→✅ 翻转确认，§6.3 必损移出坐实）；哨兵=test_f11_yongshen_caiming.py 7 测先红后绿；引擎基线 = `snapshots/20260817_f11.json`，heldout 财命 46→**47✅**（68.12%）、官 50✅/职 23✅ 守住，collateral 备案 2 条（li202/zj-工薪无官，见 §6.3）。早前：F10 yingqi_subj 寿元域四缺口：寿元星定位补印级+支/藏干食伤、坏关系补克/绝（正克限到位语境、盲派破按书收窄子卯/卯午）、寿元星藏干根被坏检出、engine 传 age 三要素 commit 名副其实——高级寿元章两书例哨兵先红后绿；引擎基线 = `snapshots/20260817_f10.json`，heldout/trainset 0 翻转 0 文本抖动，官 50✅/财 46✅ 66.67%/职 23✅ 守住，红线维持不进 engine 消费链，见 §4.10）。早前：F7 zhengfan 方向性大修：气势补势党识别（金水湿土党/火土燥土党，中级:186/234/246/255）+合坏接入 K2-3（:200/215 官坐实之支克合坏体）+日支「追求之意」（:147-148/240-242）+日支被得势方反制（同性冲+临月令党众，:266-275）+无势做功=正局（:139-140，旧「局未定」废，prompts 残留备案）——书第一章 7 书例 2→7 全命中，丙子戊戌/癸未丙辰两方向相反修正，见 §4.4；引擎基线 = `snapshots/20260817_f7.json`，heldout 财命 46✅ 66.67% 守住、官 49→50✅、职不动，trainset 财 58✅ 持平。早前：F6 gongliang 批（阎锡山解锁 L4→L3 合书「三层强一点」（化用高层+1 杀党≥5 加收纯化用门；checkpoint/calib 反锁以书为准改 L3）+奥纳西斯制库门 L2→L4（制墓库去 san_he 门改 同制+冲/刑 门、方局三会包制检出、方局围制+制库不净豁免、caiming 制库得财免禄/伤食下浮），见 §4.2；引擎基线 = `snapshots/20260817_f6.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F5 zeishen 传导断口批（zeishen 消费 work_actions 滤 auxiliary——蒋介石 zb 误净→不净（书 6122-6126）；gongfei 删 auxiliary 排除——辅助功神仍是功神（理象学 6008-6010）；引擎基线 = `snapshots/20260817_f5.json`，heldout/trainset 0 翻转、财命 46✅ 66.67% 守住、巨富三锚不动）。早前：F4 虚实木性批（virtual_solid 只就一柱+坐印皆实、wood_type 水不生木之根=死木（岳飞/戴妃死木化），见 §4.12；引擎基线 = `snapshots/20260817_f4.json`，heldout/trainset 0 翻转 0 抖动、财命 46✅ 66.67% 守住）。早前：F3 岁运地基批（起运岁整数虚岁+整日差/晚子时推转一轮/交运年虚岁-1，见 §4.11；基线 `snapshots/20260817_f3.json`）；F2 数据表层批（anhe 删子巳+TOMB_MAP 加戌=土墓+muku 三 P0+传导两守卫，见 §4.9/§4.11）；F0 知识库勘误批（十批审计 46 条勘误+批1-4 散见 8 条落盘，见 §10）。
 
 ---
 
@@ -17,9 +17,9 @@
 
 | 维度 | trainset 294 | heldout 215 |
 |---|---|---|
-| 官命 | 96✅/19❌ = **83.48%** (n=115) | 49✅ = **74.24%** (n=66) |
-| 财命 | 59✅ = **52.21%** (n=113) | 46✅/15⚠️/8❌ = **66.67%** (n=69) |
-| 职业 | 43✅/15⚠️/27❌ = **50.59%** (n=85) | 24✅ = **46.15%** (n=52) |
+| 官命 | 96✅/19❌ = **83.48%** (n=115) | 48✅ = **72.73%** (n=66) |
+| 财命 | 58✅/44⚠️/11❌ = **51.33%** (n=113) | 47✅/13⚠️/9❌ = **68.12%** (n=69) |
+| 职业 | 40✅/12⚠️/33❌ = **47.06%** (n=85) | 24✅ = **46.15%** (n=52) |
 
 - **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 682 collected（662 passed+1 xfailed+19 xpassed，修批B 实测；修批A 记 677；F19 记 668/648；F18 记 664；F17 记 646；F15 记 606；F13 记 585、F12 记 576、F11 记 543、F10 记 536、F9 记 532、F7 记 517、F6 记 529、批10 旧记 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致（旧 853 口径 2026-07-17 起作废）。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
@@ -53,7 +53,7 @@ mangpai/
     heldout/   cases.yaml(215) blind_eval.py snapshots/ diag_case.py _*_diag/_*_sim(诊断考古)
     trainset/  cases.yaml(294)
     backtest/  regression67.py famous_cases.py famous_baseline.json regression_famous.py
-    calib_assertions.py/.yaml  test_*.py(499 测)
+    calib_assertions.py/.yaml  test_*.py(682 测)
   docs/        duan-books/(段氏五书+珍宝50期+授课教程原文txt) 各分析文档
   CHANGELOG.md           批次变更记录（第七批起有书写惯例）
 docs/                    任务书(tasks/)、remaining-tasks 系列、本知识库
@@ -97,10 +97,10 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 ### 2.3 评估纪律要点
 
 - **trainset/heldout acc gap = 过拟合度量**；扩容后 trainset acc 必降（幸存者偏差消退），**不可与旧小样本基线比**（23→91→119→294 每次重设基线）。
-- 当前 heldout 职业 44.23% < trainset 50.59%、heldout 财命 66.67% > trainset 52.21%——构成不同，只看集内趋势。
+- 当前 heldout 职业 46.15% < trainset 47.06%、heldout 财命 68.12% > trainset 51.33%——构成不同，只看集内趋势。
 - 小样本噪声：n≈50-115 时 Wilson 半宽 ±9-13pp，个位数 ✅ 变动多在噪声带内——结论以 CI 下界+显著性判定为准。
 - 模拟器（_zy*_sim/_gm_sim）只含 gold 可评例，**unscorable 例换档对 sim 失明**——落地后必须 blind_eval 全量 diff 兜底（职批4两处换档均靠此抓回归险）。
-- famous/calib 出现 REGRESSION 先 stash 实证是否存量——⚠️批7 勘误：罗斯切尔德 zy「批11 存量」**已自愈**（famous_baseline.json 该条即 ✅merchant，重跑仍 ✅，同分 6:6 靠 tie_pri margin=0 仍脆；乔布斯 baseline ❌→当前 ✅merchant），常驻回归现仅 zhenbao-01 官命（批13-15 存量，calib 清单）。
+- famous/calib 出现 REGRESSION 先 stash 实证是否存量——⚠️批7 勘误：罗斯切尔德 zy「批11 存量」**已自愈**（famous_baseline.json 该条即 ✅merchant，重跑仍 ✅，同分 6:6 靠 tie_pri margin=0 仍脆；乔布斯 baseline ❌→当前 ✅merchant），calib 常驻回归 4 条=zhenbao-01 官命/zhenbao-05 官命/zhenbao-05 层功/zhenbao-14a 财命（批13-15 存量起，修批B stash 实证=存量，R4 复核）。
 - 853/432 是自洽检查非命例回归——**绿≠无回归**，回归判定以 67例/famous/calib/blind 为准。
 
 ---
@@ -178,7 +178,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 - ⚠️批6 补记（**F12 已修**）：官禄格定义口径书=印生禄禄在主位（zhongji:3969）——旧码「官星坐禄」与书相反已废，慈禧书例哨兵锁定；阎锡山 calib 盘（乙禄卯时+亥印）按新定义成立属口径内。李昌镐书内两造并存（lixiangxue:11202 vs 3576-3584），备案。
 - **F12 主位字门槛（zhongji:3683-3684）**：制用 combo 纯宾位（年月互制）不立官命；藏杀被制须被制支居主位或制它动作另一端在主位。**印类 combo 豁免**（财制印/印制伤食/伤食制印）——书例 ans46 银行行长「未财制子印…沾岳父的光」（shouke:2112）即纯宾位财制印得官，规则三与该书例存书内张力，沿方向门先例不按主宾/主位。
 - **F12 veto 链增补**：R1GUAN3（官杀透干+官杀/食伤互制 combo 在场，比劫制财=制去官之原神得权，比劫夺财不否决——布莱尔/处级锚）；N3GUAN（藏杀被制 combo 在场=统杀/制杀得权，官杀入墓不否决——希特勒/曾国藩/慈禧墓杀锚）。G5 废除后庭长造恢复，孪生丁未造由反局否决区分（身弱官杀有根/官带财帽非正向）。
-- **F12 grade 收书**（理象学:6103-6104）：grade_map 4→总理-元首级/3→厅级-省部级/2→处级-厅级/1→科级-处级，与 gongliang._RANK_GRADE 同口径（F6 备案口径差收口）。
+- **F12 grade 收书**（理象学研究版：6103-6104＝理象学版：6022，修批C 标注，R3）：grade_map 4→总理-元首级/3→厅级-省部级/2→处级-厅级/1→科级-处级，与 gongliang._RANK_GRADE 同口径（F6 备案口径差收口）。
 - G6 官被制空亡硬否（日/年旬并参），**官杀透干+杀刃相制/印化官杀做功者豁免**（乾隆/雍正/左宗棠/处级——支上官被制空干上犹存）；官有墓在局=被收非制死（曾国藩豁免）。
 - G7 围制财源支涉 combo 降出（主富不主贵——李嘉诚/保尔森锚）；印制伤食仅 to_pos==day_zhi（日主坐下伤食被印制=护官）窄豁免（归档全豁免案误伤李嘉诚被 famous 核验抓回）。
 - G9 官合身=得官（「合身肯定是官」）；食合官支型未覆盖（A19 残留）。
@@ -321,7 +321,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 - yunfan 五书锚（test_yunfan 锁定——⚠️批4 勘误：案例五实际无 pytest 断言，「锁定」名不副实；A14 新增规则零 pytest 锁定是最大裸面）：案例一（忌神反客不可复现已移除断言）/案例三（卯合申、申入丑墓）/案例四（丑未冲开库+子合丑闭）/案例五（乙伏吟被辛克坏=坏辰墓，zj 数亿坐牢乙酉运）/案例八/九。
 - 真阳锚：yx-巨富丑运丙子运入狱（破刃+伏吟激刑）；yx-破财工程酉运（冲卯，书明文工程被强拆）；yx-煤矿戌运刑开丑库发财十几亿（刑开库豁免）；b67 复例二丙子运杀临攻身破财。
-- 发财运非反局锚群（11 例）：复例四庚申/资本运营酉/包工头壬卯/富发财戊申/经理-2丙戌/经理-4甲辰/富发财数千万壬辰/煤矿-2壬午/老师午/医师卯/煤矿戌——**F8 后 11/11 干净**：资本运营酉运（T3 伏吟干收窄加「主位墓透为功神」前提，理象学:7720）与 zj 丙戌运（T1 冲开墓库豁免，中级903/2853，群外锚）两假阳已修，哨兵=test_yunfan.py F8 五测。
+- 发财运非反局锚群（11 例）：复例四庚申/资本运营酉/包工头壬卯/富发财戊申/经理-2丙戌/经理-4甲辰/富发财数千万壬辰/煤矿-2壬午/老师午/医师卯/煤矿戌——**F8 后 11/11 干净**：资本运营酉运（T3 伏吟干收窄加「主位墓透为功神」前提，理象学:7586-7594——修批C 更正行号，旧记 :7720 偏 126 行，R3）与 zj 丙戌运（T1 冲开墓库豁免，中级903/2853，群外锚）两假阳已修，哨兵=test_yunfan.py F8 五测。
 - 驿马三支：`docs/duan-shi-lixiangxue-excerpts.md:149`（⚠️批7：同锚「以年支日支为主」与实现「四柱皆起取并集」相左，见 §4.10）。
 - 阴阳同生同死沿用+火土同宫+弱长生（金长生巳=相克之长生）；盲派不站队阴阳干争议。
 - 升官运被误杀锚（官命域已豁免）：县长-4 乙巳运/总理戊辰运/厅级戊戌运。
@@ -330,7 +330,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 ## 6. 备案清单（C 类结构性盲区 + 已知存量——**勿再立项重攻**）
 
-### 6.1 职业残留 27❌（批4 收官收档）
+### 6.1 职业残留 33❌（批4 收官收档；修批C 实测 27→33，R4）
 
 - **中医 3 簇**（cj-中医/李阳波/yx-中医）：merchant 7-11 分差过大，火盖头金同柱相克模拟+4 仍不够；须 merchant fp 侧收窄=最大回归面（批1 警示 22✅ 中 merchant 占15，批7 复核成立）→收档。
 - **军警备案簇**：岳飞（官杀0）/戴笠（无官杀特务）/警察墓库（墓用库制库未实现）/公安×2/刑警——⚠️批7/8 勘误定性修正：非「结构性无解」，gaoji 8.2 七组明文组合（火金相战/金水见火/申酉丑寅/丑戌刑/阳制阴/比劫库制印/戌武库）**已在 gongmen_wuzhi.py 实现**但有 11 条 P0 级偏差，真问题=**zhiye 不消费该模块**（engine 并行独立计算）+is_wuzhi 近恒真致输出无信息量——盲区=「已实现未接入且实现偏差大」；岁运反局 gate 撤后军警分亦不可及。另批7/8 补记：岳飞实际输出=performer「演艺/色情求财」8 分（比未分类更糟）——year-ref 桃花子落日柱驱动（切 day 仅 1 分），无书锚桃花栈所致，根因闭环。**F13 已修**：performer 8→1（test_f13 哨兵锁定），primary 落 merchant（军警盲区备案不动）。**F15**：zhiye 本模块落地 8.2 六组组合（贵气门=官杀主气≥2 柱且透干，不接 gongmen_wuzhi），军警书例探针 1/10→3/10（军官例二/纪检例九归位）；残留备案=例三/例五（凶向 gating）、例四（贵气门所挡，无官杀主气）、例六（lawyer 桶抢）、例七/例八（公检法/武职桶界张力，performer tie/羊刃合杀落 military）、例十（无官杀不过门）、yx-科级 trainset collateral（会计→军警，金水成势见火固有声纳）。
@@ -355,16 +355,16 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 - **F11 collateral 备案 2 条**：li202-乞丐 ⚠️→❌（庚辰乙酉丁丑乙巳：巳根被丑晦+合会化金、根坏宽口径下酉丑半合金势实 3 判从弱→凶向词直杀；书断「身弱不胜财」与例6「印无根不救」存书内张力）；zj-工薪无官 官 ✅→❌（trainset，壬子丁未癸亥乙卯：子未穿+亥卯未化木根俱坏→从弱→G3 从格豁免→官命 True；书「制官只表示有工作」消费侧域级过滤留后续批）。
 - C 备案：yx-破财那几年（事件断语无干支锚）/cj-足球（书无层级明文）/cj-种地（语录体半C）/zgj-财反局苦力边界（A15 力度）。
 - 弃修：ans32 vs zhenbao-14b 零和互拉；qi07 自刑开库（无排除书锚）；qi15 根治须 zuogong 层寅亥合绊优先级+caiming 财统官「财被合绊无统摄力」双改联动。
-- 残留❌8（heldout）/22→（trainset 批4 后）主簇：A13 制库基阶/A4 伤官见官（土金伤官条款）/G5 破从残/A1 反局残/A12 体坏未入凶向链（独眼乞食）。
+- 残留❌9（heldout）/11（trainset——修批C 实测更新，旧记 8/22 系批4 收官口径，R4）主簇：A13 制库基阶/A4 伤官见官（土金伤官条款）/G5 破从残/A1 反局残/A12 体坏未入凶向链（独眼乞食）。
 
 ### 6.4 数据/工程备案
 
-- **罗斯切尔德 zhiye**：⚠️批7 勘误——旧记「批11 merchant 召回存量换位、长期挂 famous REGRESSION 清单」**已自愈过期**：famous_baseline.json 该条即 ✅merchant，重跑仍 ✅（同分 6:6 靠 tie_pri，margin=0 仍脆）；乔布斯 baseline ❌→当前 ✅merchant。「常驻回归勿惊」提示失效，famous 存量回归现仅 zhenbao-01（calib 侧）。
-- **zhenbao-01 官命**：批13-15 存量，calib REGRESSION 清单常驻。
+- **罗斯切尔德 zhiye**：⚠️批7 勘误——旧记「批11 merchant 召回存量换位、长期挂 famous REGRESSION 清单」**已自愈过期**：famous_baseline.json 该条即 ✅merchant，重跑仍 ✅（同分 6:6 靠 tie_pri，margin=0 仍脆）；乔布斯 baseline ❌→当前 ✅merchant。「常驻回归勿惊」提示失效，famous 侧无存量回归；calib 侧常驻 4 条（见下条，R4 复核）。
+- **calib 常驻回归 4 条**：zhenbao-01 官命（批13-15 存量）/zhenbao-05 官命/zhenbao-05 层功/zhenbao-14a 财命，REGRESSION 清单常驻（修批B stash 实证=存量，R4 复核，勿惊勿立项）。
 - **few-shot 交叉污染**：叙事模板第19期（qi19）/第25期（ans25）身在 heldout——prompts 受保护，备案不动。
 - **gongshen 年时身段颠倒**：`gongshen._PILLAR_BODY` 年=头颈/时=腿足，与书主表（年腿足/时头面）颠倒——⚠️批8 勘误：书证实为 **≥6 处**非「三处」（理象学4163-4167+3993表、zhongji1669-1672+1716-1722、gaoji OCR5906-5907+15751+6066、chuji3995）。**永久备案结论维持，备案理由修正**（批8）：原理由「该字段仅流进 narrative 宫身行文本」**不实**——narrative 只取 summary（gongshen.py:287-293 不含 pillar_body），palaces/star_palace/spouse_palace/palace_interactions 全字段**零消费**；不回写的真实理由=零消费无收益（改它动核心判定链）。body_parts.PILLAR_BODY 主表已按书收录（但本身亦未接线，见 §4.10）。未来若做健康/身体维度再按 body_parts 口径修。
 - 宫位年龄两套已统一大限套；神煞 5 vs 10 已三层收口——两大书内矛盾已收口。⚠️批6 勘误：过河拆桥「同名两诀已分键并存、已收口」**不成立**——ch14 与中级皆只有发财义，「制不尽=破财」是引擎自造分键非书诀（见 §4.6），勿再当缺口报但定性改为自造。
-- 阎锡山 L3（书）vs L4（郝金阳）双标准冲突——**F6 已裁：以书（理象学 7188「三层强一点」）为准取 L3**，checkpoint/calib gold 同步改 3；guanming grade_map L3→中高（处级） 与 _RANK_GRADE L3→厅级-省部级口径差——**F12 已收口**（grade_map 全档收书 理象学:6103-6104，与 _RANK_GRADE 同口径）。
+- 阎锡山 L3（书）vs L4（郝金阳）双标准冲突——**F6 已裁：以书（理象学 7188「三层强一点」）为准取 L3**，checkpoint/calib gold 同步改 3；guanming grade_map L3→中高（处级） 与 _RANK_GRADE L3→厅级-省部级口径差——**F12 已收口**（grade_map 全档收书 理象学研究版：6103-6104（＝理象学版：6022，修批C 标注，R3），与 _RANK_GRADE 同口径）。
 - 双胞胎盘（yx 贫富姐妹）引擎与书完全倒置=A1+A9 调试对照组，备案。
 - dropped 59 例不回收（无断语/六合彩/时辰存疑）；备查矿 80 条（仅婚姻/健康/应期等断语）未转录，pipeline 在 /tmp 易失。
 - 书源码共模偏差：断语=段氏自评，trainset/heldout 同源同偏见（评估一致性↑真理性存疑），知情即可。
@@ -418,7 +418,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 10. **纯收窄≈0✅**：职业/财命修复必须 fn 侧 boost 为主+fp 收窄前置配合；粗 uniform boost 换错桶 collateral 大。
 11. **模拟器失明面**：_zy/_gm dump 只含 gold 可评例，unscorable 换档须 blind_eval 全量 diff 兜底；sim 先做基线自洽校验（mismatch=[]）再信翻转数。
 12. **绿≠无回归**：432 自洽检查与方向/veto 场景正交；principled judge cat4 曾绕 veto 失明（已改 engine 路径）。
-13. **存量回归识别**：famous/calib 回归先 stash 实证——⚠️批7 勘误：罗斯切尔德已自愈移出（见 §6.4），常驻现仅 zhenbao-01。
+13. **存量回归识别**：famous/calib 回归先 stash 实证——⚠️批7 勘误：罗斯切尔德已自愈移出（见 §6.4），calib 常驻 4 条（见 §6.4，R4 复核）。
 14. **Edit 工具**：长块 old_string 易因全角标点/em-dash/箭头失配，拆小改+ASCII 锚点。
 15. **被否决修法勿重试**：方向门（10 书锚）/mingju 宽撤 merchant/桃花压平/桃花宽让位/GZ 主气收窄/SSK fallback 收窄/纯强度 MAX 聚合/不成 capL2/克链≥3 提阈/库源自墓排除/身弱财旺 cap/中气原神收窄/mingju_xiong 宽撤——全部有书锚或 sim 否决记录（见各批记忆）。**F15 增补三条**：①merchant 收窄（食伤生财主气化/冲财合财去重——误伤 heldout 既有✅ ans33/li131/li133，旧双计口径恰是过阈来源）；②lawyer 伤官合杀/食神制杀条款（与伤官制官同动作复计，误伤 li154/董竹君门户锚）；③C4 富屋贫人扩展 gating（身弱+财官主气≥4——与 7.2 案例一董事长同构不可分）。
 16. **锚双侧卡**：每条新规则须真阳锚（保）+假阳锚（杀）双端验证；单端规则必翻船。
@@ -435,7 +435,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 |---|---|
 | `mangpai/verify_mangpai.py` | 432 项自洽检查（唯一版） |
 | `mangpai/verify_dayun.py` / `verify_layer1.py` / `verify_layer3_checkpoint.py` | 70 大运 / 64 基础 / 20 方向检查点 |
-| `python3 -m pytest mangpai/tests/ -q` | 499 测（批10 collect 实测，含 test_property 64 属性化测试；旧记 473 作废） |
+| `python3 -m pytest mangpai/tests/ -q` | 682 测（修批B collect 实测：662 passed+1 xfailed+19 xpassed；修批C 复核仍为 682。F19 记 668/648、批10 记 499、旧记 473 均作废——⚠️修批C 注：任务书所引 668/648 系修批A/B 加 14 测前数字，以实测 682 为准） |
 | `mangpai/tests/heldout/blind_eval.py` | 三维盲测评估器：`--out 快照 --note 备注 --baseline 基线` 一条龙；`--diff A B` 对比；`--rescore` rubric 重评；输出含 M2 分组/M3 CI/显著性/文本抖动 |
 | `mangpai/tests/heldout/diag_case.py` | 单盘诊断（原 _p2_diag 转正）：`python3 diag_case.py 乙己己庚 巳丑未午 [--gender 女 --dayun X --liunian Y]`，dump gongliang/caiming/guanming/zhiye 内部状态 |
 | `mangpai/tests/heldout/_zy55_dump/_zy55_sim/_zy55_feat/_zy_all_dump/_zy_margin/_zy_master/_zy2_*/_zy3_*/_zy4_sim` | 职业批诊断考古（dump+条款网格模拟器，特征预计算模式可复用） |
@@ -449,20 +449,20 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 **标准验证六件套**（每批落地前必跑）：
 ```bash
 python3 mangpai/verify_mangpai.py                 # 432 全绿
-python3 -m pytest mangpai/tests/ -q               # 499 passed
+python3 -m pytest mangpai/tests/ -q               # 682 collected（662 passed+1 xfailed+19 xpassed）
 python3 mangpai/tests/heldout/blind_eval.py --out snapshots/<批>.json --note "<验证状态>" --baseline snapshots/<上一批>.json
 PYTHONHASHSEED=0 python3 mangpai/tests/heldout/blind_eval.py --out /tmp/seed0.json  # 与默认 seed 逐字节一致
 python3 mangpai/tests/backtest/regression67.py    # 0 回归
-python3 mangpai/tests/backtest/regression_famous.py  # 0 回归（罗斯切尔德批7 已自愈；存量 zhenbao-01 在 calib 侧）
+python3 mangpai/tests/backtest/regression_famous.py  # 0 回归（罗斯切尔德批7 已自愈；calib 侧常驻 4 条见 §6.4；两 baseline 修批C 已刷新，IMPROVE 悬挂清零）
 ```
 
 ---
 
-## 9. 当前基线与残留总账（2026-08-14 收官态）
+## 9. 当前基线与残留总账（2026-08-18 修批C 更新：F0-F19+修批A/B 落地、R0-R5 审查后状态）
 
 - baseline=`snapshots/20260818_fb.json`（rubric v8-20260808，修批B；上一棒 20260818_fa）。
-- trainset 294：官 83.48%（19❌=§6.2）/ 财 52.21%（❌22=§6.3）/ 职 50.59%（27❌=§6.1）。
-- heldout 215：官 74.24% / 财 66.67% / 职 44.23%（全部零翻转守护中）。
+- trainset 294：官 83.48%（19❌=§6.2）/ 财 51.33%（❌11=§6.3）/ 职 47.06%（33❌=§6.1）。
+- heldout 215：官 72.73% / 财 68.12% / 职 46.15%（全部零翻转守护中）。
 - 三维攻坚正式收官；后续方向（若重启）：官命 fp 窄修簇 A12-A18（各1例窄修）+检测簇 A8/A11/A19、财命 A13/A4/G5 残簇、职业中医/军警/lawyer 盲区（均须新突破面，旧窄通道已尽）。
 - 汇报惯例：批次号+改动清单+翻转明细+六件套数字+300 字内。
 

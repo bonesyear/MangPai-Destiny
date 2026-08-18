@@ -17,7 +17,7 @@
  },
  "zg:化例二": {
   "verdict": "✅",
-  "detail": "types=['制用', '化用', '生用'] primary=化用 lv=4"
+  "detail": "types=['制用', '化用'] primary=化用 lv=2"
  },
  "zg:化例三中堂": {
   "verdict": "✅",
@@ -76,20 +76,20 @@
   "detail": "level=4(书4) score=100"
  },
  "gl:乾隆": {
-  "verdict": "⚠️",
-  "detail": "level=3(书4) score=74"
+  "verdict": "✅",
+  "detail": "level=4(书4) score=100"
  },
  "gl:克林顿": {
   "verdict": "✅",
-  "detail": "level=4(书4) score=96"
+  "detail": "level=4(书4) score=98"
  },
  "gl:蒋介石": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=70"
+  "detail": "level=3(书3) score=72"
  },
  "gl:岳飞": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=78"
+  "detail": "level=3(书3) score=86"
  },
  "gl:例6": {
   "verdict": "✅",
@@ -97,11 +97,11 @@
  },
  "gl:例7": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=47"
+  "detail": "level=2(书2) score=49"
  },
  "gl:例8": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=72"
+  "detail": "level=3(书3) score=68"
  },
  "gl:例9": {
   "verdict": "✅",
@@ -112,24 +112,24 @@
   "detail": "level=1(书1) score=0"
  },
  "gl:普例2": {
-  "verdict": "⚠️",
-  "detail": "level=2(书1) score=50"
+  "verdict": "✅",
+  "detail": "level=1(书1) score=0"
  },
  "gl:普例3": {
   "verdict": "✅",
-  "detail": "level=1(书1) score=9"
+  "detail": "level=1(书1) score=12"
  },
  "gl:普例4": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=46"
+  "detail": "level=2(书2) score=50"
  },
  "gl:普例5": {
   "verdict": "✅",
   "detail": "level=2(书2) score=40"
  },
  "gl:阎锡山": {
-  "verdict": "⚠️",
-  "detail": "level=4(书3) score=90"
+  "verdict": "✅",
+  "detail": "level=3(书3) score=76"
  },
  "xf:共象:丁目": {
   "verdict": "⚠️",
@@ -204,12 +204,12 @@
   "detail": "ok=True 审计档=✅"
  },
  "cai:禄当财": {
-  "verdict": "⚠️",
-  "detail": "ok=False 审计档=⚠️ detail=财星当财"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️ detail=禄神当财"
  },
  "cai:伤食当财": {
-  "verdict": "⚠️",
-  "detail": "ok=False 审计档=⚠️ detail=财统官"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️ detail=伤食当财"
  },
  "cai:官杀当财": {
   "verdict": "✅",
@@ -217,7 +217,7 @@
  },
  "cai:过河拆桥": {
   "verdict": "✅",
-  "detail": "ok=True 审计档=✅ detail=过河拆桥·破财"
+  "detail": "ok=True 审计档=✅ detail=过河拆桥·富格"
  },
  "guan:伤食制官杀": {
   "verdict": "✅",
@@ -233,7 +233,7 @@
  },
  "guan:印制伤食": {
   "verdict": "✅",
-  "detail": "ok=True 审计档=⚠️ detail=False"
+  "detail": "ok=True 审计档=⚠️ detail=True"
  },
  "guan:带帽": {
   "verdict": "✅",
@@ -265,6 +265,6 @@
  },
  "laoyu:受贿": {
   "verdict": "⚠️",
-  "detail": "ok=False 审计档=⚠️ val=低"
+  "detail": "ok=False 审计档=⚠️ val=中"
  }
 }
