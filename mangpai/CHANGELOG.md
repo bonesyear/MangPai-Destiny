@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-08-18 打磨批 · LLM 通道（峰谷价计价 + 正式通道文档，引擎零改动）
+
+| 项 | 处理方式 | 依据 | 文件 |
+|----|----------|------|------|
+| _PRICING 旧平价 $0.14/$0.28 过期（2026-08-16 官方改峰谷价） | 改 peak/off-peak 双档表（官方 2026-08-18 复核：v4-flash 峰 $0.44/$1.32、谷半价 $0.22/$0.66；v4-pro 峰 $1.32/$3.96、谷 $0.66/$1.98，cache miss 口径）；峰段=UTC 01:00-04:00/06:00-10:00=北京 09:00-12:00、14:00-18:00 | api-docs.deepseek.com/quick_start/pricing | subjective/llm_backend.py |
+| `_estimate_cost` 不按时段选档 | 增 `_price_tier(at)`（按请求发出的北京时间选峰/谷），`call_deepseek` 以请求 wall time 计价，返回 dict 增 `price_tier` 标注；历史批次成本不回算（文档标注口径） | 任务书 | 同上 |
+| 正式通道交付文档 | 新建 `docs/llm-channel-20260818.md`：§1 接口（render_structured_reading 单命入口/validate 三模式 mark/reject/off）§2 验证记录（四指标达标线+五轮迭代轨迹 40.21%→23.88%→12.76%→9.62%→3.41%→remap 0.00%+remap 规则表）§3 使用指南（成本实测+峰谷价+批跑一键命令+谷段建议）§4 安全红线 §5 维护项；KB §8 补 llm 通道条目 | 数字全部以批跑/重评分实测为准 | docs/llm-channel-20260818.md、docs/knowledge-base.md |
+| 哨兵 | 新建 test_llm_backend.py 3 测（峰段边界 7 探针/flash 峰谷计价+谷=半价/pro 谷档+未知模型放行）；llm_backend `_self_check` 同步双档 | — | tests/test_llm_backend.py |
+
+验证：计价测试 3 绿、test_llm_channel 19 绿、pytest 全量 **684 passed + 1 xfailed + 19 xpassed，0 failed**（修批C 682 collected + remap 批既有新增 + 本批 3）；计价探针峰/谷两时间点档位实测正确（峰 10:00 $0.0110/谷 20:00 $0.0055 样例 usage，谷恰半价）。v5  remap 离线重评分复核（n=281）：L0 0.36% / L1 0.00% / N1 0.36% / L2 4.98% 与任务书口径一致。引擎零改动，compute_all 链未碰。
+
 ## 2026-08-18 修批B · 引擎 P1（神煞 year_ref×3 + calib 传 age，R1/R2 P1 清单）
 
 | 项 | 处理方式 | 书锚/依据 | 文件 |

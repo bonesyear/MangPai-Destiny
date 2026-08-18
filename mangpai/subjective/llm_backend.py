@@ -7,14 +7,17 @@
 - 默认 model=deepseek-v4-flash，thinking 开启 + JSON mode
   （response_format={"type": "json_object"}，thinking 计入 output tokens）
 - 重试：超时/5xx/网络错误重试，指数退避；4xx 不重试直接抛
-- 成本：按官方定价表折算 USD，随返回 dict 带出 usage/cost/elapsed
+- 成本：按官方定价表折算 USD，按请求时间（北京时间）自动选峰/谷档，
+  随返回 dict 带出 usage/cost/price_tier/elapsed
 
-定价（$/1M tokens，api-docs.deepseek.com 2026-08 实测，见
-memory/kimi-llm-channel-2026-08-14.md §1.2；cache miss 口径，含 thinking）：
-  v4-flash input $0.14 / output $0.28
-  v4-pro   input $0.435 / output $0.87
-2026-08-16 起峰谷价（谷 input 半价/output 2.36 倍）未细分——成本计数按
-峰前平价估，偏低估属已知上限，只作量级参考。
+定价（$/1M tokens，api-docs.deepseek.com/quick_start/pricing 2026-08-18 复核；
+cache miss 口径，含 thinking）：
+                 peak            off-peak（半价）
+  v4-flash input $0.44 / out $1.32   input $0.22 / out $0.66
+  v4-pro   input $1.32 / out $3.96   input $0.66 / out $1.98
+峰段（官方：UTC 01:00-04:00 / 06:00-10:00）= 北京时间 09:00-12:00、14:00-18:00，
+其余时段半价。2026-08-16 峰谷价前旧平价 $0.14/$0.28 作废；历史批次成本
+（如 2026-08-18 五轮批跑）按当时口径计，不回算。
 """
 from __future__ import annotations
 
@@ -23,16 +26,22 @@ import os
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta, timezone
 
 _API_URL = 'https://api.deepseek.com/chat/completions'
 _ENV_FILE = '/root/.hermes/.env'
 
-# $/1M tokens: (input, output)。cache hit 更便宜，按 miss 保守估。
+# $/1M tokens: {'peak': (input, output), 'offpeak': (input, output)}。
+# cache hit 更便宜，按 miss 保守估。
 _PRICING = {
-    'deepseek-v4-flash': (0.14, 0.28),
-    'deepseek-v4-pro': (0.435, 0.87),
+    'deepseek-v4-flash': {'peak': (0.44, 1.32), 'offpeak': (0.22, 0.66)},
+    'deepseek-v4-pro': {'peak': (1.32, 3.96), 'offpeak': (0.66, 1.98)},
 }
 _DEFAULT_MODEL = 'deepseek-v4-flash'
+
+_BJT = timezone(timedelta(hours=8))
+# 峰段（北京时间，整点边界）：09:00-12:00、14:00-18:00；其余半价
+_PEAK_HOURS = ((9, 12), (14, 18))
 
 
 class LLMBackendError(Exception):
@@ -55,14 +64,22 @@ def _load_api_key() -> str:
         f'DEEPSEEK_API_KEY 未设置且 {_ENV_FILE} 不可读/无此键')
 
 
-def _estimate_cost(model: str, usage: dict) -> float:
-    """按定价表折算单次调用成本（USD）。未知模型返回 0 并照常放行。"""
+def _price_tier(at: float | None = None) -> str:
+    """请求时间（epoch 秒，缺省=现在）落在峰段 → 'peak'，否则 'offpeak'。"""
+    dt = datetime.fromtimestamp(at if at is not None else time.time(), tz=_BJT)
+    return 'peak' if any(h0 <= dt.hour < h1 for h0, h1 in _PEAK_HOURS) else 'offpeak'
+
+
+def _estimate_cost(model: str, usage: dict, at: float | None = None) -> float:
+    """按定价表折算单次调用成本（USD），按请求时间自动选峰/谷档。
+    未知模型返回 0 并照常放行。"""
     rates = _PRICING.get(model)
     if not rates:
         return 0.0
+    rin, rout = rates[_price_tier(at)]
     pin = usage.get('prompt_tokens', 0) or 0
     pout = usage.get('completion_tokens', 0) or 0
-    return (pin * rates[0] + pout * rates[1]) / 1_000_000
+    return (pin * rin + pout * rout) / 1_000_000
 
 
 def call_deepseek(
@@ -77,7 +94,7 @@ def call_deepseek(
     timeout: float = 120.0,
     retries: int = 2,
 ) -> dict:
-    """调 DeepSeek chat completion，返回 {'text','usage','cost_usd','elapsed_s','model'}。
+    """调 DeepSeek chat completion，返回 {'text','usage','cost_usd','price_tier','elapsed_s','model'}。
 
     thinking 模式下 temperature 等采样参数无效（API 忽略），不传。
     失败抛 LLMBackendError，由调用方降级（同 narrative._call_llm 契约）。
@@ -108,6 +125,7 @@ def call_deepseek(
                      'Authorization': f'Bearer {key}'},
             method='POST')
         t0 = time.monotonic()
+        t0_wall = time.time()  # 计价按请求发出的实际时段选峰/谷档
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 payload = json.loads(resp.read().decode('utf-8'))
@@ -131,7 +149,8 @@ def call_deepseek(
             return {
                 'text': text,
                 'usage': usage,
-                'cost_usd': _estimate_cost(model, usage),
+                'cost_usd': _estimate_cost(model, usage, at=t0_wall),
+                'price_tier': _price_tier(t0_wall),
                 'elapsed_s': time.monotonic() - t0,
                 'model': model,
             }
@@ -142,9 +161,15 @@ def call_deepseek(
 
 def _self_check():
     """离线自检：成本折算与 key 解析逻辑（不触网）。"""
-    cost = _estimate_cost('deepseek-v4-flash',
-                          {'prompt_tokens': 10_000, 'completion_tokens': 5_000})
-    assert abs(cost - (10_000 * 0.14 + 5_000 * 0.28) / 1e6) < 1e-12
+    from datetime import datetime
+    usage = {'prompt_tokens': 10_000, 'completion_tokens': 5_000}
+    peak = datetime(2026, 8, 18, 10, 0, tzinfo=_BJT).timestamp()    # 北京 10:00 峰
+    off = datetime(2026, 8, 18, 20, 0, tzinfo=_BJT).timestamp()     # 北京 20:00 谷
+    assert _price_tier(peak) == 'peak' and _price_tier(off) == 'offpeak'
+    assert abs(_estimate_cost('deepseek-v4-flash', usage, at=peak)
+               - (10_000 * 0.44 + 5_000 * 1.32) / 1e6) < 1e-12
+    assert abs(_estimate_cost('deepseek-v4-flash', usage, at=off)
+               - (10_000 * 0.22 + 5_000 * 0.66) / 1e6) < 1e-12
     assert _estimate_cost('unknown-model', {'prompt_tokens': 1}) == 0.0
     print('llm_backend self-check OK')
 

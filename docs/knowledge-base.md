@@ -444,6 +444,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 | `mangpai/tests/backtest/regression67.py` / `regression_famous.py` | 67 书例回测 / 23 名人回测（famous_baseline.json 已 git add -f） |
 | `mangpai/calib_zhenbao.py` + `tests/calib_assertions.*` | 郝金阳 10 例校准（zhenbao 系） |
 | `mangpai/tests/heldout/{extract_cases,curate,build_yaml,verify_heldout}.py` | 案例管线（扩容批次复用模式；G3 提取 pipeline 在 /tmp 易失） |
+| `mangpai/subjective/llm_channel.py`（+llm_prompt/llm_backend） | LLM 结构化推演通道（正式通道，交付文档 `docs/llm-channel-20260818.md`）：单命 `python3 -m mangpai.subjective.llm_channel [case_id]`；批跑 `output/_llm_batch_trainset.py` + `_llm_batch_analyze.py` 汇总 + `_llm_batch_rescore.py` 离线重评分（零 API）；终态四指标 L0 0.36/L1 0.00(remap)/N1 0.36/L2 4.98 全达标；计价按北京时间峰谷双档（峰 09-12/14-18，谷半价），批量评估排谷段 |
 | 记忆目录 `~/.claude/projects/-root-metaphysics/memory/` | 62 份批次归档+10 份审计归档（本文件=其提炼；细节回查原件） |
 
 **标准验证六件套**（每批落地前必跑）：
