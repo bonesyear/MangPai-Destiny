@@ -8,7 +8,8 @@
 
 三层校验（validate_reading）：
 - L0 schema：五维键齐、conclusion/basis/confidence 结构合法；
-- L1 出处：basis 每条路径回解析特征 JSON，不存在或为空 → 违规；
+- L1 出处：basis 每条路径回解析特征 JSON，不存在/为空/带数组下标 → 违规；
+  意图唯一的近-miss（缺 _ops 前缀/层级拍平/多包一层/叶键别名）自动 remap 转正；
 - L2 枚举：财命档位/官命是非回对引擎枚举值 + 死亡词黑名单兜底；
 - N1 数字校验复用 narrative.validate_narrative_numbers（对白名单外数字留痕）。
 
@@ -17,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, Optional
 
 from mangpai.subjective import build_payload, _resolve, _MISSING
@@ -39,10 +41,11 @@ _DEATH_WORDS = ('死亡', '寿终', '享年', '夭折', '早夭', '短命',
                 '命不久', '寿数', '寿命', '寿元', '大限生死')
 
 # L2 官命正向断言关键词（仅在引擎 is_guanming=False 时拦截）。
-# ponytail: 关键词回对是启发式，否定语境（「不是官命」）按前两字符窗口排除，
-# 覆盖不了全部中文否定句式——语义级残留由 L1+人工兜底，见归档 §2.1。
+# ponytail: 关键词回对是启发式，否定语境按「前 2 字符+后 2 字符」窗口排除
+# （覆盖「不是官命」与「官命否决/无缘/难成」两类语序），仍覆盖不了全部中文
+# 否定句式——语义级残留由 L1+人工兜底，见归档 §2.1。
 _GUAN_POSITIVE = ('官命', '当官', '走仕途', '是官', '贵格', '掌大权')
-_NEG_PREFIX = ('不', '非', '无', '难', '未', '莫')
+_NEG_PREFIX = ('不', '非', '无', '难', '未', '莫', '否')
 
 
 def _l0_schema(data: Any) -> list:
@@ -64,37 +67,114 @@ def _l0_schema(data: Any) -> list:
     return v
 
 
-def _l1_basis(data: dict, features: dict) -> list:
-    """L1 依据路径解析：basis 每项须在特征 JSON 中可解析且非空。"""
+# L1 数组下标访问（"juxiang[7]"、"juxiang.7"）一律违规：数组只许引数组名本身。
+_ARRAY_INDEX = re.compile(r'\[\d+\]|(?:^|\.)\d+(?:\.|$)')
+
+# L1 近-miss remap 规则表（v5 迭代 4 残余 10 条归纳）。只对意图唯一可展开者
+# remap，多候选=歧义仍记违规（宁缺毋滥）。各规则依据：
+#  A 缺 _ops 前缀：juxiang/all_findings 等只存在于 xiangfa_ops（顶层 xiangfa* 仅此两节点）；
+#  B 层级拍平：所引键在已解析前缀节点的子树中恰有一处（gong_attacked 唯在 hunyin.quality，
+#    caixing_path 唯在 caiming.caifu_view）；
+#  C 多包一层：恰有一种中间段删法可解析（hunyin.quality.summary → hunyin.summary）；
+#  D 叶键别名：hunyin 系子模块原因列表统一键名为 factors（duohun/dushen/laoyue 等），
+#    LLM 套用了 jiehun_yingqi.signals 的键名。
+_LEAF_ALIAS = {'signals': 'factors'}
+
+
+def _remap_basis(features: dict, path: str):
+    """近-miss 路径的唯一展开。返回 (真键, 值)；无唯一展开返回 (None, _MISSING)。"""
+    segs = path.split('.')
+    cands = set()
+    # 规则 A：xiangfa.X → xiangfa_ops.X
+    if segs[0] == 'xiangfa' and len(segs) > 1:
+        cands.add('xiangfa_ops.' + '.'.join(segs[1:]))
+    # 规则 B：已解析前缀节点的直接子 dict 中，恰一个可接续剩余路径
+    node, i = features, 0
+    while i < len(segs) and isinstance(node, dict) and segs[i] in node:
+        node = node[segs[i]]
+        i += 1
+    if i < len(segs) and isinstance(node, dict):
+        rest = '.'.join(segs[i:])
+        hits = [k for k, ch in node.items()
+                if isinstance(ch, dict) and _resolve(ch, rest) is not _MISSING]
+        if len(hits) == 1:
+            cands.add('.'.join(segs[:i] + [hits[0]] + segs[i:]))
+    # 规则 C：删除一个中间段
+    for j in range(1, len(segs) - 1):
+        cands.add('.'.join(segs[:j] + segs[j + 1:]))
+    # 规则 D：叶键别名
+    if len(segs) > 1 and segs[-1] in _LEAF_ALIAS:
+        cands.add('.'.join(segs[:-1] + [_LEAF_ALIAS[segs[-1]]]))
+    vals = {}
+    for cand in cands:
+        val = _resolve(features, cand)
+        if val is not _MISSING:
+            vals[cand] = val
+    uniq = {id(v): (k, v) for k, v in vals.items()}  # 多候选解析到同一对象=同一意图
+    if len(uniq) == 1:
+        return next(iter(uniq.values()))
+    return None, _MISSING
+
+
+def _l1_basis(data: dict, features: dict, remapped: list | None = None) -> list:
+    """L1 依据路径解析：basis 每项须在特征 JSON 中可解析且非空，且不得带数组下标。
+    可唯一展开的近-miss 自动 remap 转正（映射记入 remapped，不算违规）。"""
     v = []
     for dim in DIMENSIONS:
-        node = data.get(dim) or {}
+        node = data.get(dim)
+        if not isinstance(node, dict):
+            continue  # 非对象维度已由 L0 记违规，L1 跳过防崩
         for path in node.get('basis') or []:
             if not isinstance(path, str):
                 v.append({'layer': 'L1', 'detail': f'{dim}.basis 含非字符串项: {path!r}'})
                 continue
+            if _ARRAY_INDEX.search(path):
+                v.append({'layer': 'L1', 'detail': f'{dim}.basis 数组路径禁止带下标: {path}'})
+                continue
             val = _resolve(features, path)
+            real = None
+            if val is _MISSING:
+                real, val = _remap_basis(features, path)
             if val is _MISSING or val is None or val == {} or val == [] or val == '':
                 v.append({'layer': 'L1', 'detail': f'{dim}.basis 路径无出处或为空: {path}'})
+            elif real is not None and remapped is not None:
+                remapped.append({'layer': 'L1',
+                                 'detail': f'{dim}.basis remap: {path} → {real}'})
     return v
 
 
+# 档位词否定窗（迭代 2 复测发现：锚定生效后 LLM 多用「难大富/非巨富/大富难求」
+# 等否定式合规表述，裸 substring 全误判越限）。命中词前 4 字符内现否定字、
+# 或后随「（填1字）难求/不足/不起/不了/无望」则该处不计。「财富」之富为泛指，亦不计。
+_TIER_NEG = '不非难无莫勿未别'
+_TIER_NEG_AFTER = re.compile(r'^[一-鿿]?(?:难求|不足|不起|不了|无望)')
+
+
 def _tier_rank(text: str) -> int:
-    """文本中出现的最高财命档位（无则 -1）。巨富先于富匹配。"""
-    for i in range(len(_TIER_ORDER) - 1, -1, -1):
-        t = _TIER_ORDER[i]
-        if t == '富':
-            if '巨富' in text:
-                continue  # 巨富已在上一轮命中
-        if t in text:
-            return i
-    return -1
+    """文本中未被否定的最高财命档位（无则 -1）。巨富先于富匹配。"""
+    best = -1
+    for i, t in enumerate(_TIER_ORDER):
+        start = 0
+        while True:
+            j = text.find(t, start)
+            if j == -1:
+                break
+            start = j + 1
+            if t == '富' and text[j - 1:j] in ('巨', '财'):
+                continue  # 巨富单独判；财富=泛指非档位
+            if any(c in _TIER_NEG for c in text[max(0, j - 4):j]):
+                continue
+            if _TIER_NEG_AFTER.match(text[j + len(t):]):
+                continue
+            best = max(best, i)
+            break
+    return best
 
 
 def _l2_enum(data: dict, engine_result: dict) -> list:
     """L2 枚举回对：财命档位不越引擎双轨上限；官命是非不反引擎；死亡词黑名单。"""
     v = []
-    texts = {dim: str((data.get(dim) or {}).get('conclusion') or '')
+    texts = {dim: str(((data.get(dim) or {}) if isinstance(data.get(dim), dict) else {}).get('conclusion') or '')
              for dim in DIMENSIONS}
 
     # 死亡红线（所有维度）
@@ -119,8 +199,9 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
         for w in _GUAN_POSITIVE:
             i = t.find(w)
             while i != -1:
-                # 前两字符内出现否定词（不是/非/无缘…）则视为否定语境放行
-                if not any(ch in _NEG_PREFIX for ch in t[max(0, i - 2):i]):
+                # 前 2 字符或后 2 字符内出现否定词（不是…/…否决/无缘…）视为否定语境放行
+                seg = t[max(0, i - 2):i + len(w) + 2]
+                if not any(ch in _NEG_PREFIX for ch in seg):
                     v.append({'layer': 'L2',
                               'detail': f'事业 与引擎官命=否矛盾：「{w}」'})
                     break
@@ -131,15 +212,17 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
 def validate_reading(data: Any, features: dict, engine_result: dict) -> dict:
     """三层校验 + N1 数字校验，返回 {'ok', 'violations', 'n1'}。"""
     violations = _l0_schema(data)
+    remapped: list = []
     if isinstance(data, dict):
-        violations += _l1_basis(data, features)
+        violations += _l1_basis(data, features, remapped)
         violations += _l2_enum(data, engine_result)
     blob = json.dumps(data, ensure_ascii=False) if isinstance(data, dict) else str(data)
     n1 = validate_narrative_numbers(blob, engine_result)
     violations += [{'layer': 'N1',
                     'detail': f"「{x['text']}」({x['kind']}): {x['detail']}"}
                    for x in n1['violations']]
-    return {'ok': not violations, 'violations': violations, 'n1': n1}
+    return {'ok': not violations, 'violations': violations, 'n1': n1,
+            'remapped': remapped}
 
 
 def format_reading(reading: dict, validation: dict, backend: dict) -> str:
@@ -185,7 +268,7 @@ def render_structured_reading(
     features_json = json.dumps(features, ensure_ascii=False, separators=(',', ':'))
     system = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
     user = build_user_prompt(features_json, _bazi_line(engine_result),
-                             user_question or '')
+                             user_question or '', features=features)
     if not call_llm:
         return f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
 

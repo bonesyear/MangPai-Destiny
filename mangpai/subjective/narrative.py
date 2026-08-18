@@ -397,7 +397,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     """从引擎结果抽取数字白名单（年份/年龄/计数/金额档），供断语数字回对。
 
     - years: 结果 JSON 中全部 1800-2099 四位数（出生年/流年年/交运日期等）；
-    - ages: 大运 start_age/end_age 整数 + 当前年龄（当前年−出生年）；
+    - ages: 大运 start_age/end_age 整数 + 当前年龄（当前年−出生年）+ 大限宫位边界；
     - counts: 上下文计数（N步大运/N流年/入墓N处/锁N/命中N法/约N个/work_level/
       gongliang level/score 等）；
     - bands: 财命 summary 中的金额档字（百万/千万/亿/百亿/千亿…）。
@@ -416,6 +416,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
         years.add(int(m.group(1)))
     for m in re.finditer(r'(?:start_age|end_age)["\']?\s*:\s*(\d+(?:\.\d+)?)', blob):
         ages.add(int(float(m.group(1))))
+    ages.update((18, 35, 55))  # 大限宫位边界（1-18/18-35/35-55/55+），特征 JSON 内含，非编造
     birth_year = (engine_result.get('input') or {}).get('year')
     if birth_year:
         try:

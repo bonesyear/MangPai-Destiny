@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 # 五维 schema 说明（嵌进 system prompt）。basis 路径格式是 L1 校验契约：
-# 点分隔键，list 下标用数字段（与 subjective._resolve 口径一致）。
+# 点分隔键，逐字照抄；数组只引数组名本身，禁止下标（llm_channel._l1_basis 同口径）。
 SCHEMA_SPEC = """\
 ## 输出 schema（严格遵守，仅输出一个 JSON 对象，无任何额外文字）
 {
@@ -23,8 +23,10 @@ SCHEMA_SPEC = """\
   "应期": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"}
 }
 - 五个维度键固定，缺一不可；某维特征数据为空（引擎未判定）则 conclusion 写「数据不足」，basis 给空数组 []。
-- basis 数组每项 = 输入特征 JSON 的字段路径，点分隔（如 "caiming.tier_static"、"gongliang.level"、"zuogong.work_types"），程序会逐条回解析，路径不存在即判违规——只引真实存在的字段，宁少勿编。
+- basis 数组每项 = 输入特征 JSON 中**逐字照抄**的字段路径，点分隔（如 "caiming.tier_static"、"gongliang.level"、"zuogong.work_types"），程序会逐条回解析，路径不存在即判违规——只引真实存在的字段，子键拿不准宁缺毋编，不得按命理常识臆测键名（特征 JSON 里没有的键一律不写）。
+- 数组字段（如 xiangfa_ops.juxiang、xiangfa.all_findings、zuogong.work_actions、liunian_analysis.liunian）只允许引用数组名本身；禁止任何形式的下标（如 "xiangfa_ops.juxiang[7]"、"juxiang.7"），也禁止把数组当字典按内容取键（如 "juxiang.寒湿"）。
 - conclusion 措辞强度不得超出引擎断言：引擎给档位/倾向（如财命五档、官命是/否、灾祸风险档），你只能用同级或更弱措辞；引擎未给的具体金额、次数、年份、岁数一律不许编造，宁可断方向不断数。
+- 财运维的档位词只允许「巨富/富/小康/平/贫」五选一，且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格。
 - confidence 反映该维特征数据的完整度与一致性，不得全给「高」。
 """
 
@@ -39,24 +41,114 @@ STYLE_RULES = """\
 仿下面范例的口吻：第二人称直击命主，先断后理、口语化不绕弯，取象→锁定→判条件→应期→结论的因果链落进 conclusion 文字里。
 """
 
+# 迭代 3：basis 回对清单从 user 附注升级为 system 级硬约束（治臆造键）。
+# 迭代 4：补「整行照抄、禁增删层级/改写键名」——迭代 3 复测 31 条 L1 全为
+# 近-miss（hunyin.gong_attacked 拍平自 hunyin.quality.gong_attacked、
+# xiangfa.juxiang 错位自 xiangfa_ops.juxiang、shensha.taohua 拼音化桃花）。
+BASIS_HARD_RULE = """\
+## basis 硬约束（与安全红线同级）
+basis 每条路径落笔前，必须与 user 消息中的「特征 JSON 键清单」**逐字回对**：
+清单外的键一律不写（含标「(空)」的键——键存在但值为空=无出处，同样禁止引用）；
+清单每行是一条**完整点路径**，basis 必须整行逐字照抄——不得增删层级
+（如把 a.b.c 写成 a.c）、不得改写键名（含拼音化、自造子键）；
+清单内数组键只许引数组名本身，禁止下标/按内容取键。拿不准宁缺毋编。\
+"""
+
 
 def build_system_prompt(fewshot_text: str) -> str:
-    """组装 system prompt：schema + 红线 + 风格锚（few-shot 范例原文）。"""
+    """组装 system prompt：schema + basis 硬约束 + 红线 + 风格锚（few-shot 范例原文）。"""
     return (
         '你是段氏盲派命理的推演者，把引擎算好的结构化结论还原成当面断语。\n'
         '引擎结论即事实层，你只做叙述层，不得推翻或超出引擎判定。\n\n'
-        + SCHEMA_SPEC + '\n' + SAFETY_REDLINE + '\n' + STYLE_RULES
+        + SCHEMA_SPEC + '\n' + BASIS_HARD_RULE + '\n' + SAFETY_REDLINE + '\n' + STYLE_RULES
         + '\n## 口吻范例（【八字】→【引擎结论】→【郝断语】）\n'
         + fewshot_text
     )
 
 
-def build_user_prompt(features_json: str, bazi_line: str, question: str = '') -> str:
-    """组装 user prompt：八字行 + 特征 JSON + 所问。"""
+# 财命档位序（与 llm_channel._TIER_ORDER 同口径，避免循环import各留一份）。
+_TIER_ORDER = ('贫', '平', '小康', '富', '巨富')
+
+
+def _empty(v) -> bool:
+    """空值判定（与 llm_channel._l1_basis 的「为空」同口径）。"""
+    return v is None or v == {} or v == [] or v == ''
+
+
+def _key_manifest(features: dict) -> str:
+    """从特征 JSON 实际结构生成键清单（与 build_payload 输出逐字一致）。
+
+    迭代 4 改为**完整点路径**格式（每行一条可引路径，整行照抄即合法 basis）——
+    旧括号嵌套式（quality(..., gong_attacked)）诱导 LLM 拍平/错位归属。
+    覆盖深度=顶层+两级子键（与迭代 3 同）；数组键行内标「禁下标」，
+    空值键行内标「(空)」（键存在但无值=无出处，basis 禁止引用）。
+    """
+    lines = []
+
+    def walk(prefix: str, d: dict, depth: int) -> None:
+        for k, v in d.items():
+            path = f'{prefix}.{k}'
+            if isinstance(v, list):
+                lines.append(f'{path}[](空,禁引用)' if _empty(v) else f'{path}[]禁下标')
+            elif isinstance(v, dict) and v and depth > 0:
+                lines.append(path)
+                walk(path, v, depth - 1)
+            elif _empty(v):
+                lines.append(f'{path}(空)')
+            else:
+                lines.append(path)
+
+    for top, val in features.items():
+        if isinstance(val, dict) and val:
+            lines.append(str(top))
+            walk(str(top), val, 2)
+        elif isinstance(val, list):
+            lines.append(f'{top}[](空,禁引用)' if _empty(val) else f'{top}[]禁下标')
+        elif _empty(val):
+            lines.append(f'{top}(空)')
+        else:
+            lines.append(str(top))
+    return '\n'.join(lines)
+
+
+def _tier_anchor(features: dict) -> str:
+    """本案财命档锚定行：两轨原值 + 上限档（治 L2 档位越限）。"""
+    cm = features.get('caiming') or {}
+    vals = {k: str(cm.get(k) or '') for k in ('tier_static', 'tier')}
+    ranks = [_TIER_ORDER.index(v) for v in vals.values() if v in _TIER_ORDER]
+    if not ranks:
+        return ''
+    ceiling = _TIER_ORDER[max(ranks)]
+    return (f'【本案财命档锚定】caiming.tier_static={vals["tier_static"] or "无"}（原局轨）、'
+            f'caiming.tier={vals["tier"] or "无"}（全量轨）；两轨较高档=「{ceiling}」。'
+            f'财运 conclusion 的档位词只允许贫/平/小康/富/巨富五选且不得超过「{ceiling}」；'
+            '功量金额档（百万/千万/亿级）≠财命档，不得据金额升格。')
+
+
+def build_user_prompt(features_json: str, bazi_line: str, question: str = '',
+                      features: dict | None = None) -> str:
+    """组装 user prompt：八字行 + 键清单/财档锚定 + 特征 JSON + 所问。
+
+    features 给定时追加两段 per-case 附注（迭代 2）：
+    键清单（防 basis 臆造键名，与特征 JSON 逐字一致）+ 财档锚定（治档位越限）。
+    """
     q = question.strip() or '命主未明问，做通推断语。'
+    extra = ''
+    if features:
+        extra = (
+            '## 特征 JSON 键清单（每行一条完整点路径，basis 只允许整行逐字照抄；'
+            '标 []禁下标 的是数组，只许引数组名本身，禁止下标/按内容取键；'
+            '标 (空) 的键值为空=无出处，禁止引用；'
+            '清单里没有的键一律不写，不得增删层级/改写键名）\n'
+            + _key_manifest(features) + '\n\n'
+        )
+        anchor = _tier_anchor(features)
+        if anchor:
+            extra += anchor + '\n\n'
     return (
         f'【八字】{bazi_line}\n\n'
-        f'## 特征 JSON（引擎客观/主观层计算结果，已裁剪 scrub）\n'
+        + extra
+        + f'## 特征 JSON（引擎客观/主观层计算结果，已裁剪 scrub）\n'
         f'```json\n{features_json}\n```\n\n'
         f'## 命主所问\n{q}\n\n'
         '请严格按 schema 输出五维 JSON。'
