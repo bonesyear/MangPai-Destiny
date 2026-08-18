@@ -199,17 +199,22 @@ def _detect_jishen_fufu(
 def _detect_lu_ren_fangg(
     op_zhi: str, day_gan: str, natal_zhis: List[str],
 ) -> Optional[str]:
-    """阴阳逆转：禄/刃被冲反戈攻身。"""
+    """阴阳逆转：禄/刃被冲反戈攻身。
+
+    F19：禄/刃字须在局方论「被冲」（natal_zhis 形参此前未用=批4 P2-1）——
+    无其字则冲无所冲，岁运与原局无涉。
+    """
     if not op_zhi or not day_gan:
         return None
+    _in = set(z for z in (natal_zhis or []) if z)
     targets: List[str] = []
     lu = LU.get(day_gan, '')
-    if lu and _pair_hit(op_zhi, lu, LIU_CHONG):
+    if lu and lu in _in and _pair_hit(op_zhi, lu, LIU_CHONG):
         targets.append(f'禄({lu})被冲')
     # 羊刃（阳干刃位，段氏全刃表：戊取午、未双刃）被冲
     from mangpai.objective.shensha import _YANG_REN_FULL as _YR
     for yr in _YR.get(day_gan, []):
-        if yr and _pair_hit(op_zhi, yr, LIU_CHONG):
+        if yr and yr in _in and _pair_hit(op_zhi, yr, LIU_CHONG):
             targets.append(f'羊刃({yr})被冲')
     if targets:
         return '、'.join(targets) + '——本护身之禄刃反戈攻身（阴阳逆转）'
@@ -414,6 +419,16 @@ def _detect_dayun_fan(
                           f'官杀明现透干虚杀逢根——忌神临旺攻身（b67 丙子运'
                           f'子水忌神旺破财锚）',
             })
+    # 禄刃倒戈（大运侧，F19 补挂——批4 P1-4：此前仅流年侧挂接，大运段 0 命中
+    # 漏检。案例七锚 gaoji:3761-3764：辛卯丙申辛未丁酉行丁卯运，卯冲原局酉禄，
+    # 书明文「酉金禄神被冲，该年因罪被枪毙…流年引动刃杀攻身」）。
+    lr = _detect_lu_ren_fangg(op_zhi, day_gan, natal_zhis)
+    if lr:
+        fans.append({
+            'fan_type': '大运反局·类型一(禄刃倒戈)',
+            'severity': '重',
+            'reason': lr,
+        })
     # 忌神反客（大运侧移除，A14）：原文「忌神得运来生助，反客为主」依赖
     # zuogong 废神判据，实证不可复现——案例一书锚机制为辰支生申（申=被制
     # 忌神），而本引擎 zuogong 判申为功神，原实现实靠丙干生戊偶合命中；
@@ -454,7 +469,18 @@ def _detect_dayun_fan(
             })
     if mode['has_he']:
         # 原局喜合怕逢冲：运来冲合做功之字 → 合变冲（破）
-        chong_hits = [x for x in inter if x['type'] in _CHONG_TYPES]
+        # F19 参与字收窄（批4 P1-3）：运冲须冲「原局合做功参与字」方为变合
+        # 为冲——与冲变合 A14 收窄对称（案例四子合丑=合住丑未冲之参与字）。
+        # 任意运冲即判为泛触：包工头盘己酉运酉冲卯（卯与寅亥合局无关）误触发
+        # 假阳（壬寅辛亥丁丑癸卯，chuji:3296，书明文壬卯/丁巳运发财）。
+        _nz_h = [z for z in natal_zhis if z]
+        he_chars: set = set()
+        for _i in range(len(_nz_h)):
+            for _j in range(_i + 1, len(_nz_h)):
+                if _pair_hit(_nz_h[_i], _nz_h[_j], LIU_HE):
+                    he_chars.update((_nz_h[_i], _nz_h[_j]))
+        chong_hits = [x for x in inter if x['type'] in _CHONG_TYPES
+                      and x['target_elem'] in he_chars]
         if chong_hits:
             fans.append({
                 'fan_type': '大运反局·类型二(合变冲)',

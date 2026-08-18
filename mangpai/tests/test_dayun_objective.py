@@ -6,6 +6,11 @@
   b. 戊刃取段氏全刃表（午、未双刃），shensha/dayun/yunfan 单一事实源；
   c. 墓库冲/刑+透干引拔才开库（与 objective.muku 同口径），无透干闭而不开；
   d. 天干合化气须验月令（化气五行当令方论化），与 zuogong_detect 合化 gate 同口径。
+
+口径备案（F19）：11 测全为自建盘、锁 M2 修复自洽口径，零书例锚（批5 测试
+缺口记录）。a-d 四口径本身各有上游书锚（见 objective/dayun.py docstring），
+本文件盘例为工程构造非书例原造；书例锚（冲开财库吉运 gaoji:17400-17414、
+到禄/到刃书例）未入断言——备案 KB §6.5，不硬补。
 """
 import sys
 import os

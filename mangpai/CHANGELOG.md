@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-08-17 F19 批 · P1/P2 扫尾（收尾批：yunfan 两 P1 修 + 全遗留条目清账）
+
+| 项 | 处理方式 | 书锚 | 文件 |
+|----|----------|------|------|
+| 大运侧合变冲无参与字限制（批4 P1-3，F8 skip） | 运冲须冲原局合做功参与字（与冲变合 A14 收窄对称）——包工头盘己酉运酉冲卯（卯与寅亥合局无关）假阳消除 | 案例四子合丑同族机制；包工头 chuji:3296「壬卯/丁巳运发财」 | subjective/yunfan.py `_detect_dayun_fan` |
+| 大运侧禄刃倒戈漏挂（批4 P1-4）+禄/刃字须在局守卫（批4 P2-1） | `_detect_lu_ren_fangg` 补挂大运侧；natal_zhis 形参生效（字不在局冲无所冲，流年侧同受益收窄） | 案例七 gaoji:3761-3764 辛卯丙申辛未丁酉行丁卯运「酉金禄神被冲…因罪被枪毙」 | subjective/yunfan.py |
+| dayun 测试口径（批5 测试缺口） | 备案标注：11 测自建盘锁 M2 自洽口径零书例，docstring 注明不硬补（四口径上游书锚见 objective/dayun.py） | — | tests/test_dayun_objective.py |
+| 遗留条目全扫（批1-10 归档+F0-F18 汇报「留后续」） | 收档备案 15 项全录 KB §6.5：laoyu 岁运维度（机制归 yunfan 域，「官出现之年」单条不足立法）/孙立人出干（单例+机制含混）/穿变合（无失败锚）/T2 多而墓/案例二袁世凯/yingqi_subj 两条/liunian 统看缺并+七杀冲禄分工（皆书内张力）/dayun 十神定吉凶簇/soil_type 六细化/biqi 收口/payload 补键（与 F14 红线反向）/docstring 卫生；F17/F15/F11/F4/F1/F18 残留复核维持收档 | 逐项理由见 KB §6.5 | docs/knowledge-base.md |
+| 哨兵（先红后绿） | 新建 test_f19_yunfan.py 4 测（先红 3）：包工头合变冲消除/构造正例保触发/案例七禄刃倒戈/禄刃在局守卫 | 见上 | tests/test_f19_yunfan.py |
+
+验证：哨兵先红 3 后绿 4/4、verify 432 全绿、verify_dayun 70/layer1 64/layer3 20 全绿、pytest 648 passed（+4）、blind 对照 20260817_f18——**heldout 官 48✅/财 47✅ 68.12%/职 24✅ 三维 0 翻转 0 红线回退**；trainset 0 翻转；文本抖动 17 条（heldout 8+trainset 9）逐条审=意图内（caiming_adjust/veto_reasons 文案随合变冲抑制/禄刃倒戈重分类，rubric outcome 全不变）；67 例 0 回归（54✅13⚠️0❌）、famous 0 回归、calib 4 REGRESSION 经 stash 实证=存量（与 F6-F18 同清单，0 新增）、双 seed 剥 _meta 逐字节一致。引擎基线=`snapshots/20260817_f19.json`。F0-F19 修复批系至此收官，残留全入 KB §6 备案簇可追溯。
+
 ## 2026-08-17 F18 批 · shipaige + gongmen_wuzhi（殿后批：批8 P0×3 断语层重写 + 弃用决策落地 + 阳制阴口径）
 
 | 项 | 处理方式 | 书锚 | 文件 |
