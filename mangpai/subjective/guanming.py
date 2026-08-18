@@ -898,6 +898,8 @@ def analyze_guanming(
     shensha_result: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
     kong_wang: Any = None,
+    zhengfan_result: Optional[Dict] = None,
+    laoyu_result: Optional[Dict] = None,
 ) -> Dict:
     """官命综合：做功组合 + 管财官带帽 + 行业取象 + 层次量化。
 
@@ -906,6 +908,8 @@ def analyze_guanming(
     shensha_result: engine 透传的神煞结果（预留，官命尚未直接消费；备后用）。
     yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1）。
       岁运反局入凶向否决链，与原局反局同受正向官命结构门槛保护。
+    zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
+      免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
 
     Returns:
         {
@@ -954,6 +958,7 @@ def analyze_guanming(
     direction = assess_direction_signals(
         day_gan, gans or [], zhis or [],
         relations=relations, gongliang_result=gl,
+        zhengfan_result=zhengfan_result, laoyu_result=laoyu_result,
         yunfan_result=yunfan_result,
     )
     is_guanming_raw = bool(combo.get('is_guanming', False))

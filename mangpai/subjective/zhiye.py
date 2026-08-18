@@ -1303,6 +1303,8 @@ def classify_zhiye(
     shensha_result: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
     caiming_result: Optional[Dict] = None,
+    zhengfan_result: Optional[Dict] = None,
+    laoyu_result: Optional[Dict] = None,
 ) -> Dict:
     """职业象法七类打分定位（多象定一象）。
 
@@ -1315,6 +1317,8 @@ def classify_zhiye(
       军警 gating 的凶向信号源之一（与原局反局同链）。
     caiming_result: 财命综合结果（M2 基础职业类目消费 tier/取财法/财看法；
       缺省时于七桶未成象的 fallback 区自调 analyze_caiming）。
+    zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
+      免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
 
     Returns:
         {
@@ -1495,6 +1499,7 @@ def classify_zhiye(
     try:
         ds = assess_direction_signals(
             day_gan, gans, zhis, relations=rel,
+            zhengfan_result=zhengfan_result, laoyu_result=laoyu_result,
             yunfan_result=yunfan_result,
         )
     except Exception:
@@ -1724,6 +1729,8 @@ def analyze_zhiye(
     shensha_result: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
     caiming_result: Optional[Dict] = None,
+    zhengfan_result: Optional[Dict] = None,
+    laoyu_result: Optional[Dict] = None,
 ) -> Dict:
     """职业象法综合（analyze_zhiye = classify_zhiye 的对外别名）。
 
@@ -1731,11 +1738,14 @@ def analyze_zhiye(
     shensha_result: engine 透传的神煞结果，优先用传入值、缺省才就地重算。
     yunfan_result: 「当前运岁」反局切片（A1），军警 gating 凶向信号源。
     caiming_result: 财命综合结果（M2 基础职业类目消费），缺省 fallback 区自调。
+    zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传）。
     """
     return classify_zhiye(day_gan, gans, zhis, relations=relations,
                           shensha_result=shensha_result,
                           yunfan_result=yunfan_result,
-                          caiming_result=caiming_result)
+                          caiming_result=caiming_result,
+                          zhengfan_result=zhengfan_result,
+                          laoyu_result=laoyu_result)
 
 
 __all__ = [

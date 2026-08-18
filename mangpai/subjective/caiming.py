@@ -1794,6 +1794,8 @@ def analyze_caiming(
     muku_result: Optional[Dict] = None,
     shensha_result: Optional[Dict] = None,
     yunfan_result: Optional[Dict] = None,
+    zhengfan_result: Optional[Dict] = None,
+    laoyu_result: Optional[Dict] = None,
 ) -> Dict:
     """财命综合：财富看法 + 取财方法 + 制不尽当财 + 层级四阶。
 
@@ -1803,6 +1805,8 @@ def analyze_caiming(
     shensha_result: engine 透传的神煞结果（预留，财命尚未直接消费；备后用）。
     yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1）。
       岁运反局命中即入凶向否决链（层级封顶/富档抹除），与原局反局同口径。
+    zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
+      免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
 
     Returns:
         {
@@ -1856,11 +1860,13 @@ def analyze_caiming(
     direction_natal = assess_direction_signals(
         day_gan, gans or [], zhis or [],
         relations=relations, gongliang_result=gl,
+        zhengfan_result=zhengfan_result, laoyu_result=laoyu_result,
         yunfan_result=None,
     )
     direction = assess_direction_signals(
         day_gan, gans or [], zhis or [],
         relations=relations, gongliang_result=gl,
+        zhengfan_result=zhengfan_result, laoyu_result=laoyu_result,
         yunfan_result=yunfan_result,
     )
     # 过河拆桥破财由 caifu_view 检出，补入方向信号（双轨同补——原局定式两轨皆入）

@@ -500,6 +500,19 @@ class MangpaiEngine:
             include_liunian=bool(cur_ln_list) and not getattr(self, '_auto_liunian_injected', False),
         )
 
+        # 修批D（R2 P2 direction 重算簇）：laoyu 提前算一次，与 engine 已算的
+        # zhengfan 一起透传 direction 总线及 caiming/guanming/zhiye 三消费方
+        # （原各自 _ensure_zhengfan/_ensure_laoyu 重跑——单次 compute_all
+        # analyze_zuogong≈6 遍、analyze_laoyu≈6 遍，纯算力浪费）。
+        # result['laoyu'] 键序不变（仍于原位置赋值）；calib 等直调方缺省
+        # 仍走 yongshen._ensure_* 自算，口径不变。
+        laoyu_res = self._safe_compute(
+            'laoyu', analyze_laoyu,
+            self.day_gan, self.gans, self.zhis,
+            relations=relations,
+            shensha_result=result.get('shensha'),
+        ) or {}
+
         # A3 方向总线：yongshen.assess_direction_signals 全引擎统一计算一次，
         # 透传各领域模块（hunyin/liuqin/xueli/zaihuo/gongmen_wuzhi 只读消费；
         # caiming/guanming/zhiye 已有内部否决链，口径同源）。
@@ -510,6 +523,8 @@ class MangpaiEngine:
             'direction', assess_direction_signals,
             self.day_gan, self.gans, self.zhis,
             relations=relations, gongliang_result=gl,
+            zhengfan_result=result.get('zhengfan'),
+            laoyu_result=laoyu_res,
             yunfan_result=yunfan_slice,
         ) or {}
 
@@ -520,6 +535,8 @@ class MangpaiEngine:
             muku_result=result.get('muku'),
             shensha_result=result.get('shensha'),
             yunfan_result=yunfan_slice,
+            zhengfan_result=result.get('zhengfan'),
+            laoyu_result=laoyu_res,
         ) or {}
 
         result['guanming'] = self._safe_compute(
@@ -529,6 +546,8 @@ class MangpaiEngine:
             shensha_result=result.get('shensha'),
             yunfan_result=yunfan_slice,
             kong_wang=self.kong_wang,
+            zhengfan_result=result.get('zhengfan'),
+            laoyu_result=laoyu_res,
         ) or {}
 
         result['hunyin'] = self._safe_compute(
@@ -549,12 +568,7 @@ class MangpaiEngine:
             direction_result=result.get('direction'),
         ) or {}
 
-        result['laoyu'] = self._safe_compute(
-            'laoyu', analyze_laoyu,
-            self.day_gan, self.gans, self.zhis,
-            relations=relations,
-            shensha_result=result.get('shensha'),
-        ) or {}
+        result['laoyu'] = laoyu_res  # 修批D：提前算于 direction 总线之前（键序不变）
 
         # 贼神捕神/包制/冲链：已于 gongliang 之前算得（zb_res，供 gongliang 二次
         # 消费），此处复用同一份，避免重复扫描四柱。
@@ -578,6 +592,8 @@ class MangpaiEngine:
             shensha_result=result.get('shensha'),
             yunfan_result=yunfan_slice,
             caiming_result=result.get('caiming'),  # M2 基础职业类目消费财命tier/取财法
+            zhengfan_result=result.get('zhengfan'),
+            laoyu_result=laoyu_res,
         ) or {}
 
         # 修批A③：gongmen_wuzhi 正式弃用落 payload 通道——selectors 已摘除
