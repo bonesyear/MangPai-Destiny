@@ -1,5 +1,26 @@
 # 盲派客观层 变更记录
 
+## 2026-08-19 修批 E1 · 飞书上线必修（U4 条件 GO 三 P1+P2-4 清零，纯 feishu 包内引擎零触）
+
+| 项 | 处理方式 | 依据 | 文件 |
+|----|----------|------|------|
+| token 服务端作废无刷新重试（U2 P1-1：99991663/99991661 缓存期内全断） | `_api` 捕获两错误码→清缓存重取 token 重试一次，再败抛错；正常路径零影响 | U2 审查 | feishu/client.py |
+| reply 发送失败用户零反馈（U2 P1-2） | bot reply 包 try+纯文本兜底重发一次，再败仅日志，线程不静默死 | U2 审查 | feishu/bot.py |
+| README 未警示 Encrypt Key（U2 P1-3：控制台误配即全断） | bot 检测 encrypt 字段告警丢弃+README 红线段「勿配 Encrypt Key」 | U2 审查 | feishu/bot.py、feishu/README.md |
+| VT 未配=零校验（U2 P2-4，上线 checklist 强制） | main() 启动查 FEISHU_VERIFICATION_TOKEN 未配 RuntimeError+README 必填说明 | U4 处置 | feishu/bot.py、feishu/README.md |
+| 哨兵 | test_feishu +5→28 测：99991663 重试成功/reply 首败兜底/VT 缺失报错/encrypt 告警（旧 3 failed 含 VT 挂起全修） | — | tests/test_feishu.py |
+
+验证：test_feishu 28 全绿、pytest 767 passed+1 xfailed+19 xpassed（762+5）、mock 冒烟四条全过。飞书上线闸通过（U4 go/no-go：条件 GO→GO）。skipped：token 并发锁（P2-2）/EncryptKey 解密支持——量级上来再做。
+
+## 2026-08-19 飞书集成工程批 · mangpai/feishu 新包（LLM 通道接日常推演，引擎零触）
+
+| 项 | 处理方式 | 依据 | 文件 |
+|----|----------|------|------|
+| 飞书机器人全链 | 新包 6 文件 528 行：client（TenantAccessToken 缓存+API 封装）/router（事件路由+重放去重）/service（命盘推演编排）/formatter（结果卡片模板）/bot（webhook HTTPServer 入口）+README | 任务书；LLM 通道四指标已达标为前提 | mangpai/feishu/（新增） |
+| 哨兵 | test_feishu 23 测：mock 全链三例跑通（不触真实飞书 API） | — | tests/test_feishu.py |
+
+验证：test_feishu 23 绿、pytest 762 passed+1 xfailed+19 xpassed（739+23）、U2 审查 P0=0（token 刷新/重放/降级三判据全过、并发降级 8/8、fuzz 232 例零崩溃）、`git show --stat` 实证零引擎文件（无快照合理）。残留 P1×3+P2 簇→E1 批修（见上条）。
+
 ## 2026-08-19 修批 D6b · 子女断法实现（zinv 岁运应期+借腹+时柱喜用腿）
 
 | 项 | 处理方式 | 书锚/依据 | 文件 |
@@ -11,6 +32,25 @@
 | 哨兵（先红后绿） | 新建 test_d6b_zinv.py 12 测（先红：模块不存在 collection error → zinv 实现后 liuqin 两腿红 1 failed → 全绿）：F1 制枭（己卯运不在窗/庚辰运在窗+己卯枭夺食运）、F2 一造三机制（壬戌运+丁卯年合动/戊辰年开墓/戊辰年合神被克入损子窗、壬戌运不误判克到位）、F4 克到位+合去、H2/H3 双借腹、案例八反例 guard（平和岁运零损子窗+非借腹）、schema+死亡词典字面红线、summary 只述应期借腹、R4 喜用腿（案例八）/忌神腿、engine 接线+payload 通道 | 见各测注释行号 | tests/test_d6b_zinv.py |
 
 验证：哨兵先红后绿 12/12、verify_mangpai 432 全绿、verify_dayun 70/70、pytest 739 passed+1 xfailed+19 xpassed（727+12 新测）、blind 对照 20260819_d3——heldout 官 48✅/财 47✅/职 24✅ 三维 0 翻转 0 文本抖动、trainset 0 翻转、67/famous 0 回归（无变化）、calib REGRESSION 2 条（zhenbao-01 官/zhenbao-14a 财）与 HEAD worktree 复跑逐条一致=存量零新增、双 seed 剥 _meta 逐字节一致。引擎基线=`snapshots/20260819_d6b.json`。
+
+## 2026-08-19 修批 D5 · 工具/备案批（收尾，引擎零改动）
+
+| 项 | 处理方式 | 依据 | 文件 |
+|----|----------|------|------|
+| rescore glob 合并隐患复核 | 确认 D4 已修（sorted glob 合并）；冒烟验证 retry 覆盖生效——原记录无 reading 被 retry 覆盖后重评分例数=1 | T3 §A.2 | output/_llm_batch_rescore.py |
+| 三备案落 KB | G6 scrub 代价（官命 veto 理由 12/281 被 scrub）/as_of_year 可注入方案（四处 now() 锚，T0 跨年对拍判定域零翻档）/子夜 ±1min 日柱敏感带（历法固有边界不修）——落 KB §4.11+§9 同步 | 修批A/T0 复核 | docs/knowledge-base.md |
+
+验证：pytest 727 passed+1 xfailed+19 xpassed 全绿；引擎零改动无快照。
+
+## 2026-08-19 修批 D4 · prompt 迭代 5（职业桶/应期逐年锚定，引擎零改动）
+
+| 项 | 处理方式 | 依据 | 文件 |
+|----|----------|------|------|
+| L1 职业锚定 | llm_prompt 增 `_zhiye_anchor`（主荐桶锚定/无倾向禁断言）；llm_channel `_l1_basis` 空值白名单 `{'zhiye.primary'}`（空=无倾向判定本体，L1 3.40%→0.68%） | T3 评审翻转簇 | subjective/llm_prompt.py、subjective/llm_channel.py |
+| L2 应期逐年锚定 | llm_prompt 增 `_yingqi_anchor`（dayun_analysis 逐运+liunian 逐年 overall 锚定，禁套话）；D3 补供的 dayun_analysis 直接可用 | T3 评审翻转簇 | subjective/llm_prompt.py |
+| 评测脚本 | glob 合并 sorted（修 T3 §A.2 retry 覆盖隐患）+_t3_eval 材料补 dayun 锚表 | T3 §A.2 | output/ 评测脚本 |
+
+验证：S1 复验（同 T3 三层漏斗、同 sample30、v4-pro 双实例谷段）评审翻转 **9/30→0/30**（L2 高危 2→0），放大 10.1%→8.1%，一致率 85.2%→89.3%——**三线全达标，S1 语义层 NO-GO→GO，飞书集成三阻塞全解除**；rescore L0 0/L1 0.68%/L2 5.44%（财档越限 16 例留迭代 6）/N1 0；pytest 727+1xf+19xp。成本 $5.23（全谷段）。报告 `docs/kimi-d4-prompt-iter5-20260819.md`。
 
 ## 2026-08-19 修批 D3 · 供给批（dayun_analysis 死 selector 修复，选 B 补供方案）
 
@@ -34,6 +74,16 @@
 | 哨兵（先红后绿） | 新建 test_entry_guards.py 33 测（先红 19）：性别缺失/未知×5、合法性别×6、乾坤=男女同向、界外年份×5、边界年 1900/2100、非法 lon×8、合法 lon×6 | — | tests/test_entry_guards.py |
 
 验证：哨兵先红 19 后绿 33/33、verify 432 全绿、pytest 717 passed+1 xfailed+19 xpassed（LLM 打磨批实测 684 passed 基线 + 本批 33；KB 旧记 682 collected 系修批C 口径已过期）、blind 对照 20260819_d1 零翻转（引擎判定零改动：guard 仅挡非法输入，blind_eval/llm_channel 合成 bazi_data 路径不过 calc_bazi_full）、67/famous 0 回归、calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财）无新增、双 seed 逐字节一致。引擎基线=`snapshots/20260819_d2.json`。
+
+## 2026-08-19 修批 D1 · 数据批（gold 修正 5 条+锚 15 处，纯数据引擎零改动）
+
+| 项 | 处理方式 | 书锚/依据 | 文件 |
+|----|----------|------|------|
+| calib gold 标注错 3 条 | zhenbao-05 官命 lv4→3（厅级反标 L4）/层功 [3,4]→[2,3]（无书据）；zhenbao-23a 层功 max1→2 | 50qi:157/yanjiu:6103-6104 | tests/calib_assertions.yaml |
+| trainset gold 标注错 2 条 | cj-处级-5 财 富→小康、cj-足球 财 小康→富（书两处「收入很高」chuji:5797-5805） | 书原文复核 | tests/trainset/cases.yaml |
+| source 锚漂移 15 处+raw_quote 张冠剔除 | 锚按书行号更正；cj-贫穷命 raw_quote 剔除张冠；cj-老总口径注；calib zhenbao-10 dayun 误录删除（戊寅=1998 流年非大运，50qi:313-315，采方案 b 删字段） | 逐条书核 | heldout/trainset/calib yaml |
+
+验证（Hermes 复核）：calib 常驻回归 4→2（余 zhenbao-01 官命/zhenbao-14a 财命=引擎错存量）；trainset 财 51.33→52.21%（59✅/44⚠️/10❌，翻转 2 条皆改善）；heldout vs fb 零翻转零抖动（官 72.73/财 68.12/职 46.15）；verify 432 全绿；pytest 704+1xf+19xp。基线=`snapshots/20260819_d1.json`。
 
 ## 2026-08-18 打磨批 · LLM 通道（峰谷价计价 + 正式通道文档，引擎零改动）
 
