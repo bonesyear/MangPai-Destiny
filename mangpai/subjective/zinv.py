@@ -17,7 +17,7 @@ zinv - 盲派子女岁运应期 + 借腹 marker·主观层（subjective）
      - 合动：岁运干与原局子息星透干成天干五合，或流年干为子息星到位
        而与大运动干/原局干成合（授课:18-20「丁卯年丁壬合怀孕」）。
      - 开墓：子息星/妻星之墓逢岁运冲开（授课:18-20「辰冲戌墓」+
-       gaoji:14008-14009/14374「运岁开库或填实，或有转机」口诀）。
+       gaoji:14008-14009/14372-14373「运岁开库或填实，或有转机」口诀）。
      - 制枭：原局枭（偏印）明现而子息星为食伤（枭夺食潜势），岁运干
        合制枭印（gaoji:14087-14107「庚辰运，乙庚合，制住枭神，方得子」）。
   2. zixi_yingqi_sunzi 损子应期窗（引擎内部 marker 级，措辞中性，
@@ -205,10 +205,10 @@ def analyze_zinv(
         if xiao_gate and TIAN_GAN_HE.get(dg) in natal_xiao_gans:
             _emit(dezi_windows, gz, '', '制枭', 'gaoji:14087-14107',
                   f'运干{dg}合制枭神{TIAN_GAN_HE[dg]}，夺食之势得解，有得子之象')
-        # 得子·开墓：运支冲开子息星/妻星之墓（授课:18-20 + gaoji:14008-14009/14374）
+        # 得子·开墓：运支冲开子息星/妻星之墓（授课:18-20 + gaoji:14008-14009/14372-14373）
         for t in sorted(tomb_targets):
             if dz and _pair_in(dz, t, LIU_CHONG):
-                _emit(dezi_windows, gz, '', '开墓', 'gaoji:14008-14009/14374;shouke:18-20',
+                _emit(dezi_windows, gz, '', '开墓', 'gaoji:14008-14009/14372-14373;shouke:18-20',
                       f'运支{dz}冲开{t}墓，墓中子息/妻星得出，有得子之象')
         # 损子·克到位：运干为子息星克星且不合子息星
         # （gaoji:14108-14128 己未运己土克癸水；运干合星者归合动不论克——
@@ -246,7 +246,7 @@ def analyze_zinv(
         # 得子·开墓：流年支冲开子息星/妻星之墓
         for t in sorted(tomb_targets):
             if lz and _pair_in(lz, t, LIU_CHONG):
-                _emit(dezi_windows, '', gz, '开墓', 'gaoji:14008-14009/14374;shouke:18-20',
+                _emit(dezi_windows, '', gz, '开墓', 'gaoji:14008-14009/14372-14373;shouke:18-20',
                       f'流年支{lz}冲开{t}墓，有得子/孕育之象')
         # 损子·合去：克到位运中，流年克星合走原局子息星
         # （gaoji:14108-14128 己未运中戊寅年戊合癸）

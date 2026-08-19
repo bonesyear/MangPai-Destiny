@@ -304,7 +304,8 @@ def _write_baseline(cur, cnt):
     case_id = None
     n_sub = 0
     id_re = re.compile(r'^\s+- id: (\S+)')
-    item_re = re.compile(r'^(?P<head>\s+- \{dim: (?P<dim>\S+),.*baseline: )[✅⚠️❌](?P<tail>\}.*)$')
+    # ⚠️ 为双码点（U+26A0+VS16），字符类单码点匹配会漏掉全部 ⚠️ 行，须用分组
+    item_re = re.compile(r'^(?P<head>\s+- \{dim: (?P<dim>\S+),.*baseline: )(?:✅|⚠️|❌)(?P<tail>\}.*)$')
     for i, ln in enumerate(lines):
         m = id_re.match(ln)
         if m:

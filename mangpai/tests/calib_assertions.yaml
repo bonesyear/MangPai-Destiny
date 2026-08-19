@@ -6,7 +6,7 @@
 #       禁止半角逗号 (flow mapping 分隔符)，用全角，代替。
 meta:
   baseline_date: '2026-07-17'
-  baseline_counts: {✅: 28, ⚠️: 10, ❌: 8}
+  baseline_counts: {✅: 31, ⚠️: 11, ❌: 4}
   rubric: |
     财命 direction: 破财=summary含凶向标记(破财/比劫夺财/坐牢/牢狱/官非/下浮封顶)或tier=贫 -> ✅,
       小康 -> ⚠️, 富/巨富无凶向 -> ❌; 凶(因财致祸)=有凶向标记 ✅, tier=贫 ⚠️, 否则 ❌;
@@ -35,7 +35,7 @@ cases:
     dayun: [壬, 戌]
     liunian: [戊, 辰, 1988]
     items:
-      - {dim: 财命, gold: {direction: 破财, note: 戊辰年破财/不宜投资}, baseline: ❌}
+      - {dim: 财命, gold: {direction: 破财, note: 戊辰年破财/不宜投资}, baseline: ✅}
       - {dim: 官命, gold: {is_guanming: false, note: 普通人有官司}, baseline: ✅}
       - {dim: 婚姻, gold: {quality: 平, duohun: false, note: 有妻有子}, baseline: ❌}
       - {dim: 职业, gold: {partial_in: [merchant], note: 烧窑/不正当生意(个体经营)}, baseline: ⚠️}
@@ -52,8 +52,8 @@ cases:
     dayun: [癸, 卯]
     liunian: [戊, 寅, 1998]
     items:
-      - {dim: 财命, gold: {direction: 破财, note: 赔六万}, baseline: ❌}
-      - {dim: 官命, gold: {is_guanming: false, note: 开车运输普通人}, baseline: ❌}
+      - {dim: 财命, gold: {direction: 破财, note: 赔六万}, baseline: ⚠️}
+      - {dim: 官命, gold: {is_guanming: false, note: 开车运输普通人}, baseline: ✅}
       - {dim: 婚姻, gold: {quality: 好, note: 妻好无事}, baseline: ✅}
       - {dim: 职业, gold: {primary_in: [], note: 司机/运输(无对应职业码)}, baseline: ❌}
       - {dim: 应期, gold: {commit: true, note: 戊寅年应}, baseline: ✅}
@@ -81,7 +81,7 @@ cases:
     year: 1972
     dayun: [丙, 午]
     items:
-      - {dim: 财命, gold: {direction: 贫, magnitude_absurd_if: [百万, 千万, 亿], note: 乞丐}, baseline: ⚠️}
+      - {dim: 财命, gold: {direction: 贫, magnitude_absurd_if: [百万, 千万, 亿], note: 乞丐}, baseline: ✅}
       - {dim: 官命, gold: {is_guanming: false, note: 乞丐}, baseline: ✅}
       - {dim: 职业, gold: {allow_empty: true, note: 乞丐无业}, baseline: ✅}
       - {dim: 应期, gold: {commit: false, note: 仅大运未到应期}, baseline: ✅}
@@ -97,7 +97,7 @@ cases:
     liunian: [庚, 辰, 2000]
     items:
       - {dim: 官命, gold: {is_guanming: true, industry_contains: [公检法, 执法, 司法, 律师], note: 公检法}, baseline: ⚠️}
-      - {dim: 婚姻, gold: {quality: 差, duohun: true, note: 两次婚/庚辰离婚再娶}, baseline: ❌}
+      - {dim: 婚姻, gold: {quality: 差, duohun: true, note: 两次婚/庚辰离婚再娶}, baseline: ⚠️}
       - {dim: 职业, gold: {primary_in: [lawyer], note: 公检法/律师}, baseline: ✅}
       - {dim: 应期, gold: {commit: true, note: 戊寅调动/庚辰婚变}, baseline: ✅}
       - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 公检法职员}, baseline: ✅}
