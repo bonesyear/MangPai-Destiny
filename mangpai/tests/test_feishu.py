@@ -1,0 +1,202 @@
+"""飞书集成测试：客户端 mock / 命令路由 / 全链路（mock LLM，不调真实 DeepSeek）。"""
+import json
+
+import pytest
+
+from mangpai.feishu import bot
+from mangpai.feishu.client import FeishuClient, FeishuError
+from mangpai.feishu.router import handle, parse_pillars, parse_solar, ParseError
+from mangpai.feishu.service import paipan
+
+
+# ---------------------------------------------------------------- 客户端（mock HTTP）
+class FakeHTTP:
+    """记录调用并按序返回响应。"""
+
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = []
+
+    def __call__(self, url, payload, headers=None):
+        self.calls.append({'url': url, 'payload': payload, 'headers': headers or {}})
+        return self.responses.pop(0)
+
+
+def _client(http):
+    return FeishuClient(app_id='cli_x', app_secret='sec_y', http_post=http)
+
+
+def test_token_fetch_and_cache():
+    http = FakeHTTP([{'code': 0, 'tenant_access_token': 'tok1', 'expire': 7200}])
+    c = _client(http)
+    assert c.tenant_access_token() == 'tok1'
+    assert c.tenant_access_token() == 'tok1'  # 缓存命中，不再请求
+    assert len(http.calls) == 1
+    assert http.calls[0]['url'].endswith('/auth/v3/tenant_access_token/internal')
+    assert http.calls[0]['payload'] == {'app_id': 'cli_x', 'app_secret': 'sec_y'}
+
+
+def test_token_refresh_after_expiry():
+    http = FakeHTTP([{'code': 0, 'tenant_access_token': 'tok1', 'expire': 7200},
+                     {'code': 0, 'tenant_access_token': 'tok2', 'expire': 7200}])
+    c = _client(http)
+    c.tenant_access_token()
+    c._token_expire = 0  # 模拟过期
+    assert c.tenant_access_token() == 'tok2'
+
+
+def test_token_error_raises():
+    http = FakeHTTP([{'code': 999, 'msg': 'bad secret'}])
+    with pytest.raises(FeishuError):
+        _client(http).tenant_access_token()
+
+
+def test_send_and_reply_payload():
+    http = FakeHTTP([{'code': 0, 'tenant_access_token': 't', 'expire': 7200},
+                     {'code': 0, 'data': {}}, {'code': 0, 'data': {}}])
+    c = _client(http)
+    c.send('oc_chat', 'text', '你好')
+    c.reply('om_mid', 'interactive', '**md**')
+    send, reply = http.calls[1], http.calls[2]
+    assert 'receive_id_type=chat_id' in send['url']
+    assert send['headers']['Authorization'] == 'Bearer t'
+    assert send['payload']['msg_type'] == 'text'
+    assert json.loads(send['payload']['content']) == {'text': '你好'}
+    assert reply['url'].endswith('/im/v1/messages/om_mid/reply')
+    card = json.loads(reply['payload']['content'])
+    assert card['elements'][0]['text'] == {'tag': 'lark_md', 'content': '**md**'}
+
+
+def test_post_content_shape():
+    body = json.loads(FeishuClient.build_content('post', '多段'))
+    assert body['zh_cn']['content'][0][0] == {'tag': 'text', 'text': '多段'}
+
+
+def test_missing_credentials(monkeypatch):
+    monkeypatch.delenv('FEISHU_APP_ID', raising=False)
+    monkeypatch.delenv('FEISHU_APP_SECRET', raising=False)
+    with pytest.raises(FeishuError):
+        FeishuClient()
+
+
+# ---------------------------------------------------------------- 命令路由
+def test_parse_solar_city():
+    spec = parse_solar('阳历 1992-10-09 13:58 男 河南信阳')
+    assert (spec['year'], spec['month'], spec['day']) == (1992, 10, 9)
+    assert (spec['hour'], spec['minute']) == (13, 58)
+    assert spec['gender'] == '男' and spec['lon'] == 114.07
+
+
+def test_parse_solar_direct_lon():
+    spec = parse_solar('1992/10/09 13点58 女 114.07')
+    assert spec['gender'] == '女' and spec['lon'] == 114.07
+
+
+def test_parse_solar_gender_required():
+    with pytest.raises(ParseError, match='性别必填'):
+        parse_solar('阳历 1992-10-09 13:58 信阳')
+
+
+def test_parse_solar_unknown_city():
+    with pytest.raises(ParseError, match='经度'):
+        parse_solar('阳历 1992-10-09 13:58 男 某小县城')
+
+
+def test_parse_pillars_ok():
+    spec = parse_pillars('四柱 戊辰 己未 庚午 丁亥 男')
+    assert spec['pillars'] == ['戊辰', '己未', '庚午', '丁亥']
+    assert spec['gender'] == '男' and spec['year'] is None
+
+
+def test_parse_pillars_bad_parity():
+    with pytest.raises(ValueError, match='阴阳错配'):
+        paipan({'kind': 'pillars', 'pillars': ['甲丑', '己未', '庚午', '丁亥'],
+                'gender': '男'}, use_llm=False)
+
+
+def test_help_and_ver():
+    assert '阳历' in handle('/help')
+    assert '引擎基线' in handle('/ver')
+
+
+def test_unknown_input_returns_help_hint():
+    assert '输入有误' in handle('随便说点啥')
+
+
+# ---------------------------------------------------------------- 全链路（LLM 关闭或 mock）
+def test_e2e_solar_engine_only():
+    md = handle('阳历 1992-10-09 13:58 男 河南信阳', use_llm=False)
+    assert '壬申 庚戌 戊午 己未' in md
+    for sec in ('**做功**', '**层功**', '**三维**', '**婚姻**', '**应期**', '> 一句话：'):
+        assert sec in md
+
+
+def test_e2e_pillars_engine_only():
+    md = handle('四柱 戊辰 己未 庚午 丁亥 男', use_llm=False)
+    assert '戊辰 己未 庚午 丁亥' in md and '> 一句话：' in md
+
+
+def test_llm_success_appended(monkeypatch):
+    monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
+                        lambda res, validate='mark': '【性格】(高) mock 五维')
+    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    assert 'LLM 五维叙述' in md and 'mock 五维' in md
+
+
+def test_llm_failure_degrades_to_engine(monkeypatch):
+    monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
+                        lambda res, validate='mark': '[LLM 不可用，降级返回 prompt 文本 | 原因: x]')
+    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    assert '引擎直出结论' in md and 'LLM 五维叙述' not in md
+
+
+def test_llm_off_by_default_env(monkeypatch):
+    monkeypatch.setenv('FEISHU_USE_LLM', '0')
+    md = handle('阳历 1992-10-09 13:58 男 信阳')  # 不传 use_llm → 读环境变量
+    assert 'LLM 五维叙述' not in md
+
+
+# ---------------------------------------------------------------- webhook 事件
+def _msg_event(mid='om_1', text='阳历 1992-10-09 13:58 男 信阳'):
+    return {'schema': '2.0',
+            'header': {'event_type': 'im.message.receive_v1', 'token': ''},
+            'event': {'message': {'message_id': mid, 'message_type': 'text',
+                                  'content': json.dumps({'text': text})}}}
+
+
+class FakeClient:
+    def __init__(self):
+        self.replies = []
+
+    def reply(self, mid, msg_type, text):
+        self.replies.append((mid, msg_type, text))
+
+
+def test_url_verification_challenge(monkeypatch):
+    monkeypatch.delenv('FEISHU_VERIFICATION_TOKEN', raising=False)
+    resp = bot.handle_event({'type': 'url_verification', 'token': 'x', 'challenge': 'abc'})
+    assert resp == {'challenge': 'abc'}
+
+
+def test_message_event_replies_and_dedupes():
+    bot._seen_mids.clear()
+    fc = FakeClient()
+    assert bot.handle_event(_msg_event(), client=fc, background=False) == {}
+    assert len(fc.replies) == 1
+    mid, msg_type, text = fc.replies[0]
+    assert mid == 'om_1' and msg_type == 'interactive' and '**做功**' in text
+    bot.handle_event(_msg_event(), client=fc, background=False)  # 重复事件去重
+    assert len(fc.replies) == 1
+
+
+def test_bad_input_replies_error_not_raise():
+    bot._seen_mids.clear()
+    fc = FakeClient()
+    bot.handle_event(_msg_event(mid='om_2', text='hello'), client=fc, background=False)
+    assert '输入有误' in fc.replies[0][2]
+
+
+def test_token_mismatch_rejected(monkeypatch):
+    monkeypatch.setenv('FEISHU_VERIFICATION_TOKEN', 'want')
+    with pytest.raises(PermissionError):
+        bot.handle_event({'type': 'url_verification', 'token': 'nope', 'challenge': 'c'})
