@@ -132,7 +132,9 @@ def _tier_anchor(features: dict) -> str:
     return (f'【本案财命档锚定】caiming.tier_static={vals["tier_static"] or "无"}（原局轨）、'
             f'caiming.tier={vals["tier"] or "无"}（全量轨）；两轨较高档=「{ceiling}」。'
             f'财运 conclusion 的档位词只允许贫/平/小康/富/巨富五选且不得超过「{ceiling}」；'
-            '功量金额档（百万/千万/亿级）≠财命档，不得据金额升格。')
+            '功量金额档（百万/千万/亿级）≠财命档，不得据金额升格。'
+            f'能力承诺句（「能成/可成/勤劳可…」）与条件假设句（「一旦/若…便…」）中的'
+            f'档位词同样不得超过「{ceiling}」——条件再顺、应期再巧也不许承诺破档。')
 
 
 def _zhiye_anchor(features: dict) -> str:

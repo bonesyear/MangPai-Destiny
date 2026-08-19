@@ -149,14 +149,37 @@ def _l1_basis(data: dict, features: dict, remapped: list | None = None) -> list:
 
 
 # 档位词否定窗（迭代 2 复测发现：锚定生效后 LLM 多用「难大富/非巨富/大富难求」
-# 等否定式合规表述，裸 substring 全误判越限）。命中词前 4 字符内现否定字、
+# 等否定式合规表述，裸 substring 全误判越限）。命中词前 5 字符内现否定字、
 # 或后随「（填1字）难求/不足/不起/不了/无望」则该处不计。「财富」之富为泛指，亦不计。
+# （迭代 6：窗 4→5，盖「不可奢求大富」类不字距 5 的合规否定。）
 _TIER_NEG = '不非难无莫勿未别'
 _TIER_NEG_AFTER = re.compile(r'^[一-鿿]?(?:难求|不足|不起|不了|无望)')
 
+# 迭代 6 口径修（U3：16 例越限中 9 例假阳=校验器误判，聚四类缺口）：
+# ①让步封顶：「…之说/之象，但财命封顶X」「上限X」前的档位词是让步引用，不计；
+# ②泛指动词：「致富」同「财富」不计；
+# ③引擎原文引用：命中词落在引擎 caiming 原文子串内（≥3 字）不计——
+#   但巨富档不适用（防引擎旁注文字掩护真越限）；
+# ④修饰档归位：「小富」按小康级、「X偏下」降半档归位；
+# ⑤愿望条件句：「想大富得靠…」式（命中词前 4 字符内有「想」）不计。
+#   「若/一旦」不入豁免——U3 #10「一旦库开富可敌国」双实例裁真越限。
+# ⑥「富格/富档」=引擎格局/档位术语（同「财富」类复合词），不计。
+_TIER_CAP_MARKERS = ('封顶', '上限', '定档', '定格')
 
-def _tier_rank(text: str) -> int:
-    """文本中未被否定的最高财命档位（无则 -1）。巨富先于富匹配。"""
+
+def _quoted(text: str, j: int, length: int, corpus: str) -> bool:
+    """命中处的 ±2 字窗（≥3 字）是否为引擎原文子串。"""
+    for a in range(3):
+        for b in range(3):
+            s = text[max(0, j - a):j + length + b]
+            if len(s) >= 3 and s in corpus:
+                return True
+    return False
+
+
+def _tier_rank(text: str, corpus: str = '') -> int:
+    """文本中未被否定/豁免的最高财命档位（无则 -1）。巨富先于富匹配。"""
+    cap = min((text.find(m) for m in _TIER_CAP_MARKERS if m in text), default=-1)
     best = -1
     for i, t in enumerate(_TIER_ORDER):
         start = 0
@@ -165,13 +188,30 @@ def _tier_rank(text: str) -> int:
             if j == -1:
                 break
             start = j + 1
-            if t == '富' and text[j - 1:j] in ('巨', '财'):
-                continue  # 巨富单独判；财富=泛指非档位
-            if any(c in _TIER_NEG for c in text[max(0, j - 4):j]):
+            if 0 <= cap and j < cap:
+                continue  # ①让步+封顶：封顶标记前的档位词为被压住的让步引用
+            r = i
+            if t == '富':
+                prev = text[j - 1:j]
+                if prev in ('巨', '财', '致'):
+                    continue  # 巨富单独判；财富/致富=泛指非档位（②）
+                if text[j + 1:j + 2] in ('格', '档', '贵'):
+                    continue  # ⑥富格/富档=引擎格局/档位术语；富贵=泛指
+                if prev == '小':
+                    r = 2  # ④「小富」=小康级修饰档，归位
+            if any(c in _TIER_NEG for c in text[max(0, j - 5):j]):
                 continue
+            if '想' in text[max(0, j - 4):j]:
+                continue  # ⑤愿望条件句「想大富得靠…」
             if _TIER_NEG_AFTER.match(text[j + len(t):]):
                 continue
-            best = max(best, i)
+            if text[j + len(t):j + len(t) + 2] == '偏下':
+                r -= 1  # ④「小康偏下」降半档
+                if r < 0:
+                    continue
+            if t != '巨富' and corpus and _quoted(text, j, len(t), corpus):
+                continue  # ③引擎原文引用豁免（巨富档除外）
+            best = max(best, r)
             break
     return best
 
@@ -188,11 +228,12 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
             if w in t:
                 v.append({'layer': 'L2', 'detail': f'{dim} 触死亡红线词「{w}」'})
 
-    # 财命档位
+    # 财命档位（corpus=引擎 caiming 原文，供③引用豁免）
     cm = engine_result.get('caiming') or {}
     ceiling = max((_tier_rank(str(cm.get(k) or ''))
                    for k in ('tier_static', 'tier')), default=-1)
-    got = _tier_rank(texts['财运'])
+    corpus = json.dumps(cm, ensure_ascii=False)
+    got = _tier_rank(texts['财运'], corpus)
     if ceiling >= 0 and got > ceiling:
         v.append({'layer': 'L2',
                   'detail': f'财运档位越引擎上限：引擎={_TIER_ORDER[ceiling]}，叙述={_TIER_ORDER[got]}'})

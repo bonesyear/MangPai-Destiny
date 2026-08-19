@@ -153,6 +153,8 @@ def test_tier_anchor_ceiling():
     from mangpai.subjective.llm_prompt import _tier_anchor
     a = _tier_anchor({'caiming': {'tier_static': '贫', 'tier': '小康'}})
     assert '不得超过「小康」' in a and 'tier_static=贫' in a
+    # 迭代 6：能力承诺/条件假设句中的档位词同样受上限约束
+    assert '能力承诺句' in a and '条件假设句' in a
     assert _tier_anchor({'caiming': {}}) == ''
 
 
@@ -237,6 +239,58 @@ def test_tier_rank_negation_window():
     assert _tier_rank('财富量级有限') == -1  # 财富=泛指
     assert _tier_rank('能成巨富之资') == 4   # 真越限仍拦
     assert _tier_rank('经营取财可积富') == 3
+
+
+def test_tier_rank_iter6_exemptions():
+    # 迭代 6（U3 假阳 9 例口径修）：
+    # ②泛指动词「致富」不计
+    assert _tier_rank('主经营致富，档次小康') == 2
+    # ④修饰档归位：「小富」=小康级
+    assert _tier_rank('可小富但难大富') == 2
+    # ④「小康偏下」降半档归位（仍高于贫，边界例不豁免）
+    assert _tier_rank('难成巨富，只能小康偏下') == 1
+    # ⑤愿望条件句「想…得靠…」不计
+    assert _tier_rank('求稳则小康可期，想大富得靠大运流年引动') == 2
+    # ①让步+封顶：封顶标记前的档位词不计
+    assert _tier_rank('虽功量有中富中贵之说，但财命封顶贫') == 0
+    assert _tier_rank('虽做功层次高有大富之象，但财星反局被封顶') == -1
+    assert _tier_rank('财命小康，主过河拆桥富格……财命上限小康') == 2
+    # ①封顶后的越限仍拦
+    assert _tier_rank('封顶小康，若运程配合能成巨富') == 4
+    # ⑥富格/富档=引擎术语复合词，不计（E6 复测新发同族假阳）
+    assert _tier_rank('功量富档虽高，但财命只小康') == 2
+    assert _tier_rank('看似过河拆桥的富格，财命定格为贫') == 0
+    # ①定档/定格同为封顶标记
+    assert _tier_rank('虽功量可至大富，然财命定档小康') == 2
+    # 能力承诺式仍拦（E6 新发真越限同型）
+    assert _tier_rank('财命小康，踏实经营可达中富') == 3
+
+
+def test_tier_rank_iter6_quote_exemption():
+    # ③引擎原文引用豁免：命中处落在引擎 caiming 原文子串内不计
+    corpus = '"details": ["宾官被制尽（净制），过河拆桥富格——制官得财"]'
+    assert _tier_rank('你财命小康，主过河拆桥富格，经营取财', corpus) == 2
+    # 巨富档不适用引用豁免（防引擎旁注掩护真越限）
+    corpus2 = '"details": ["制尽则能成巨富"]'
+    assert _tier_rank('经营得法能成巨富', corpus2) == 4
+    # ⑥后「富格」恒豁免（引擎术语复合词），无需 corpus
+    assert _tier_rank('主过河拆桥富格') == -1
+    assert _tier_rank('账面富贵、过手之财') == -1  # 富贵=泛指
+    assert _tier_rank('不可奢求大富') == -1       # 否定窗 5（不字距 5）
+
+
+def test_l2_tier_overclaim_iter6_kept():
+    # 迭代 6：真越限 5 例句式仍拦（能力承诺/假设外壳/条件能力）
+    eng_poor = {'caiming': {'tier_static': '贫', 'tier': '贫'}}
+    eng_rich = {'caiming': {'tier_static': '富', 'tier': '富'}}
+    data = _good()
+    data['财运']['conclusion'] = '禄神当财，财命属贫，但勤劳可小康，大财难求'
+    assert any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_poor))
+    data['财运']['conclusion'] = '一旦库开，富可敌国——大运戌冲开辰库，便是大发之机'
+    eng_xk = {'caiming': {'tier_static': '小康', 'tier': '小康'}}
+    assert any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_xk))
+    data['财运']['conclusion'] = '你属富命，宜谨慎经营，可成巨富'
+    assert any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_rich))
 
 
 # remap 测试用特征结构（仿 v5 残余 10 条的真实 payload 形态）
