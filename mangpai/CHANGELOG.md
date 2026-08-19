@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-08-19 修批 D2 · 入口批（性别必填 + 界外年份 guard + lon 校验，T0 边角三项）
+
+| 项 | 处理方式 | 书锚/依据 | 文件 |
+|----|----------|------|------|
+| 性别缺失/未知静默按阴逆排（T0 P1） | 定策略（a）报错：calc_bazi_full 入口校验，None/''/'未知' 等一律 ValueError 带「大运方向依赖性别」说明；合法集=男/女/male/female/乾/坤（compute_da_yun is_male 补 '乾'，旧口径 乾 被静默当阴=同型陷阱）；飞书交互侧性别设必填 | 阳男阴女顺排/阴男阳女逆排（理象学:3854+）——方向 50% 硬依赖性别，任何缺省都是静默错排；与入口既有风格一致（月13/时25 本就 ValueError） | objective/bazi_calc.py |
+| 界外年份裸 KeyError（T0 P2） | 入口 guard：<1900 或 >2100 → ValueError 带「节气表覆盖 1900-2100」说明（原 SOLAR_TERMS[year] 裸 KeyError） | T0 报告 §2/§4 | objective/bazi_calc.py |
+| city_lon 无校验（T0 P2） | 入口校验：非数值/None/bool/nan/inf/越 [-180,180] → ValueError（原 None 裸 TypeError、999 静默跑通） | T0 报告 §2/§4 | objective/bazi_calc.py |
+| 子夜 ±1min 日柱敏感带（T0 P2 备案） | 确认现状合理不修：均时差秒级残差致 BT 00:00 压回前日 23:59:58，真太阳时两派各自自洽，属历法固有边界 | T0 报告 §2 | （备案，零改动） |
+| 哨兵（先红后绿） | 新建 test_entry_guards.py 33 测（先红 19）：性别缺失/未知×5、合法性别×6、乾坤=男女同向、界外年份×5、边界年 1900/2100、非法 lon×8、合法 lon×6 | — | tests/test_entry_guards.py |
+
+验证：哨兵先红 19 后绿 33/33、verify 432 全绿、pytest 717 passed+1 xfailed+19 xpassed（LLM 打磨批实测 684 passed 基线 + 本批 33；KB 旧记 682 collected 系修批C 口径已过期）、blind 对照 20260819_d1 零翻转（引擎判定零改动：guard 仅挡非法输入，blind_eval/llm_channel 合成 bazi_data 路径不过 calc_bazi_full）、67/famous 0 回归、calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财）无新增、双 seed 逐字节一致。引擎基线=`snapshots/20260819_d2.json`。
+
 ## 2026-08-18 打磨批 · LLM 通道（峰谷价计价 + 正式通道文档，引擎零改动）
 
 | 项 | 处理方式 | 依据 | 文件 |

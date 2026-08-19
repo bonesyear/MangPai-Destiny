@@ -704,7 +704,7 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
     y_gz = four_pillars['year_gz']
     m_gz = four_pillars['month_gz']
     is_yang = y_gz[0] in _YANG_GAN
-    is_male = gender in ('男', 'male')
+    is_male = gender in ('男', 'male', '乾')
     forward = (is_yang and is_male) or (not is_yang and not is_male)
     direction = '顺' if forward else '逆'
 
@@ -774,8 +774,9 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
         day: 公历日
         hour: 时（0-23，北京时间）
         minute: 分（0-59）
-        gender: '男' / '女'（亦接受 'male'/'female'）
-        city_lon: 城市经度（东经，度），用于真太阳时校正
+        gender: '男' / '女'（亦接受 'male'/'female'/'乾'/'坤'；缺失或未知
+            抛 ValueError——大运方向依赖性别，静默缺省会错排，D2 入口批）
+        city_lon: 城市经度（东经，度，[-180, 180] 内有限数值），用于真太阳时校正
         yin_method: 阴干方向（盲派默认 'same_as_yang'，阴阳同生同死）；
             本字段保留以与 engine.calc_mangpai_full 签名对齐，盲派十二长生
             由 MangpaiEngine 自行计算（同生同死），本排盘不产出 chang_sheng。
@@ -794,6 +795,21 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
         等键；MangpaiEngine 读取这些键进行盲派分析（nayin/canggan/wuxing/
         chang_sheng 等由 engine 自行重算，故此处不产出，避免重复）。
     """
+    # D2 入口批守卫（T0 P1/P2）：性别/年份/经度三项显式校验，非法输入一律
+    # ValueError 带清晰信息（原为性别静默按阴逆排、界外年份裸 KeyError、
+    # lon=None 裸 TypeError）。仅挡非法输入，合法输入判定零变化。
+    if gender not in ('男', '女', 'male', 'female', '乾', '坤'):
+        raise ValueError(
+            f'性别缺失或无法识别（{gender!r}）：大运方向依赖性别'
+            '（阳男阴女顺排、阴男阳女逆排），请显式传 男/女（或 male/female/乾/坤）')
+    if not (SOLAR_TERM_YEAR_MIN <= year <= SOLAR_TERM_YEAR_MAX):
+        raise ValueError(
+            f'年份 {year} 超出支持范围：节气表覆盖 '
+            f'{SOLAR_TERM_YEAR_MIN}-{SOLAR_TERM_YEAR_MAX} 年')
+    if (not isinstance(city_lon, (int, float)) or isinstance(city_lon, bool)
+            or not math.isfinite(city_lon) or not -180.0 <= city_lon <= 180.0):
+        raise ValueError(
+            f'城市经度非法（{city_lon!r}）：须为 [-180, 180] 内有限数值（东经为正）')
     fp = compute_four_pillars(year, month, day, hour, minute, city_lon,
                               late_zi_method=late_zi_method)
     pillars = {k: fp[k] for k in ('year_gz', 'month_gz', 'day_gz', 'hour_gz')}

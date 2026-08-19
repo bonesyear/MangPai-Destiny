@@ -459,9 +459,10 @@ python3 mangpai/tests/backtest/regression_famous.py  # 0 回归（罗斯切尔�
 
 ---
 
-## 9. 当前基线与残留总账（2026-08-19 D1 数据批更新：gold 修正 5 条+source 锚 15 处+raw_quote 1 处，引擎零改动）
+## 9. 当前基线与残留总账（2026-08-19 修批 D2 入口批更新：性别必填+界外年份 guard+lon 校验，引擎判定零改动；前一棒 D1 数据批 gold 修正 5 条+source 锚 15 处+raw_quote 1 处+calib zhenbao-10 dayun 误录删除）
 
-- baseline=`snapshots/20260819_d1.json`（rubric v8-20260808，D1 数据批；上一棒 20260818_fb）。
+- baseline=`snapshots/20260819_d2.json`（rubric v8-20260808，D2 入口批；上一棒 20260819_d1）。
+- D2 备案：性别策略定（a）报错——calc_bazi_full 入口校验（合法集 男/女/male/female/乾/坤，is_male 补 '乾' 修同型静默），None/''/'未知'→ValueError；年份 <1900/>2100→ValueError（原裸 KeyError）；city_lon 非数值/越 [-180,180]→ValueError（原 None 裸 TypeError）。子夜 ±1min 敏感带复核=历法固有边界，维持备案不修。哨兵=test_entry_guards.py 33 测（先红 19 后绿）。blind_eval/llm_channel 合成 bazi_data 路径不过 calc_bazi_full，评估链零影响。pytest 实测 717 passed+1 xfailed+19 xpassed（§0/§8 旧记 682 系修批C 口径，LLM 打磨批后实为 704 collected）。
 - trainset 294：官 83.48%（19❌=§6.2）/ 财 52.21%（❌10=§6.3）/ 职 47.06%（33❌=§6.1）。
 - heldout 215：官 72.73% / 财 68.12% / 职 46.15%（D1 全量 diff 零翻转零抖动）。
 - D1 备案：calib 常驻回归 4→2（zhenbao-05 官命 lv4→3、层功 [3,4]→[2,3] 按书修正 gold 消化，余 zhenbao-01 官命/zhenbao-14a 财命=引擎错存量）；trainset 财命翻转 2 条皆改善（cj-处级-5 ⚠️→✅、cj-足球 ❌→⚠️，gold 标注错修正）；D4 zhenbao-10 `dayun:[戊,寅]` 系误录——书（50qi:313-315）明「戊寅年寅刑巳动火而调动」，戊寅=1998 流年非大运，书中未给真实大运，采方案（b) 删 dayun 字段（脚本对缺省容错），删后各维不恶化（婚姻 ❌→⚠️ 改善）。
