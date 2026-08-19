@@ -29,6 +29,7 @@ from mangpai.objective.constants import (
     TOMB_MAP, LU, PILLAR_KEYS, PILLAR_NAMES_CN,
     SI_SHENG, SI_ZHENG, DI_ZHI,
 )
+from mangpai.objective.bazi_calc import GAN, ZHI  # 天干/地支序列表（唯一定义处）
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.muku import TOMB_MAP as _TOMB_MAP
 from mangpai.objective.shensha import _YANG_REN_FULL
@@ -667,4 +668,27 @@ def _analyze_pillar_interaction(
     }
 
 
-__all__ = ['_analyze_pillar_interaction']
+def dayun_gz_sequence(year_gan: str, month_gz: str, is_male: bool,
+                      steps: int = 8) -> Dict[str, Any]:
+    """由年干阴阳+性别+月柱推大运干支序列（纯计算，不含起运岁）。
+
+    方向口径同 bazi_calc.compute_da_yun：阳男阴女顺排、阴男阳女逆排，
+    序列从月柱起每步 ±1，每步 10 年。起运岁数须出生日时刻对节气
+    （compute_da_yun，书口径 理象学:3846-3877）；仅有四柱干支、无精确
+    出生时刻的调用方（D3 LLM payload 补供）用本函数取方向+干支序列。
+
+    Returns:
+        {'direction': '顺'|'逆', 'dayun': [{'gz': ..., 'order': 1..steps}]}
+    """
+    forward = (GAN.index(year_gan) % 2 == 0) == is_male
+    step = 1 if forward else -1
+    mt, md = GAN.index(month_gz[0]), ZHI.index(month_gz[1])
+    return {
+        'direction': '顺' if forward else '逆',
+        'dayun': [{'gz': GAN[(mt + step * (i + 1)) % 10]
+                            + ZHI[(md + step * (i + 1)) % 12],
+                   'order': i + 1} for i in range(steps)],
+    }
+
+
+__all__ = ['_analyze_pillar_interaction', 'dayun_gz_sequence']

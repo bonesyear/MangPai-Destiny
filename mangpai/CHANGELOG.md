@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-08-19 修批 D3 · 供给批（dayun_analysis 死 selector 修复，选 B 补供方案）
+
+| 项 | 处理方式 | 书锚/依据 | 文件 |
+|----|----------|------|------|
+| dayun_analysis 死 selector（T3 §A.1 P1：281/281 缺失，LLM 全程零大运表） | 断裂点定位：selector 声明（schools.py，受保护不动）与 build_payload 转发均正常；LLM 批跑/评估路径 bazi_data 仅 bazi+gender+year（无 da_yun 键）→ engine.py `if dy_list:` 不成立 → compute_all 不产出该键 → 声明静默落空。修复=build_payload 层补供：`dayun_gz_sequence`（年干阴阳+性别+月柱 → 方向+8 步干支序列，确定性计算不需节气）+ 复用 analyze_dayun_mangpai 出吉凶信号，engine compute_all 零改动（判定零影响） | 「大运为路，流年为应」（高级:18598-18855；授课:936-976、7144）；方向口径同 compute_da_yun（理象学:3854+） | objective/dayun.py、subjective/__init__.py |
+| 数据形状（D4 应期锚定预留） | 每运保留 gz/order/gan_shishen/zhi_relations/work_types/tomb_effect/fei_shen_activated/lu_blade/changsheng/qishi_change/is_kong_wang/positive_signals/negative_signals/overall（与 prompts/mangpai.md 的 dayun_analysis.* 引用对齐，L1 校验按 dayun_analysis.dayun 整组引用可溯）；剥 gan_relations/tiyong_import/has_* 布尔/desc 检测中间件控体积；真实 da_yun 路径同投影统一形状。合成路径起运岁不可得（需精确出生月日时刻对节气）→ 诚实缺省 start_age/end_age，以 order 为锚+age_note 声明 | 起运岁书口径 理象学:3846-3877 | 同上 |
+| verify_dayun selectors 总数断言 39→38（D1 存量备案①顺手修） | 修批A③ 摘 gongmen_wuzhi 后断言未同步，更正后 verify_dayun 70/70 | KB §10.1 #42 | verify_dayun.py |
+| 哨兵（先红后绿） | 新建 test_d3_dayun_payload.py 5 测（先红 3）：engine 无 da_yun 不产出（红线锁）/合成方向+序列正确/结构+缺岁诚实/真实 da_yun 投影后起止岁保留/性别缺失不合成不编造方向 | — | tests/test_d3_dayun_payload.py |
+
+验证：哨兵先红 3 后绿 5/5、verify 432 全绿、verify_dayun 70/70（69→70）、pytest 722 passed+1 xfailed+19 xpassed、blind 对照 20260819_d2 三维零翻转零抖动（heldout 官 48✅72.73/财 47✅68.12/职 24✅46.15，trainset 官 96✅/财 59✅/职 40✅ 全同）、67/famous 0 回归、calib 常驻 2 条无新增、双 seed payload 探针逐字节一致（sha256 相同）。引擎基线=`snapshots/20260819_d3.json`。token 体积：补供后每命 payload +约 7180 字符（≈4500 token，10 例均值，payload 50.4k→57.6k 字符 +14%），峰段成本 +约 $0.002/命。
+
 ## 2026-08-19 修批 D2 · 入口批（性别必填 + 界外年份 guard + lon 校验，T0 边角三项）
 
 | 项 | 处理方式 | 书锚/依据 | 文件 |

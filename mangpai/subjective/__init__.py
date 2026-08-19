@@ -36,6 +36,89 @@ ENVELOPE_RULES = """\
 _MISSING = object()
 _DROP = object()
 
+# D3 补供（2026-08-19，任务书 docs/tasks/kimi-d3-dayun-batch-20260819.md）：
+# dayun_analysis 死 selector 修复。断裂点=LLM 批跑/评估路径的 bazi_data 仅带
+# bazi+gender+year（无 da_yun 键）→ engine.py `if dy_list:` 不成立 →
+# compute_all 不产出该键 → selector 声明静默落空（T3 §A.1：281/281 缺失，
+# LLM 全程零大运表）。此处按年干阴阳+性别+月柱合成大运干支序列（方向/序列
+# 为确定性计算，不需节气），过 analyze_dayun_mangpai 补进 payload。
+# 仅 LLM 视图层补供，engine compute_all 输出不变（判定零影响、盲测零翻转）。
+
+# 每运保留字段（LLM 引用形状：干支/起止/十神/吉凶信号/事件锚），与
+# prompts/mangpai.md 的 dayun_analysis.* 引用对齐；剥掉的
+# gan_relations/tiyong_import/has_* 布尔/desc 为检测中间件或信号复述。
+_DAYUN_KEEP = ('gz', 'order', 'start_age', 'end_age', 'gan_shishen',
+               'zhi_relations', 'work_types', 'tomb_effect',
+               'fei_shen_activated', 'lu_blade', 'changsheng',
+               'qishi_change', 'is_kong_wang',
+               'positive_signals', 'negative_signals', 'overall')
+
+_MALE = ('男', 'male', '乾')
+_FEMALE = ('女', 'female', '坤')
+
+
+def _trim_dayun(analysis):
+    """dayun_analysis → 按 _DAYUN_KEEP 投影（真实/合成两路径统一形状）。"""
+    if not isinstance(analysis, dict):
+        return analysis
+    out = {k: v for k, v in analysis.items() if k != 'dayun'}
+    out['dayun'] = [{k: d[k] for k in _DAYUN_KEEP if k in d}
+                    for d in analysis.get('dayun') or []]
+    return out
+
+
+def _synthesize_dayun(data: dict):
+    """bazi-only 输入（engine 未产出 dayun_analysis）时补供；无法判向返回 None。
+
+    起运岁数需精确出生月日时刻（compute_da_yun 对节气），bazi-only 输入不可得，
+    故合成结果的每运无 start_age/end_age，以 order（第 N 步）为锚并附 age_note。
+    """
+    bazi = data.get('bazi') or {}
+    try:
+        gans = [bazi[k][0] for k in ('year', 'month', 'day', 'hour')]
+        zhis = [bazi[k][1] for k in ('year', 'month', 'day', 'hour')]
+    except (KeyError, IndexError, TypeError):
+        return None
+    gender = (data.get('input') or {}).get('gender') or ''
+    if gender not in _MALE + _FEMALE:
+        return None
+
+    from mangpai.objective.dayun import dayun_gz_sequence
+    from .dayun import analyze_dayun_mangpai
+
+    seq = dayun_gz_sequence(gans[0], bazi['month'], gender in _MALE)
+    analysis = analyze_dayun_mangpai(
+        seq['dayun'], gans, zhis, gans[2],
+        natal_fei_shen=(data.get('zuogong') or {}).get('fei_shen'),
+        kong_wang=data.get('kong_wang'),
+    )
+    dy = _trim_dayun(analysis)['dayun']
+    for d in dy:  # 合成序列无起运岁（缺精确出生时刻），剥缺省 0 防误锚
+        d.pop('start_age', None)
+        d.pop('end_age', None)
+    best = next((d for d in dy if d['overall'] == '吉'), None)
+    worst = next((d for d in dy if d['overall'] == '凶'), None)
+    parts = [f"共{len(dy)}步大运（{seq['direction']}排）"]
+    if analysis['ji_count']:
+        parts.append(f"吉运{analysis['ji_count']}步")
+    if analysis['xiong_count']:
+        parts.append(f"凶运{analysis['xiong_count']}步")
+    if analysis['banfeng_count']:
+        parts.append(f"吉凶参半{analysis['banfeng_count']}步")
+    if best:
+        parts.append(f"最吉：{best['gz']}(第{best['order']}步)")
+    if worst:
+        parts.append(f"最凶：{worst['gz']}(第{worst['order']}步)")
+    return {
+        'direction': seq['direction'],
+        'age_note': '起运岁数需精确出生月日时刻，本表仅干支序列（order=第N步），无年龄锚',
+        'dayun': dy,
+        'ji_count': analysis['ji_count'],
+        'xiong_count': analysis['xiong_count'],
+        'banfeng_count': analysis['banfeng_count'],
+        'summary': '；'.join(parts),
+    }
+
 # 修批A①（R5 block-1）：死亡词典统一 scrub——引擎内部保留（F14 设计不变），
 # LLM 视图层（payload）过滤。zaihuo 键本体由 zaihuo_llm_view 屏蔽（F14），
 # 本词典兜 zaihuo 键外泄漏：shipaige 寿元域断语/liuqin 早夭类 marker/
@@ -123,6 +206,14 @@ def build_payload(data: dict, school: School = MANGPAI_SCHOOL) -> dict:
     if 'zaihuo' in payload:
         from .zaihuo import zaihuo_llm_view
         payload['zaihuo'] = _jsonable(zaihuo_llm_view(payload['zaihuo']))
+    # D3 补供：dayun_analysis——真实产出统一投影形状；engine 未产出时合成补供。
+    if 'dayun_analysis' in school.selectors:
+        if 'dayun_analysis' in payload:
+            payload['dayun_analysis'] = _trim_dayun(payload['dayun_analysis'])
+        else:
+            syn = _synthesize_dayun(data)
+            if syn is not None:
+                payload['dayun_analysis'] = syn
     # 修批A①：zaihuo 键外死亡词汇统一 scrub（LLM 视图层过滤，引擎内部保留）。
     return _scrub_death(payload)
 

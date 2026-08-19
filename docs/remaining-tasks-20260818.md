@@ -4,6 +4,12 @@
 > 本文件是 08-18 引擎+LLM 通道双轨终态。所有里程碑 commit 均在 GitHub。
 > **08-19 D1 数据批已执行**（见下方「D1 快报」），三、四、五节仍有效。
 
+## D3 快报（2026-08-19，供给批 · dayun_analysis 死 selector 修复）
+
+- **断裂点**：selector 声明与转发均正常；LLM 批跑/评估路径 bazi_data 无 da_yun 键 → engine `if dy_list:` 不成立 → compute_all 不产出 → 声明静默落空。修复=build_payload 层补供（`objective/dayun.dayun_gz_sequence` + 复用 analyze_dayun_mangpai），**engine 零改动**；合成路径起运岁诚实缺省（缺精确出生时刻），order 为锚。
+- **验证**：哨兵 test_d3_dayun_payload.py 先红 3 后绿 5/5；verify 432+dayun 70（顺手修 39→38 断言）全绿；pytest 722+1xf+19xp；blind vs d2 零翻转零抖动；67/famous 0 回归；calib 常驻 2 条无新增；双 seed payload 探针一致。基线 `snapshots/20260819_d3.json`。token +约 4500/命。
+- **下一批**：D4 prompt 迭代 5（L1 职业锚定+L2 应期逐年锚定，prompts 受保护须批准；dayun_analysis 已就位可直接引 `dayun_analysis.dayun` 整组）。D1 存量② KB pytest 记数已随批更正。
+
 ## D1 快报（2026-08-19，commit `7eb7ca5`）
 
 - **改动**：gold 标注错 5 条（calib zhenbao-05 官命 lv4→3/层功[3,4]→[2,3]、zhenbao-23a 层功 max1→2；trainset cj-处级-5 财 富→小康、cj-足球 财 小康→富）+ source 锚漂移 15 处 + raw_quote 张冠剔除（cj-贫穷命）+ calib zhenbao-10 dayun 误录删除（戊寅=1998 流年非大运，50qi:313-315）+ cj-老总口径注。**纯数据批，引擎零改动**。任务书 `docs/tasks/kimi-d1-data-batch-20260819.md`。
