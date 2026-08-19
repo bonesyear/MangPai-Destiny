@@ -116,6 +116,11 @@ def _remap_basis(features: dict, path: str):
     return None, _MISSING
 
 
+# L1 空值引用白名单（迭代 5）：zhiye.primary 空串本身即判定（空=无明确职业倾向），
+# 职业锚定要求叙述无倾向时引此为出处，不适用「(空)=无出处」规则。
+_L1_EMPTY_OK = {'zhiye.primary'}
+
+
 def _l1_basis(data: dict, features: dict, remapped: list | None = None) -> list:
     """L1 依据路径解析：basis 每项须在特征 JSON 中可解析且非空，且不得带数组下标。
     可唯一展开的近-miss 自动 remap 转正（映射记入 remapped，不算违规）。"""
@@ -135,7 +140,7 @@ def _l1_basis(data: dict, features: dict, remapped: list | None = None) -> list:
             real = None
             if val is _MISSING:
                 real, val = _remap_basis(features, path)
-            if val is _MISSING or val is None or val == {} or val == [] or val == '':
+            if val is _MISSING or (val in (None, {}, [], '') and path not in _L1_EMPTY_OK):
                 v.append({'layer': 'L1', 'detail': f'{dim}.basis 路径无出处或为空: {path}'})
             elif real is not None and remapped is not None:
                 remapped.append({'layer': 'L1',

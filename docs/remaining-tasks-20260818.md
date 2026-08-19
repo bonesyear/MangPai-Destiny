@@ -4,6 +4,12 @@
 > 本文件是 08-18 引擎+LLM 通道双轨终态。所有里程碑 commit 均在 GitHub。
 > **08-19 D1 数据批已执行**（见下方「D1 快报」），三、四、五节仍有效。
 
+## D4 快报（2026-08-19，prompt 迭代 5 + S1 复验达标）
+
+- **改动**（引擎零改动）：llm_prompt 增 `_zhiye_anchor`（主荐桶锚定/无倾向禁断言）+ `_yingqi_anchor`（dayun_analysis 逐运+liunian 逐年 overall 锚定，禁套话）；llm_channel `_l1_basis` 空值白名单 `{'zhiye.primary'}`（空=无倾向判定本体，L1 3.40%→0.68%）；评测脚本 glob 合并 sorted（修 T3 §A.2 retry 覆盖隐患）+ _t3_eval 材料补 dayun 锚表。报告 `docs/kimi-d4-prompt-iter5-20260819.md`。
+- **S1 复验**（同 T3 三层漏斗、同 sample30、v4-pro 双实例谷段）：评审翻转 **9/30→0/30**（L2 高危 2→0），放大 10.1%→8.1%，一致率 85.2%→89.3%，judge 全量翻转格 80→21（职业 62→16、应期 14→1；抽审 21 格中真翻转约 7、余为 judge 未同步「倾向参考」口径的假阳/偏严）。**三线全达标，S1 语义层 NO-GO→GO，飞书集成三阻塞（E1/E2/S1）全解除 → GO。**
+- **验证**：pytest 727+1xf+19xp；rescore L0 0 / L1 0.68% / L2 5.44%（财档越限 16 例，留迭代 6）/ N1 0。成本 $5.23≈¥37.6（全谷段）。
+
 ## D3 快报（2026-08-19，供给批 · dayun_analysis 死 selector 修复）
 
 - **断裂点**：selector 声明与转发均正常；LLM 批跑/评估路径 bazi_data 无 da_yun 键 → engine `if dy_list:` 不成立 → compute_all 不产出 → 声明静默落空。修复=build_payload 层补供（`objective/dayun.dayun_gz_sequence` + 复用 analyze_dayun_mangpai），**engine 零改动**；合成路径起运岁诚实缺省（缺精确出生时刻），order 为锚。

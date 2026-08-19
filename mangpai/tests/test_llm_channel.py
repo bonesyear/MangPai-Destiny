@@ -57,6 +57,19 @@ def test_l1_array_index_forbidden():
     assert all('禁止带下标' in x['detail'] for x in v)
 
 
+def test_l1_zhiye_primary_empty_allowed():
+    # 迭代 5：zhiye.primary 空串=「无明确职业倾向」的判定本体，引此为出处合法
+    feats = dict(_FEATURES, zhiye={'primary': '', 'primary_label': '未分类',
+                                   'scores': {'teacher': 5}})
+    data = _good()
+    data['事业']['basis'] = ['zhiye.primary']
+    assert _l1_basis(data, feats) == []
+    # 白名单外的空引用仍违规
+    data['事业']['basis'] = ['zhiye.primary', 'guanming.summary']
+    feats['guanming'] = {'is_guanming': False, 'summary': ''}
+    assert len(_l1_basis(data, feats)) == 1
+
+
 def test_tier_rank():
     assert _tier_rank('巨富之家') == 4
     assert _tier_rank('富命') == 3
@@ -141,6 +154,67 @@ def test_tier_anchor_ceiling():
     a = _tier_anchor({'caiming': {'tier_static': '贫', 'tier': '小康'}})
     assert '不得超过「小康」' in a and 'tier_static=贫' in a
     assert _tier_anchor({'caiming': {}}) == ''
+
+
+def test_zhiye_anchor_primary_and_candidates():
+    # 迭代 5：主荐桶锚定——primary 非空时明令主荐桶 + 达阈候选桶
+    from mangpai.subjective.llm_prompt import _zhiye_anchor
+    feats = {'zhiye': {'primary': 'merchant', 'primary_label': '商人/经营',
+                       'min_score_threshold': 6,
+                       'scores': {'merchant': 11, 'teacher': 6, 'lawyer': 3}}}
+    a = _zhiye_anchor(feats)
+    assert '主荐桶=商人/经营' in a and '不得换成其他职业类别' in a
+    assert '候选桶=教师/教育6分' in a and 'lawyer' not in a  # 低于阈值不入候选
+
+
+def test_zhiye_anchor_no_tendency():
+    # 迭代 5：primary 为空=引擎无倾向，必须如实说无倾向，禁止断言具体职业
+    from mangpai.subjective.llm_prompt import _zhiye_anchor
+    feats = {'zhiye': {'primary': '', 'primary_label': '未分类',
+                       'min_score_threshold': 6,
+                       'scores': {'accountant': 3, 'doctor': 2, 'lawyer': 0}}}
+    a = _zhiye_anchor(feats)
+    assert '无明确职业倾向' in a and '禁止断言任何具体职业' in a
+    assert '会计/财务3分' in a  # 相对高分桶只作倾向性参考
+    # 零分盘：不得给出任何职业方向
+    feats['zhiye']['scores'] = {'merchant': 0}
+    assert '不得给出任何职业方向' in _zhiye_anchor(feats)
+    assert _zhiye_anchor({}) == '' and _zhiye_anchor({'zhiye': {}}) == ''
+
+
+def test_yingqi_anchor_dayun_and_liunian():
+    # 迭代 5：应期锚定——逐运 overall+正负信号、逐年 overall + 套话禁令
+    from mangpai.subjective.llm_prompt import _yingqi_anchor
+    feats = {
+        'dayun_analysis': {'dayun': [
+            {'gz': '庚申', 'order': 1, 'overall': '吉',
+             'positive_signals': ['到禄位'], 'negative_signals': []},
+            {'gz': '辛酉', 'order': 2, 'start_age': 11, 'end_age': 20,
+             'overall': '吉凶参半', 'positive_signals': ['临官'],
+             'negative_signals': ['穿命局']},
+        ]},
+        'liunian_analysis': {'liunian': [
+            {'gz': '丙午', 'overall': '凶'}, {'gz': '丁未', 'overall': '平'}]},
+    }
+    a = _yingqi_anchor(feats)
+    assert '庚申运[第1步]=吉' in a
+    assert '辛酉运[11-20岁]=吉凶参半（吉:临官；凶:穿命局）' in a
+    assert '丙午=凶；丁未=平' in a
+    assert '禁止脱离此表' in a and '晚景渐佳' in a
+    assert _yingqi_anchor({}) == ''
+    assert _yingqi_anchor({'dayun_analysis': {}}) == ''
+
+
+def test_user_prompt_includes_iter5_anchors():
+    from mangpai.subjective.llm_prompt import build_user_prompt
+    feats = {'caiming': {'tier_static': '小康', 'tier': '小康'},
+             'zhiye': {'primary': '', 'primary_label': '未分类',
+                       'scores': {'teacher': 5}},
+             'dayun_analysis': {'dayun': [{'gz': '甲子', 'order': 1,
+                                           'overall': '吉'}]}}
+    p = build_user_prompt('{}', '甲子 乙丑 丙寅 丁卯', features=feats)
+    assert '【本案职业锚定】' in p and '无明确职业倾向' in p
+    assert '【本案应期锚定】' in p and '甲子运' in p
 
 
 def test_user_prompt_includes_manifest_and_anchor():
