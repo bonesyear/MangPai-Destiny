@@ -1,7 +1,7 @@
 """盲派主观层 — 独立组件。
 
 导出：
-- MANGPAI_SCHOOL — 盲派流派定义（38 个 selector，修批A③ 摘除 gongmen_wuzhi）
+- MANGPAI_SCHOOL — 盲派流派定义（39 个 selector，D6b 追加 zinv）
 - build_payload(data) — 从 calc_mangpai_full() 输出按 selector 裁剪数据
 - assemble(question, payload, scope) — 组装 (system, user) prompt
 

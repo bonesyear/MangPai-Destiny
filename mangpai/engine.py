@@ -47,6 +47,7 @@ from mangpai.subjective.yunfan import analyze_yunfan, current_fan_slice
 from mangpai.subjective.zhiye import analyze_zhiye
 from mangpai.subjective.gongmen_wuzhi import analyze_gongmen_wuzhi
 from mangpai.subjective.liuqin import analyze_liuqin
+from mangpai.subjective.zinv import analyze_zinv
 from mangpai.subjective.zaihuo import analyze_zaihuo
 from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 from mangpai.subjective.xiangfa_ops import analyze_xiangfa_ops
@@ -613,6 +614,18 @@ class MangpaiEngine:
             self.input_data.get('gender', '男'),
             relations=relations,
             direction_result=result.get('direction'),
+        ) or {}
+
+        # D6b 子女岁运应期 + 借腹 marker（消费 liuqin 已算星宫定位，不重造；
+        # 岁运序列=engine 已有 dy_list/cur_ln_list 供给，缺省空转）
+        result['zinv'] = self._safe_compute(
+            'zinv', analyze_zinv,
+            self.day_gan, self.gans, self.zhis,
+            self.input_data.get('gender', '男'),
+            relations=relations,
+            liuqin_result=result.get('liuqin'),
+            dayun_list=dy_list if isinstance(dy_list, list) else [],
+            liunian_list=cur_ln_list,
         ) or {}
 
         # 灾祸（消费 yunfan A1 切片：detect_siwang 取岁运反局联动信号——

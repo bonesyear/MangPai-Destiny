@@ -113,9 +113,10 @@ class TestZeishenSingleSource:
 # ── A③ gongmen 从 selectors 摘除 ──
 
 class TestGongmenRemoved:
-    def test_selectors_38_no_gongmen(self):
+    def test_selectors_39_no_gongmen(self):
         assert 'gongmen_wuzhi' not in MANGPAI_SCHOOL.selectors
-        assert len(MANGPAI_SCHOOL.selectors) == 38
+        # D6b：zinv 追加（镜像 liuqin 通道），38→39
+        assert len(MANGPAI_SCHOOL.selectors) == 39
 
     def test_payload_no_gongmen_result_key_kept(self):
         """payload 不含 gongmen_wuzhi；engine result 键保留（内部存档）。"""

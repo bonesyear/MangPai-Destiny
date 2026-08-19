@@ -34,7 +34,9 @@ MANGPAI_SCHOOL: School = School(
                # engine result 键保留（模块内部存档，不进 LLM）。
                "caiming", "guanming", "hunyin", "xueli", "laoyu",
                "yingqi_subj", "yunfan", "zhiye",
-               "liuqin", "zaihuo", "zeishen_bushen", "xiangfa_ops",
+               # D6b：zinv（子女岁运应期+借腹）镜像 liuqin 同通道进特征 JSON
+               # （纯数据；LLM 五维不扩不进 prompt——D6a 设计 §3.4）。
+               "liuqin", "zinv", "zaihuo", "zeishen_bushen", "xiangfa_ops",
                "narrative", "shipaige"),
     desc="盲派宾主体用做功体系，重象法口诀。《段氏理象学》《盲师断命秘诀》",
 )

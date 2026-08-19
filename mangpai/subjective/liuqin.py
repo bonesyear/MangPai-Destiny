@@ -998,6 +998,8 @@ def classify_xiongdi_qingyi(
 def detect_zixi_youlie(
     day_gan: str, gans: List[str], zhis: List[str], gender: str = '男',
     relations: Optional[Dict] = None,
+    *,
+    direction_result: Optional[Dict] = None,
 ) -> Dict:
     """子女优劣（口诀三，gaoji:14230）：原神旺衰，星宫有情。
 
@@ -1005,6 +1007,12 @@ def detect_zixi_youlie(
     劣质：原神被刑冲穿破；子息星/子息宫犯三刑；子息宫（时柱）受冲穿；枭神夺食（女）。
     （刑限三刑——书正锚案例八子卯互刑仍判优；破不取——案例八卯子破仍判优
       gaoji:14236-14252。ponytail: 互刑/破害腿待运岁语境再议）
+    D6b R4 增补腿：时柱为喜用→优 / 时柱为忌神→劣
+    （D1 gaoji:14226-14240「子息宫坐喜用神」+ D2 gaoji:5972-5973/6341-6342
+      「时柱为喜用得力：子女成才…若为忌神，则子女不肖」
+      + D3 理象学研究版:4283-4285，跨两书三处明文；用忌取扶抑总线
+      yongshen classify_strength/_yongshen_cats，direction_result 只读消费）。
+    时柱干支喜忌混杂（喜用与忌神并见）时不立腿，防过火。
 
     Returns:
         {'verdict': '优'|'劣'|'平', 'you': [str], 'lie': [str], 'desc': str}
@@ -1081,6 +1089,24 @@ def detect_zixi_youlie(
         if yin_n >= 2 and yin_n > shi_n:
             lie.append('枭神夺食（印旺克食伤）')
 
+    # D6b R4 增补腿：时柱为喜用→优 / 为忌神→劣
+    # （D1 gaoji:14226-14240 + D2 gaoji:5972-5973/6341-6342 + D3 理象学研究版:4283-4285）
+    try:
+        strength = ((direction_result or {}).get('cong_target') or {}).get('strength', '')
+        if not strength:
+            from mangpai.subjective.yongshen import classify_strength as _cls_st
+            strength = _cls_st(day_gan, gans, zhis)
+        from mangpai.subjective.yongshen import _yongshen_cats
+        ys_cats, js_cats = _yongshen_cats(strength)
+        hour_cats = _pillar_cats(day_gan, gans[3], zhis[3])
+        # 喜忌混杂（喜用与忌神并见时柱）不立腿，防过火
+        if ys_cats and (hour_cats & ys_cats) and not (hour_cats & js_cats):
+            you.append('时柱为喜用（子女宫坐喜用神）')
+        elif js_cats and (hour_cats & js_cats) and not (hour_cats & ys_cats):
+            lie.append('时柱为忌神（子女宫坐忌神）')
+    except Exception:
+        pass
+
     verdict = '劣' if lie else ('优' if you else '平')
     parts = ([f'优：{"、".join(you)}'] if you else []) + ([f'劣：{"、".join(lie)}'] if lie else [])
     return {
@@ -1130,25 +1156,27 @@ def analyze_liuqin(
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'summary': '四柱不全，无法判定六亲'}
 
-    pstar = classify_parent_star(day_gan, gans, zhis)
-    pzs = detect_parent_zaoshi(day_gan, gans, zhis, relations)
-    pdh = detect_parent_duohun(day_gan, gans, zhis, relations)
-    pqy = detect_parent_qiyang(day_gan, gans, zhis, relations)
-    zx_yw = detect_zixi_youwu(day_gan, gans, zhis, gender, relations)
-    zx_xb = detect_zixi_xingbie(day_gan, gans, zhis, gender, relations)
-    zx_yl = detect_zixi_youlie(day_gan, gans, zhis, gender, relations)
-    xd_sl = classify_xiongdi_shuliang(day_gan, gans, zhis, relations)
-    xd_ks = detect_xiongdi_keshun(day_gan, gans, zhis, relations)
-    xd_ph = classify_xiongdi_paihang(day_gan, gans, zhis, relations)
-    xd_qy = classify_xiongdi_qingyi(day_gan, gans, zhis, relations)
-
-    # A3：方向总线信号（缺省自调）
+    # A3：方向总线信号（缺省自调）。D6b 前置于 zx_yl——时柱喜用腿（R4）
+    # 只读消费 direction_result.cong_target.strength。
     if direction_result is None:
         try:
             direction_result = assess_direction_signals(
                 day_gan, gans, zhis, relations=relations)
         except Exception:
             direction_result = {}
+
+    pstar = classify_parent_star(day_gan, gans, zhis)
+    pzs = detect_parent_zaoshi(day_gan, gans, zhis, relations)
+    pdh = detect_parent_duohun(day_gan, gans, zhis, relations)
+    pqy = detect_parent_qiyang(day_gan, gans, zhis, relations)
+    zx_yw = detect_zixi_youwu(day_gan, gans, zhis, gender, relations)
+    zx_xb = detect_zixi_xingbie(day_gan, gans, zhis, gender, relations)
+    zx_yl = detect_zixi_youlie(day_gan, gans, zhis, gender, relations,
+                               direction_result=direction_result)
+    xd_sl = classify_xiongdi_shuliang(day_gan, gans, zhis, relations)
+    xd_ks = detect_xiongdi_keshun(day_gan, gans, zhis, relations)
+    xd_ph = classify_xiongdi_paihang(day_gan, gans, zhis, relations)
+    xd_qy = classify_xiongdi_qingyi(day_gan, gans, zhis, relations)
 
     parts = ['六亲论断']
     if pzs.get('is_zaoshi'):

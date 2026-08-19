@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-08-19 修批 D6b · 子女断法实现（zinv 岁运应期+借腹+时柱喜用腿）
+
+| 项 | 处理方式 | 书锚/依据 | 文件 |
+|----|----------|------|------|
+| zinv 新模块（子息岁运应期+借腹） | `analyze_zinv(day_gan/gans/zhis/gender, *, relations/liuqin_result/dayun_list/liunian_list)`，分层单向依赖 objective+subjective.liuqin（只读其 child_star_cat，不重造星宫定位）。得子窗三机制：合动（岁运合子息星，shouke:18-20 丁壬合）/开墓（子息星·妻星墓逢冲开，shouke:18-20 辰冲戌+gaoji:14008-14009/14374 口诀）/制枭（枭夺食潜势盘岁运合制偏印，gaoji:14087-14107 庚辰运乙庚合）；损子窗五机制：克到位（运干克星到位且不合星，gaoji:14108-14128）/合去（克运中流年合走子息星，gaoji:14108-14128 戊合癸）/穿引动（岁运支穿子息星所临支，gaoji:14295-14312+17465-17484 降权）/枭夺食运（shouke:428）/合神被克（shouke:18-20 戊克壬）；借腹 marker=日支受穿+子息星/妻星入时墓（gaoji:14317-14334+zhongji:1911-1914/4165-4170 两书同构）。损子措辞中性（子息星受创/子女宫引动），字面无死/夭/丧，LLM 侧由既有 _scrub_death 兜底 | 设计 docs/kimi-d6a-zinv-design-20260819.md §3（R1/R2/R3 立） | subjective/zinv.py（新增） |
+| liuqin 优劣增补腿（R4） | detect_zixi_youlie 增「时柱为喜用→优/为忌神→劣」腿，用忌取扶抑总线 classify_strength/_yongshen_cats（direction_result 只读消费，缺省自调）；喜忌混杂不立腿防过火；analyze_liuqin 方向总线计算前置于 zx_yl 透传 | D1 gaoji:14226-14240+D2 gaoji:5972-5973/6341-6342+D3 理象学研究版:4283-4285（跨两书三处明文） | subjective/liuqin.py |
+| engine 接线+特征 JSON 通道 | `result['zinv']=_safe_compute('zinv', analyze_zinv, ...)` 置于 liuqin 之后（消费其结果）；schools.py selectors 追加 'zinv' 一条（38→39，镜像 liuqin 同通道进特征 JSON 纯数据，LLM 五维不扩不进 prompt——设计 §3.4 授权，KB 保护文件特此备案）；selectors 计数断言三处同步（test_subjective/test_a_llm_redline/verify_dayun） | — | engine.py、subjective/schools.py、subjective/__init__.py docstring、verify_dayun.py、tests/test_subjective.py、tests/test_a_llm_redline.py |
+| 明确不做 | 数量（E1-E4 书自证不准）/送终（G1-G3 孤口诀）/性情（D7 孤条）/有无增补腿 R5（动 M3 共振须重验，候选）/运定性别 R6（候选） | 设计 §4 收档/候选 | — |
+| 哨兵（先红后绿） | 新建 test_d6b_zinv.py 12 测（先红：模块不存在 collection error → zinv 实现后 liuqin 两腿红 1 failed → 全绿）：F1 制枭（己卯运不在窗/庚辰运在窗+己卯枭夺食运）、F2 一造三机制（壬戌运+丁卯年合动/戊辰年开墓/戊辰年合神被克入损子窗、壬戌运不误判克到位）、F4 克到位+合去、H2/H3 双借腹、案例八反例 guard（平和岁运零损子窗+非借腹）、schema+死亡词典字面红线、summary 只述应期借腹、R4 喜用腿（案例八）/忌神腿、engine 接线+payload 通道 | 见各测注释行号 | tests/test_d6b_zinv.py |
+
+验证：哨兵先红后绿 12/12、verify_mangpai 432 全绿、verify_dayun 70/70、pytest 739 passed+1 xfailed+19 xpassed（727+12 新测）、blind 对照 20260819_d3——heldout 官 48✅/财 47✅/职 24✅ 三维 0 翻转 0 文本抖动、trainset 0 翻转、67/famous 0 回归（无变化）、calib REGRESSION 2 条（zhenbao-01 官/zhenbao-14a 财）与 HEAD worktree 复跑逐条一致=存量零新增、双 seed 剥 _meta 逐字节一致。引擎基线=`snapshots/20260819_d6b.json`。
+
 ## 2026-08-19 修批 D3 · 供给批（dayun_analysis 死 selector 修复，选 B 补供方案）
 
 | 项 | 处理方式 | 书锚/依据 | 文件 |

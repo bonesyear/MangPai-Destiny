@@ -30,11 +30,13 @@ class TestSchoolDefinition:
     def test_school_prompt_file(self):
         assert MANGPAI_SCHOOL.prompt == "mangpai.md"
 
-    def test_school_has_38_selectors(self):
-        # 24 基础 + 14 领域专辑/高级技法模块（caiming/guanming/hunyin/...）
+    def test_school_has_39_selectors(self):
+        # 24 基础 + 15 领域专辑/高级技法模块（caiming/guanming/hunyin/...）
         # 修批A③：gongmen_wuzhi 摘除（is_wuzhi 98.8% 恒真零信息量），39→38
-        assert len(MANGPAI_SCHOOL.selectors) == 38
+        # D6b：zinv（子女岁运应期+借腹）镜像 liuqin 进特征 JSON，38→39
+        assert len(MANGPAI_SCHOOL.selectors) == 39
         assert 'gongmen_wuzhi' not in MANGPAI_SCHOOL.selectors
+        assert 'zinv' in MANGPAI_SCHOOL.selectors
 
     def test_selectors_include_blind_fields(self):
         for field in ("binzhu", "tiyong", "zuogong", "gongliang", "muku",
@@ -140,6 +142,7 @@ class TestBuildPayload:
             "zhiye": {"primary": "", "summary": "职业未明"},
             "gongmen_wuzhi": {"is_wuzhi": False, "summary": "无公门武职象"},
             "liuqin": {"summary": "六亲论断"},
+            "zinv": {"summary": "子女应期：无明显应期窗"},
             "zaihuo": {"max_risk": "无", "summary": "灾祸总风险无"},
             "zeishen_bushen": {"points": 0.0, "summary": "无贼神捕神"},
             "xiangfa_ops": {"all_findings": [], "locked_subjects": []},
