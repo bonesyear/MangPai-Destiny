@@ -49,11 +49,17 @@ class FeishuClient:
         return self._token
 
     def _api(self, path, payload):
-        data = self._http_post(f'{BASE}{path}', payload,
-                               {'Authorization': f'Bearer {self.tenant_access_token()}'})
-        if data.get('code') != 0:
+        for attempt in (0, 1):
+            data = self._http_post(f'{BASE}{path}', payload,
+                                   {'Authorization': f'Bearer {self.tenant_access_token()}'})
+            if data.get('code') == 0:
+                return data
+            if attempt == 0 and data.get('code') in (99991663, 99991661):
+                # token 被服务端提前作废/失效：清缓存强制重取，重试一次
+                self._token = None
+                self._token_expire = 0.0
+                continue
             raise FeishuError(f"飞书 API {path} 失败: code={data.get('code')} {data.get('msg')}")
-        return data
 
     @staticmethod
     def build_content(msg_type, text):

@@ -67,6 +67,30 @@ def test_send_and_reply_payload():
     assert card['elements'][0]['text'] == {'tag': 'lark_md', 'content': '**md**'}
 
 
+def test_api_retries_once_on_token_invalid():
+    """99991663（token 服务端作废）→ 清缓存重取 token 并重试一次成功。"""
+    http = FakeHTTP([{'code': 0, 'tenant_access_token': 'tok1', 'expire': 7200},
+                     {'code': 99991663, 'msg': 'token invalid'},
+                     {'code': 0, 'tenant_access_token': 'tok2', 'expire': 7200},
+                     {'code': 0, 'data': {}}])
+    c = _client(http)
+    c.send('oc_chat', 'text', 'hi')
+    assert http.calls[2]['url'].endswith('/auth/v3/tenant_access_token/internal')
+    assert http.calls[3]['headers']['Authorization'] == 'Bearer tok2'
+
+
+def test_api_raises_after_retry_exhausted():
+    """99991661 重试后仍失效 → 抛错，不无限重试。"""
+    http = FakeHTTP([{'code': 0, 'tenant_access_token': 'tok1', 'expire': 7200},
+                     {'code': 99991661, 'msg': 'invalid'},
+                     {'code': 0, 'tenant_access_token': 'tok2', 'expire': 7200},
+                     {'code': 99991661, 'msg': 'invalid'}])
+    c = _client(http)
+    with pytest.raises(FeishuError, match='99991661'):
+        c.send('oc_chat', 'text', 'hi')
+    assert len(http.calls) == 4  # 1 token + 1 api + 1 token + 1 retry
+
+
 def test_post_content_shape():
     body = json.loads(FeishuClient.build_content('post', '多段'))
     assert body['zh_cn']['content'][0][0] == {'tag': 'text', 'text': '多段'}
@@ -200,3 +224,36 @@ def test_token_mismatch_rejected(monkeypatch):
     monkeypatch.setenv('FEISHU_VERIFICATION_TOKEN', 'want')
     with pytest.raises(PermissionError):
         bot.handle_event({'type': 'url_verification', 'token': 'nope', 'challenge': 'c'})
+
+
+# ---------------------------------------------------------------- 修批 E1 哨兵
+def test_reply_failure_fallback_not_silent(caplog):
+    """client.reply 首次失败 → 记日志 + 兜底重发，不静默死线程。"""
+    class FlakyClient:
+        def __init__(self):
+            self.calls = []
+
+        def reply(self, mid, msg_type, text):
+            self.calls.append(msg_type)
+            if len(self.calls) == 1:
+                raise RuntimeError('network down')
+
+    fc = FlakyClient()
+    with caplog.at_level('ERROR', logger='mangpai.feishu.bot'):
+        bot._respond(fc, 'om_x', '/help')  # 不抛
+    assert fc.calls == ['interactive', 'text']
+    assert any('reply' in r.message for r in caplog.records)
+
+
+def test_main_requires_verification_token(monkeypatch):
+    """FEISHU_VERIFICATION_TOKEN 未配 → 启动即报错。"""
+    monkeypatch.delenv('FEISHU_VERIFICATION_TOKEN', raising=False)
+    with pytest.raises(RuntimeError, match='FEISHU_VERIFICATION_TOKEN'):
+        bot.main()
+
+
+def test_encrypt_body_warns_and_drops(caplog):
+    """控制台误配 Encrypt Key → 回调体只有 encrypt 字段：告警并丢弃，不静默。"""
+    with caplog.at_level('WARNING', logger='mangpai.feishu.bot'):
+        assert bot.handle_event({'encrypt': 'deadbeef'}) == {}
+    assert any('Encrypt Key' in r.message for r in caplog.records)

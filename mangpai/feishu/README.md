@@ -8,7 +8,7 @@
 |---|---|---|
 | `FEISHU_APP_ID` | ✅ | 自建应用 App ID |
 | `FEISHU_APP_SECRET` | ✅ | 自建应用 App Secret |
-| `FEISHU_VERIFICATION_TOKEN` | 建议 | 事件订阅的 Verification Token（配了就校验） |
+| `FEISHU_VERIFICATION_TOKEN` | ✅ | 事件订阅的 Verification Token（不配则启动即报错，零校验可被伪造事件白嫖） |
 | `FEISHU_USE_LLM` | 否 | `0` 关闭 LLM 五维段（默认开，validate=mark，失败自动降级引擎直出） |
 | `FEISHU_PORT` | 否 | webhook 监听端口，默认 9700 |
 | `DEEPSEEK_API_KEY` | LLM 开时必填 | 见 `docs/llm-channel-20260818.md`（谷段半价） |
@@ -20,6 +20,15 @@
 1. 建自建应用，开通权限：`im:message`、`im:message:send_as_bot`、读取消息事件相关权限；
 2. 事件订阅 → 回调方式选 **webhook**，地址 `https://<公网域名>/feishu/callback`（POST），订阅事件 `im.message.receive_v1`；
 3. 发布版本并拉机器人进群/单聊。
+
+> ⛔ **红线：不要在事件订阅里配置 Encrypt Key。** 本实现不支持解密——配了之后回调体变成 `{"encrypt": …}`，所有事件被丢弃（仅日志告警），机器人完全无响应。只填 Verification Token 即可。
+
+## 上线 checklist
+
+1. `FEISHU_VERIFICATION_TOKEN` 必配（不配启动即报错）；
+2. 事件订阅**不填 Encrypt Key**；
+3. 权限 `im:message` 等已开通并发布版本；
+4. 回调地址已验证通过（url_verification 挑战）。
 
 （长连接模式依赖 lark-oapi SDK，本实现零新依赖选 webhook；如需免公网地址二期再评估。）
 
@@ -43,5 +52,5 @@ python3 -m mangpai.feishu.bot
 ## 测试
 
 ```bash
-python3 -m pytest mangpai/tests/test_feishu.py -q   # 23 测，全 mock，不触网
+python3 -m pytest mangpai/tests/test_feishu.py -q   # 28 测，全 mock，不触网
 ```

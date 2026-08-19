@@ -11,19 +11,23 @@
   2. 事件订阅 → 回调地址填 https://<公网域名>/feishu/callback（webhook 方式），
      订阅事件 im.message.receive_v1，开通 im:message 相关权限；
   3. 环境变量：FEISHU_APP_ID / FEISHU_APP_SECRET（必填），
-     FEISHU_VERIFICATION_TOKEN（事件订阅的 Verification Token，建议配），
+     FEISHU_VERIFICATION_TOKEN（事件订阅的 Verification Token，必填，不配启动即报错；
+     切勿配置 Encrypt Key——不支持解密，配了事件全丢），
      FEISHU_USE_LLM=0 可关 LLM 段，FEISHU_PORT 默认 9700；
   4. python3 -m mangpai.feishu.bot
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from mangpai.feishu.client import FeishuClient
 from mangpai.feishu.router import handle as route
+
+log = logging.getLogger(__name__)
 
 _seen_mids = set()  # ponytail: 内存去重有界 2000，重启即清；量级上来换外部存储
 _client = None
@@ -47,11 +51,21 @@ def _respond(client, message_id, text):
         reply = route(text)
     except Exception as e:  # 边界兜底：引擎/网络异常也要回用户一句
         reply = f'排盘失败：{e}'
-    client.reply(message_id, 'interactive', reply)
+    try:
+        client.reply(message_id, 'interactive', reply)
+    except Exception as e:  # reply 失败不能静默死线程：记日志 + 尽力纯文本兜底
+        log.error('reply 发送失败 mid=%s: %s', message_id, e)
+        try:
+            client.reply(message_id, 'text', reply)
+        except Exception as e2:
+            log.error('reply 兜底也失败 mid=%s: %s', message_id, e2)
 
 
 def handle_event(body: dict, client=None, background=True) -> dict:
     """飞书事件回调入口（可注入 client/background=False 供测试）。"""
+    if 'encrypt' in body:  # 控制台误配 Encrypt Key：本实现不支持解密，告警丢弃
+        log.error('回调体已加密：请勿在飞书控制台配置 Encrypt Key（本实现不支持解密），事件已丢弃')
+        return {}
     if body.get('type') == 'url_verification':  # 回调地址配置时的挑战
         _check_token(body.get('token'))
         return {'challenge': body.get('challenge')}
@@ -98,6 +112,8 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    if not os.environ.get('FEISHU_VERIFICATION_TOKEN', '').strip():
+        raise RuntimeError('FEISHU_VERIFICATION_TOKEN 未配置：不配则回调零校验可被伪造事件白嫖，上线必配')
     port = int(os.environ.get('FEISHU_PORT', '9700'))
     HTTPServer(('0.0.0.0', port), _Handler).serve_forever()
 
