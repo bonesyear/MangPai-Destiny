@@ -34,7 +34,7 @@ HELP = """盲派排盘用法：
 （细挖 focus=财运/婚姻 二期开放）"""
 
 _DATE_RE = re.compile(r'(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*日?')
-_TIME_RE = re.compile(r'(\d{1,2})\s*[:：点时]\s*(\d{1,2})?\s*分?')
+_TIME_RE = re.compile(r'(?<![\d:：.])(\d{1,2})\s*[:：点时]\s*(\d{1,2})?\s*分?')  # 前导边界防 '123:45'→23:45 静默截断
 _LON_RE = re.compile(r'(?<![\d.])(\d{2,3}\.\d{1,4})(?![\d.])')
 _PILLAR_RE = re.compile(r'[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]')
 _GENDERS = {'男': '男', '乾': '男', 'male': '男', '女': '女', '坤': '女', 'female': '女'}
@@ -81,6 +81,8 @@ def parse_solar(text: str) -> dict:
     tm = _TIME_RE.search(rest)
     if not tm:
         raise ParseError('没识别到出生时刻（时柱必需），示例：… 13:58 …')
+    if re.match(r'\s*[:：]\s*\d', rest[tm.end():]):
+        raise ParseError('时刻给到分钟即可，不支持秒位，示例：… 13:58 …')
     rest = rest[:tm.start()] + ' ' + rest[tm.end():]
     rest, gender = _pop_gender(rest)
     if not gender:
@@ -114,7 +116,8 @@ def handle(text: str, use_llm: Optional[bool] = None) -> str:
     if text in ('/ver', '/version', '版本'):
         return version_line()
     try:
-        if '四柱' in text:
+        if '四柱' in text and not _DATE_RE.search(text):
+            # 触发词不抢占：文本同时含阳历日期 → 走阳历（阳历优先）
             return paipan(parse_pillars(text), use_llm=use_llm)
         return paipan(parse_solar(text), use_llm=use_llm)
     except (ParseError, ValueError) as e:

@@ -1,5 +1,18 @@
 # 盲派客观层 变更记录
 
+## 2026-08-19 修批 E5 · 飞书加固（U2 P2 余项五项清零，纯 feishu 包内引擎零触）
+
+| 项 | 处理方式 | 依据 | 文件 |
+|----|----------|------|------|
+| 重放窗口超 2000 全清重开（U2 P2-1，已复现） | `_seen_mids` set→dict 滚动窗口：超上限逐条滚出最老，窗口内近期消息仍去重 | U2 审查 | feishu/bot.py |
+| token 刷新无锁并发重复刷新（U2 P2-2，实测 8 线程刷 8 次） | `threading.Lock` 锁内双检，等锁线程复用新 token，并发只刷 1 次 | U2 审查 | feishu/client.py |
+| 静默错解三例（U2 P2-3） | ①时间正则加前导边界 `(?<![\d:：.])`，`123:45` 不再截断成 23:45 报 ParseError；②时刻后紧跟 `:秒` 明确报错不静默丢弃；③「四柱」触发词让位阳历：文本含完整阳历日期走阳历路径 | U2 审查 | feishu/router.py |
+| 500 回显内部错误（U2 P2-5） | 异常响应改通用 `{"error":"internal error"}`，详情 `log.exception` 记日志 | U2 审查 | feishu/bot.py |
+| 单线程 server 慢连接阻塞（U2 P2-6） | 换 `ThreadingHTTPServer`+并发上限 32（信号量排队）+body 上限 1MB(413)+读超时 15s，README 参数表注明 | U2 审查 | feishu/bot.py、feishu/README.md |
+| 哨兵 | test_feishu +6→34 测：窗口滚动双向钉死（近期去重/最老滚出）/8 线程 1 次刷新/123:45 报错/秒位报错/四柱让位阳历/500 不回显 | — | tests/test_feishu.py |
+
+验证：test_feishu 34 全绿、pytest 773 passed+1 xfailed+19 xpassed（767+6）、mock 冒烟（并发 token 刷新 8 线程→1 次、重放窗口滚动）随哨兵覆盖。skipped：Encrypt Key 解密支持（控制台勿配，README 红线已有）、外部去重存储——量级上来再做。
+
 ## 2026-08-19 修批 E1 · 飞书上线必修（U4 条件 GO 三 P1+P2-4 清零，纯 feishu 包内引擎零触）
 
 | 项 | 处理方式 | 依据 | 文件 |

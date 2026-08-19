@@ -22,14 +22,15 @@ import json
 import logging
 import os
 import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from mangpai.feishu.client import FeishuClient
 from mangpai.feishu.router import handle as route
 
 log = logging.getLogger(__name__)
 
-_seen_mids = set()  # ponytail: 内存去重有界 2000，重启即清；量级上来换外部存储
+_seen_mids = {}  # ponytail: 内存去重上限 2000，超出滚出最老（不整窗清空）；重启即清，量级上来换外部存储
+_SEEN_MAX = 2000
 _client = None
 
 
@@ -75,9 +76,9 @@ def handle_event(body: dict, client=None, background=True) -> dict:
     mid = msg.get('message_id')
     if not mid or mid in _seen_mids:
         return {}
-    if len(_seen_mids) > 2000:
-        _seen_mids.clear()
-    _seen_mids.add(mid)
+    _seen_mids[mid] = None
+    while len(_seen_mids) > _SEEN_MAX:
+        _seen_mids.pop(next(iter(_seen_mids)))  # 滚动清最老一条，窗口内近期消息仍去重
     if (msg.get('message_type') or msg.get('msg_type')) == 'text':
         try:
             text = json.loads(msg.get('content') or '{}').get('text', '')
@@ -91,21 +92,33 @@ def handle_event(body: dict, client=None, background=True) -> dict:
     return {}
 
 
+_MAX_WORKERS = 32       # ponytail: 并发回调上限，超出排队；量级上前置反代/多进程
+_MAX_BODY = 1_048_576   # 回调 body 上限 1MB，超出 413
+_READ_TIMEOUT = 15.0    # 慢连接读超时（秒）
+_sem = threading.BoundedSemaphore(_MAX_WORKERS)
+
+
 class _Handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        try:
-            n = int(self.headers.get('Content-Length') or 0)
-            body = json.loads(self.rfile.read(n) or b'{}')
-            resp = handle_event(body)
-            code, data = 200, json.dumps(resp).encode('utf-8')
-        except PermissionError as e:
-            code, data = 401, str(e).encode('utf-8')
-        except Exception as e:  # 回调必须尽量 200 之外的明确错误也要返回，避免飞书重试风暴
-            code, data = 500, str(e).encode('utf-8')
-        self.send_response(code)
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(data)
+        with _sem:
+            self.request.settimeout(_READ_TIMEOUT)
+            try:
+                n = int(self.headers.get('Content-Length') or 0)
+                if n > _MAX_BODY:
+                    code, data = 413, b'{"error":"body too large"}'
+                else:
+                    body = json.loads(self.rfile.read(n) or b'{}')
+                    resp = handle_event(body)
+                    code, data = 200, json.dumps(resp).encode('utf-8')
+            except PermissionError as e:
+                code, data = 401, str(e).encode('utf-8')
+            except Exception:  # 回调必须尽量 200 之外的明确错误也要返回，避免飞书重试风暴
+                log.exception('回调处理异常')
+                code, data = 500, b'{"error":"internal error"}'  # 不回显内部错误详情
+            self.send_response(code)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(data)
 
     def log_message(self, *a):  # 静默
         pass
@@ -115,7 +128,7 @@ def main():
     if not os.environ.get('FEISHU_VERIFICATION_TOKEN', '').strip():
         raise RuntimeError('FEISHU_VERIFICATION_TOKEN 未配置：不配则回调零校验可被伪造事件白嫖，上线必配')
     port = int(os.environ.get('FEISHU_PORT', '9700'))
-    HTTPServer(('0.0.0.0', port), _Handler).serve_forever()
+    ThreadingHTTPServer(('0.0.0.0', port), _Handler).serve_forever()
 
 
 if __name__ == '__main__':

@@ -42,6 +42,18 @@ python3 -m mangpai.feishu.bot
 
 事件回调立即 200 ack，排盘+LLM 在后台线程算完走 reply 接口回原消息（markdown 卡片）。
 
+## 服务参数（webhook 加固，修批 E5）
+
+`ThreadingHTTPServer` 每连接一线程，配合以下常量（`bot.py` 顶部，按需改）：
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `_MAX_WORKERS` | 32 | 并发回调上限，超出排队（慢连接不再阻塞全部回调） |
+| `_MAX_BODY` | 1 MB | 回调 body 上限，超出返回 413 |
+| `_READ_TIMEOUT` | 15 s | 单连接读超时 |
+
+量级上来建议前置反代（nginx）限流；重放去重为内存滚动窗口（上限 2000，超了滚出最老不整窗清空），重启即清，量级上来换外部存储。
+
 ## 用户命令
 
 - `阳历 1992-10-09 13:58 男 河南信阳` —— 阳历排盘（农历请自转阳历；性别必填；城市未收录可直给经度 `… 男 114.07`）
@@ -52,5 +64,5 @@ python3 -m mangpai.feishu.bot
 ## 测试
 
 ```bash
-python3 -m pytest mangpai/tests/test_feishu.py -q   # 28 测，全 mock，不触网
+python3 -m pytest mangpai/tests/test_feishu.py -q   # 34 测，全 mock，不触网
 ```

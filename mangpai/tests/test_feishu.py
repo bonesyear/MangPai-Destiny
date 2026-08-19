@@ -1,5 +1,10 @@
 """飞书集成测试：客户端 mock / 命令路由 / 全链路（mock LLM，不调真实 DeepSeek）。"""
 import json
+import threading
+import time
+import urllib.error
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -257,3 +262,71 @@ def test_encrypt_body_warns_and_drops(caplog):
     with caplog.at_level('WARNING', logger='mangpai.feishu.bot'):
         assert bot.handle_event({'encrypt': 'deadbeef'}) == {}
     assert any('Encrypt Key' in r.message for r in caplog.records)
+
+
+# ---------------------------------------------------------------- 修批 E5 哨兵
+def test_dedupe_window_rolls_not_clears():
+    """重放窗口滚动清最老，不整窗清空：窗口内近期消息重放仍去重。"""
+    bot._seen_mids.clear()
+    fc = FakeClient()
+    for i in range(2002):
+        bot.handle_event(_msg_event(mid=f'om_r{i}', text='/help'), client=fc, background=False)
+    n = len(fc.replies)
+    bot.handle_event(_msg_event(mid='om_r2000', text='/help'), client=fc, background=False)
+    assert len(fc.replies) == n  # om_r2000 仍在滚动窗口内（旧实现全清会再回一条）
+    bot.handle_event(_msg_event(mid='om_r0', text='/help'), client=fc, background=False)
+    assert len(fc.replies) == n + 1  # 最老一条已滚出窗口，重放按新消息处理
+    bot._seen_mids.clear()
+
+
+def test_token_refresh_locked_concurrent():
+    """8 线程并发发现 token 过期 → 刷新锁双检，只实际刷新 1 次。"""
+    calls = []
+
+    def http(url, payload, headers=None):
+        calls.append(url)
+        time.sleep(0.02)  # 放大竞态窗口
+        return {'code': 0, 'tenant_access_token': 'tok', 'expire': 7200}
+
+    c = FeishuClient(app_id='a', app_secret='b', http_post=http)
+    with ThreadPoolExecutor(8) as ex:
+        toks = list(ex.map(lambda _: c.tenant_access_token(), range(8)))
+    assert toks == ['tok'] * 8
+    assert len(calls) == 1
+
+
+def test_time_rejects_three_digit_hour():
+    """'123:45' 不得静默截断成 23:45，应报解析错。"""
+    with pytest.raises(ParseError):
+        parse_solar('阳历 1992-10-09 123:45 男 信阳')
+
+
+def test_time_rejects_seconds():
+    """秒位不静默丢弃：明确报错。"""
+    with pytest.raises(ParseError, match='秒'):
+        parse_solar('阳历 1992-10-09 13:58:59 男 信阳')
+
+
+def test_solar_date_wins_over_sizhu_keyword():
+    """文本同时含阳历日期和「四柱」触发词 → 阳历优先，不抢占。"""
+    md = handle('阳历 1992-10-09 13:58 男 信阳 四柱 戊辰 己未 庚午 丁亥', use_llm=False)
+    assert '壬申 庚戌 戊午 己未' in md  # 阳历盘，非四柱直排
+
+
+def test_500_no_internal_echo():
+    """回调处理异常 → 500 通用信息，不回显 str(e) 内部详情。"""
+    from http.server import ThreadingHTTPServer
+    srv = ThreadingHTTPServer(('127.0.0.1', 0), bot._Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        req = urllib.request.Request(
+            f'http://127.0.0.1:{srv.server_port}/feishu/callback',
+            data=json.dumps({'header': {'token': ''}, 'event': 'oops'}).encode(),
+            method='POST')
+        with pytest.raises(urllib.error.HTTPError) as ei:
+            urllib.request.urlopen(req, timeout=5)
+        assert ei.value.code == 500
+        body = ei.value.read().decode()
+        assert 'attribute' not in body and 'oops' not in body
+    finally:
+        srv.shutdown()

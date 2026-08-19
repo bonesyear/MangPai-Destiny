@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import urllib.request
 
@@ -28,6 +29,7 @@ class FeishuClient:
         self._http_post = http_post or self._urllib_post
         self._token = None
         self._token_expire = 0.0
+        self._token_lock = threading.Lock()  # 并发刷新竞态：锁内双检，只刷一次
 
     def _urllib_post(self, url, payload, headers=None):
         req = urllib.request.Request(
@@ -40,13 +42,16 @@ class FeishuClient:
         """取 tenant_access_token，进程内缓存（飞书 expire 通常 7200s）。"""
         if self._token and time.time() < self._token_expire - 60:
             return self._token
-        data = self._http_post(f'{BASE}/auth/v3/tenant_access_token/internal',
-                               {'app_id': self.app_id, 'app_secret': self.app_secret})
-        if data.get('code') != 0:
-            raise FeishuError(f"获取 tenant_access_token 失败: code={data.get('code')} {data.get('msg')}")
-        self._token = data['tenant_access_token']
-        self._token_expire = time.time() + int(data.get('expire', 7200))
-        return self._token
+        with self._token_lock:
+            if self._token and time.time() < self._token_expire - 60:
+                return self._token  # 等锁期间已被其他线程刷新，直接复用
+            data = self._http_post(f'{BASE}/auth/v3/tenant_access_token/internal',
+                                   {'app_id': self.app_id, 'app_secret': self.app_secret})
+            if data.get('code') != 0:
+                raise FeishuError(f"获取 tenant_access_token 失败: code={data.get('code')} {data.get('msg')}")
+            self._token = data['tenant_access_token']
+            self._token_expire = time.time() + int(data.get('expire', 7200))
+            return self._token
 
     def _api(self, path, payload):
         for attempt in (0, 1):
