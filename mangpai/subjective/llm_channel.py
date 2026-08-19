@@ -41,8 +41,9 @@ _DEATH_WORDS = ('死亡', '寿终', '享年', '夭折', '早夭', '短命',
                 '命不久', '寿数', '寿命', '寿元', '大限生死')
 
 # L2 官命正向断言关键词（仅在引擎 is_guanming=False 时拦截）。
-# ponytail: 关键词回对是启发式，否定语境按「前 2 字符+后 2 字符」窗口排除
-# （覆盖「不是官命」与「官命否决/无缘/难成」两类语序），仍覆盖不了全部中文
+# ponytail: 关键词回对是启发式，否定语境按「前 5 字符+后 5 字符」窗口排除
+# （迭代 7：±2→±5 对齐财档 _TIER_NEG 窗，盖「官命一票否决/官命又被否决/
+# 官命被反局否决/非正统官命」四类否定出窗误判），仍覆盖不了全部中文
 # 否定句式——语义级残留由 L1+人工兜底，见归档 §2.1。
 _GUAN_POSITIVE = ('官命', '当官', '走仕途', '是官', '贵格', '掌大权')
 _NEG_PREFIX = ('不', '非', '无', '难', '未', '莫', '否')
@@ -164,7 +165,10 @@ _TIER_NEG_AFTER = re.compile(r'^[一-鿿]?(?:难求|不足|不起|不了|无望)
 # ⑤愿望条件句：「想大富得靠…」式（命中词前 4 字符内有「想」）不计。
 #   「若/一旦」不入豁免——U3 #10「一旦库开富可敌国」双实例裁真越限。
 # ⑥「富格/富档」=引擎格局/档位术语（同「财富」类复合词），不计。
-_TIER_CAP_MARKERS = ('封顶', '上限', '定档', '定格')
+# ⑦（迭代 7，E6 复测新发同族）让步句「虽」字窗（前 5 字内有「虽」不计，
+#   盖「虽有大富之量级但被下浮」「虽有小富之象」）+归位语标记「档就是/档为」
+#   同①（「功量层级中富中贵，但财命档就是小康」词前归位，词不计）。
+_TIER_CAP_MARKERS = ('封顶', '上限', '定档', '定格', '档就是', '档为')
 
 
 def _quoted(text: str, j: int, length: int, corpus: str) -> bool:
@@ -203,6 +207,8 @@ def _tier_rank(text: str, corpus: str = '') -> int:
                 continue
             if '想' in text[max(0, j - 4):j]:
                 continue  # ⑤愿望条件句「想大富得靠…」
+            if '虽' in text[max(0, j - 5):j]:
+                continue  # ⑦让步句「虽有大富之量级但被下浮」（虽…但…后段归位）
             if _TIER_NEG_AFTER.match(text[j + len(t):]):
                 continue
             if text[j + len(t):j + len(t) + 2] == '偏下':
@@ -245,8 +251,8 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
         for w in _GUAN_POSITIVE:
             i = t.find(w)
             while i != -1:
-                # 前 2 字符或后 2 字符内出现否定词（不是…/…否决/无缘…）视为否定语境放行
-                seg = t[max(0, i - 2):i + len(w) + 2]
+                # 前后各 5 字符内出现否定词（不是…/…否决/无缘/难成…）视为否定语境放行
+                seg = t[max(0, i - 5):i + len(w) + 5]
                 if not any(ch in _NEG_PREFIX for ch in seg):
                     v.append({'layer': 'L2',
                               'detail': f'事业 与引擎官命=否矛盾：「{w}」'})

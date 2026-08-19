@@ -97,6 +97,16 @@ def test_l2_guanming_contradiction():
     # 后置否定窗（扩到后 2 字符）：「官命否决/无缘」不误报
     data['事业']['conclusion'] = '官命否决，贵格难成'
     assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    # 迭代 7：否定窗 ±2→±5 对齐财档（E6 官命矛盾 4 例全为误判：否定词出窗）
+    for s in ('你不是当官的命，官杀不见，官命一票否决',
+              '比劫夺财太凶，官命又被否决，求财多波折',
+              '虽非正统官命但能掌实权，宜走武职',
+              '无明确职业倾向，官命被反局否决'):
+        data['事业']['conclusion'] = s
+        assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
+    # 窗口外仍拦真矛盾：无任何否定语境的正向断言
+    data['事业']['conclusion'] = '此人是官命，能当官，仕途顺遂'
+    assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
 
 
 def test_l2_death_redline():
@@ -264,6 +274,12 @@ def test_tier_rank_iter6_exemptions():
     assert _tier_rank('虽功量可至大富，然财命定档小康') == 2
     # 能力承诺式仍拦（E6 新发真越限同型）
     assert _tier_rank('财命小康，踏实经营可达中富') == 3
+    # ⑦（迭代 7，E7 复测新发让步同族假阳）：「虽」让步窗 + 归位语标记
+    assert _tier_rank('财命属贫，虽有小富之象，但功神比劫制财反主破财') == 0
+    assert _tier_rank('小康之命，虽有大富之量级但被下浮，不可贪求暴富') == 2
+    assert _tier_rank('功量层级中富中贵，但财命档就是小康，别指望暴富') == 2
+    # ⑦后真越限仍拦（无让步无归位的能力承诺）
+    assert _tier_rank('财命富，财统官杀制杀得财，能积巨富') == 4
 
 
 def test_tier_rank_iter6_quote_exemption():
