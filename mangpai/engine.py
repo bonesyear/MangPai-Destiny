@@ -48,6 +48,7 @@ from mangpai.subjective.zhiye import analyze_zhiye
 from mangpai.subjective.gongmen_wuzhi import analyze_gongmen_wuzhi
 from mangpai.subjective.liuqin import analyze_liuqin
 from mangpai.subjective.zinv import analyze_zinv
+from mangpai.subjective.qianyi import analyze_qianyi
 from mangpai.subjective.zaihuo import analyze_zaihuo
 from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 from mangpai.subjective.xiangfa_ops import analyze_xiangfa_ops
@@ -624,6 +625,16 @@ class MangpaiEngine:
             self.input_data.get('gender', '男'),
             relations=relations,
             liuqin_result=result.get('liuqin'),
+            dayun_list=dy_list if isinstance(dy_list, list) else [],
+            liunian_list=cur_ln_list,
+        ) or {}
+
+        # 缺口批1 迁移/远行 marker + 应期窗（马星查法复用 shensha._YI_MA，
+        # 岁运序列=engine 已有 dy_list/cur_ln_list 供给，缺省空转；
+        # 措辞上限「迁移/远行」，不出出国级断语——归档 §一）
+        result['qianyi'] = self._safe_compute(
+            'qianyi', analyze_qianyi,
+            self.day_gan, self.gans, self.zhis,
             dayun_list=dy_list if isinstance(dy_list, list) else [],
             liunian_list=cur_ln_list,
         ) or {}

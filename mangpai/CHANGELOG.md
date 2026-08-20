@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-08-20 缺口批1 · qianyi 迁移/远行模块（设计+实现合一拍）
+
+| 项目 | 内容 |
+|------|------|
+| 新模块 | `subjective/qianyi.py`（~230 行）：原局三 marker（月日冲=背井离乡 gaoji:5857 / 日时合=安居 gaoji:5858 / 马临年时=多动 gaoji:6735）+ 应期窗（马逢冲 shouke:3602+gaoji:6757、合到门户 zhongji:4179+lixiangxue:6571 双锚、马星伏吟 shouke:6692 或然、冲出年时 shouke:72 或然；马逢合=停留窗 zhongji:1567）；马星查法复用 shensha._YI_MA 零重造 |
+| 红线 | 措辞上限「迁移/远行/离乡」，全输出不出「出国/移民」硬断语（书无级别判据）；伏吟/冲出带「或然」标签（gaoji:15803 书自承马多动频） |
+| 接线 | engine `result['qianyi']`（_safe_compute 同款，只加键不改旧逻辑）；selectors 39→40 追加进特征 JSON（LLM 五维不扩，同 D6b 口径） |
+| 哨兵 | test_qianyi.py 11 测先红后绿（书例 7 造+反例 guard 2+schema 红线+engine/payload 通道）；test_subjective/test_a_llm_redline/verify_dayun 计数断言同步 39→40 |
+| 验证 | verify 432+70+64+20 全绿；pytest 787+1xf+19xp；blind vs e3 零翻转零抖动（官 48✅/财 47✅/职 24✅）；67/famous 无变化；calib 常驻 2 条=存量零新增；qianyi 键双 seed 一致+payload 探针确认（compute_all 全量双 seed 差异=xiangfa_ops 排序存量，干净树复现，非本批引入） |
+| 快照 | `snapshots/20260820_gap1.json`（基线链 …→d6b→e3→gap1） |
+
 ## 2026-08-19 修批 E7 · 迭代 7 + 文档同步（官命矛盾 4 例定性 + 零残留收官）
 
 | 项目 | 内容 |
