@@ -49,6 +49,7 @@ from mangpai.subjective.gongmen_wuzhi import analyze_gongmen_wuzhi
 from mangpai.subjective.liuqin import analyze_liuqin
 from mangpai.subjective.zinv import analyze_zinv
 from mangpai.subjective.qianyi import analyze_qianyi
+from mangpai.subjective.xiangmao import analyze_xiangmao
 from mangpai.subjective.zaihuo import analyze_zaihuo
 from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 from mangpai.subjective.xiangfa_ops import analyze_xiangfa_ops
@@ -637,6 +638,16 @@ class MangpaiEngine:
             self.day_gan, self.gans, self.zhis,
             dayun_list=dy_list if isinstance(dy_list, list) else [],
             liunian_list=cur_ln_list,
+        ) or {}
+
+        # 缺口批2 相貌 marker 层（纯 marker 无判定无档位，供叙事层消费；
+        # wood_type 复用 result 已有键作活木判据；措辞红线不出「美/丑/帅」
+        # 结论词——归档 §二.3）
+        result['xiangmao'] = self._safe_compute(
+            'xiangmao', analyze_xiangmao,
+            self.day_gan, self.gans, self.zhis,
+            gender=self.input_data.get('gender', ''),
+            wood_type=result.get('wood_type') or {},
         ) or {}
 
         # 灾祸（消费 yunfan A1 切片：detect_siwang 取岁运反局联动信号——

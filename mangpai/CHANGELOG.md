@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-08-20 缺口批2 · xiangmao 相貌 marker 层（轻量，单批实现）
+
+| 项目 | 内容 |
+|------|------|
+| 新模块 | `subjective/xiangmao.py`（~190 行）：4 主线 marker（秀气透干 zhongji:3914+反条件 lixiangxue:6655 / 金水伤官限辛 zhongji:1484+shouke:5394+反条件 shouke:474 / 活木见火 zhongji:4513+chuji:4371+lixiangxue:6628 消费 wood_type / 眼象丙丁癸 zhongji:1482-1483+lixiangxue:11124）+ 2 弱线（伤官合官杀魅力 gaoji:5618-5623+shouke:634-638 对照 / 身材曲线 zhongji:3981+1484）；十神复用 liuqin._compute_shishen 零重造 |
+| 红线 | 纯 marker 无判定无档位，全输出不出「美/丑/帅」结论词；回核修正：gaoji:4035 慈禧造系反例不作秀气正锚；收档不立=贵相口诀/难看反推(zhongji:5064 孤例)/五行形体表(lixiangxue:1353-1484)/配偶相貌/身高定量 |
+| 接线 | engine `result['xiangmao']`（_safe_compute 同款，只加键不改旧逻辑，wood_type 复用 result 已有键）；selectors 40→41 追加进特征 JSON（LLM 五维不扩，同 D6b 口径） |
+| 哨兵 | test_xiangmao.py 7 测先红后绿（梦露/刘晓庆/阮玲玉 vs 美容师对照造+理象学6655 反例 guard+schema 红线+engine/payload 通道）；test_subjective/test_a_llm_redline/verify_dayun 计数断言同步 40→41；test_subjective payload fixture 补 xiangmao 键 |
+| 验证 | verify 432+70+64+20 全绿；pytest 794+1xf+19xp；blind vs gap1 零翻转零抖动（官 48✅/财 47✅/职 24✅ 保）；67/famous 无变化；calib 常驻 2 条=存量零新增；双 seed 逐字节一致+payload 探针确认 |
+| 快照 | `snapshots/20260820_gap2.json`（基线链 …→e3→gap1→gap2） |
+
 ## 2026-08-20 缺口批1 · qianyi 迁移/远行模块（设计+实现合一拍）
 
 | 项目 | 内容 |
