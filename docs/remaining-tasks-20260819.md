@@ -1,7 +1,7 @@
 # 收工记录 · 2026-08-19（终态，下次开工必读）
 
 > 上一份收工记录（remaining-tasks-20260818.md）保留作历史对照，内容以本文件为准。
-> 本文件是 08-19 D1→E7 全链终态。所有里程碑 commit 均在 GitHub。
+> 本文件是 08-19 D1→E7 全链终态 + 08-20 缺口批1-3（qianyi/xiangmao 立、世应/风水化解/时空测事收档）收官。所有里程碑 commit 均在 GitHub。
 
 ## 〇、08-19 批次链（commit 序）
 
@@ -23,12 +23,15 @@
 | E5 飞书加固 | `ba1fbc6` | 重放窗口滚动/token 刷新锁/静默错解三例（123:45/秒位/四柱抢占）/500 脱敏/HTTPServer 上限 | test_feishu 28→34；pytest 773 |
 | E6 财档迭代 6 | `09c476f` | llm_channel 校验器口径修 6 条+prompt 锚定行，引擎零改动 | L2 财档越限 16→2（0.68%）；pytest 776；$2.98 谷段 |
 | E7 迭代 7+文档同步 | 本批 | 官命维否定窗 ±2→±5（4 例全误判）+prompt 锚定补「可达/可至」+校验器⑦让步/归位同族清零 | L2 财档 2→1（0.34%）、官命 4→0；pytest 776；$3.01 谷段 |
+| 缺口批1 qianyi | `854bbf2` | 迁移/远行新模块（原局三 marker+应期窗，措辞上限「迁移/远行」），selectors 39→40 | test_qianyi 11 测先红后绿；pytest 787；blind vs e3 零翻转零抖动；基线 gap1 |
+| 缺口批2 xiangmao | `261de9d` | 相貌 marker 层（4 主线+2 弱线，纯 marker 无判定），selectors 40→41 | test_xiangmao 7 测先红后绿；pytest 794；blind vs gap1 零翻转零抖动；基线 gap2 |
+| 缺口批3 收档同步 | 本批 | 世应/风水化解/时空测事收档口径入 KB §6.6 + KB/收工全量同步，纯文档零代码 | grep 抽查+pytest 794 复跑 |
 
 ## 一、引擎终态（2026-08-19，U4 全量实测+E2 复跑）
 
 **留出集（215 例）**：财命 **47✅ 68.12%** / 官命 **48✅ 72.73%** / 职业 **24✅ 46.15%**
 **训练集（294 例）**：财命 59✅ 52.21% / 官命 96✅ 83.48% / 职业 40✅ 47.06%
-**工程**：pytest **796 collected（776 passed+1 xfailed+19 xpassed）** / verify 432+70+64+20 全绿 / 双 seed 逐字节一致 / 快照链至 `20260819_e3`（…→d1→d2→d3→d6b→e3，跨档零翻转零抖动）/ regression67+famous 无变化 / calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财=存量）
+**工程**：pytest **814 collected（794 passed+1 xfailed+19 xpassed）** / verify 432+70+64+20 全绿 / 双 seed 逐字节一致 / 快照链至 `20260820_gap2`（…→d1→d2→d3→d6b→e3→gap1→gap2，跨档零翻转零抖动）/ regression67+famous 无变化 / calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财=存量）
 
 ## 二、LLM 通道终态（E7 迭代 7 后，294 例谷段复测）
 
@@ -43,6 +46,7 @@
 | 引擎 | **GO** | P0=0；六件套全绿；776 测全过；快照零翻转；双 seed 一致；calib 残留=存量备案 |
 | LLM 通道 | **GO** | D4 S1 三线达标；E7 复测 L2 0.34%（财档 1 例真越限 mark 留人工）、官命矛盾 0，零已知系统性残留 |
 | 飞书包 | **GO**（E1+E5 后） | U4 原「条件 GO」三 P1（token 重试/reply 兜底/EncryptKey 红线）+P2-4（VT 强制）E1 全清；U2 P2 余项（重放窗口/token 锁/静默错解/500 脱敏/HTTPServer 上限）E5 全清 |
+| 缺口序列（批1-3，08-20） | **GO**（收官） | 引擎 GO 三维维持：gap1/gap2 盲测各对上一基线零翻转零抖动、heldout 闸门 48✅/47✅/24✅ 保；新模块 qianyi/xiangmao 书例哨兵全绿；T2 五项缺口全处置=立 2（qianyi/xiangmao）收档 3（世应/风水化解/时空测事，KB §6.6） |
 
 ## 四、剩余（修批 E3-E7 已全清，按 U4 §5）
 
@@ -58,5 +62,5 @@ E3（数据/锚注）/E4（引擎裁定+损子收档）/E5（飞书 U2 P2 余项
 - **Kimi CLI**：任务开头必带 `docs/knowledge-base.md`（记忆替代机制）；kimi 配额=5h 账单周期非整点重置
 - **push 通道**：GitHub 直连超时 → 临时 URL（gh-proxy+token）push，`ls-remote` 验证；origin 保持干净 URL
 - **DeepSeek 峰谷**：北京 09-12/14-18 = peak，其余半价；大批量跑谷段
-- **验证六件套**：verify_mangpai 432 / verify_dayun 70 / layer1 64 / layer3 20 / pytest / blind_eval（基线快照链，当前 e3）
+- **验证六件套**：verify_mangpai 432 / verify_dayun 70 / layer1 64 / layer3 20 / pytest / blind_eval（基线快照链，当前 gap2）
 - **铁律**：heldout 是闸门（财 47✅/官 48✅/职 24✅ 不回退）；书锚铁律（规则改动带书明文行号）；LLM 输出永不入 compute_all dict；prompt 调优只吃 trainset；prompts/schools 受保护（zinv selectors 追加=D6b 设计 §3.4 授权备案）
