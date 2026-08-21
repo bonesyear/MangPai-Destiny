@@ -7,17 +7,17 @@
 - 默认 model=deepseek-v4-flash，thinking 开启 + JSON mode
   （response_format={"type": "json_object"}，thinking 计入 output tokens）
 - 重试：超时/5xx/网络错误重试，指数退避；4xx 不重试直接抛
-- 成本：按官方定价表折算 USD，按请求时间（北京时间）自动选峰/谷档，
+- 成本：按官方定价表折算人民币（¥/1M tokens），按请求时间（北京时间）自动选峰/谷档，
   随返回 dict 带出 usage/cost/price_tier/elapsed
 
-定价（$/1M tokens，api-docs.deepseek.com/quick_start/pricing 2026-08-18 复核；
+定价（¥/1M tokens，api-docs.deepseek.com/zh-cn/quick_start/pricing 2026-08-21 复核；
 cache miss 口径，含 thinking）：
                  peak            off-peak（半价）
-  v4-flash input $0.44 / out $1.32   input $0.22 / out $0.66
-  v4-pro   input $1.32 / out $3.96   input $0.66 / out $1.98
-峰段（官方：UTC 01:00-04:00 / 06:00-10:00）= 北京时间 09:00-12:00、14:00-18:00，
-其余时段半价。2026-08-16 峰谷价前旧平价 $0.14/$0.28 作废；历史批次成本
-（如 2026-08-18 五轮批跑）按当时口径计，不回算。
+  v4-flash input ¥3.0 / out ¥9.0   input ¥1.5 / out ¥4.5
+  v4-pro   input ¥9.0 / out ¥27.0  input ¥4.5 / out ¥13.5
+峰段（官方：北京时间 09:00-12:00、14:00-18:00），其余时段半价。
+2026-08-16 峰谷价生效；历史批次成本（如 2026-08-18 五轮批跑）按当时美元口径计，不回算。
+2026-08-21 改人民币口径（官方国内站直接人民币报价）；cache hit 另有 0.10/0.05 档未用。
 """
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ from datetime import datetime, timedelta, timezone
 _API_URL = 'https://api.deepseek.com/chat/completions'
 _ENV_FILE = '/root/.hermes/.env'
 
-# $/1M tokens: {'peak': (input, output), 'offpeak': (input, output)}。
-# cache hit 更便宜，按 miss 保守估。
-_PRICING = {
-    'deepseek-v4-flash': {'peak': (0.44, 1.32), 'offpeak': (0.22, 0.66)},
-    'deepseek-v4-pro': {'peak': (1.32, 3.96), 'offpeak': (0.66, 1.98)},
+# ¥/1M tokens: {'peak': (input, output), 'offpeak': (input, output)}。
+# cache hit 更便宜，按 miss 保守估。2026-08-21 人民币口径（官方国内站报价）。
+_PRICE = {
+    'deepseek-v4-flash': {'peak': (3.0, 9.0), 'offpeak': (1.5, 4.5)},
+    'deepseek-v4-pro': {'peak': (9.0, 27.0), 'offpeak': (4.5, 13.5)},
 }
 _DEFAULT_MODEL = 'deepseek-v4-flash'
 
@@ -71,9 +71,9 @@ def _price_tier(at: float | None = None) -> str:
 
 
 def _estimate_cost(model: str, usage: dict, at: float | None = None) -> float:
-    """按定价表折算单次调用成本（USD），按请求时间自动选峰/谷档。
+    """按定价表折算单次调用成本（人民币 ¥），按请求时间自动选峰/谷档。
     未知模型返回 0 并照常放行。"""
-    rates = _PRICING.get(model)
+    rates = _PRICE.get(model)
     if not rates:
         return 0.0
     rin, rout = rates[_price_tier(at)]
