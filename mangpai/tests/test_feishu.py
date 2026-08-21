@@ -169,20 +169,20 @@ def test_llm_success_appended(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '【性格】(高) mock 五维')
     md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
-    assert 'LLM 五维叙述' in md and 'mock 五维' in md
+    assert 'LLM 七维叙述' in md and 'mock 五维' in md
 
 
 def test_llm_failure_degrades_to_engine(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '[LLM 不可用，降级返回 prompt 文本 | 原因: x]')
     md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
-    assert '引擎直出结论' in md and 'LLM 五维叙述' not in md
+    assert '引擎直出结论' in md and 'LLM 七维叙述' not in md
 
 
 def test_llm_off_by_default_env(monkeypatch):
     monkeypatch.setenv('FEISHU_USE_LLM', '0')
     md = handle('阳历 1992-10-09 13:58 男 信阳')  # 不传 use_llm → 读环境变量
-    assert 'LLM 五维叙述' not in md
+    assert 'LLM 七维叙述' not in md
 
 
 # ---------------------------------------------------------------- webhook 事件

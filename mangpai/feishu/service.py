@@ -71,5 +71,5 @@ def paipan(spec: Dict[str, Any], use_llm: Optional[bool] = None) -> str:
         if out.startswith(_LLM_FAIL_PREFIXES):
             md += '\n\n（LLM 通道暂不可用，以上为引擎直出结论）'
         else:
-            md += '\n\n**LLM 五维叙述**（validate=mark，违规附注请人工复核）\n' + out
+            md += '\n\n**LLM 七维叙述**（validate=mark，违规附注请人工复核）\n' + out
     return md

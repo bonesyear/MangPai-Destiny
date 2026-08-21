@@ -1,7 +1,7 @@
 """LLM 结构化推演通道 prompt 模板（方案 C 混合·升级 narrative 层）。
 
 段氏/郝金阳风格：few-shot 复用 narrative 现有 FEWSHOT_EXAMPLES（受保护，
-不改原文，只作口吻锚嵌入）；输出形态改为 JSON mode 五维 schema；
+不改原文，只作口吻锚嵌入）；输出形态改为 JSON mode 七维 schema；
 安全红线沿用 F14/ENVELOPE_RULES 同款死亡禁令。
 
 红线（不可放松）：
@@ -11,7 +11,7 @@
 """
 from __future__ import annotations
 
-# 五维 schema 说明（嵌进 system prompt）。basis 路径格式是 L1 校验契约：
+# 七维 schema 说明（嵌进 system prompt）。basis 路径格式是 L1 校验契约：
 # 点分隔键，逐字照抄；数组只引数组名本身，禁止下标（llm_channel._l1_basis 同口径）。
 SCHEMA_SPEC = """\
 ## 输出 schema（严格遵守，仅输出一个 JSON 对象，无任何额外文字）
@@ -20,15 +20,19 @@ SCHEMA_SPEC = """\
   "事业": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"},
   "财运": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"},
   "婚姻": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"},
-  "应期": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"}
+  "应期": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"},
+  "迁移": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"},
+  "相貌": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"}
 }
-- 五个维度键固定，缺一不可；某维特征数据为空（引擎未判定）则 conclusion 写「数据不足」，basis 给空数组 []。
+- 七个维度键固定，缺一不可；某维特征数据为空（引擎未判定）则 conclusion 写「数据不足」，basis 给空数组 []。
 - basis 数组每项 = 输入特征 JSON 中**逐字照抄**的字段路径，点分隔（如 "caiming.tier_static"、"gongliang.level"、"zuogong.work_types"），程序会逐条回解析，路径不存在即判违规——只引真实存在的字段，子键拿不准宁缺毋编，不得按命理常识臆测键名（特征 JSON 里没有的键一律不写）。
 - 数组字段（如 xiangfa_ops.juxiang、xiangfa.all_findings、zuogong.work_actions、liunian_analysis.liunian）只允许引用数组名本身；禁止任何形式的下标（如 "xiangfa_ops.juxiang[7]"、"juxiang.7"），也禁止把数组当字典按内容取键（如 "juxiang.寒湿"）。
 - conclusion 措辞强度不得超出引擎断言：引擎给档位/倾向（如财命五档、官命是/否、灾祸风险档），你只能用同级或更弱措辞；引擎未给的具体金额、次数、年份、岁数一律不许编造，宁可断方向不断数。
 - 财运维的档位词只允许「巨富/富/小康/平/贫」五选一，且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格。
 - 事业维的职业部分：主荐职业必须取自 zhiye.primary 对应桶；zhiye.primary 为空=引擎无明确职业倾向，必须如实说「无明确职业倾向」，禁止断言任何具体职业（高分桶只能作「倾向性参考」并注明引擎未定）。
 - 应期维：逐运吉凶以 dayun_analysis.dayun 各运 overall 与正负信号为准，逐年以 liunian_analysis 逐年 overall 为准，吉凶性质不得相反（凶运说成吉=翻转），吉凶参半须两面并陈；禁止脱离大运/流年表的泛化套话（如「近年多有是非」「晚景渐佳」），表外年份不许断言吉凶。
+- 迁移维：只许依据 qianyi.qianyi_yuanju 的 marker 与 qianyi.qianyi_yingqi 的应期窗叙述；措辞上限「迁移/远行」，绝对禁止「出国/移民/海外/国外/外国」；marker 与应期窗均空=无迁移信号，必须如实说明、不得断言迁移；应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。
+- 相貌维：只许引用 xiangmao 各线 marker 的原文描述（秀气透干/金水伤官/活木见火/眼象/魅力/身材），禁止「漂亮/美/丑/帅」等相貌结论词（相貌无档位，只述象不评美丑）；各线均未命中=如实说无显著相貌特征，不得给任何相貌评价；弱线（魅力/身材）命中该维 confidence 锁「低」。
 - confidence 反映该维特征数据的完整度与一致性，不得全给「高」。
 """
 
@@ -152,9 +156,15 @@ def _zhiye_anchor(features: dict) -> str:
                  for b, s in sorted(scores.items(), key=lambda kv: -kv[1])
                  if b != primary and isinstance(s, (int, float)) and s >= thr]
         cand_txt = ('；候选桶=' + '、'.join(cands)) if cands else ''
+        direct = ''
+        if primary in ('unemployed', 'laborer'):
+            # F-V3-1（zhenbao-23a 族）：无业/体力是引擎判定而非无倾向
+            direct = (f'「{label}」是引擎的明确判定（非无倾向），事业维必须如实直述「{label}」，'
+                      '不得改述为「无明确职业倾向」，也不得另给安稳就业建议。')
         return (f'【本案职业锚定】引擎主荐桶={label}（zhiye.primary={primary}）{cand_txt}。'
                 f'事业维的职业主荐必须是「{label}」，不得换成其他职业类别；'
-                '候选桶只可明确标注「候选/次选」提及，不得与主荐并列或取代主荐。')
+                '候选桶只可明确标注「候选/次选」提及，不得与主荐并列或取代主荐。'
+                + direct)
     top = [f'{_BUCKET_LABELS.get(b, b)}{s}分'
            for b, s in sorted(scores.items(), key=lambda kv: -(kv[1] or 0))
            if isinstance(s, (int, float)) and s > 0][:3]
@@ -193,14 +203,69 @@ def _yingqi_anchor(features: dict) -> str:
             '泛化套话（如「近年多有是非」「晚景渐佳」），表外运年不许断言吉凶。')
 
 
+def _qianyi_anchor(features: dict) -> str:
+    """本案迁移锚定行（N1 七维批）：qianyi markers/应期窗 + 出境词禁令。"""
+    qy = features.get('qianyi')
+    if not isinstance(qy, dict):
+        return ''
+    yj = qy.get('qianyi_yuanju') or {}
+    yq = qy.get('qianyi_yingqi') or {}
+    markers = [str(m) for m in (yj.get('markers') or [])]
+    moves = yq.get('move_windows') or []
+    stays = yq.get('stay_windows') or []
+    ban = '措辞上限「迁移/远行」，绝对禁止「出国/移民/海外/国外/外国」。'
+    if not markers and not moves:
+        return ('【本案迁移锚定】引擎无迁移信号（qianyi 原局 marker 与应期窗均空）。'
+                '迁移维必须如实说「无迁移信号」，不得断言迁移/远行；' + ban)
+    lines = []
+    if markers:
+        lines.append('原局 marker：' + '；'.join(markers))
+    if moves:
+        lines.append('迁移应期窗：' + '；'.join(
+            f"{w.get('dayun') or ''}/{w.get('liunian') or ''}"
+            f" {w.get('mechanism') or ''}({w.get('confidence') or ''})"
+            for w in moves))
+    if stays:
+        lines.append('安居窗：' + '；'.join(
+            f"{w.get('dayun') or ''}/{w.get('liunian') or ''}"
+            f" {w.get('mechanism') or ''}" for w in stays))
+    return ('【本案迁移锚定】' + '\n'.join(lines) + '\n'
+            '迁移维只许叙述上述 marker/应期窗，' + ban
+            + '应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。')
+
+
+def _xiangmao_anchor(features: dict) -> str:
+    """本案相貌锚定行（N1 七维批）：xiangmao 命中线 marker 描述 + 禁结论词令。"""
+    xm = features.get('xiangmao')
+    if not isinstance(xm, dict):
+        return ''
+    parts = []
+    for k in ('xiuqi', 'jinshui', 'muhuo', 'meili', 'shencai'):
+        node = xm.get(k) or {}
+        if node.get('hit') and node.get('desc'):
+            parts.append(str(node['desc']))
+    yan = xm.get('yanxiang') or {}
+    if (yan.get('bing') or yan.get('ding') or yan.get('gui')) and yan.get('desc'):
+        parts.append(str(yan['desc']))
+    ban = ('相貌维只许引用上述 marker 描述，禁止「漂亮/美/丑/帅」等相貌结论词'
+           '（无档位，只述象不评美丑）。')
+    if not parts:
+        return ('【本案相貌锚定】引擎无显著相貌 marker（xiangmao 各线未命中）。'
+                '相貌维必须如实说「无显著相貌特征」，不得给任何相貌评价；'
+                '禁止「漂亮/美/丑/帅」等相貌结论词。')
+    return ('【本案相貌锚定】' + '；'.join(parts) + '\n' + ban
+            + '弱线（魅力/身材）命中该维 confidence 锁「低」。')
+
+
 def build_user_prompt(features_json: str, bazi_line: str, question: str = '',
                       features: dict | None = None) -> str:
-    """组装 user prompt：八字行 + 键清单/三维锚定 + 特征 JSON + 所问。
+    """组装 user prompt：八字行 + 键清单/五锚定行 + 特征 JSON + 所问。
 
     features 给定时追加 per-case 附注：键清单（防 basis 臆造键名，
     与特征 JSON 逐字一致）+ 财档锚定（迭代 2，治档位越限）
     + 职业锚定/应期锚定（迭代 5，治职业维无倾向被断言/主荐桶不一致
-    与应期维脱离大运流年表的套话）。
+    与应期维脱离大运流年表的套话）+ 迁移锚定/相貌锚定（N1 七维批，
+    治迁移出境词越限/无信号断言迁移与相貌结论词）。
     """
     q = question.strip() or '命主未明问，做通推断语。'
     extra = ''
@@ -213,7 +278,8 @@ def build_user_prompt(features_json: str, bazi_line: str, question: str = '',
             + _key_manifest(features) + '\n\n'
         )
         for anchor in (_tier_anchor(features), _zhiye_anchor(features),
-                       _yingqi_anchor(features)):
+                       _yingqi_anchor(features), _qianyi_anchor(features),
+                       _xiangmao_anchor(features)):
             if anchor:
                 extra += anchor + '\n\n'
     return (
@@ -222,5 +288,5 @@ def build_user_prompt(features_json: str, bazi_line: str, question: str = '',
         + f'## 特征 JSON（引擎客观/主观层计算结果，已裁剪 scrub）\n'
         f'```json\n{features_json}\n```\n\n'
         f'## 命主所问\n{q}\n\n'
-        '请严格按 schema 输出五维 JSON。'
+        '请严格按 schema 输出七维 JSON。'
     )

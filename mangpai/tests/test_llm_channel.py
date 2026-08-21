@@ -18,7 +18,8 @@ _ENGINE = {'caiming': {'tier_static': '小康', 'tier': '富'},
 
 def _good():
     return {d: {'conclusion': '一段断语', 'basis': ['zuogong.work_level'],
-                'confidence': '中'} for d in ('性格', '事业', '财运', '婚姻', '应期')}
+                'confidence': '中'}
+            for d in ('性格', '事业', '财运', '婚姻', '应期', '迁移', '相貌')}
 
 
 def test_l0_happy():
@@ -375,3 +376,125 @@ def test_validate_reading_reports_remapped():
     rep = validate_reading(data, _REMAP_FEATURES, _ENGINE)
     assert rep['ok']  # remap 转正，不计违规
     assert rep['remapped'][0]['detail'].endswith('→ xiangfa_ops.juxiang')
+
+
+# ── N1 七维批：迁移/相貌进叙述 ─────────────────────────────
+
+
+def test_l0_requires_seven_dims():
+    data = _good()
+    del data['迁移']
+    del data['相貌']
+    v = _l0_schema(data)
+    assert any('迁移' in x['detail'] for x in v)
+    assert any('相貌' in x['detail'] for x in v)
+
+
+def test_l2_qianyi_redline():
+    # 迁移维绝对禁「出国/移民/海外/国外/外国」（对齐引擎措辞上限「迁移/远行」）
+    data = _good()
+    for s in ('你命中有出国之象', '宜移民海外发展', '中年定居国外',
+              '配偶是外国人', '远行海外方吉'):
+        data['迁移']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('迁移' in x['detail'] for x in v), s
+    # 措辞上限内放行；且只约束迁移维（其他维不拦——如婚姻维提及迁居地）
+    data['迁移']['conclusion'] = '命局多迁移，中年后有远行应期'
+    assert not any('迁移' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_l2_xiangmao_redline():
+    # 相貌维禁「漂亮/美/丑/帅」结论词（marker 层无档位）
+    data = _good()
+    for s in ('面容漂亮', '五官俊美', '相貌丑陋', '人长得很帅'):
+        data['相貌']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('相貌' in x['detail'] for x in v), s
+    # 排除窗放行：美元（货币）/丑时（时辰）/干支（丁丑）非相貌结论词
+    for s in ('忌佩戴美元饰品', '丑时生人眼象清', '丁丑年眼象有损'):
+        data['相貌']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert not any('相貌' in x['detail'] for x in v), s
+
+
+def test_qianyi_anchor():
+    # N1：有信号盘列 marker+应期窗+禁令；无信号盘明令不得断言迁移
+    from mangpai.subjective.llm_prompt import _qianyi_anchor
+    feats = {'qianyi': {
+        'qianyi_yuanju': {'beijing_lixiang': True, 'anju': False,
+                          'ma_lin_nianshi': {'hit': True, 'positions': ['时']},
+                          'markers': ['月日冲：背井离乡之象'], 'desc': 'x'},
+        'qianyi_yingqi': {'move_windows': [
+            {'dayun': '戊午', 'liunian': '甲午', 'mechanism': '马逢冲',
+             'pillar': '时', 'confidence': '中', 'basis': 'b', 'note': ''}],
+            'stay_windows': [], 'desc': ''},
+        'summary': 's'}}
+    a = _qianyi_anchor(feats)
+    assert '【本案迁移锚定】' in a and '月日冲：背井离乡之象' in a
+    assert '马逢冲' in a and '出国' in a  # 禁令提示
+    assert 'confidence 锁「低」' in a     # 应期窗或然 → 锁低
+    empty = {'qianyi': {
+        'qianyi_yuanju': {'beijing_lixiang': False, 'anju': True,
+                          'ma_lin_nianshi': {'hit': False, 'positions': []},
+                          'markers': [], 'desc': ''},
+        'qianyi_yingqi': {'move_windows': [], 'stay_windows': [], 'desc': ''},
+        'summary': ''}}
+    a2 = _qianyi_anchor(empty)
+    assert '无迁移信号' in a2 and '不得断言迁移' in a2
+    assert _qianyi_anchor({}) == ''
+
+
+def test_xiangmao_anchor():
+    # N1：命中线列 marker 描述+禁词令；未命中明令不得给相貌评价
+    from mangpai.subjective.llm_prompt import _xiangmao_anchor
+    feats = {'xiangmao': {
+        'xiuqi': {'hit': True, 'tou_gan': ['丁'], 'desc': '秀气透干（丁透），秀气主文章才华'},
+        'jinshui': {'hit': False, 'blocked_by': ['非辛日主'], 'desc': ''},
+        'muhuo': {'hit': False, 'fire': [], 'desc': ''},
+        'yanxiang': {'bing': True, 'ding': False, 'gui': False,
+                     'eye_full': False, 'desc': '丙=眼框/大眼之象'},
+        'meili': {'hit': False, 'jiyi_only': False, 'desc': ''},
+        'shencai': {'hit': False, 'markers': [], 'desc': ''},
+        'summary': 's'}}
+    a = _xiangmao_anchor(feats)
+    assert '【本案相貌锚定】' in a and '秀气透干' in a and '眼框' in a
+    assert '漂亮' in a  # 禁词提示
+    empty = {'xiangmao': {
+        'xiuqi': {'hit': False, 'tou_gan': [], 'desc': ''},
+        'jinshui': {'hit': False, 'blocked_by': [], 'desc': ''},
+        'muhuo': {'hit': False, 'fire': [], 'desc': ''},
+        'yanxiang': {'bing': False, 'ding': False, 'gui': False,
+                     'eye_full': False, 'desc': ''},
+        'meili': {'hit': False, 'jiyi_only': False, 'desc': ''},
+        'shencai': {'hit': False, 'markers': [], 'desc': ''},
+        'summary': ''}}
+    a2 = _xiangmao_anchor(empty)
+    assert '无显著相貌特征' in a2 and '不得给' in a2
+    assert _xiangmao_anchor({}) == ''
+
+
+def test_zhiye_anchor_unemployed_must_state():
+    # F-V3-1 搭车（zhenbao-23a 族）：unemployed/laborer 是引擎判定非无倾向，
+    # 必须如实直述，不得改述为「无明确职业倾向」或另给安稳就业建议
+    from mangpai.subjective.llm_prompt import _zhiye_anchor
+    feats = {'zhiye': {'primary': 'unemployed', 'primary_label': '无业',
+                       'min_score_threshold': 6,
+                       'scores': {'unemployed': 9, 'laborer': 2}}}
+    a = _zhiye_anchor(feats)
+    assert '主荐桶=无业' in a and '如实直述' in a
+    assert '无明确职业倾向' in a  # 禁令语境中出现（不得改述为…）
+    # 普通桶不加该行
+    feats['zhiye']['primary'] = 'merchant'
+    feats['zhiye']['primary_label'] = '商人/经营'
+    assert '如实直述' not in _zhiye_anchor(feats)
+
+
+def test_user_prompt_includes_n1_anchors():
+    from mangpai.subjective.llm_prompt import build_user_prompt
+    feats = {'qianyi': {'qianyi_yuanju': {'markers': ['月日冲'], 'desc': ''},
+                        'qianyi_yingqi': {'move_windows': [], 'stay_windows': []},
+                        'summary': ''},
+             'xiangmao': {'xiuqi': {'hit': False, 'desc': ''}, 'summary': ''}}
+    p = build_user_prompt('{}', '甲子 乙丑 丙寅 丁卯', features=feats)
+    assert '【本案迁移锚定】' in p and '【本案相貌锚定】' in p
+    assert '输出七维 JSON' in p

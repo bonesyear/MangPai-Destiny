@@ -9,7 +9,7 @@
 | `FEISHU_APP_ID` | ✅ | 自建应用 App ID |
 | `FEISHU_APP_SECRET` | ✅ | 自建应用 App Secret |
 | `FEISHU_VERIFICATION_TOKEN` | ✅ | 事件订阅的 Verification Token（不配则启动即报错，零校验可被伪造事件白嫖） |
-| `FEISHU_USE_LLM` | 否 | `0` 关闭 LLM 五维段（默认开，validate=mark，失败自动降级引擎直出） |
+| `FEISHU_USE_LLM` | 否 | `0` 关闭 LLM 七维段（默认开，validate=mark，失败自动降级引擎直出） |
 | `FEISHU_PORT` | 否 | webhook 监听端口，默认 9700 |
 | `DEEPSEEK_API_KEY` | LLM 开时必填 | 见 `docs/llm-channel-20260818.md`（谷段半价） |
 

@@ -1,16 +1,17 @@
 """LLM 结构化推演通道（方案 C 混合·升级 narrative 层）。
 
-链路：引擎 dict → build_payload 特征抽取（selectors 38 键 + zaihuo_llm_view
-+ 死亡词典 scrub，全复用）→ DeepSeek JSON mode 五维叙述 → 三层校验 → 展示。
+链路：引擎 dict → build_payload 特征抽取（selectors 41 键 + zaihuo_llm_view
++ 死亡词典 scrub，全复用）→ DeepSeek JSON mode 七维叙述 → 三层校验 → 展示。
 
 **红线：本模块输出永不回写 compute_all() dict**；无 API key/调用失败时
 降级返回组装好的 prompt 文本（同 narrative.render_hao_narrative 契约）。
 
 三层校验（validate_reading）：
-- L0 schema：五维键齐、conclusion/basis/confidence 结构合法；
+- L0 schema：七维键齐、conclusion/basis/confidence 结构合法；
 - L1 出处：basis 每条路径回解析特征 JSON，不存在/为空/带数组下标 → 违规；
   意图唯一的近-miss（缺 _ops 前缀/层级拍平/多包一层/叶键别名）自动 remap 转正；
-- L2 枚举：财命档位/官命是非回对引擎枚举值 + 死亡词黑名单兜底；
+- L2 枚举：财命档位/官命是非回对引擎枚举值 + 死亡词黑名单兜底
+  + 迁移维禁「出国/移民/海外/国外/外国」+ 相貌维禁「漂亮/美/丑/帅」（N1 七维批）；
 - N1 数字校验复用 narrative.validate_narrative_numbers（对白名单外数字留痕）。
 
 单命示例：python3 -m mangpai.subjective.llm_channel
@@ -29,7 +30,7 @@ from mangpai.subjective.narrative import (
     validate_narrative_numbers,
 )
 
-DIMENSIONS = ('性格', '事业', '财运', '婚姻', '应期')
+DIMENSIONS = ('性格', '事业', '财运', '婚姻', '应期', '迁移', '相貌')
 _CONFIDENCE = ('高', '中', '低')
 
 # L2 财命档位序（index 大=高）。引擎双轨：tier_static 原局轨 + tier 全量轨，
@@ -53,6 +54,24 @@ _SENT_END = '。！？!?\n'
 # 否定句式——语义级残留由 L1+人工兜底，见归档 §2.1。
 _GUAN_POSITIVE = ('官命', '当官', '走仕途', '是官', '贵格', '掌大权')
 _NEG_PREFIX = ('不', '非', '无', '难', '未', '莫', '否')
+
+# N1 七维批·L2 按维红线：
+# 迁移维绝对禁出境词（对齐引擎措辞上限「迁移/远行」，qianyi 模块不出硬断语）。
+_QIANYI_FORBID = ('出国', '移民', '海外', '国外', '外国')
+# 相貌维禁结论词（marker 层无判定无档位，只许引用 marker 描述）。
+_XIANGMAO_FORBID = ('漂亮', '美', '丑', '帅')
+# 相貌排除窗（E7 窗口机制同族，但按相邻字判定更准——±5 窗会放跑真结论词）：
+# 「美元」货币、「丑时」时辰、「X丑」干支 非相貌结论词，放行。
+_STEMS = '甲乙丙丁戊己庚辛壬癸'
+
+
+def _xiangmao_exempt(text: str, w: str, j: int) -> bool:
+    """相貌禁词命中处的排除窗：美元/丑时/干支（X丑）不计。"""
+    if w == '美' and text[j + 1:j + 2] == '元':
+        return True
+    if w == '丑' and (text[j + 1:j + 2] == '时' or text[j - 1:j] in _STEMS):
+        return True
+    return False
 
 
 def _l0_schema(data: Any) -> list:
@@ -276,6 +295,27 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                               'detail': f'事业 与引擎官命=否矛盾：「{w}」'})
                     break
                 i = t.find(w, i + 1)
+
+    # 迁移维措辞上限（引擎「迁移/远行」，绝对禁出境词）
+    t = texts['迁移']
+    for w in _QIANYI_FORBID:
+        if w in t:
+            v.append({'layer': 'L2', 'detail': f'迁移 越措辞上限词「{w}」'})
+            break
+
+    # 相貌维禁结论词（marker 层无档位；美元/丑时/干支排除窗放行）
+    t = texts['相貌']
+    for w in _XIANGMAO_FORBID:
+        start = 0
+        while True:
+            j = t.find(w, start)
+            if j == -1:
+                break
+            start = j + 1
+            if _xiangmao_exempt(t, w, j):
+                continue
+            v.append({'layer': 'L2', 'detail': f'相貌 触禁结论词「{w}」'})
+            break
     return v
 
 
@@ -328,7 +368,7 @@ def render_structured_reading(
     model: str | None = None,
     validate: str = 'mark',
 ) -> str:
-    """引擎 dict → DeepSeek 五维 JSON 叙述 → 三层校验 → 展示文本。
+    """引擎 dict → DeepSeek 七维 JSON 叙述 → 三层校验 → 展示文本。
 
     validate: 'mark'(默认)=违规附注于成品后；'reject'=L0 不过则拦截；
     'off'=不校验。LLM 不可用时降级返回 prompt 文本（不抛错）。

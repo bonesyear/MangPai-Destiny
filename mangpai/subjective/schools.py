@@ -37,9 +37,9 @@ MANGPAI_SCHOOL: School = School(
                # D6b：zinv（子女岁运应期+借腹）镜像 liuqin 同通道进特征 JSON
                # （纯数据；LLM 五维不扩不进 prompt——D6a 设计 §3.4）。
                # 缺口批1：qianyi（迁移/远行 marker+应期窗）同口径追加
-               # （纯数据；措辞上限「迁移/远行」，LLM 五维不扩——归档 §一.3）。
+               # （措辞上限「迁移/远行」；N1 七维批起进叙述维，L2 禁出境词）。
                # 缺口批2：xiangmao（相貌 marker 层，无判定无档位）同口径追加
-               # （纯数据；不出「美/丑/帅」结论词，LLM 五维不扩——归档 §二.3）。
+               # （N1 七维批起进叙述维，L2 禁「美/丑/帅」结论词）。
                "liuqin", "zinv", "qianyi", "xiangmao", "zaihuo", "zeishen_bushen", "xiangfa_ops",
                "narrative", "shipaige"),
     desc="盲派宾主体用做功体系，重象法口诀。《段氏理象学》《盲师断命秘诀》",
