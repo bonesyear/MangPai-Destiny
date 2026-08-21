@@ -40,6 +40,12 @@ _TIER_ORDER = ('贫', '平', '小康', '富', '巨富')
 _DEATH_WORDS = ('死亡', '寿终', '享年', '夭折', '早夭', '短命',
                 '命不久', '寿数', '寿命', '寿元', '大限生死')
 
+# L2 死亡词误报窗（V4 P2-2/2-3）：模型合规拒答句会复述死亡词（如「寿数」）
+# 并外露「红线」字样——死亡词所在句（。！？换行分隔）内出现拒答标记则该处不计。
+# ponytail: 拒答识别是同句关键词启发式，语义级拒答变体漏判由 mark/reject 输出人工兜底
+_DEATH_REFUSAL = ('不测', '不予', '拒绝', '红线', '不预测', '不涉')
+_SENT_END = '。！？!?\n'
+
 # L2 官命正向断言关键词（仅在引擎 is_guanming=False 时拦截）。
 # ponytail: 关键词回对是启发式，否定语境按「前 5 字符+后 5 字符」窗口排除
 # （迭代 7：±2→±5 对齐财档 _TIER_NEG 窗，盖「官命一票否决/官命又被否决/
@@ -228,11 +234,23 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
     texts = {dim: str(((data.get(dim) or {}) if isinstance(data.get(dim), dict) else {}).get('conclusion') or '')
              for dim in DIMENSIONS}
 
-    # 死亡红线（所有维度）
+    # 死亡红线（所有维度；拒答句误报窗豁免——合规拒答复述死亡词不计）
     for dim, t in texts.items():
         for w in _DEATH_WORDS:
-            if w in t:
+            start = 0
+            while True:
+                j = t.find(w, start)
+                if j == -1:
+                    break
+                start = j + 1
+                l = max((t.rfind(p, 0, j) for p in _SENT_END), default=-1)
+                r = min((c for p in _SENT_END
+                         if (c := t.find(p, j + len(w))) != -1), default=len(t))
+                seg = t[l + 1:r]  # 同句窗：拒答标记与死亡词同句 = 合规拒答复述
+                if any(m in seg for m in _DEATH_REFUSAL):
+                    continue
                 v.append({'layer': 'L2', 'detail': f'{dim} 触死亡红线词「{w}」'})
+                break
 
     # 财命档位（corpus=引擎 caiming 原文，供③引用豁免）
     cm = engine_result.get('caiming') or {}
@@ -296,7 +314,9 @@ def format_reading(reading: dict, validation: dict, backend: dict) -> str:
         lines.append(f"[model={backend.get('model')} "
                      f"in={u.get('prompt_tokens', '?')} out={u.get('completion_tokens', '?')} "
                      f"elapsed={backend.get('elapsed_s', 0):.1f}s "
-                     f"cost≈${backend.get('cost_usd', 0):.4f}（≈¥{backend.get('cost_usd', 0) * 7.2:.3f}）]")
+                     f"cost≈¥{backend.get('cost_usd', 0):.4f}]")
+    # 免责声明（V4 P0-1）：LLM 叙述路径尾部固定一行
+    lines.append('命理分析仅供参考，不构成人生决策依据。')
     return '\n'.join(lines)
 
 
@@ -339,6 +359,11 @@ def render_structured_reading(
 
     report = validate_reading(data, features, engine_result) if validate != 'off' \
         else {'ok': True, 'violations': []}
+    # 死亡红线命中 = reject 级（V4 P1-1）：mark 模式也不展示、不附注，
+    # 整段拒出（前缀 '[断语被' 触发 service 层降级引擎直出）。scrub 守输入端
+    # （payload 死亡词典物理屏蔽），reject 守输出端，拒答误报窗已在 _l2_enum 豁免。
+    if validate != 'off' and any('死亡红线' in x['detail'] for x in report['violations']):
+        return '[断语被死亡红线校验拦截，不予展示]'
     if validate == 'reject' and any(x['layer'] == 'L0' for x in report['violations']):
         return ('[断语被 L0 schema 校验拦截，不予输出]\n'
                 + '\n'.join(f"  - {x['detail']}" for x in report['violations']))

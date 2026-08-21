@@ -2,7 +2,7 @@
 """缺口批1 哨兵：qianyi 迁移/远行 marker + 迁移应期窗。
 
 书锚（设计 = 缺口方案归档 kimi-gaps-plan-2026-08-20 §一，行号已回书核对）：
-- 合到门户：乾 丁未己酉戊子丙辰 辛巳年（zhongji:4179「丙辛合到门户上」）；
+- 合到门户：乾 丁未己酉戊子丙辰 辛巳年（zhongji:4180「丙辛合到门户上」）；
   坤 辛亥庚子庚寅己卯 甲运（lixiangxue:6571「甲运合己，合到门户」）。
 - 马逢冲：乾 壬子壬寅庚辰辛巳 申运（shouke:3600-3602「姐妹宫受申冲……
   马冲在哪儿，离开哪儿」）。
@@ -17,7 +17,8 @@
 - 反例 guard：日时合安居造 + 平和岁运 → 零迁移窗。
 
 红线：输出任何 desc/note/summary 不得含「出国/移民」硬断语（书无级别判据，
-zhongji:4179 与 gaoji:17390 结构同构而结论一为出国一为调动外省）。
+zhongji:4180 合到门户断出国、gaoji:17390 冲门户断调动外省——一合一冲
+机制不同构，结论一出国一国内，判别边界书无明文）。
 岁运序列手动喂入（zinv 哨兵惯例），不改引擎岁运逻辑。
 """
 import json
@@ -48,9 +49,9 @@ def _stays(r):
     return r['qianyi_yingqi']['stay_windows']
 
 
-# ── 1. 应期·合到门户（双锚：zhongji:4179 + lixiangxue:6571）──
+# ── 1. 应期·合到门户（双锚：zhongji:4180 + lixiangxue:6571）──
 
-def test_hedaomenhu_liunian_zhongji4179():
+def test_hedaomenhu_liunian_zhongji4180():
     """乾 丁未己酉戊子丙辰：辛巳年丙辛合，合端落时干（门户）→ 迁移窗。"""
     r = _run('丁未己酉戊子丙辰', lns=['辛巳'])
     hits = [w for w in _moves(r)

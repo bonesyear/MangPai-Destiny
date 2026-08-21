@@ -10,7 +10,7 @@ zuogong_detect - 盲派做功·纯关系检测层（objective）
 本模块为纯规则层：仅依赖 constants / muku / changsheng 等确定性查表，
 无歧义、无置信度，可独立测试。
 """
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
     HUA_YONG_MAP, TOMB_MAP, GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,

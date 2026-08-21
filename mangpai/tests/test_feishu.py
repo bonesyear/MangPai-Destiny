@@ -156,13 +156,13 @@ def test_unknown_input_returns_help_hint():
 def test_e2e_solar_engine_only():
     md = handle('阳历 1992-10-09 13:58 男 河南信阳', use_llm=False)
     assert '壬申 庚戌 戊午 己未' in md
-    for sec in ('**做功**', '**层功**', '**三维**', '**婚姻**', '**应期**', '> 一句话：'):
+    for sec in ('**做功**', '**层功**', '**三维**', '**婚姻**', '**应期**', '**一句话**：'):
         assert sec in md
 
 
 def test_e2e_pillars_engine_only():
     md = handle('四柱 戊辰 己未 庚午 丁亥 男', use_llm=False)
-    assert '戊辰 己未 庚午 丁亥' in md and '> 一句话：' in md
+    assert '戊辰 己未 庚午 丁亥' in md and '**一句话**：' in md
 
 
 def test_llm_success_appended(monkeypatch):

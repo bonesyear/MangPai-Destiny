@@ -1,5 +1,18 @@
 # 盲派客观层 变更记录
 
+## 2026-08-21 第五轮审查 V1-V6（只审不改）+ 修批 F2 文档清零（纯注释/文档零行为）
+
+| 项目 | 内容 |
+|------|------|
+| V1 新维度书锚终审 | qianyi/xiangmao 27 锚回书全过、无自造 spec、P0=0；P1-1 xiangmao 丁眼锚注缺（书内明文存在）+P2-1 zhongji:4179 行号偏 1（实 4180）+P2-2「结构同构」措辞失准（一合一冲不同构，措辞上限立论成立）；维度交付口径裁定=保持特征层不进五维叙述。报告 `docs/kimi-review5-v1-qianyi-xiangmao-20260820.md` |
+| V2 端到端真实路径 | mock 飞书+mock LLM 走真实 engine 14 场景，无阻塞静默失败；P1-1 `zuogong_detect.py:997` Tuple 未导入（≤3.13 import 即崩）+P1-2 lark_md 三符字面残留+P2×3。报告 `docs/kimi-review5-v2-e2e-20260821.md` |
+| V3 S1 复抽 | E7 终态 30 例三层漏斗：裁决后真翻转 1/30 压线达标（zhenbao-23a unemployed 桶同族）、L2 高危零翻转、放大 10.1% 达标；judge 召回 1/2 未过→降级筛子；v4-pro 成本 ~7× 涨（$3.23 超预算）。报告 `docs/kimi-review5-v3-s1-20260821.md` |
+| V4 性能+注入+合规 | 注入 6 向量零穿透（死亡红线三层防线守住）；LLM 段均值 20.4s/P95 26.3s、¥0.0728/命谷段、6 并发全成功；**P0=免责声明两路径全缺（发布阻塞）**+P1×2+P2×4；21 次调用 ¥1.51。报告 `docs/kimi-review5-v4-perf-injection-compliance-20260821.md` |
+| V6 回归复审 | 死数据零复生（D3 无双轨/41 键无死键/E5 无死分支）；fuzz 800 例零崩溃零慢；E3/E4 锚回书 6/6 全 A；快照链七件连续；P2×4（docstring 40→41 等）。报告 `docs/kimi-review5-v6-regression-20260821.md` |
+| V5 收官 | 六件套全量复跑全绿（794+1xf+19xp、blind vs gap2 双零、双 seed 一致、calib 常驻 2 条零新增）；已知项全原位；新漂移 D-V5-1 五轮未入档（F2 清）+D-V5-2 清单漏项补录；**发布判定 NO-GO**（P0 免责+P1×5 未清）→F1+F2 落地+六件套复跑后转 GO；待修清单升级排期 F1/F2/F3（`docs/tasks/review5-fix-backlog.md`）。报告 `docs/kimi-review5-v5-final-20260821.md` |
+| F2 文档清零（本批） | 锚注清零：qianyi zhongji:4179→4180（模块 5 处+test_qianyi 注/函数名）、「结构同构」措辞改准（一合一冲不同构、立论成立）、subjective/__init__ docstring 40→41+test_subjective 函数名同步；五轮入档：KB（header/新 §6.7/§9 总账）+CHANGELOG（本条）+收工（go/no-go+批次链）；待修清单标认领（F1 #1-6 含丁眼锚注/F3 #11-15）。纯注释/文档零行为 |
+| 验证 | grep 抽查（V1-V6/免责声明/4180/41 等键全中）+pytest 快跑 794+1xf+19xp 无意外+git status 纯文档/注释零行为 |
+
 ## 2026-08-20 缺口批3 · 三项收档文档 + KB/收工全量同步（纯文档零代码，收官批）
 
 | 项目 | 内容 |

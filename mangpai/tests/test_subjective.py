@@ -30,7 +30,7 @@ class TestSchoolDefinition:
     def test_school_prompt_file(self):
         assert MANGPAI_SCHOOL.prompt == "mangpai.md"
 
-    def test_school_has_40_selectors(self):
+    def test_school_has_41_selectors(self):
         # 24 基础 + 16 领域专辑/高级技法模块（caiming/guanming/hunyin/...）
         # 修批A③：gongmen_wuzhi 摘除（is_wuzhi 98.8% 恒真零信息量），39→38
         # D6b：zinv（子女岁运应期+借腹）镜像 liuqin 进特征 JSON，38→39

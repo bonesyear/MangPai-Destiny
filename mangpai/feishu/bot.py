@@ -50,8 +50,9 @@ def _check_token(token):
 def _respond(client, message_id, text):
     try:
         reply = route(text)
-    except Exception as e:  # 边界兜底：引擎/网络异常也要回用户一句
-        reply = f'排盘失败：{e}'
+    except Exception:  # 边界兜底：引擎/网络异常也要回用户一句（脱敏：不回显 str(e) 内部详情，与 500 口径一致）
+        log.exception('排盘异常 mid=%s', message_id)
+        reply = '排盘失败：内部错误，请稍后重试'
     try:
         client.reply(message_id, 'interactive', reply)
     except Exception as e:  # reply 失败不能静默死线程：记日志 + 尽力纯文本兜底
@@ -64,6 +65,9 @@ def _respond(client, message_id, text):
 
 def handle_event(body: dict, client=None, background=True) -> dict:
     """飞书事件回调入口（可注入 client/background=False 供测试）。"""
+    if not isinstance(body, dict):  # 非 dict body（畸形 JSON 如数组/字符串）：静默丢弃
+        log.error('回调体非 JSON 对象，已丢弃: %r', type(body).__name__)
+        return {}
     if 'encrypt' in body:  # 控制台误配 Encrypt Key：本实现不支持解密，告警丢弃
         log.error('回调体已加密：请勿在飞书控制台配置 Encrypt Key（本实现不支持解密），事件已丢弃')
         return {}

@@ -12,6 +12,9 @@ from mangpai.subjective.narrative import (
     _yingqi_line, _zhiye_line, _zuogong_line,
 )
 
+# 免责声明（V4 P0-1）：引擎直出/LLM 叙述两路径尾部各带一行
+DISCLAIMER = '\n命理分析仅供参考，不构成人生决策依据。'
+
 
 def one_liner(r: Dict[str, Any]) -> str:
     """一句话总结：层功档 + 财档 + 官命档。"""
@@ -46,6 +49,7 @@ def format_report(r: Dict[str, Any], meta: str = '') -> str:
         rows = [x for x in rows if x]
         if rows:
             lines.append(f"\n**{title}**")
-            lines.extend(f'- {x}' for x in rows)
-    lines.append(f"\n> 一句话：{one_liner(r)}")
+            lines.extend(f'· {x}' for x in rows)
+    lines.append(f"\n**一句话**：{one_liner(r)}")
+    lines.append(DISCLAIMER)
     return '\n'.join(lines)

@@ -151,7 +151,8 @@ def analyze_xiangmao(
     if bing:
         yan_desc_parts.append('丙=眼框/大眼之象')
     if ding:
-        yan_desc_parts.append('丁=眼之象')
+        yan_desc_parts.append('丁=眼之象（zhongji:2122-2147；gaoji:15337；'
+                              'lixiangxue:1777）')
     if eye_full:
         yan_desc_parts.append('丙癸配=瞳孔，眼象全（zhongji:1482-1483）')
     yanxiang = {

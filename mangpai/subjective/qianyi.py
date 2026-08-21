@@ -9,7 +9,7 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
   宫位空间：lixiangxue:4114（年=远方/时=门户/月=祖籍/日=现居）、
            gaoji:5838-5865（年柱动主离乡、月日冲=背井离乡、日时合=安居）；
   总纲：shouke:3600-3602「马冲在哪儿，离开哪儿。马合在哪，留在哪儿」；
-  合到门户：zhongji:4179「丙辛合到门户上」+ lixiangxue:6571「甲运合己，
+  合到门户：zhongji:4180「丙辛合到门户上」+ lixiangxue:6571「甲运合己，
            合到门户」——两书同构互证；
   或然机制：shouke:6692（马星伏吟而动）、shouke:72（流年冲年/时支=冲出，
            书自承「未必所有人都会出门」）。
@@ -17,8 +17,9 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
 定位与边界：
   不重造马星查法（复用 objective/shensha 的 _YI_MA 三支皆马表）；
   不重造岁运扫描管线（仿 zinv 消费 engine 透传的 dy/ln 干支序列）。
-  ⚠️ 措辞红线：书从未给出「出国 vs 国内迁移」判别边界（zhongji:4179 与
-  gaoji:17390 结构同构而结论一为出国一为调动外省），故本模块输出措辞上限
+  ⚠️ 措辞红线：书从未给出「出国 vs 国内迁移」判别边界（zhongji:4180
+  合到门户断出国、gaoji:17390 流年冲门户官星断调动外省——一合一冲
+  机制不同构，结论却一出国一国内，判别边界书无明文），故本模块输出措辞上限
   「迁移/远行/离乡」，任何 desc/note/summary 不出「出国/移民/海外」硬断语；
   「出国」级表达仅属 LLM 叙事层修辞，不作引擎逻辑结论。
   置信度自承：盲派三支皆马查法马星多、动象频（gaoji:15803 书自承），
@@ -32,7 +33,7 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
        （gaoji:6735 案例九「马星在年时，主远行」）。
   2. qianyi_yingqi 应期窗：
      - move_windows：马逢冲（岁运支冲原局马星支，shouke:3602+gaoji:6757）、
-       合到门户（岁运干与原局年/时干成五合，zhongji:4179+lixiangxue:6571）、
+       合到门户（岁运干与原局年/时干成五合，zhongji:4180+lixiangxue:6571）、
        马星伏吟（流年支与原局马星支伏吟，shouke:6692，或然）、
        冲出年时（流年支冲年/时支，shouke:72，或然）；
      - stay_windows：马逢合=停留不动（zhongji:1567+gaoji:6757+shouke:3602
@@ -174,13 +175,13 @@ def analyze_qianyi(
         dg, dz = gz[0], gz[1] if len(gz) > 1 else ''
         dy, ln = ('', gz) if is_liunian else (gz, '')
         # 合到门户：岁运干与原局年干（远方）/时干（门户）成五合
-        # （zhongji:4179 丙辛合时干 + lixiangxue:6571 甲运合时干己——双锚同构）
+        # （zhongji:4180 丙辛合时干 + lixiangxue:6571 甲运合时干己——双锚同构）
         partner = TIAN_GAN_HE.get(dg, '')
         for gi in (0, 3):
             if partner and gans[gi] == partner:
                 pk = _PILLAR_KEYS[gi]
                 _emit(move_windows, dy, ln, '合到门户', pk, '中',
-                      'zhongji:4179;lixiangxue:6571',
+                      'zhongji:4180;lixiangxue:6571',
                       f'{dg}合{pk == "year" and "年" or "时"}干{partner}'
                       f'（{_PILLAR_SPACE[pk]}之位），合到门户，有迁移/远行之象')
         if not dz:

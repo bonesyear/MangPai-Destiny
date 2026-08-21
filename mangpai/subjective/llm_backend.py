@@ -90,7 +90,7 @@ def call_deepseek(
     json_mode: bool = True,
     thinking: bool = True,
     reasoning_effort: str = 'low',
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
     timeout: float = 120.0,
     retries: int = 2,
 ) -> dict:
@@ -166,10 +166,11 @@ def _self_check():
     peak = datetime(2026, 8, 18, 10, 0, tzinfo=_BJT).timestamp()    # 北京 10:00 峰
     off = datetime(2026, 8, 18, 20, 0, tzinfo=_BJT).timestamp()     # 北京 20:00 谷
     assert _price_tier(peak) == 'peak' and _price_tier(off) == 'offpeak'
+    # 人民币口径（2026-08-21 起）：v4-flash 峰 ¥3.0/¥9.0、谷 ¥1.5/¥4.5（/1M tokens）
     assert abs(_estimate_cost('deepseek-v4-flash', usage, at=peak)
-               - (10_000 * 0.44 + 5_000 * 1.32) / 1e6) < 1e-12
+               - (10_000 * 3.0 + 5_000 * 9.0) / 1e6) < 1e-12
     assert abs(_estimate_cost('deepseek-v4-flash', usage, at=off)
-               - (10_000 * 0.22 + 5_000 * 0.66) / 1e6) < 1e-12
+               - (10_000 * 1.5 + 5_000 * 4.5) / 1e6) < 1e-12
     assert _estimate_cost('unknown-model', {'prompt_tokens': 1}) == 0.0
     print('llm_backend self-check OK')
 
