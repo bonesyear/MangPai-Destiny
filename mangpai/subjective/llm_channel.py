@@ -193,6 +193,12 @@ _TIER_NEG_AFTER = re.compile(r'^[一-鿿]?(?:难求|不足|不起|不了|无望)
 # ⑦（迭代 7，E6 复测新发同族）让步句「虽」字窗（前 5 字内有「虽」不计，
 #   盖「虽有大富之量级但被下浮」「虽有小富之象」）+归位语标记「档就是/档为」
 #   同①（「功量层级中富中贵，但财命档就是小康」词前归位，词不计）。
+# ⑧（N2 迭代修，r1 yx-酒店）归位语「小康之富」：档词+之富=该档归位表述，
+#   尾字「富」按前缀档计（同④「小富」族）；只降不升，不掩护真越限。
+# ⑧b/c/d/e（N2 r3 复测假阳族）：「大富大贵」成语泛指同富贵；「富足」泛指形容词；
+#   「暴富」专属宽窗（±8，盖「别想着投机暴富/别指望一夜暴富」告诫句——一般窗
+#   ±5 差一字漏放，仅暴富复合词加宽，防泛窗掩护真越限）；「平平」叠词口语
+#   （普通/平常）非档位断言。
 _TIER_CAP_MARKERS = ('封顶', '上限', '定档', '定格', '档就是', '档为')
 
 
@@ -226,10 +232,24 @@ def _tier_rank(text: str, corpus: str = '') -> int:
                     continue  # 巨富单独判；财富/致富=泛指非档位（②）
                 if text[j + 1:j + 2] in ('格', '档', '贵'):
                     continue  # ⑥富格/富档=引擎格局/档位术语；富贵=泛指
+                if text[j + 1:j + 2] == '足':
+                    continue  # ⑧c「富足」泛指形容词，同富贵族
+                if text[j - 1:j + 3] == '大富大贵':
+                    continue  # ⑧b「大富大贵」成语泛指，同富贵族
+                if prev == '暴' and any(c in _TIER_NEG
+                                        for c in text[max(0, j - 8):j]):
+                    continue  # ⑧d 告诫式「别/莫…暴富」专属宽窗 ±8
                 if prev == '小':
                     r = 2  # ④「小富」=小康级修饰档，归位
+                elif prev == '之':
+                    if text[j - 3:j - 1] == '小康':
+                        r = 2  # ⑧「小康之富」归位语，按小康计
+                    elif text[j - 2:j - 1] in ('贫', '平'):
+                        r = _TIER_ORDER.index(text[j - 2:j - 1])  # ⑧「贫/平之富」同理
             if any(c in _TIER_NEG for c in text[max(0, j - 5):j]):
                 continue
+            if t == '平' and (text[j - 1:j] == '平' or text[j + 1:j + 2] == '平'):
+                continue  # ⑧e「平平」叠词口语（普通/平常），非档位断言
             if '想' in text[max(0, j - 4):j]:
                 continue  # ⑤愿望条件句「想大富得靠…」
             if '虽' in text[max(0, j - 5):j]:
@@ -288,6 +308,9 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
         for w in _GUAN_POSITIVE:
             i = t.find(w)
             while i != -1:
+                if w == '是官' and t[i - 1:i] == '倒':
+                    i = t.find(w, i + 1)
+                    continue  # 「倒是官带财帽」让步/术语族（N2 r3 yx-富钢材生意发财假阳）
                 # 前后各 5 字符内出现否定词（不是…/…否决/无缘/难成…）视为否定语境放行
                 seg = t[max(0, i - 5):i + len(w) + 5]
                 if not any(ch in _NEG_PREFIX for ch in seg):

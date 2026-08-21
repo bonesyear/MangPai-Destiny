@@ -431,7 +431,7 @@ def test_qianyi_anchor():
         'summary': 's'}}
     a = _qianyi_anchor(feats)
     assert '【本案迁移锚定】' in a and '月日冲：背井离乡之象' in a
-    assert '马逢冲' in a and '出国' in a  # 禁令提示
+    assert '马逢冲' in a and '出境' in a  # 禁令提示（N2 r3 起锚定改类别级措辞，枚举在 SCHEMA）
     assert 'confidence 锁「低」' in a     # 应期窗或然 → 锁低
     empty = {'qianyi': {
         'qianyi_yuanju': {'beijing_lixiang': False, 'anju': True,
@@ -498,3 +498,105 @@ def test_user_prompt_includes_n1_anchors():
     p = build_user_prompt('{}', '甲子 乙丑 丙寅 丁卯', features=feats)
     assert '【本案迁移锚定】' in p and '【本案相貌锚定】' in p
     assert '输出七维 JSON' in p
+
+
+def test_tier_rank_n2_guwei_yufu():
+    # N2 迭代修（r1 yx-酒店假阳）：归位语「小康之富」=档词+之富，尾字富按前缀档计
+    assert _tier_rank('你是小康之命，行运得当能积小康之富，莫想一夜暴富') == 2
+    assert _tier_rank('财命贫，辛苦求财，也就平之富') == 1
+    # 只降不升：前缀档仍高于引擎时照拦
+    assert _tier_rank('财命贫，实际小康之富') == 2
+    # 无档词前缀的「之富」不归位（真越限仍拦）
+    assert _tier_rank('可积巨富之资') == 4
+
+
+def test_xiangmao_anchor_n2_sanitize():
+    # N2 迭代修（r1 相貌维 38 例违规主根因）：引擎秀气线原文含「漂亮」
+    # （xiangmao.py:111 性别分流语，引擎侧本批冻结），锚定行注入前改写到红线内
+    from mangpai.subjective.llm_prompt import _xiangmao_anchor
+    feats = {'xiangmao': {
+        'xiuqi': {'hit': True, 'tou_gan': ['甲'],
+                  'desc': '秀气透干（甲透），女看秀气漂亮倾向、男看文章才华'},
+        'jinshui': {'hit': False, 'blocked_by': [], 'desc': ''},
+        'muhuo': {'hit': False, 'fire': [], 'desc': ''},
+        'yanxiang': {'bing': False, 'ding': False, 'gui': False,
+                     'eye_full': False, 'desc': ''},
+        'meili': {'hit': False, 'jiyi_only': False, 'desc': ''},
+        'shencai': {'hit': False, 'markers': [], 'desc': ''},
+        'summary': 's'}}
+    a = _xiangmao_anchor(feats)
+    assert '女看秀气倾向' in a and '秀气漂亮' not in a
+    # 禁令不再含可照抄的「不评美丑」口号式表述（r1 次根因：模型复述禁令）
+    assert '只述象不评美丑' not in a
+
+
+def test_qianyi_anchor_n2_empty_basis():
+    # N2 迭代修（r1 迁移维 L1 6 例：无信号例引空数组键）：锚定明令 basis 留空
+    from mangpai.subjective.llm_prompt import _qianyi_anchor
+    empty = {'qianyi': {
+        'qianyi_yuanju': {'markers': [], 'desc': ''},
+        'qianyi_yingqi': {'move_windows': [], 'stay_windows': [], 'desc': ''},
+        'summary': ''}}
+    a = _qianyi_anchor(empty)
+    assert 'basis 必须给空数组' in a and '禁止引用' in a
+
+
+def test_tier_rank_n2_dafudagui():
+    # N2 r2 迭代修（b67-初中假阳）：「大富大贵」成语泛指同富贵族，不计
+    assert _tier_rank('财命小康，稳扎稳打，大富大贵需靠运势添翼') == 2
+    assert _tier_rank('小康之命，莫指望大富大贵') == 2
+    # 拆开单用仍拦
+    assert _tier_rank('踏实经营可达大富') == 3
+
+
+def test_anchors_n2_r3_meta_ban():
+    # N2 r3 迭代修（r2 残留 4 例=元复述族：模型把禁令写进正文）：
+    # 锚定行明令「不要声明或解释你在遵守禁令」；无 marker 盘只许写一句
+    from mangpai.subjective.llm_prompt import _qianyi_anchor, _xiangmao_anchor
+    qy_empty = {'qianyi': {
+        'qianyi_yuanju': {'markers': [], 'desc': ''},
+        'qianyi_yingqi': {'move_windows': [], 'stay_windows': [], 'desc': ''},
+        'summary': ''}}
+    assert '不要声明你在遵守禁令' in _qianyi_anchor(qy_empty)
+    xm_empty = {'xiangmao': {
+        'xiuqi': {'hit': False, 'desc': ''}, 'jinshui': {'hit': False, 'desc': ''},
+        'muhuo': {'hit': False, 'desc': ''},
+        'yanxiang': {'bing': False, 'ding': False, 'gui': False,
+                     'eye_full': False, 'desc': ''},
+        'meili': {'hit': False, 'desc': ''}, 'shencai': {'hit': False, 'desc': ''},
+        'summary': ''}}
+    a = _xiangmao_anchor(xm_empty)
+    assert '只写「无显著相貌特征」一句' in a and '不声明禁令' in a
+
+
+def test_tier_rank_n2_r3_exemptions():
+    # N2 r3 复测假阳族（⑥⑦⑧同族变体）：
+    # ⑧c「富足」泛指形容词
+    assert _tier_rank('勤劳可至小康富足，不可奢望巨富') == 2
+    assert _tier_rank('命定小康，安稳富足') == 2
+    # ⑧d 告诫式暴富专属宽窗（别/莫距命中 6 字，一般 ±5 窗差一字）
+    assert _tier_rank('撑死温饱有余，别想着投机暴富，踏实做工薪') == -1
+    assert _tier_rank('财命看贫，别指望一夜暴富，守好本分') == 0
+    assert _tier_rank('财命小康，别指望大富暴富') == 2
+    # ⑧d 无否定语境的暴富仍拦
+    assert _tier_rank('运气好就能暴富') == 3
+    # ⑧e「平平」叠词口语非档位断言
+    assert _tier_rank('财命平平，属贫命，量级有限') == 0
+    # 单个「平」作档位词仍计
+    assert _tier_rank('财命平，小康无望') == 1
+
+
+def test_l2_guan_daoshi_exemption():
+    # N2 r3 yx-富钢材生意发财假阳：「倒是官带财帽」让步/术语族放行
+    from mangpai.subjective.llm_channel import _l2_enum
+    eng = {'guanming': {'is_guanming': False},
+           'caiming': {'tier_static': '富', 'tier': '富'}}
+    data = {d: {'conclusion': '', 'basis': [], 'confidence': '中'}
+            for d in ('性格', '财运', '婚姻', '应期', '迁移', '相貌')}
+    data['事业'] = {'conclusion': '虽是富格，但制官不尽，非官命，倒是官带财帽，宜管钱管账',
+                    'basis': [], 'confidence': '中'}
+    assert _l2_enum(data, eng) == []
+    # 无让步的真正向断言仍拦
+    data['事业']['conclusion'] = '你是官命，能掌大权'
+    v = _l2_enum(data, eng)
+    assert any('官命' in x['detail'] for x in v)

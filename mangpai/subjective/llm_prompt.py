@@ -31,8 +31,8 @@ SCHEMA_SPEC = """\
 - 财运维的档位词只允许「巨富/富/小康/平/贫」五选一，且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格。
 - 事业维的职业部分：主荐职业必须取自 zhiye.primary 对应桶；zhiye.primary 为空=引擎无明确职业倾向，必须如实说「无明确职业倾向」，禁止断言任何具体职业（高分桶只能作「倾向性参考」并注明引擎未定）。
 - 应期维：逐运吉凶以 dayun_analysis.dayun 各运 overall 与正负信号为准，逐年以 liunian_analysis 逐年 overall 为准，吉凶性质不得相反（凶运说成吉=翻转），吉凶参半须两面并陈；禁止脱离大运/流年表的泛化套话（如「近年多有是非」「晚景渐佳」），表外年份不许断言吉凶。
-- 迁移维：只许依据 qianyi.qianyi_yuanju 的 marker 与 qianyi.qianyi_yingqi 的应期窗叙述；措辞上限「迁移/远行」，绝对禁止「出国/移民/海外/国外/外国」；marker 与应期窗均空=无迁移信号，必须如实说明、不得断言迁移；应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。
-- 相貌维：只许引用 xiangmao 各线 marker 的原文描述（秀气透干/金水伤官/活木见火/眼象/魅力/身材），禁止「漂亮/美/丑/帅」等相貌结论词（相貌无档位，只述象不评美丑）；各线均未命中=如实说无显著相貌特征，不得给任何相貌评价；弱线（魅力/身材）命中该维 confidence 锁「低」。
+- 迁移维：只许依据 qianyi.qianyi_yuanju 的 marker 与 qianyi.qianyi_yingqi 的应期窗叙述；措辞上限「迁移/远行」，绝对禁止「出国/移民/海外/国外/外国」（任何形态均不许，含否定式、解释式提及）；conclusion 只写迁移/远行的象本身，不要声明或解释你在遵守禁令；marker 与应期窗均空=无迁移信号，必须如实说明、不得断言迁移，且该维 basis 必须给空数组 []（qianyi 各键均空=无出处，禁止引用）；应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。
+- 相貌维：只许引用 xiangmao 各线 marker 的原文描述（秀气透干/金水伤官/活木见火/眼象/魅力/身材）；叙述正文任何位置不得出现「漂亮/美/丑/帅」字样（任何形态均不许，含否定式、解释式提及；相貌无档位，只述象不定性）；conclusion 只写象描述本身，不要声明或解释你在遵守禁令（「不评/不涉/不可写」类元表述也不许写）；marker 原文如遇「漂亮」二字（如秀气线性别分流语），引用时一律改写为「秀气」；各线均未命中=如实说无显著相貌特征，不得给任何相貌评价；弱线（魅力/身材）命中该维 confidence 锁「低」。
 - confidence 反映该维特征数据的完整度与一致性，不得全给「高」。
 """
 
@@ -213,10 +213,11 @@ def _qianyi_anchor(features: dict) -> str:
     markers = [str(m) for m in (yj.get('markers') or [])]
     moves = yq.get('move_windows') or []
     stays = yq.get('stay_windows') or []
-    ban = '措辞上限「迁移/远行」，绝对禁止「出国/移民/海外/国外/外国」。'
+    ban = '措辞上限「迁移/远行」，出境类断语任何形态（含否定式）一律禁止；只写象，不要声明你在遵守禁令。'
     if not markers and not moves:
         return ('【本案迁移锚定】引擎无迁移信号（qianyi 原局 marker 与应期窗均空）。'
-                '迁移维必须如实说「无迁移信号」，不得断言迁移/远行；' + ban)
+                '迁移维必须如实说「无迁移信号」，不得断言迁移/远行；'
+                '该维 basis 必须给空数组 []（qianyi 各键均空=无出处，禁止引用）；' + ban)
     lines = []
     if markers:
         lines.append('原局 marker：' + '；'.join(markers))
@@ -234,6 +235,12 @@ def _qianyi_anchor(features: dict) -> str:
             + '应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。')
 
 
+def _xm_sanitize(desc: str) -> str:
+    """N2 迭代修：marker 原文偶含「漂亮」（xiangmao.py 秀气线性别分流语，
+    引擎侧本批冻结不改），锚定行注入前改写到红线内措辞。"""
+    return desc.replace('秀气漂亮', '秀气').replace('漂亮', '秀气')
+
+
 def _xiangmao_anchor(features: dict) -> str:
     """本案相貌锚定行（N1 七维批）：xiangmao 命中线 marker 描述 + 禁结论词令。"""
     xm = features.get('xiangmao')
@@ -243,16 +250,17 @@ def _xiangmao_anchor(features: dict) -> str:
     for k in ('xiuqi', 'jinshui', 'muhuo', 'meili', 'shencai'):
         node = xm.get(k) or {}
         if node.get('hit') and node.get('desc'):
-            parts.append(str(node['desc']))
+            parts.append(_xm_sanitize(str(node['desc'])))
     yan = xm.get('yanxiang') or {}
     if (yan.get('bing') or yan.get('ding') or yan.get('gui')) and yan.get('desc'):
-        parts.append(str(yan['desc']))
-    ban = ('相貌维只许引用上述 marker 描述，禁止「漂亮/美/丑/帅」等相貌结论词'
-           '（无档位，只述象不评美丑）。')
+        parts.append(_xm_sanitize(str(yan['desc'])))
+    ban = ('相貌维只许引用上述 marker 描述；叙述正文任何位置不得出现'
+           '「漂亮/美/丑/帅」字样（含否定式均不许）；只写象描述本身，'
+           '不要声明或解释你在遵守禁令。')
     if not parts:
         return ('【本案相貌锚定】引擎无显著相貌 marker（xiangmao 各线未命中）。'
-                '相貌维必须如实说「无显著相貌特征」，不得给任何相貌评价；'
-                '禁止「漂亮/美/丑/帅」等相貌结论词。')
+                '相貌维 conclusion 只写「无显著相貌特征」一句，不得给任何相貌评价，'
+                '不解释、不声明禁令。')
     return ('【本案相貌锚定】' + '；'.join(parts) + '\n' + ban
             + '弱线（魅力/身材）命中该维 confidence 锁「低」。')
 
