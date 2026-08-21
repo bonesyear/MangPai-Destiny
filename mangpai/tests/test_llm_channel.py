@@ -406,7 +406,9 @@ def test_l2_qianyi_redline():
 def test_l2_xiangmao_redline():
     # 相貌维禁「漂亮/美/丑/帅」结论词（marker 层无档位）
     data = _good()
-    for s in ('面容漂亮', '五官俊美', '相貌丑陋', '人长得很帅'):
+    for s in ('面容漂亮', '五官俊美', '相貌丑陋', '人长得很帅',
+              # N2b：含美复合评价词同禁（书锚零支持，单字「美」规则全覆盖）
+              '身材曲线优美', '体态偏柔美', '气质秀美'):
         data['相貌']['conclusion'] = s
         v = _l2_enum(data, _ENGINE)
         assert any('相貌' in x['detail'] for x in v), s
@@ -528,6 +530,26 @@ def test_xiangmao_anchor_n2_sanitize():
     assert '女看秀气倾向' in a and '秀气漂亮' not in a
     # 禁令不再含可照抄的「不评美丑」口号式表述（r1 次根因：模型复述禁令）
     assert '只述象不评美丑' not in a
+
+
+def test_xiangmao_redline_n2b_compound():
+    # N2b（r3 残留 2 例=「曲线优美/体态柔美」复合词族）：书锚零支持 → 入禁。
+    # 校验器单字「美」规则已覆盖（r3 两例均被抓），缺口在生成侧——
+    # SCHEMA/锚定禁令须显式点名含美复合评价词同禁。
+    from mangpai.subjective.llm_prompt import (
+        SCHEMA_SPEC, _xiangmao_anchor)
+    assert '优美' in SCHEMA_SPEC and '复合' in SCHEMA_SPEC
+    feats = {'xiangmao': {
+        'xiuqi': {'hit': True, 'tou_gan': ['甲'], 'desc': '秀气透干（甲透）'},
+        'jinshui': {'hit': False, 'blocked_by': [], 'desc': ''},
+        'muhuo': {'hit': False, 'fire': [], 'desc': ''},
+        'yanxiang': {'bing': False, 'ding': False, 'gui': False,
+                     'eye_full': False, 'desc': ''},
+        'meili': {'hit': False, 'jiyi_only': False, 'desc': ''},
+        'shencai': {'hit': False, 'markers': [], 'desc': ''},
+        'summary': 's'}}
+    a = _xiangmao_anchor(feats)
+    assert '优美' in a and '复合' in a
 
 
 def test_qianyi_anchor_n2_empty_basis():
