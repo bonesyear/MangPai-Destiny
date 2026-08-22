@@ -1,12 +1,14 @@
 """compute_all dict → Markdown 结构化报告。
 
-模板：八字 → 做功 → 层功 → 三维（财/官/职业）→ 婚姻 → 应期 → 一句话总结。
+模板：八字 → 做功 → 层功 → 三维（财/官/职业）→ 婚姻 → 应期 → 迁移 → 相貌
+→ 一句话总结。
 字段知识全部复用 narrative 的行函数（同一结论源，引擎零改动、不重抄字段）。
 """
 from __future__ import annotations
 
 from typing import Any, Dict
 
+from mangpai.subjective.llm_prompt import _xm_sanitize
 from mangpai.subjective.narrative import (
     _bazi_line, _caiming_line, _gongliang_line, _guanming_line, _hunyin_line,
     _yingqi_line, _zhiye_line, _zuogong_line,
@@ -29,6 +31,29 @@ def one_liner(r: Dict[str, Any]) -> str:
     return '，'.join(segs) or '普通格局'
 
 
+def _qianyi_rows(qy: Dict[str, Any]) -> list:
+    """迁移段：原局 marker desc + 应期窗 desc（引擎原文透传，措辞上限内）。"""
+    if not qy:
+        return []
+    yj, yq = qy.get('qianyi_yuanju') or {}, qy.get('qianyi_yingqi') or {}
+    return [x for x in (yj.get('desc') or '', yq.get('desc') or '') if x]
+
+
+def _xiangmao_rows(xm: Dict[str, Any]) -> list:
+    """相貌段：命中线 marker 原文描述（先 sanitize「漂亮」→红线内措辞）。"""
+    if not xm:
+        return []
+    parts = []
+    for k in ('xiuqi', 'jinshui', 'muhuo', 'meili', 'shencai'):
+        node = xm.get(k) or {}
+        if node.get('hit') and node.get('desc'):
+            parts.append(_xm_sanitize(str(node['desc'])))
+    yan = xm.get('yanxiang') or {}
+    if (yan.get('bing') or yan.get('ding') or yan.get('gui')) and yan.get('desc'):
+        parts.append(_xm_sanitize(str(yan['desc'])))
+    return parts or ['无显著相貌 marker（引擎 marker 层不定性）']
+
+
 def format_report(r: Dict[str, Any], meta: str = '') -> str:
     """引擎 dict → Markdown 报告。缺失维度静默跳过（引擎 _safe_compute 语义）。"""
     yq = r.get('yingqi') or r.get('yingqi_subj') or {}
@@ -44,6 +69,8 @@ def format_report(r: Dict[str, Any], meta: str = '') -> str:
                   _zhiye_line(r.get('zhiye') or {})]),
         ('婚姻', [_hunyin_line(r.get('hunyin') or {})]),
         ('应期', [_yingqi_line(yq, da, la)]),
+        ('迁移', _qianyi_rows(r.get('qianyi') or {})),
+        ('相貌', _xiangmao_rows(r.get('xiangmao') or {})),
     ]
     for title, rows in sections:
         rows = [x for x in rows if x]

@@ -330,3 +330,45 @@ def test_500_no_internal_echo():
         assert 'attribute' not in body and 'oops' not in body
     finally:
         srv.shutdown()
+
+
+# ---------------------------------------------------------------- 修批 G1 发布闸
+def test_llm_reject_death_shows_safety_notice(monkeypatch):
+    """F6-1：死词拒出场景提示语区分——明示安全过滤，不误写「暂不可用」。"""
+    monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
+                        lambda res, validate='mark': '[断语被死亡红线校验拦截，不予展示]')
+    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    assert '安全过滤' in md and '引擎直出结论' in md
+    assert '暂不可用' not in md
+
+
+def test_llm_generic_failure_keeps_unavailable_notice(monkeypatch):
+    """F6-1：一般失败（非安全拦截）维持「暂不可用」口径。"""
+    monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
+                        lambda res, validate='mark': '[LLM 输出非合法 JSON，不予展示 | x]')
+    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    assert '暂不可用' in md and '引擎直出结论' in md
+
+
+def test_engine_report_has_qianyi_xiangmao_sections():
+    """F6-1 补两维：引擎直出报告含迁移/相貌两段（与七维口径对齐）。"""
+    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=False)
+    assert '**迁移**' in md and '**相貌**' in md
+
+
+def test_formatter_xiangmao_sanitizes_piaoliang():
+    """引擎秀气线原文含「漂亮」（引擎侧冻结项），直出前改写红线内措辞。"""
+    from mangpai.feishu.formatter import format_report
+    r = {'xiangmao': {
+        'xiuqi': {'hit': True, 'tou_gan': ['甲'],
+                  'desc': '秀气透干（甲透），女看秀气漂亮倾向、男看文章才华'},
+        'jinshui': {'hit': False, 'blocked_by': [], 'desc': ''},
+        'muhuo': {'hit': False, 'fire': [], 'desc': ''},
+        'yanxiang': {'bing': False, 'ding': False, 'gui': False,
+                     'eye_full': False, 'desc': ''},
+        'meili': {'hit': False, 'jiyi_only': False, 'desc': ''},
+        'shencai': {'hit': False, 'markers': [], 'desc': ''},
+        'summary': 's'}}
+    md = format_report(r)
+    assert '**相貌**' in md and '秀气倾向' in md
+    assert '漂亮' not in md

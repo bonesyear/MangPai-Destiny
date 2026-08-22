@@ -622,3 +622,74 @@ def test_l2_guan_daoshi_exemption():
     data['事业']['conclusion'] = '你是官命，能掌大权'
     v = _l2_enum(data, eng)
     assert any('官命' in x['detail'] for x in v)
+
+
+# ── 修批 G1 发布闸：F6-2 误报窗逗号断句 + 死词近义词 ──
+
+
+def test_l2_death_comma_boundary():
+    # F6-2：逗号/分号断句——死断+拒答标记同逗号句不再误豁免（W1 合成例 6/10）
+    data = _good()
+    for s in ('你寿数将尽，但我不予置评', '享年六十八，此类寿数我不测',
+              '你寿数将尽；但我不予置评'):
+        data['应期']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('死亡红线' in x['detail'] for x in v), s
+    # 拒答标记与死词同逗号窗内的合规拒答仍豁免
+    data['应期']['conclusion'] = '寿数不测，可看事业财运'
+    assert not any('死亡红线' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_l2_death_synonyms():
+    # F6-2：死词表补近义词 离世/去世/归西/病逝（+同类 过世/身故/辞世）
+    data = _good()
+    for s in ('六十八岁离世', '此造中年去世', '某年归西', '冬月病逝',
+              '五十过世', '早年身故', '晚年辞世'):
+        data['应期']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('死亡红线' in x['detail'] for x in v), s
+
+
+# ── 修批 G1 发布闸：复合词双轨补禁（标致/水灵/清秀/端庄/甜美）──
+
+
+def test_l2_xiangmao_compound_words():
+    # W2 P1：标致/水灵/清秀/端庄 书内零锚结论词入禁（词级匹配，无单字误报）
+    data = _good()
+    for s in ('五官标致', '皮肤水灵', '相貌清秀', '气质端庄'):
+        data['相貌']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('相貌' in x['detail'] for x in v), s
+    # 非结论词的象描述仍放行
+    data['相貌']['conclusion'] = '眼之象清，身材中等'
+    assert not any('相貌' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+_XM_HIT_FEATS = {'xiangmao': {
+    'xiuqi': {'hit': True, 'tou_gan': ['甲'], 'desc': '秀气透干（甲透）'},
+    'jinshui': {'hit': False, 'blocked_by': [], 'desc': ''},
+    'muhuo': {'hit': False, 'fire': [], 'desc': ''},
+    'yanxiang': {'bing': False, 'ding': False, 'gui': False,
+                 'eye_full': False, 'desc': ''},
+    'meili': {'hit': False, 'jiyi_only': False, 'desc': ''},
+    'shencai': {'hit': False, 'markers': [], 'desc': ''},
+    'summary': 's'}}
+
+
+def test_prompt_compound_words_named():
+    # G1 prompt 轨：SCHEMA + 锚定禁令显式点名五词（含甜美）
+    from mangpai.subjective.llm_prompt import SCHEMA_SPEC, _xiangmao_anchor
+    for w in ('标致', '水灵', '清秀', '端庄', '甜美'):
+        assert w in SCHEMA_SPEC, w
+    a = _xiangmao_anchor(_XM_HIT_FEATS)
+    for w in ('标致', '水灵', '清秀', '端庄', '甜美'):
+        assert w in a, w
+
+
+def test_xiangmao_anchor_g1_degree_eval_ban():
+    # F6-6（G1 顺手）：弱线锚定补 禁程度词+禁评价词+禁引申气质总结句
+    from mangpai.subjective.llm_prompt import _xiangmao_anchor
+    a = _xiangmao_anchor(_XM_HIT_FEATS)
+    assert '程度词' in a and '明显' in a
+    assert '有神采' in a and '灵动' in a
+    assert '艺术气息' in a
