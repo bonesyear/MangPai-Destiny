@@ -1,5 +1,21 @@
 # 盲派客观层 变更记录
 
+## 2026-08-22 修批 G2 · 样式批（llm_prompt/llm_channel 样式层 + 统计口径 + 收档；引擎 compute_all 判定零改动）
+
+| 项目 | 内容 |
+|------|------|
+| F6-7 臆造断语禁（P2） | `_qianyi_anchor` ban 补「只述象与应期，不得输出引擎特征之外的结论式建议（如「宜动不宜静」类宜忌断语，引擎无此输出=臆造）」，有/无信号两分支同禁（W5 全量 3/294） |
+| F6-8 性别分流落地（P2） | `_xiangmao_anchor` 补「锚定行含性别分流语（女看…/男看…）时按本造性别只写对应分支，另一支不得复述」；render 层八字行补乾/坤造标记（`llm_channel.render_structured_reading`，LLM 方知性别的前置）（W5 全量 11/294） |
+| 「数据不足」模板语（P2） | 迁移/相貌两无信号分支明令模板语「无迁移信号」/「无显著相貌特征」+禁写「数据不足」字样（W2-P2#4/W4/W5 三批确认 8/294 再犯） |
+| 统计口径（W2 P1 后置项清零） | `_n2_analyze.py` `_has_xiangmao_marker` 改「hit 且 desc 非空」（独癸类 yan.gui=True 但 desc 空 16 例误计修正），对齐锚定判据后 251/251=100% |
+| F6-3 reject 结构化（P2） | 死亡红线违规带 `'reject': True` 字段，闸改 `x.get('reject')` 不再按 detail 子串「死亡红线」匹配 |
+| F6-4 降级免责行（P2） | `_DISCLAIMER_LINE` 常量：LLM 不可用/非合法 JSON/死亡拦截三条降级返回自带免责行（不再单点依赖 service 前缀白名单） |
+| F6-5 lark_md LLM 路径（P2） | `_larkmd_sanitize`：conclusion 行首 `- `/`> ` 改 `· `、`---` 改 `——`；校验附注 bullets `- ` 改 `· ` |
+| 注释/mock 归并（P2） | test_f1_gate `_five_dims()`→`_dims()` 从 DIMENSIONS 生成七维 mock（W2-P2#1）；schools.py:38 注释五维→七维（W2-P2#5）；llm_channel 「美丽」注释口径改准（W3-P2#2：lixiangxue 3 处用例，禁之保守不违书但非零锚） |
+| 哨兵 | 新增 8 测先红后绿：臆造断语两分支/性别分流/乾坤造标记入 prompt/模板语×2/reject 结构化字段/降级免责/lark_md sanitize |
+| 六件套 | verify 432+70+64+20 全绿；pytest 838+1xf+19xp；blind vs `snapshots/20260822_g1.json` 零翻转零抖动（快照 `snapshots/20260822_g2.json`）；双 seed 逐字节一致；67/famous 无变化；calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财）零新增 |
+| 收档 | 收工记录 `docs/remaining-tasks-20260822.md`（系统发布态+G1/G2 收官）；上线 checklist 6/8 闭环（#3 真实凭证冒烟/#4 群聊 @bot 后置，随首次上线冒烟）；review6-fix-backlog G2 项全清，#15 大眼锚注随下个引擎批 |
+
 ## 2026-08-22 修批 G1 · 发布闸四项（llm_channel/llm_prompt/feishu 层；引擎 compute_all 判定零改动）
 
 | 项目 | 内容 |

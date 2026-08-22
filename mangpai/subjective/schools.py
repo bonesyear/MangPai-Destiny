@@ -35,7 +35,7 @@ MANGPAI_SCHOOL: School = School(
                "caiming", "guanming", "hunyin", "xueli", "laoyu",
                "yingqi_subj", "yunfan", "zhiye",
                # D6b：zinv（子女岁运应期+借腹）镜像 liuqin 同通道进特征 JSON
-               # （纯数据；LLM 五维不扩不进 prompt——D6a 设计 §3.4）。
+               # （纯数据；LLM 七维不扩不进 prompt——D6a 设计 §3.4）。
                # 缺口批1：qianyi（迁移/远行 marker+应期窗）同口径追加
                # （措辞上限「迁移/远行」；N1 七维批起进叙述维，L2 禁出境词）。
                # 缺口批2：xiangmao（相貌 marker 层，无判定无档位）同口径追加

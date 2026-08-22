@@ -33,6 +33,10 @@ from mangpai.subjective.narrative import (
 DIMENSIONS = ('性格', '事业', '财运', '婚姻', '应期', '迁移', '相貌')
 _CONFIDENCE = ('高', '中', '低')
 
+# 免责声明（V4 P0-1）：成功/降级/拦截三路径成品均自带（G2 F6-4：
+# 降级文本不再单点依赖 service 前缀白名单兜底）
+_DISCLAIMER_LINE = '命理分析仅供参考，不构成人生决策依据。'
+
 # L2 财命档位序（index 大=高）。引擎双轨：tier_static 原局轨 + tier 全量轨，
 # 措辞上限取两轨较高者（运中层级断语合法，v6 口径）。
 _TIER_ORDER = ('贫', '平', '小康', '富', '巨富')
@@ -65,8 +69,9 @@ _QIANYI_FORBID = ('出国', '移民', '海外', '国外', '外国')
 # 相貌维禁结论词（marker 层无判定无档位，只许引用 marker 描述）。
 # N2b 裁定（书锚为准）：含「美」复合评价词（优美/柔美/秀美/俊美等）书内零锚
 # → 一律入禁，单字「美」扫描已全覆盖（r3 残留 2 例均被抓），不加词表不加
-# 后缀放行（美丽/美妙等在相貌维仍是评价词，书无叙事层使用锚）；真正缺口在
-# 生成侧，由 llm_prompt SCHEMA/锚定禁令显式点名复合词族收敛。
+# 后缀放行（美丽/美妙等在相貌维仍是评价词——「美丽」lixiangxue 有 3 处用例
+# （9928/12583/12632），禁之属保守不违书但非零锚，W3-P2#2 注释口径改准）；
+# 真正缺口在生成侧，由 llm_prompt SCHEMA/锚定禁令显式点名复合词族收敛。
 # G1（W2 P1 复合词真漏网）：标致/水灵/清秀/端庄 书内零锚但不含美丑帅字——
 # 词级匹配补入（无单字误报，无需排除窗）；prompt 轨同步点名五词（含甜美）。
 _XIANGMAO_FORBID = ('漂亮', '美', '丑', '帅', '标致', '水灵', '清秀', '端庄')
@@ -298,7 +303,9 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                 seg = t[l + 1:r]  # 同句窗：拒答标记与死亡词同句 = 合规拒答复述
                 if any(m in seg for m in _DEATH_REFUSAL):
                     continue
-                v.append({'layer': 'L2', 'detail': f'{dim} 触死亡红线词「{w}」'})
+                # G2（F6-3）：结构化 reject 字段，闸不再按 detail 子串匹配
+                v.append({'layer': 'L2', 'detail': f'{dim} 触死亡红线词「{w}」',
+                          'reject': True})
                 break
 
     # 财命档位（corpus=引擎 caiming 原文，供③引用豁免）
@@ -368,19 +375,31 @@ def validate_reading(data: Any, features: dict, engine_result: dict) -> dict:
             'remapped': remapped}
 
 
+def _larkmd_sanitize(text: str) -> str:
+    """lark_md 三符（G2 F6-5）：LLM 原文行首 '- '/'>' 改 '· '，'---' 改 '——'。"""
+    out = []
+    for ln in str(text).split('\n'):
+        s = ln.lstrip()
+        if s.startswith(('- ', '> ')):
+            ln = ln[:len(ln) - len(s)] + '· ' + s[2:]
+        out.append(ln.replace('---', '——'))
+    return '\n'.join(out)
+
+
 def format_reading(reading: dict, validation: dict, backend: dict) -> str:
     """成品展示文本。"""
     lines = []
     for dim in DIMENSIONS:
         node = (reading or {}).get(dim) or {}
-        lines.append(f"【{dim}】({node.get('confidence', '?')}) {node.get('conclusion', '')}")
+        lines.append(f"【{dim}】({node.get('confidence', '?')}) "
+                     f"{_larkmd_sanitize(node.get('conclusion', ''))}")
         if node.get('basis'):
             lines.append(f"  依据: {', '.join(str(b) for b in node['basis'])}")
     if validation and not validation['ok']:
         lines.append('')
         lines.append('【引擎校验】以下要点未通过三层校验（请人工复核，勿直采信）：')
         for x in validation['violations']:
-            lines.append(f"  - [{x['layer']}] {x['detail']}")
+            lines.append(f"  · [{x['layer']}] {x['detail']}")
     if backend:
         u = backend.get('usage') or {}
         lines.append('')
@@ -389,7 +408,7 @@ def format_reading(reading: dict, validation: dict, backend: dict) -> str:
                      f"elapsed={backend.get('elapsed_s', 0):.1f}s "
                      f"cost≈¥{backend.get('cost_usd', 0):.4f}]")
     # 免责声明（V4 P0-1）：LLM 叙述路径尾部固定一行
-    lines.append('命理分析仅供参考，不构成人生决策依据。')
+    lines.append(_DISCLAIMER_LINE)
     return '\n'.join(lines)
 
 
@@ -412,7 +431,12 @@ def render_structured_reading(
     features = build_payload(engine_result)
     features_json = json.dumps(features, ensure_ascii=False, separators=(',', ':'))
     system = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
-    user = build_user_prompt(features_json, _bazi_line(engine_result),
+    bazi_line = _bazi_line(engine_result)
+    # G2（F6-8 前置）：八字行带乾/坤造标记——秀气性别分流语按本造性别落地
+    _g = str((engine_result.get('input') or {}).get('gender') or '')
+    if _g in ('男', '女'):
+        bazi_line += f"（{'乾造' if _g == '男' else '坤造'}）"
+    user = build_user_prompt(features_json, bazi_line,
                              user_question or '', features=features)
     if not call_llm:
         return f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
@@ -422,21 +446,24 @@ def render_structured_reading(
         resp = call_deepseek(system, user, model=model)
     except LLMBackendError as e:
         return (f"[LLM 不可用，降级返回 prompt 文本 | 原因: {e}]\n\n"
-                f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}")
+                f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
+                f"\n\n{_DISCLAIMER_LINE}")
 
     raw = resp['text']
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
-        return f"[LLM 输出非合法 JSON，不予展示 | {e}]\n原始输出:\n{raw}"
+        return (f"[LLM 输出非合法 JSON，不予展示 | {e}]\n原始输出:\n{raw}"
+                f"\n{_DISCLAIMER_LINE}")
 
     report = validate_reading(data, features, engine_result) if validate != 'off' \
         else {'ok': True, 'violations': []}
     # 死亡红线命中 = reject 级（V4 P1-1）：mark 模式也不展示、不附注，
     # 整段拒出（前缀 '[断语被' 触发 service 层降级引擎直出）。scrub 守输入端
     # （payload 死亡词典物理屏蔽），reject 守输出端，拒答误报窗已在 _l2_enum 豁免。
-    if validate != 'off' and any('死亡红线' in x['detail'] for x in report['violations']):
-        return '[断语被死亡红线校验拦截，不予展示]'
+    # G2（F6-3）：闸改结构化 reject 字段（不再按 detail 子串「死亡红线」匹配）。
+    if validate != 'off' and any(x.get('reject') for x in report['violations']):
+        return f'[断语被死亡红线校验拦截，不予展示]\n{_DISCLAIMER_LINE}'
     if validate == 'reject' and any(x['layer'] == 'L0' for x in report['violations']):
         return ('[断语被 L0 schema 校验拦截，不予输出]\n'
                 + '\n'.join(f"  - {x['detail']}" for x in report['violations']))

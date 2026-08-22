@@ -693,3 +693,63 @@ def test_xiangmao_anchor_g1_degree_eval_ban():
     assert '程度词' in a and '明显' in a
     assert '有神采' in a and '灵动' in a
     assert '艺术气息' in a
+
+
+# ── 修批 G2 样式批：F6-7 臆造断语禁 / F6-8 性别分流落地 / 数据不足模板语 ──
+
+
+def test_qianyi_anchor_g2_no_fabricated_advice():
+    # F6-7（W5：「宜动不宜静」3/294，引擎/锚定均无=臆造）：
+    # 迁移维禁 LLM 自造建议式断语，有/无信号两分支同禁
+    from mangpai.subjective.llm_prompt import _qianyi_anchor
+    hit = {'qianyi': {'qianyi_yuanju': {'markers': ['月日冲'], 'desc': ''},
+                      'qianyi_yingqi': {'move_windows': [], 'stay_windows': []}}}
+    empty = {'qianyi': {'qianyi_yuanju': {'markers': [], 'desc': ''},
+                        'qianyi_yingqi': {'move_windows': [], 'stay_windows': []}}}
+    for a in (_qianyi_anchor(hit), _qianyi_anchor(empty)):
+        assert '结论式建议' in a and '宜动不宜静' in a
+
+
+def test_g2_no_signal_template_words():
+    # 「数据不足」非模板语（W2-P2#4/W4/W5 三批确认 8/294 再犯）：
+    # 无信号盘必须用模板语，锚定明令禁写「数据不足」
+    from mangpai.subjective.llm_prompt import _qianyi_anchor, _xiangmao_anchor
+    qy = _qianyi_anchor({'qianyi': {
+        'qianyi_yuanju': {'markers': [], 'desc': ''},
+        'qianyi_yingqi': {'move_windows': [], 'stay_windows': []}}})
+    assert '无迁移信号' in qy and '数据不足' in qy
+    xm = _xiangmao_anchor({'xiangmao': {
+        'xiuqi': {'hit': False, 'desc': ''}, 'jinshui': {'hit': False, 'desc': ''},
+        'muhuo': {'hit': False, 'desc': ''},
+        'yanxiang': {'bing': False, 'ding': False, 'gui': False, 'desc': ''},
+        'meili': {'hit': False, 'desc': ''}, 'shencai': {'hit': False, 'desc': ''}}})
+    assert '无显著相貌特征' in xm and '数据不足' in xm
+
+
+def test_xiangmao_anchor_g2_gender_branch():
+    # F6-8（W5 11/294）：秀气性别分流语按本造性别只写对应分支，不得双支照抄
+    from mangpai.subjective.llm_prompt import _xiangmao_anchor
+    a = _xiangmao_anchor(_XM_HIT_FEATS)
+    assert '性别分流' in a and '只写对应分支' in a
+
+
+def test_render_bazi_line_carries_gender(monkeypatch):
+    # F6-8 前置：八字行带乾/坤造标记，LLM 方能按本造性别落分流语
+    import json as _json
+    from mangpai.subjective.llm_channel import (
+        DIMENSIONS, render_structured_reading)
+    seen = {}
+
+    def fake(system, user, **kw):
+        seen['user'] = user
+        return {'text': _json.dumps(
+            {d: {'conclusion': 'x', 'basis': [], 'confidence': '中'}
+             for d in DIMENSIONS}, ensure_ascii=False),
+            'usage': {}, 'cost_usd': 0.0, 'price_tier': 'offpeak',
+            'elapsed_s': 0.0, 'model': 'mock'}
+
+    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek', fake)
+    eng = {'bazi': {'year': '甲子', 'month': '乙丑', 'day': '丙寅', 'hour': '丁卯'},
+           'input': {'gender': '女'}}
+    render_structured_reading(eng)
+    assert '坤造' in seen['user']

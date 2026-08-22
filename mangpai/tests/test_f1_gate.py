@@ -16,16 +16,17 @@ from mangpai.feishu.formatter import DISCLAIMER, format_report
 from mangpai.feishu.router import handle
 from mangpai.subjective import llm_backend
 from mangpai.subjective.llm_channel import (
-    _l2_enum, format_reading, render_structured_reading,
+    DIMENSIONS, _l2_enum, format_reading, render_structured_reading,
 )
 
 _ENGINE = {'caiming': {'tier_static': '小康', 'tier': '小康'},
            'guanming': {'is_guanming': False}}
 
 
-def _five_dims(conclusion='一段断语'):
+def _dims(conclusion='一段断语'):
+    # G2（W2-P2#1）：从 DIMENSIONS 生成七维 mock（原五维硬编码口径过期）
     return {d: {'conclusion': conclusion, 'basis': [], 'confidence': '中'}
-            for d in ('性格', '事业', '财运', '婚姻', '应期')}
+            for d in DIMENSIONS}
 
 
 # ---------------------------------------------------------------- P0 免责声明
@@ -69,13 +70,14 @@ def _fake_backend(text):
 
 def test_death_word_mark_mode_rejects(monkeypatch):
     """mark 模式命中死亡红线词 → 整段拒出，原文与附注均不展示。"""
-    data = _five_dims()
+    data = _dims()
     data['应期']['conclusion'] = '六十八岁寿终'
     monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
                         lambda *a, **kw: _fake_backend(json.dumps(data, ensure_ascii=False)))
     out = render_structured_reading(_ENGINE, validate='mark')
-    assert out == '[断语被死亡红线校验拦截，不予展示]'
+    assert out.startswith('[断语被死亡红线校验拦截，不予展示]')
     assert '寿终' not in out  # 附注也不展示
+    assert DISCLAIMER.strip() in out  # G2 F6-4：拦截文本自带免责行
 
 
 def test_death_word_reject_degrades_via_service(monkeypatch):
@@ -88,7 +90,7 @@ def test_death_word_reject_degrades_via_service(monkeypatch):
 
 def test_l2_death_refusal_window_exempts():
     """合规拒答句复述死亡词（V4 P2-2/2-3：「寿数」+「红线」外露）不计违规。"""
-    data = _five_dims()
+    data = _dims()
     data['应期']['conclusion'] = '命理不测生死，谨守安全红线，不予断言寿数'
     assert not any('死亡红线' in x['detail'] for x in _l2_enum(data, _ENGINE))
     # 窗口外真穿透仍拦
@@ -98,7 +100,7 @@ def test_l2_death_refusal_window_exempts():
 
 def test_l2_death_refusal_passes_render(monkeypatch):
     """拒答句经误报窗豁免 → mark 模式正常展示（不触发 reject）。"""
-    data = _five_dims()
+    data = _dims()
     data['应期']['conclusion'] = '命理不测生死，不予断言寿数'
     monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
                         lambda *a, **kw: _fake_backend(json.dumps(data, ensure_ascii=False)))
@@ -145,3 +147,42 @@ def test_max_tokens_default_8192():
 def test_self_check_rmb_offline():
     """_self_check 人民币口径（峰 ¥3.0/¥9.0、谷 ¥1.5/¥4.5）离线自检不挂。"""
     llm_backend._self_check()
+
+
+# ---------------------------------------------------------------- G2 P2 归并
+
+def test_death_violation_structured_reject_flag():
+    """F6-3：死亡红线违规带结构化 reject 字段，闸不再按 detail 子串匹配。"""
+    data = _dims()
+    data['应期']['conclusion'] = '六十八岁寿终'
+    v = _l2_enum(data, _ENGINE)
+    death = [x for x in v if '死亡红线' in x['detail']]
+    assert death and all(x.get('reject') is True for x in death)
+    # 非死亡违规不带 reject 字段
+    data2 = _dims()
+    data2['财运']['conclusion'] = '巨富之命'
+    v2 = _l2_enum(data2, _ENGINE)
+    assert v2 and all(not x.get('reject') for x in v2)
+
+
+def test_degrade_returns_carry_disclaimer(monkeypatch):
+    """F6-4：render 层降级/拦截文本自带免责行（不再单点依赖 service 前缀）。"""
+    monkeypatch.setattr(
+        'mangpai.subjective.llm_backend.call_deepseek',
+        lambda *a, **kw: (_ for _ in ()).throw(
+            llm_backend.LLMBackendError('mock 失败')))
+    out = render_structured_reading(_ENGINE, validate='mark')
+    assert out.startswith('[LLM 不可用') and DISCLAIMER.strip() in out
+    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
+                        lambda *a, **kw: _fake_backend('not json'))
+    out = render_structured_reading(_ENGINE, validate='mark')
+    assert out.startswith('[LLM 输出非合法 JSON') and DISCLAIMER.strip() in out
+
+
+def test_format_reading_larkmd_sanitized():
+    """F6-5：附注 bullets 去 '- '；LLM conclusion 三符（- /> /---）sanitize。"""
+    data = _dims('总述\n- 一条\n> 引用\n---')
+    validation = {'ok': False, 'violations': [{'layer': 'L1', 'detail': 'x'}]}
+    out = format_reading(data, validation, None)
+    assert '\n- ' not in out and '\n> ' not in out and '---' not in out
+    assert '· 一条' in out and '· 引用' in out
