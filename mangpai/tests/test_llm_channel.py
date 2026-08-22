@@ -512,13 +512,15 @@ def test_tier_rank_n2_guwei_yufu():
     assert _tier_rank('可积巨富之资') == 4
 
 
-def test_xiangmao_anchor_n2_sanitize():
-    # N2 迭代修（r1 相貌维 38 例违规主根因）：引擎秀气线原文含「漂亮」
-    # （xiangmao.py:111 性别分流语，引擎侧本批冻结），锚定行注入前改写到红线内
+def test_xiangmao_anchor_g3_no_sanitize():
+    # G3（F-N2-1 根治）：引擎秀气线 desc 去「漂亮」改「女看秀气倾向」
+    # （xiangmao.py 性别分流语），_xm_sanitize 连函数删除——锚定行直传原文
+    import mangpai.subjective.llm_prompt as lp
+    assert not hasattr(lp, '_xm_sanitize')
     from mangpai.subjective.llm_prompt import _xiangmao_anchor
     feats = {'xiangmao': {
         'xiuqi': {'hit': True, 'tou_gan': ['甲'],
-                  'desc': '秀气透干（甲透），女看秀气漂亮倾向、男看文章才华'},
+                  'desc': '秀气透干（甲透），女看秀气倾向、男看文章才华'},
         'jinshui': {'hit': False, 'blocked_by': [], 'desc': ''},
         'muhuo': {'hit': False, 'fire': [], 'desc': ''},
         'yanxiang': {'bing': False, 'ding': False, 'gui': False,

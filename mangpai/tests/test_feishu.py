@@ -356,12 +356,13 @@ def test_engine_report_has_qianyi_xiangmao_sections():
     assert '**迁移**' in md and '**相貌**' in md
 
 
-def test_formatter_xiangmao_sanitizes_piaoliang():
-    """引擎秀气线原文含「漂亮」（引擎侧冻结项），直出前改写红线内措辞。"""
-    from mangpai.feishu.formatter import format_report
+def test_formatter_xiangmao_desc_passthrough():
+    """G3（F-N2-1）：引擎秀气线 desc 已去「漂亮」，formatter 直传不再 sanitize。"""
+    import mangpai.feishu.formatter as fmt
+    assert not hasattr(fmt, '_xm_sanitize')
     r = {'xiangmao': {
         'xiuqi': {'hit': True, 'tou_gan': ['甲'],
-                  'desc': '秀气透干（甲透），女看秀气漂亮倾向、男看文章才华'},
+                  'desc': '秀气透干（甲透），女看秀气倾向、男看文章才华'},
         'jinshui': {'hit': False, 'blocked_by': [], 'desc': ''},
         'muhuo': {'hit': False, 'fire': [], 'desc': ''},
         'yanxiang': {'bing': False, 'ding': False, 'gui': False,
@@ -369,6 +370,6 @@ def test_formatter_xiangmao_sanitizes_piaoliang():
         'meili': {'hit': False, 'jiyi_only': False, 'desc': ''},
         'shencai': {'hit': False, 'markers': [], 'desc': ''},
         'summary': 's'}}
-    md = format_report(r)
+    md = fmt.format_report(r)
     assert '**相貌**' in md and '秀气倾向' in md
     assert '漂亮' not in md

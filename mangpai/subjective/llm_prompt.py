@@ -239,12 +239,6 @@ def _qianyi_anchor(features: dict) -> str:
             + '应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。')
 
 
-def _xm_sanitize(desc: str) -> str:
-    """N2 迭代修：marker 原文偶含「漂亮」（xiangmao.py 秀气线性别分流语，
-    引擎侧本批冻结不改），锚定行注入前改写到红线内措辞。"""
-    return desc.replace('秀气漂亮', '秀气').replace('漂亮', '秀气')
-
-
 def _xiangmao_anchor(features: dict) -> str:
     """本案相貌锚定行（N1 七维批）：xiangmao 命中线 marker 描述 + 禁结论词令。"""
     xm = features.get('xiangmao')
@@ -254,10 +248,10 @@ def _xiangmao_anchor(features: dict) -> str:
     for k in ('xiuqi', 'jinshui', 'muhuo', 'meili', 'shencai'):
         node = xm.get(k) or {}
         if node.get('hit') and node.get('desc'):
-            parts.append(_xm_sanitize(str(node['desc'])))
+            parts.append(str(node['desc']))
     yan = xm.get('yanxiang') or {}
     if (yan.get('bing') or yan.get('ding') or yan.get('gui')) and yan.get('desc'):
-        parts.append(_xm_sanitize(str(yan['desc'])))
+        parts.append(str(yan['desc']))
     ban = ('相貌维只许引用上述 marker 描述；叙述正文任何位置不得出现'
            '「漂亮/美/丑/帅」字样，含「美/丑」的复合评价词'
            '（如曲线优美/体态柔美/秀美/俊美）同禁，不含美丑字的相貌结论词'

@@ -125,3 +125,23 @@ def test_engine_wiring_and_payload_channel():
     payload = build_payload(res)
     assert 'xiangmao' in payload
     assert payload['xiangmao']['jinshui']['hit'] is True
+
+
+# ── 7. G3 措辞哨兵：秀气线去「漂亮」（F-N2-1）+ 大眼锚注（#15）──
+
+def test_g3_xiuqi_desc_no_piaoliang():
+    """梦露造 坤 丙寅癸巳辛酉癸巳：秀气线 desc 收敛为「女看秀气倾向」
+    （书原文 zhongji:3914-3915「女命秀气主漂亮」，措辞红线不进结论词）。"""
+    r = _run('丙寅癸巳辛酉癸巳')
+    assert r['xiuqi']['hit'] is True
+    assert '女看秀气倾向' in r['xiuqi']['desc']
+    assert '漂亮' not in r['xiuqi']['desc']
+
+
+def test_g3_yanxiang_dayan_anchor():
+    """眼象线「丙=眼框/大眼之象」补 inline 书锚：zhongji:4531「丙主眼睛大」
+    明锚 + zhongji:1483 眼框 + lixiangxue:12632 黛安娜大眼睛旁证。"""
+    r = _run('丙寅癸巳辛酉癸巳')
+    assert r['yanxiang']['bing'] is True
+    assert '大眼' in r['yanxiang']['desc']
+    assert 'zhongji:1483/4531' in r['yanxiang']['desc']

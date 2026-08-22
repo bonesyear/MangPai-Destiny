@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from mangpai.subjective.llm_prompt import _xm_sanitize
 from mangpai.subjective.narrative import (
     _bazi_line, _caiming_line, _gongliang_line, _guanming_line, _hunyin_line,
     _yingqi_line, _zhiye_line, _zuogong_line,
@@ -40,17 +39,17 @@ def _qianyi_rows(qy: Dict[str, Any]) -> list:
 
 
 def _xiangmao_rows(xm: Dict[str, Any]) -> list:
-    """相貌段：命中线 marker 原文描述（先 sanitize「漂亮」→红线内措辞）。"""
+    """相貌段：命中线 marker 原文描述（引擎 desc 措辞已在红线内，G3 起直传）。"""
     if not xm:
         return []
     parts = []
     for k in ('xiuqi', 'jinshui', 'muhuo', 'meili', 'shencai'):
         node = xm.get(k) or {}
         if node.get('hit') and node.get('desc'):
-            parts.append(_xm_sanitize(str(node['desc'])))
+            parts.append(str(node['desc']))
     yan = xm.get('yanxiang') or {}
     if (yan.get('bing') or yan.get('ding') or yan.get('gui')) and yan.get('desc'):
-        parts.append(_xm_sanitize(str(yan['desc'])))
+        parts.append(str(yan['desc']))
     return parts or ['无显著相貌 marker（引擎 marker 层不定性）']
 
 

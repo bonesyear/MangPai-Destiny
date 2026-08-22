@@ -17,7 +17,9 @@ xiangmao - 盲派相貌 marker 层·主观层（subjective，轻量）
         「甲木为活木，生火为花朵」。木死活消费 objective/wood_type 结果。
   主线4 眼象：zhongji:1482-1483「丙为眼框，癸为黑，为眼珠」「癸加丙，
         等于瞳孔」；lixiangxue:11124-11126「火土焦干癸水，双目无瞳……
-        丙配癸才是瞳孔」。
+        丙配癸才是瞳孔」。大眼锚（G3 #15 补注）：zhongji:4531 黛安娜造
+        「丙主眼睛大」（明锚）、zhongji:1478 丙食造「女命眼睛大」、
+        lixiangxue:12632 黛安娜「丙火可以表示她美丽的大眼睛」。
   弱线1 伤官合官杀→魅力：gaoji:5618-5623 阮玲玉造「伤官庚金合七杀乙木，
         伤官有了吸引男人、魅力、性感的意向」；shouke:634-638 阮玲玉 vs
         美容师对照「庚金伤官不见官杀……伤食只单纯表现为技艺」。
@@ -107,8 +109,10 @@ def analyze_xiangmao(
     xiuqi_hit = bool(tou)
     xiuqi_desc = ''
     if xiuqi_hit:
-        # 性别分流措辞（zhongji:3914-3915 女命秀气主漂亮/男命主文章）
-        fen_liu = ('秀气透干（' + '、'.join(tou) + '透），女看秀气漂亮倾向、'
+        # 性别分流措辞：书原文「如是女命则秀气主漂亮，男命秀气主文章」
+        # （zhongji:3914-3915）；desc 措辞红线（无档位设计）收敛为「秀气
+        # 倾向」不进「漂亮」结论词（F-N2-1 G3 根治，_xm_sanitize 已随删）
+        fen_liu = ('秀气透干（' + '、'.join(tou) + '透），女看秀气倾向、'
                    '男看文章才华（zhongji:3914；chuji:1711）')
         if gender == '男':
             fen_liu = ('秀气透干（' + '、'.join(tou) + '透），秀气主文章才华'
@@ -149,7 +153,8 @@ def analyze_xiangmao(
     eye_full = bing and gui  # 丙配癸=瞳孔（zhongji:1482；lixiangxue:11125）
     yan_desc_parts = []
     if bing:
-        yan_desc_parts.append('丙=眼框/大眼之象')
+        yan_desc_parts.append('丙=眼框/大眼之象（zhongji:1483/4531；'
+                              'lixiangxue:12632）')
     if ding:
         yan_desc_parts.append('丁=眼之象（zhongji:2122-2147；gaoji:15337；'
                               'lixiangxue:1777）')

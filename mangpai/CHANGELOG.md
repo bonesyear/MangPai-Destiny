@@ -1,5 +1,14 @@
 # 盲派客观层 变更记录
 
+## 2026-08-22 修批 G3 · 引擎侧收尾（xiangmao.py 仅锚注与 desc 措辞，判定逻辑/输出键零改动）
+
+| 项目 | 内容 |
+|------|------|
+| #15 大眼锚注（W3 P2） | 「丙=眼框/大眼之象」补 inline 锚（zhongji:1483 眼框/4531「丙主眼睛大」明锚；lixiangxue:12632 黛安娜大眼睛旁证；zhongji:1478 丙食造「女命眼睛大」入 docstring）——回书裁决=有锚补注，非措辞收敛 |
+| F-N2-1 秀气线 desc 根治 | 「女看秀气漂亮倾向」改「女看秀气倾向」（书原文 zhongji:3914-3915「女命秀气主漂亮」，措辞红线=无档位设计不进「漂亮」结论词）；`_xm_sanitize` 连函数+调用删除（llm_prompt 锚定行/formatter 直出两路改直传） |
+| judge 判据更新（下轮评审前） | `_n2_eval.py`：F-N2-2 眼象线命中示例入 mao/review 判据（含独癸 desc 空不算命中）；F6-6 程度词/评价词/气质引申句入 lv=1；相貌 red 补复合评价词（标致/水灵/清秀/端庄/甜美）；`_t3_eval.py` 标注五维口径存档、七维口径归 _n2_eval |
+| 哨兵 | test_xiangmao 新增 2 测（秀气 desc 无「漂亮」/大眼锚注 zhongji:4531）；test_xiangmao_anchor_n2_sanitize→g3_no_sanitize、test_formatter_xiangmao_sanitizes_piaoliang→desc_passthrough（含 `_xm_sanitize` 已删断言） |
+
 ## 2026-08-22 修批 G2 · 样式批（llm_prompt/llm_channel 样式层 + 统计口径 + 收档；引擎 compute_all 判定零改动）
 
 | 项目 | 内容 |
