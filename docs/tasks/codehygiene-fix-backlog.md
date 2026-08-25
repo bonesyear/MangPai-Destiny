@@ -167,3 +167,65 @@
 | P0 | 68 |
 | P1 | 139 |
 | P2 | 26 |
+
+---
+
+## H3 · subjective 辅助批（2026-08-25）
+
+审查范围（11 文件）：`yunfan.py`、`zaihuo.py`、`zeishen_bushen.py`、`yingqi_subj.py`、`xueli.py`、`shipaige.py`、`gongmen_wuzhi.py`、`juefa.py`、`chuangong.py`、`zhengfan.py`、`narrative.py`。
+
+### P0（运行时崩溃 / 静默失败）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `yunfan.py:720` | D4 | 缺省自调 `analyze_zuogong` 裸 `except Exception:`，吞 TypeError/ValueError 并回退空做功。 | 仅捕获预期异常（如参数缺失），非预期异常抛出并记录输入四柱。 |
+| `yunfan.py:735` | D4 | 缺省自调 `analyze_zhengfan` 裸 `except Exception:`，基线判定静默失败。 | 细化异常类型，非预期异常继续抛出。 |
+| `yunfan.py:745` | D4 | 缺省自调 `classify_strength/classify_cong_target` 裸 `except Exception:`，从格行运规则失效。 | 同上。 |
+| `zaihuo.py:146-157` | D4 | `_ensure_relations` 裸 `except Exception:`，非法输入吞异常返回 `{}`。 | 仅捕获 `detect_relations` 预期异常，其他抛出。 |
+| `zaihuo.py:285-289` | D4 | `classify_jibing` 中 `analyze_muku` 裸 `except Exception:`，特殊病分支静默失败。 | 细化异常，保留失败原因。 |
+| `zaihuo.py:352-354` | D4 | `detect_chehuo` 中 `resolve_shensha` 裸 `except Exception:`，多马星计算静默归零。 | 同上。 |
+| `zaihuo.py:534-536` | D4 | `detect_siwang` 中首次 `analyze_muku` 裸 `except Exception:`，墓库信号丢失。 | 同上。 |
+| `zaihuo.py:573-579` | D4 | `detect_siwang` 中第二次 `analyze_muku` 裸 `except Exception:`，禄入墓信号丢失。 | 同上。 |
+| `zaihuo.py:583-585` | D4 | `detect_siwang` 中 `resolve_shensha` 裸 `except Exception:`，凶性三煞丢失。 | 同上。 |
+| `zaihuo.py:692` | D4 | `analyze_zaihuo` 中 `assess_direction_signals` 裸 `except Exception:`，方向总线信号丢失。 | 同上。 |
+| `xueli.py:120` | D4 | `_ensure_relations` 裸 `except Exception:`，关系数据静默失败。 | 仅捕获预期异常。 |
+| `xueli.py:543` | D4 | `analyze_xueli` 中 `assess_direction_signals` 裸 `except Exception:`，方向信号丢失。 | 同上。 |
+| `gongmen_wuzhi.py:142` | D4 | `_ensure_relations` 裸 `except Exception:`，做功数据静默失败。 | 同上。 |
+| `gongmen_wuzhi.py:191` | D4 | `classify_junguan` 中 `resolve_shensha` 裸 `except Exception:`，羊刃信号丢失。 | 同上。 |
+| `gongmen_wuzhi.py:270` | D4 | `classify_gongjianfa` 中 `analyze_muku` 裸 `except Exception:`，墓库信号丢失。 | 同上。 |
+| `gongmen_wuzhi.py:378` | D4 | `detect_gongmen_wuzhi_xiang` 中 `resolve_shensha` 裸 `except Exception:`，羊刃/武职信号丢失。 | 同上。 |
+| `gongmen_wuzhi.py:524` | D4 | `analyze_gongmen_wuzhi` 中缺省自调 `analyze_gongliang` 裸 `except Exception:`，层次评定丢失。 | 同上。 |
+
+### P1（必修）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `zaihuo.py:94-110` / `yingqi_subj.py:54-71` / `xueli.py:39-55` / `gongmen_wuzhi.py:64-80` | D1 | 4 处独立实现 `_compute_shishen`，叠加 H2 已发现的 8 处，十神计算继续扩散。 | 统一复用 `objective.bazi_calc.ten_god` 或下沉公共 helper。 |
+| `zaihuo.py:113-126` / `xueli.py:58-69` / `gongmen_wuzhi.py:83-96` | D1 | 3 处独立实现十神大类 `_cat`。 | 抽到公共模块（如 `subjective.utils`）。 |
+| `zaihuo.py:129-143` / `gongmen_wuzhi.py:99-113` | D1 | 2 处独立实现五行大类 `_wx_cat`。 | 同上。 |
+| `zaihuo.py:146-157` / `xueli.py:110-121` / `gongmen_wuzhi.py:131-142` | D1 | 3 处 `_ensure_relations` 重复实现。 | 抽到 `subjective.utils` 统一 helper。 |
+| `yunfan.py:215,305,316,528` / `gongmen_wuzhi.py:516-517` | D7 | 函数内局部 import（shensha/canggan/constants/gongliang），破坏静态依赖可读性。 | 上提到模块级；gongmen_wuzhi 对 gongliang 的局部 import 说明存在循环依赖风险，需解耦。 |
+| `yunfan.py:364-548` / `yunfan.py:669-849` / `zhengfan.py:222-688` / `juefa.py:328-623` / `xueli.py:307-435` / `gongmen_wuzhi.py:475-565` | D2 | 6 个函数 >80 行（最长 `zhengfan.analyze_zhengfan` 466 行），嵌套最深 4-5。 | 拆分子函数 / 按判定阶段分块。 |
+| `yunfan.py:258-261` / `zeishen_bushen.py:133-138` | D3/D6 | 线性扫描 `WX_SHENG.items()` 反查印五行 / 原神五行，效率低且语义不清。 | 建反向映射 `WX_BEI_SHENG` 或直接用常量查表。 |
+| `zaihuo.py:160-176` / `xueli.py:90-107` / `gongmen_wuzhi.py:116-129` | D1 | 逐柱藏干取十神/五行的扫描逻辑高度相似，仅深度阈值不同。 | 合并为 `_pillar_cats(day_gan, gans, zhis, depth=...)`。 |
+| `shipaige.py:107-114` / `shipaige.py:120-148` | D5 | `SHIPAI_DOMAINS` / `METHODOLOGY` 数据表注释已说明消费者删除，为死数据档案。 | 确认无引用后清理，或移到 docs 存档。 |
+| `gongmen_wuzhi.py:1-46` | D5 | 模块 docstring 已声明「正式弃用」，但代码仍在 `__all__` 暴露并可能被 engine 保留键引用。 | 若确认弃用，加 deprecation warning 或在下一批次移除入口。 |
+
+### P2（建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `yunfan.py` / `zaihuo.py` / `xueli.py` / `gongmen_wuzhi.py` / `yingqi_subj.py` / `juefa.py` / `zhengfan.py` | D6 | 判定中大量未命名阈值（`>=2` / `>=3` / `>=4` / `score>=3` 等）分散在函数中。 | 抽取命名常量并加单测覆盖边界。 |
+| `zaihuo.py:221-244` / `zaihuo.py:279-291` | D6 | 疾病判定中穿/破/刑逻辑复制粘贴，仅字典不同。 | 抽出 `_collect_rel_disease(type, wa, map)` 通用函数。 |
+| `yingqi_subj.py:76-141` / `yingqi_subj.py:190-395` | D6 | `infer_comprehensive_yingqi` 中交集判定阈值 `hit_count >= 2` 为 magic 口径，无单测。 | 抽常量 `_YINGQI_COMMIT_THRESHOLD` 并补边界测试。 |
+| `chuangong.py:143-204` | D5 | 模块注释说明 engine 零消费、测试 xfail，但入口仍暴露。 | 若长期不用，加 deprecation 或移入 archive。 |
+| `narrative.py:355` | D7 | `_call_llm` 局部 import `anthropic` 是软依赖设计，可接受；但 `model` 回退字符串 `claude-sonnet-5` 为硬编码占位。 | 抽到模块级常量并允许环境变量覆盖。 |
+| `zhengfan.py:62-153` | D6 | `_compute_qishi` 中势党阈值 4/8、两神成象阈值 6 为裸 magic numbers。 | 抽 `_QISHI_HALF=4`、`_QISHI_TWO_GOD=6` 等常量。 |
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 17 |
+| P1 | 10 |
+| P2 | 6 |
