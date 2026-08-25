@@ -606,3 +606,105 @@
 | P0 | 3 |
 | P1 | 11 |
 | P2 | 11 |
+
+
+---
+
+## H11 · subjective 深度补充批（2026-08-25）
+
+> 本批只审不改、零 API，针对 H1/H2/H4/H8 标记的复杂点做**可执行拆分深挖**，输出修复批（H-fix）可直接落地的拆分方案。
+
+### 拆分方案表（3 个大函数）
+
+| 函数 | 行数 | 建议子函数（边界/参数/返回值） | 拆分理由 |
+|---|---|---|---|
+| `gongliang.analyze_gongliang` | 957 | `_prepare_inputs(zuogong_result, day_gan, gans, zhis, zb_res) -> (day_wx, wa_list, wtypes, fei, gshen, tomb_works, san_he_formed, _zb_*)`：统一 Pillars/自调/上游信号解析<br>`_compute_position_sets(day_wx, gans, zhis, wa_list, fei, gshen) -> (involved_positions, zhi_targets, involved_cats, gong_cats, gan_cats, fei_cats, strong_pos, destructive_pos)`：把位置与十神集合计算抽出<br>`_apply_gong_point_rules(...) -> (points, reasons, yuanshen_hit, yuanshen_pos, chain_len, _zhiku_tombs, _fang_ju_formed, hua_chengju)`：14 条计分规则集中在此<br>`_apply_caps_and_direction(level, raw_level, points, zhi_jing, penalty, hua_chengju, _fangju_zhiku, pocai, yongshen_xiong, fuhe) -> level`：封顶/降档/方向标注<br>`_build_gongliang_result(...) -> Dict`：装配输出、双轨对账、zb 信号录入 | 五阶段职责清晰，可逐阶段写单元测试；当前计分/封顶/装配全挤在一段，嵌套达 5 层 |
+| `zuogong_detect.detect_relations` | 850 | `_scan_gan_relations(day_gan, gans, zhis) -> work_actions, work_types, day_he_type, zheng_he`：合并日干合、非日干合、天干克<br>`_scan_shengyong(day_gan, gans, zhis) -> work_actions, sheng_yong_actions, work_types`：天干食伤/地支食伤/内食神格<br>`_scan_zhi_pair_relations(zhis, gans) -> work_actions, work_types`：用注册表一次性扫描六合/暗合/六冲/刑/害/破<br>`_scan_sanhe_banhe(zhis) -> work_actions, work_types, san_he_formed`<br>`_scan_tomb_fuyin_fanyin(zhis, gans, work_actions) -> tomb_works, work_types`<br>`_collect_raw_facts(day_gan, gans, zhis, kong_wang) -> day_changsheng, day_weak_zhis, kong_wang_zhis, entombed_gan_pillars` | 6 组 O(n²) 复制循环可合并为一次通用扫描；生用、三合、墓用逻辑差异大，保留独立子函数 |
+| `engine.compute_all` | 490 | `_compute_objective_base(p) -> result`：canggan/chang_sheng/nayin/shensha/binzhu/tiyong/muku/anhe/biqi/wood/soil/he/virtual/zhengfan/shenshu/xiangfa/gongshen<br>`_compute_zuogong_and_derivatives(p) -> (zg, zb_res, result)`：zuogong、zeishen_bushen、gongliang<br>`_compute_yunshi(p, zg) -> result`：dayun/liunian/jiaoyun/shipaige<br>`_compute_subjective_domain(p, zg, relations, yunfan_slice, laoyu_res, direction) -> result`：caiming/guanming/hunyin/.../yingqi_subj/narrative<br>`_assemble_summary(result) -> str`：现有 `_build_summary` 直接挪用 | objective→subjective→summary 三阶段顺序耦合强，拆分后可分别回归；运岁计算集中便于处理 dy_list/liunian 分支 |
+
+### 6 组 O(n²) 复制循环差异与合并方案
+
+| # | 代码位置 | 关系类型 | 核心差异点 | 合并策略 |
+|---|---|---|---|---|
+| 1 | `zuogong_detect.py:508-525` | 地支六合 | `_check_pair(z1,z2,LIU_HE)`；加 `is_day` 描述 | 统一为 `_scan_zhi_pair_relations`，通过注册表配置：`(type, action, pair_set, require_day, severity, extra_tag)` |
+| 2 | `zuogong_detect.py:531-546` | 暗合 | `AN_HE.get(z1)==z2`（有方向）；必须日支参与 | 注册表增加 `directional=True`、`require_day=True` |
+| 3 | `zuogong_detect.py:593-609` | 六冲 | `_check_pair(z1,z2,LIU_CHONG)`；`severity='normal'` | 注册表 `severity='normal'` |
+| 4 | `zuogong_detect.py:684-701` | 刑 | `_check_pair(z1,z2,XING_PAIRS)`；自刑标记 | 注册表增加 `zi_xing=(z1==z2)` 标签 |
+| 5 | `zuogong_detect.py:706-723` | 穿/害 | `_check_pair(z1,z2,LIU_HAI)`；`severity='high'` | 注册表 `severity='high'` |
+| 6 | `zuogong_detect.py:726-742` | 六破 | `_check_pair(z1,z2,LIU_PO)`；`severity='high'` | 注册表 `severity='high'` |
+
+合并后只剩一次 `for i in range(4): for j in range(i+1,4):`，循环体按注册表类型判断，减少 5 份复制代码。三合/半合、生、墓用逻辑差异大，不强行合并。
+
+### _safe_compute 模块对照表
+
+| 模块键 | 是否 `_safe_compute` 包裹 | 失败回退值 | 异常是否被吞 | 备注 |
+|---|---|---|---|---|
+| `bazi` / `input` | 否（直接赋值） | — | 否 | 无计算 |
+| `kong_wang` / `di_zhi_relations` | 否（透传） | — | 否 | 无计算 |
+| `canggan` | 是 | key 缺失 | 是 | `if is not None` 才写入 |
+| `chang_sheng` | 是 | key 缺失 | 是 | 同上 |
+| `nayin` | 是 | `[]` | 是 | `or []` |
+| `nayin_work` | 是 | `{}` | 是 | `or {}` |
+| `shensha` | 是 | `{}` | 是 | `or {}` |
+| `binzhu` | 是 | `{}` | 是 | `or {}` |
+| `tiyong` | 是 | `{}` | 是 | `or {}` |
+| `zuogong` | 是 | `zg={}` | 是 | `if zg is not None` |
+| `zeishen_bushen` | 是 | `{}` | 是 | 局部变量 |
+| `gongliang` | 是 | `{}` | 是 | `or {}` |
+| `muku` | 是 | `{}` | 是 | `or {}` |
+| `anhe` | 是 | `{'anhe':[]}` | 是 | 异常/空结果均回退默认值 |
+| `biqi` | 是 | `{'biqi':[]}` | 是 | 同上 |
+| `wood_type` | 是 | `{}` | 是 | `or {}` |
+| `soil` | 是 | `{}` | 是 | `or {}` |
+| `he_types` | 是 | `{'he_types':[]}` | 是 | `or {}` 后包装 |
+| `virtual_solid` | 是 | `{}` | 是 | `or {}` |
+| `zhengfan` | 是 | `{'configuration':'无做功，不论正反','type':'neutral'}` | 是 | 带默认值 |
+| `shenshu` | 是 | `{}` | 是 | `or {}` |
+| `xiangfa` | 是 | key 缺失 | 是 | `if is not None` |
+| `gongshen` | 是 | `{}` | 是 | `or {}`；**selectors 未登记** |
+| `dayun_analysis` | 条件+是 | `{}` | 是 | dy_list 非空才计算 |
+| `liunian_analysis` | 条件+是 | `{}` | 是 | liunian_data 非空才计算 |
+| `jiaoyun_analysis` | 条件+是 | `{}` | 是 | 年份/月柱存在才计算；不在 selectors |
+| `shipaige` | 是 | `{}` | 是 | `or {}` |
+| `relations` | 是 | `{}` | 是 | `or {}` |
+| `yunfan` | 是 | `{}` | 是 | `or {}` |
+| `laoyu` | 是 | `{}` | 是 | 局部变量，后复用 |
+| `direction` | 是 | `{}` | 是 | 局部 import；不在 selectors |
+| `caiming` | 是 | `{}` | 是 | `or {}` |
+| `guanming` | 是 | `{}` | 是 | `or {}` |
+| `hunyin` | 是 | `{}` | 是 | `or {}` |
+| `xueli` | 是 | `{}` | 是 | `or {}` |
+| `xiangfa_ops` | 是 | `{}` | 是 | `or {}` |
+| `zhiye` | 是 | `{}` | 是 | `or {}` |
+| `gongmen_wuzhi` | 是 | `{}` | 是 | `or {}`；已从 selectors 摘除 |
+| `liuqin` | 是 | `{}` | 是 | `or {}` |
+| `zinv` | 是 | `{}` | 是 | `or {}` |
+| `qianyi` | 是 | `{}` | 是 | `or {}` |
+| `xiangmao` | 是 | `{}` | 是 | `or {}` |
+| `zaihuo` | 是 | `{}` | 是 | `or {}`；payload 再走 `zaihuo_llm_view` |
+| `yingqi_subj` | 是 | `{}` | 是 | `or {}` |
+| `narrative` | 是 | `''` | 是 | `or ''` |
+| `summary` | **否** | 崩溃传播 | **否** | `_build_summary` 直接调用，异常会击穿上层 |
+
+结论：**全部计算模块异常均被 `_safe_compute` 吞掉**，没有任何模块能正确传导非预期异常；仅 `summary` 未包裹会整体崩溃。这是 H8 P0 `_safe_compute` 裸 `except Exception` 的具象化表现。
+
+### selectors 机制评估
+
+- 当前 `MANGPAI_SCHOOL.selectors` 是硬编码元组（41 项），`build_payload` 对缺失 selector 静默跳过、对 engine 多出来的键直接丢弃（如 `gongshen` 已计算但不在 selectors）。
+- 保护链：死亡/灾祸通过 `zaihuo_llm_view` + `_scrub_death` 二次过滤；新模块必须同时改 `schools.py`、`tests/test_subjective.py`、`verify_dayun.py` 三处，否则要么进不了 payload，要么测试 count 失败。
+- **脆弱点**：缺少 engine 输出键 ↔ selectors 的自动契约。新增键漏登记时，数据会静默丢失（D6b zinv/qianyi/xiangmao 就是人工三处同步才补上）。
+- **修复建议（P1）**：增加 `test_engine_keys_covered_by_selectors`：跑一次 reference `compute_all`，断言所有计划进 LLM 的顶层键都在 `selectors` 中；反向断言 `selectors` 中无 engine 永不产出的键。或在 engine 模块导出 `ENGINE_LLM_KEYS` 与 `selectors` 做静态同步断言。
+
+### 同型残留复查
+
+- 裸 `except Exception`：gongliang 自调 `analyze_zuogong`（:297）、自调 `analyze_zeishen_bushen`（:321）、自调 `classify_caifu_view`（:774）、自调 `classify_strength`（:1109）全部吞异常，属于 H2 已统计 4 处的细化确认。
+- 口径漂移：`gongliang:864-868` 与 `_day_faction` 同样用 `WX_SHENG.items()` 线性反查印五行，H1/H3 P2 残留，建议统一建 `WX_BEI_SHENG` 反向映射。
+- 状态残留：`engine._auto_liunian_injected` 在 `__init__` 未初始化，H8 P2 残留，同实例复调会残留 `True`。
+
+### 本批新发现统计
+
+| 级别 | 数量 | 项 |
+|---|---|---|
+| P0 | 0 | 无新增运行时崩溃点；H8 P0 `_safe_compute` 裸 `except` 经本批全模块确认 |
+| P1 | 4 | ① `analyze_gongliang` 五阶段可执行拆分<br>② `detect_relations` 6 组 O(n²) 循环合并 + 子函数拆分<br>③ `compute_all` 四阶段拆分<br>④ selectors/engine-key 自动契约测试 |
+| P2 | 2 | ① `WX_BEI_SHENG` 反向映射替换 `_day_faction`/`gongliang:864` 线性扫描<br>② `engine.__init__` 初始化 `_auto_liunian_injected` |
