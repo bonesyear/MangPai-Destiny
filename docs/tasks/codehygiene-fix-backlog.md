@@ -113,3 +113,57 @@
 | P2 | 47 |
 
 ---
+
+## H2 · subjective 核心批（2026-08-25）
+
+审查范围（10 文件）：`caiming.py`、`yongshen.py`、`zhiye.py`、`xiangfa_ops.py`、`gongliang.py`、`liuqin.py`、`hunyin.py`、`zuogong_confirm.py`、`guanming.py`、`laoyu.py`。
+
+### P0（运行时崩溃 / 静默失败）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `caiming.py:239,251,526,585,684,1335,1385,1406,1510,1535,1853` | D4 | 11 处 `except Exception:` 吞掉 TypeError/ValueError 等并返回 `{}`/`None`/`pass`，含 `_ensure_relations/_ensure_muku`、自合检测、从格判定、gongliang 自调等路径 | 逐处捕获预期异常；非预期异常继续抛出并记录 |
+| `yongshen.py:242,344,449,716,909,1257,1358,1531,1540` | D4 | 9 处 `except Exception:` 吞异常并返回空/None/pass（`_ensure_*`、强弱判定、类象等） | 同上 |
+| `zhiye.py:157,1281,1352,1356,1486,1505,1534,1573,1649,1682` | D4 | 10 处 `except Exception:` 吞异常 | 同上 |
+| `xiangfa_ops.py:58,142,342,354,1213,1343,1480` | D4 | 7 处 `except Exception:` 吞异常 | 同上 |
+| `gongliang.py:297,321,774,1110` | D4 | 4 处 `except Exception:` 吞异常 | 同上 |
+| `liuqin.py:102,287,422,550,707,855,879,1107,1165` | D4 | 9 处 `except Exception:` 吞异常 | 同上 |
+| `hunyin.py:74,179,828,893,1084` | D4 | 5 处 `except Exception:` 吞异常 | 同上 |
+| `zuogong_confirm.py:467,494,875,879,884` | D4 | 5 处 `except Exception:` 吞异常 | 同上 |
+| `guanming.py:128,336,556,950` | D4 | 4 处 `except Exception:` 吞异常 | 同上 |
+| `laoyu.py:138,475,642` | D4 | 3 处 `except Exception:` 吞异常 | 同上 |
+| `zuogong_confirm.py:713` | D6 | `_cand_hua` 中 `hua_actions` 可能为空，直接 `[0]` 引发 `IndexError` | 先判空或改用 `next()`/`.get()` |
+
+### P1（必修）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `caiming.py:69` / `yongshen.py:808` / `zhiye.py:80` / `xiangfa_ops.py:179` / `liuqin.py:56` / `hunyin.py:91` / `guanming.py:57` / `laoyu.py:55` | D1 | 8 个 subjective 文件各自独立实现 `_compute_shishen` / `_shishen_cat`；叠加 H1 objective 层 3 处，十神计算严重分散 | 统一复用 objective 或 yongshen 的十神接口 |
+| `caiming.py:229,243` / `guanming.py:118` / `hunyin.py:169` / `xiangfa_ops.py:327,346` / `zhiye.py:147` / `liuqin.py:92` / `laoyu.py:128` / `yongshen.py:334,1520,1535` | D1 | 12 个 `_ensure_relations/_ensure_muku/_ensure_work_actions/_ensure_zhengfan/_ensure_laoyu` 重复实现 | 抽到 `subjective.utils` 统一 helper |
+| `caiming.py:394,616,954,1111,1339,1787` | D2 | 6 个函数 >80 行（最长 `assess_caiming_level` 444 行），嵌套最深 6 | 拆分职责 / 抽子函数 |
+| `yongshen.py:91,209,374,624,875,1051,1282,1666` | D2 | 8 个函数 >80 行，嵌套最深 7 | 同上 |
+| `zhiye.py:305,483,616,930,1072,1200,1297` | D2 | 7 个函数 >80 行（最长 `classify_zhiye` 424 行），嵌套最深 7 | 同上 |
+| `xiangfa_ops.py:502,617,845,1000,1115,1285,1428` | D2 | 7 个函数 >80 行（最长 `xiangfa_fallback` 215 行） | 同上 |
+| `gongliang.py:226` | D2 | `analyze_gongliang` 957 行、嵌套 5 | 拆分为解析 / 计分 / 汇总子函数 |
+| `liuqin.py:170,255,523,640,998,1122` | D2 | 6 个函数 >80 行 | 同上 |
+| `hunyin.py:265,404,913,1021` | D2 | 4 个函数 >80 行 | 同上 |
+| `zuogong_confirm.py:70,307` | D2 | `assess_work_level` 143 行、`analyze_zuogong` 800 行，嵌套均 7 | 同上 |
+| `guanming.py:134,891` | D2 | `classify_guanming_combo` 491 行、嵌套 6 | 同上 |
+| `laoyu.py:179,803` | D2 | 2 个函数 >80 行 | 同上 |
+| `caiming.py`（8 处） / `yongshen.py`（26 处） / `zhiye.py`（6 处） / `xiangfa_ops.py`（2 处） / `gongliang.py`（2 处） / `liuqin.py`（4 处） / `guanming.py`（7 处） / `laoyu.py`（1 处） | D7 | 56 处函数内局部 import；`gongliang` 顶层导入 `caiming`，`caiming` 局部导入 `gongliang`，形成双向依赖；`yongshen` 作为星型中心被多模块顶层引用，又在局部回边导入 `zuogong_confirm/laoyu/juefa/zhengfan` | 将局部导入上提到模块级并消除循环；或抽取共享接口层 |
+| `caiming.py:850,911,1787` / `yongshen.py:72,1520` / `zhiye.py:290` / `xiangfa_ops.py:1115` / `gongliang.py:1240,1365` / `liuqin.py:485` / `hunyin.py:570,713,730,800,913` / `guanming.py:891` / `laoyu.py:438` | D5 | 18 个函数参数在函数体内未被引用（`shensha_result`、`relations`、`gender` 等占位参数） | 清理占位参数或显式标注保留原因 |
+
+### P2（建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `caiming.py:52,58` / `zhiye.py:57` / `xiangfa_ops.py:33,38,44,48` / `liuqin.py:40` / `hunyin.py:37,43` / `zuogong_confirm.py:37` / `guanming.py:41` / `laoyu.py:31` | D5 | 25 个未使用顶层 import（`CANG_GAN_MANGPAI`、`analyze_binzhu`、`compute_shensha_ext`、xiangfa 数据表等） | 删除或注释说明保留原因 |
+| `全部 10 文件` | D6 | 判定中大量未命名阈值（如 `>=2`、`>=3`、百分比常数）分散在函数中 | 抽取命名常量并加单测覆盖边界 |
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 68 |
+| P1 | 139 |
+| P2 | 26 |
