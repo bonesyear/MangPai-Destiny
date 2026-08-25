@@ -549,3 +549,60 @@
 | P0 | 0 |
 | P1 | 5 |
 | P2 | 3 |
+
+---
+
+## H10 · 工具脚本收尾批（output 批跑脚本 + scripts + foundation 深审，2026-08-25）
+
+审查范围：
+- output/ 批跑脚本：`_llm_batch_trainset.py`、`_llm_batch_retry.py`、`_llm_batch_analyze.py`、`_llm_batch_rescore.py`、`_n2_eval.py`、`_n2_analyze.py`、`_n2_calibrate.py`、`_n2_sample.py`、`_t3_eval.py`、`_t3_dump.py`、`_t3_calibrate.py`、`_t3_anchor_scan.py`、`_v3_calibrate.py`、`_v3_sample.py`、`_v3_judge_sample.py`、`_w4_sample.py`、`_w5_crosscheck.py`、`_kang_dump.py`、`_kang_verify.py`
+- scripts/：`build_book_index.py`
+- foundation/：`__init__.py`、`objective/__init__.py`、`objective/nayin.py`、`objective/ganqing.py`
+
+### P0（运行时崩溃 / 脚本无法运行）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `_llm_batch_trainset.py:38-42` | D4 | 裸 `except Exception` 吞引擎异常，错误记录混入 batch（H7 已标残留）。 | 仅捕获预期异常；非预期异常记录 case id 后抛出。 |
+| `_w5_crosscheck.py:18,169` | D7 | 导入/调用 G3 已删除的 `_xm_sanitize`，运行即 ImportError/AttributeError。 | 删除该导入与调用，改用锚定行直传。 |
+| `_kang_dump.py:5` / `_kang_verify.py:5` | D7 | 硬编码引入 `/root/.openclaw/workspace/fate-system/fate-objective` 外部模块，干净环境无法导入。 | 归档或改为仅依赖本仓库入口。 |
+
+### P1（必修）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `output/_llm_batch_*.py、_n2_*.py、_t3_*.py、_v3_*.py、_w*.py` | D4 | 大量 `open(...)` 读取 yaml/jsonl/json 未用 `with`，句柄泄漏/异常时文件未关。 | 统一改为 `with open(...)`。 |
+| `output/_n2_analyze.py:85-87` / `_llm_batch_rescore.py:27` / `_t3_dump.py:102` / `_w4_sample.py:35` / `_w5_crosscheck.py:84` | D4 | 引擎 `compute_all()` 重算无 try，单例异常中断整批分析。 | 捕获预期异常并记录 case id，非预期异常抛出。 |
+| `output/_n2_eval.py:148-188` / `_t3_eval.py:145-184` | D1 | runner（ThreadPoolExecutor + jsonl append + prompt 组装）与 `_materials`/`_reading_text` 高度重复。 | 抽到 `output/_eval_common.py` 公共 runner。 |
+| `output/_n2_calibrate.py:10-14` / `_t3_calibrate.py:10-14` / `_v3_calibrate.py:10-14` | D1 | 一致率/翻转召回/达标判定逻辑三份重复。 | 抽到公共校准模块。 |
+| `output/_n2_sample.py:17-49` / `_v3_sample.py:17-65` | D1 | 抽样逻辑（强制集 + 分层随机补足）重复。 | 合并为统一抽样器。 |
+| `output/_w4_sample.py:30-76` / `_w5_crosscheck.py:31-37,56-70` | D1 | `engine_fe`、禁词扫描、无信号如实判定跨脚本重复实现。 | 抽到 `output/_dim_check_common.py`。 |
+| `output/_n2_analyze.py:46-58` | D1 | `_has_xiangmao_marker` 与 `llm_prompt._xiangmao_anchor` 重复。 | 复用 `llm_prompt` 的判定函数。 |
+| `output/_llm_batch_trainset.py:52` / `_llm_batch_analyze.py:58-62` | D3 | `cost_usd` 实际存人民币（H4），analyze 又按美元乘 7.2，统计口径错误。 | 字段改名 `cost_cny` 并修正输出换算。 |
+| `output/_t3_dump.py:126` | D6 | `scrub_hits` 路径拆分假设至少两级 `.`，可能 IndexError。 | 用 `split('.', 2)` 或安全前缀提取。 |
+| `output/_t3_anchor_scan.py:17-18` | D7 | 导入 `llm_channel` / `blind_eval` 的私有符号（`_tier_rank`、`_ZY_RULES` 等），brittle。 | 通过公共 API 暴露所需符号或复制必要常量。 |
+| `scripts/build_book_index.py:75-93` | D4 | 写 `book-index/*.md` 与 `book-index.md` 无原子写（H7 已标残留）。 | 先写 `.tmp` 再 `os.replace`。 |
+
+### P2（技术债 / 建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `output/*.py` | D7 | 大部分脚本用 `sys.path.insert(0, ...)` + `noqa: E402` 手动改路径；pytest 已能发现包。 | 删除路径操作或下沉到 `pyproject.toml`。 |
+| `output/*.py` | D6 | 硬编码 batch 目录名（`llm_batch_20260818`、`llm_batch_20260821_n2_r4`）、模型名（`deepseek-v4-pro`）、seed、达标阈值。 | 抽到模块级常量并允许环境变量覆盖。 |
+| `output/_t3_eval.py:1-19` | D5 | 文档自称"五维历史存档"，却仍被 `_v3_judge_sample` 间接使用，职责模糊。 | 归档或让 v3 改用 `_n2_eval` 公共 runner。 |
+| `output/_t3_anchor_scan.py:23-39` | D6 | 词族/阈值/GRADE_RANK 硬编码，与校验器口径可能漂移。 | 从 `llm_channel` 复用或外部配置。 |
+| `scripts/build_book_index.py:14-25,52,71-72` | D6 | 书目、标题长度过滤、`gaoji-ocr` 特殊规则硬编码。 | 参数化或加注释说明更新机制。 |
+| `foundation/objective/__init__.py:23-34` | D7 | `__all__` 遗漏 `get_nayin_wuxing`（H8 残留）。 | 同步 `__all__`。 |
+| `foundation/objective/ganqing.py:671-682` | D6 | `get_ganqing` 返回 `GanQingRule` dataclass 列表，误入 payload 会序列化失败（H8 残留）。 | 返回时 `asdict()` 转换或标注非 payload。 |
+| `foundation/objective/ganqing.py:620` | D6 | `state` 条件使用子串匹配，弱契约（H8 残留）。 | 改为精确集合成员或文档化子串语义。 |
+| `foundation/objective/ganqing.py:563-566` | D6 | `_norm_gan` 多字干只取首字且无警告。 | 加非法输入校验/警告。 |
+| `foundation/objective/__init__.py:19-21` | D1 | `NAYIN_WUXING` 与 `mangpai/objective/constants.py` 重复定义（H1 残留）。 | 统一从 foundation 导入。 |
+| `foundation/objective/*.py` | D5 | 中性层无任何单元测试，跨流派扩展缺乏回归保护。 | 补 `foundation/objective/test_nayin.py`、`test_ganqing.py` 基础契约测试。 |
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 3 |
+| P1 | 11 |
+| P2 | 11 |
