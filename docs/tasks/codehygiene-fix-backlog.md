@@ -952,3 +952,68 @@
 | P0 | 2 | `zinv.py` 两处裸 `except Exception:` 吞异常 |
 | P1 | 6 | `liunian.py` 重复 helper/死变量/局部导入；`qianyi.py`/`zinv.py` 重复 helper；`calib_zhenbao.py` 顶层裸 except |
 | P2 | 8 | `liunian.py` 线性扫描/magic number；`qianyi.py` 重复 `_gz_of`；`harness.py`/`diag_case.py`/`build_yaml.py`/`curate.py`/`extract_cases.py` 路径/句柄/原子写 |
+
+---
+
+## H13 · 代码卫生审查 H-fix 汇总收官批（2026-08-25）
+
+> 本批只审不改、零 API，汇总 H1-H12 全量发现，输出去重总账、H-fix 分批规划、go/no-go 建议与风险提示。
+
+### 一、问题总账（H1-H12 去重后）
+
+H1-H12 原始触发 **498** 处：P0×110 / P1×247 / P2×141。按问题类型去重后约 **45 项核心问题**：
+
+| 严重级 | 问题类型 | 去重后核心项 | 原始触发（文件数） | 代表位置 |
+|---|---|---|---|---|
+| P0 | 裸 `except Exception:` 吞异常 | ~10 | 115 / 30 | `engine._safe_compute`, `zaihuo.py`, `yunfan.py`, `zinv.py`, `jiaoyun.py` |
+| P0 | import/typing 崩溃面 | 2 | 3 / 2 | `guanming.py` `Any`, `engine.py` `Optional`, `advanced.py` 反向依赖 |
+| P0 | 入口校验/索引越界 | 3 | 6 / 4 | `dayun_gz_sequence`, `_jd_to_datetime`, `_advance_gz`, `_cand_hua[0]` |
+| P0 | 原子写/基线误写 | 3 | 5 / 3 | `calib_assertions.yaml`, `baseline67.json`, `famous_baseline.json`, `blind_eval --out` |
+| P1 | 重复代码/工具函数 | ~10 | ~40 / 25 | `_check_pair`, `_compute_shishen`, `_ensure_relations`, `_find_wx_targets`, eval runners |
+| P1 | 大函数/高复杂度 | ~8 | ~60 / 18 | `gongliang.analyze_gongliang`, `detect_relations`, `engine.compute_all` |
+| P1 | 死代码/未使用参数/导出漂移 | ~8 | ~50 / 20 | `bazi_calc` dead params, `shensha` dead fields, `mangpai/__init__` `__all__`, `chuangong` |
+| P1 | selectors/模块契约 | 2 | 3 / 2 | `schools.selectors` 与 `engine` keys, `__all__` 不同步 |
+| P1 | 局部导入/循环依赖 | 3 | ~70 / 22 | H2 56 处函数内 import, H3/H8 局部导入, `sys.path.insert` |
+| P2 | 命名常量/魔法数 | ~12 | ~45 / 20 | `>=2/>=3` 阈值, NOAA 系数, `DAXIAN` 边界 |
+| P2 | 数据/序列化/文档 | ~6 | ~15 / 12 | `json.load(open(...))`, `GanQingRule` dataclass, 快照 README |
+
+P0 中裸 except 约占 **88%**；全量中裸 except 约占 **23%**，重复/局部导入/死代码/复杂度合计约占 **55%**。
+
+### 二、H-fix 分批规划
+
+按依赖拓扑与风险面分批，每批验证均执行六件套红线：`verify_mangpai` / `verify_dayun` / `verify_layer1` / `verify_layer3_checkpoint` / `pytest` / `blind_eval` 快照。
+
+| 批次 | 内容 | 原始触发 | 依赖 | 验证 | 优先级 |
+|---|---|---|---|---|---|
+| H-fix-1 import/typing 崩溃面 | 补 `Any`/`Optional` 导入；移除 `advanced.py` objective→subjective 反向依赖 | 3 / 2 | 无 | `pytest` import smoke、`verify_mangpai` 全绿 | P0 先行 |
+| H-fix-2 异常处理策略批 | 115 处裸 except 按场景改造：输入校验改显式 `ValueError`/警告；模块内部 bug 改抛出 `EngineComputeError`；诊断脚本仅捕获已知异常 | 115 / 30 | H-fix-1 | 错误注入测试 + `blind_eval` 零翻转零抖动 + `verify` 引擎判定零改动 | P0 先行 |
+| H-fix-3 原子写批 | 快照/基线/诊断脚本统一 `with open` + `.tmp` + `os.replace`；批跑脚本异常时停止而非混入结果 | 12 / 11 | 无 | 写回 roundtrip、基线哈希不变、`pytest` | P0 先行 |
+| H-fix-4 死代码/重复清理批 | 下沉 `_check_pair`/`_compute_shishen`/`_ensure_relations`/`_find_wx_targets`；清理 dead params/死字段/弃用模块 | ~40 / 25 | H-fix-1 | consumers 全替换、`pytest`、heldout 全绿 | P1 |
+| H-fix-5 大函数拆分批 | 按 H11 方案拆分 `gongliang.analyze_gongliang`（五阶段）、`detect_relations`（注册表 + 子函数）、`engine.compute_all`（四阶段） | 3 / 3 | H-fix-2 | 新增函数级单元测试 + 六件套全绿 + blind_eval 零翻转 | P1 |
+| H-fix-6 selectors 契约批 | 增加 `test_engine_keys_covered_by_selectors`；同步 `__all__`；明确 `gongshen` 等不进 LLM 键 | 3 / 2 | 无 | `test_subjective` count 不抖、`verify_dayun` 全绿 | P1 |
+| H-fix-7 评测框架统一批（可选） | `test_snapshot_hygiene.py`、公共 `assert_no_redline` helper、诊断脚本 `sys.path` 清理 | ~10 / 8 | H-fix-3 | `pytest` | P2 |
+| H-fix-8 文档/基线同步批 | 更新 heldout README、建立 `LATEST` 快照指针、归档旧 output 脚本 | ~5 / 4 | H-fix-3 | 文档 review + 快照链校验 | P2 |
+
+### 三、go/no-go 建议
+
+| 批次 | 判定 | 理由 |
+|---|---|---|
+| H-fix-1/2/3 | **阻塞，必须先 go** | 对应 P0 部署机崩溃面、异常吞没导致静默失败、基线误写导致评估污染 |
+| H-fix-4/5/6 | **建议进下一 milestone，不阻塞发版** | 纯代码质量与可维护性，改错会触发六件套红，但当前引擎输出已稳定 |
+| H-fix-7/8 | **可后置** | 测试框架与文档卫生，不影响线上判定 |
+
+### 四、风险提示
+
+1. **异常处理改造**：把“吞”改为“抛”可能暴露当前被掩盖的真实崩溃面。必须先用错误注入测试（构造非法干支、空 actions、越界索引）验证每处改造只抛预期异常；再以 heldout 215 例盲测确保零翻转、零抖动。
+2. **大函数拆分**：`detect_relations`/`analyze_gongliang` 是 subjective 核心，拆分后即使逻辑等价也可能因返回值结构或副作用变化导致下游误判。每阶段拆分后先加函数级哨兵，再跑六件套；禁止在拆分中顺带改口径。
+3. **死代码/重复清理**：`soil_type` 等字段可能是 prompt-only，删除前必须确认 `build_payload`/`formatter` 无隐式读取；`_check_pair` 等公共 helper 下沉后需同步 `liunian.py`/`qianyi.py` 等漏网文件。
+4. **selectors 契约**：新增键若漏登记会静默丢失信号，新增测试必须在 engine 改键时先红后绿。
+
+### 五、本批统计
+
+| 级别 | 原始触发 | 去重后核心项 |
+|---|---|---|
+| P0 | 110 | ~18 |
+| P1 | 247 | ~31 |
+| P2 | 141 | ~18 |
+| 合计 | 498 | ~45（跨级合并后） |
