@@ -507,3 +507,45 @@
 | P0 | 3 |
 | P1 | 8 |
 | P2 | 9 |
+
+---
+
+## H9 · 数据/快照基建批（2026-08-25）
+
+审查范围：`mangpai/tests/heldout/cases.yaml`、`merged.json`、`candidates.json`、`review.txt`、`trainset/cases.yaml`、`calib_assertions.yaml`、`heldout/snapshots/`、快照读写逻辑（数据侧）。
+
+### P0（评估污染/运行时崩溃）
+
+无。
+
+### P1（必修/数据卫生）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `mangpai/tests/heldout/README.md:11-12` | 数据卫生/文档陈旧 | README 写 `trainset/cases.yaml` 仅 23 例，实际 294 例；污染路由说明未覆盖 reg67/famous 扩容。 | 更新表格与污染路由说明，与实际文件一致。 |
+| `mangpai/tests/heldout/annotations_heldout.py:487` | 数据漂移 | `MANUAL` 4 例（qi04-双胞胎弟弟丧妻、阮玲玉、美容师、卜文命学禄当财）未进入 `merged.json`/`candidates.json`，与 extract→curate→build 管线来源不一致。 | 将 manual 源补录到 merged，或显式声明为旁路并加一致性校验。 |
+| `mangpai/tests/heldout/verify_heldout.py:51` | D4 | 排盘循环裸 `except Exception`，非预期引擎异常被吞并仅记错误字符串。 | 仅捕获预期异常；非预期异常记录 case id 后抛出。 |
+| `mangpai/tests/heldout/snapshots/` | 快照链/死数据 | 14 份快照无代码/文档引用（20260801_f/f_rescore/p2、20260802_c/l、20260807_m、20260808_n/o/q_rescore、20260814_c、20260817_f8/f9/f14/f15）；且缺少最新基线指针文件。 | 未引用快照归档或加白名单；建立 `LATEST`/`baseline.json` 指针。 |
+| `mangpai/tests/heldout/blind_eval.py:524-528` | D4/D6 | `--out` 快照直接覆盖写，中断会留下半写 JSON；无基线指针机制（H7 已报脚本侧，数据侧复现）。 | 先写 `.tmp` 再 `os.replace`；增加 `--baseline latest` 或 `LATEST` 指针。 |
+
+### P2（技术债/建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `mangpai/tests/heldout/blind_eval.py:18-22` | D6/文档 | 帮助文本使用 `snapshots/YYYYMMDD_x.json` 与 `snapshots/上一批.json` 占位名，无实际文件。 | 占位示例加 `<占位>` 标记或改用真实文件名。 |
+| `mangpai/tests/heldout/snapshots/` | D6 | 54 份快照 rubric 版本跨度 v3-v8，缺少自动化脚本校验 meta 链与命名一致性（H7 P2 已建议）。 | 增加 `test_snapshot_hygiene.py`。 |
+| `mangpai/tests/heldout/candidates.json` 等 | D5 | `candidates.json`、`review.txt`、`merged.json`、`dropped.txt` 仅构建管线引用，CI/测试运行时不消费。 | 在 README 标注为构建产物或移入 archive。 |
+
+### 关键确认
+
+- **评估污染红线**：heldout 215 例与 trainset 294 例按 `bazi+gender` 零重叠；`calib_assertions.yaml` 10 例全部在 trainset 中，且 bazi/gender 与 `trainset/cases.yaml` 完全一致，未进入 heldout。
+- **数据漂移**：`merged.json` 与 `candidates.json` 键集合完全一致；`heldout/cases.yaml` 4 例 manual 案例未入 merged，已作为 P1 记录。
+- **快照链**：54 份快照均有 `_meta`（git_sha/rubric_version/note），最新 `20260822_g3.json` rubric 为 `v8-20260808`，与 `blind_eval.py` 当前版本一致。
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 0 |
+| P1 | 5 |
+| P2 | 3 |
