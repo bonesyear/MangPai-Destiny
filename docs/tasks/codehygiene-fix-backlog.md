@@ -229,3 +229,50 @@
 | P0 | 17 |
 | P1 | 10 |
 | P2 | 6 |
+
+---
+
+## H4 · LLM 通道批（2026-08-25）
+
+审查范围（5 文件）：`mangpai/subjective/llm_backend.py`、`llm_channel.py`、`llm_prompt.py`、`schools.py`、`narrative.py`。
+
+### P0（运行时崩溃 / 静默失败）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `llm_backend.py:131` | D4 | `json.loads(resp.read())` 未捕获 `JSONDecodeError`；HTTP 200 但返回非 JSON（如中间盒 HTML）时该异常会穿透 `call_deepseek`，而 `llm_channel` 只捕获 `LLMBackendError`，导致崩溃。 | 将 `json.JSONDecodeError` 纳入内层捕获并包装为 `LLMBackendError`。 |
+| `narrative.py:563` | D4 | `render_hao_narrative` 调 `_call_llm` 用裸 `except Exception:`，吞掉 SDK/网络/参数等所有异常并静默返回 prompt 文本；既无免责声明，也让真正 Bug 无法上浮。 | 仅捕获预期异常（`anthropic.AuthenticationError`、`urllib.error.URLError` 等）；非预期异常继续抛出。 |
+
+### P1（必修）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `llm_channel.py:467-469` | D4 | `validate='reject'` 且 L0 不通过时，降级返回无 `_DISCLAIMER_LINE`；与死亡红线拦截、LLM 不可用/JSON 失败等路径不一致。 | 统一追加免责声明行。 |
+| `llm_backend.py:152` | D3 | 返回字段名 `cost_usd` 实际保存人民币（2026-08-21 已改人民币口径），命名与数据不符。 | 字段改名 `cost_cny` 并同步 `format_reading`；或保留旧键做兼容别名。 |
+| `llm_channel.py:428,444` | D7 | `render_structured_reading` 内局部导入 `prompts.hao_style_fewshot` 与 `llm_backend`；无循环依赖，降低静态可读性。 | 上提到模块级。 |
+| `narrative.py:412,424` | D4 | `_engine_number_whitelist` 内两处裸 `except Exception:`，分别吞 `json.dumps` 失败与年龄计算失败，静默降级。 | 细化异常类型；非预期异常抛出。 |
+| `llm_prompt.py:77,80` | D1 | `_TIER_ORDER` / `_BUCKET_LABELS` 与 `llm_channel` / `zhiye` 重复，注释虽说明“各留一份”，但迭代中易漂移。 | 抽到公共常量模块（如 `subjective.llm_constants`）或显式断言两边一致。 |
+| `schools.py:43` | D5 | `selectors` 含 `zinv`，但生产侧仅 `engine.py` 写入、`build_payload` 透传，无 prompt/formatter 消费方（设计为纯数据），保护链下游读者缺失。 | 确认 D6a 口径后：若长期不进 LLM 叙述，加注释备案或从 selectors 移除并保留 engine 键。 |
+| `narrative.py:355` | D6 | `_call_llm` 默认模型回退字符串 `claude-sonnet-5` 为硬编码占位。 | 抽到模块级常量并允许环境变量覆盖（H3 已指出，仍未修）。 |
+| `llm_channel.py:285-359` | D2 | `_l2_enum` 虽 75 行未越界，但死亡词/财档/官命/迁移/相貌五段校验耦合在一起，新增维度需改本函数。 | 按维度拆为 `_l2_death/_l2_tier/_l2_guan/_l2_qianyi/_l2_xiangmao` 五小函数。 |
+| `narrative.py:507-581` | D2 | `render_hao_narrative` 65 行，承担 prompt 组装、LLM 调用、降级、N1 校验，职责过多。 | 将 LLM 调用与 N1 校验拆为独立函数。 |
+
+### P2（技术债 / 建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `llm_backend.py:36-39,44` | D6 | `_PRICE` 价表与 `_PEAK_HOURS` 峰谷时段硬编码；模型/价格调整需改代码。 | 支持环境变量或外部配置覆盖，保留当前值为默认值。 |
+| `llm_backend.py:32` | D6 | `_ENV_FILE = '/root/.hermes/.env'` 硬编码绝对路径。 | 抽到常量并允许环境变量覆盖。 |
+| `llm_backend.py:162-175` | D5 | `_self_check` 仅在 `__main__` 运行，未加入 pytest。 | 迁移为测试用例。 |
+| `llm_channel.py:447-450` / `narrative.py:565-569` | D4/D6 | LLM 不可用时按设计返回完整 prompt 文本，若直接展示给终端用户会泄漏 system/user prompt。 | 加 `debug=True` 开关区分内部调试与终端返回；终端路径只给原因与免责声明。 |
+| `llm_channel.py:46-57,63-81` | D6 | `_DEATH_WORDS` / `_QIANYI_FORBID` / `_XIANGMAO_FORBID` / `_GUAN_POSITIVE` 等词表硬编码；迭代增删靠手工。 | 提供外部词表配置入口（默认回退到当前硬编码）。 |
+| `narrative.py:168,405-407,448` | D7 | `_zaihuo_line`、`_engine_number_whitelist`、`validate_narrative_numbers` 内局部 import；无循环依赖必要。 | 上提到模块级。 |
+| `narrative.py:419` | D6 | `_engine_number_whitelist` 中 `ages.update((18, 35, 55))` 为硬编码大限宫位边界，与 `yingqi.DAXIAN_MAP` 强耦合。 | 从 `DAXIAN_MAP` 动态读取边界。 |
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 2 |
+| P1 | 9 |
+| P2 | 7 |
