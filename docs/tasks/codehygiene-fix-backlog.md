@@ -385,3 +385,72 @@
 | P0 | 4 |
 | P1 | 7 |
 | P2 | 6 |
+
+---
+
+## H7 · heldout/顶层验证 + 诊断脚本批（2026-08-25）
+
+审查范围：
+- 验证基建（核心）：`mangpai/tests/heldout/blind_eval.py`、`mangpai/tests/backtest/regression67.py`、`regression_famous.py`、`mangpai/tests/calib_assertions.py`、`mangpai/verify_mangpai.py`、`mangpai/verify_dayun.py`、`mangpai/verify_layer1.py`、`mangpai/verify_layer3_checkpoint.py`、`mangpai/tests/heldout/verify_heldout.py`、`mangpai/tests/heldout/README.md`
+- 诊断脚本（heldout）：`_a1_diag.py`、`_a1_diag2.py`、`_a14_diag.py`、`_b5_diag.py`、`_gm40_diag.py`、`_gm_all_dump.py`、`_gm_sim.py`、`_zy2_detail.py`、`_zy2_sim.py`、`_zy2_sim2.py`、`_zy2_sim3.py`、`_zy3_dump.py`、`_zy3_sim.py`、`_zy4_sim.py`、`_zy_all_dump.py`、`_zy55_dump.py`、`_zy55_feat.py`、`_zy55_sim.py`、`_zy_margin.py`、`_zy_master.py` 等
+- 诊断脚本（output）：`_llm_batch_*.py`、`_n2_*.py`、`_w4_sample.py`、`_w5_crosscheck.py`、`_t3_eval.py`、`_t3_dump.py`、`_t3_calibrate.py`、`_t3_anchor_scan.py`、`_v3_*.py`、`_kang_*.py` 等
+- 其他：`scripts/build_book_index.py`
+
+### P0（验证基建可信度/误写防护）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `blind_eval.py:288-291` | D4/D6 | `_load_snapshot()` 无 `with`、原地 `pop('_meta')` 修改已加载字典；H6 已标记，本次确认仍影响 `--rescore`/`--diff` 调用方。 | `with open(...) as f: data = json.load(f)`；返回 `data.copy()` 或文档说明副作用。 |
+| `blind_eval.py:528` | D4/D6 | `--out` 快照直接 `json.dump(..., open(...,'w'))`，无原子写/校验；中断会留下半写 JSON。 | 先写 `.tmp` 再 `os.replace`；写后可选校验 key 集合。 |
+| `calib_assertions.py:300-328` | D4/D6 | `--write-baseline` 用正则逐行改写 `calib_assertions.yaml`，无备份、无校验、无上锁；误操作破坏校准基线。 | 写前校验 items 数量与键集合；先写 `.yaml.tmp` 再原子重命名；或要求 `--force`。 |
+| `regression67.py:296-297` | D4/D6 | `--write-baseline` 直接覆盖 `baseline67.json`；同时 `current67.json` 也裸写。 | 同上：校验+临时文件+原子替换。 |
+| `regression_famous.py:167-169` | D4/D6 | `--write-baseline` 直接覆盖 `famous_baseline.json`；`current_famous.json` 裸写。 | 同上。 |
+| `blind_eval.py:225` | D4 | `eval_cases()` 中 `MangpaiEngine.compute_all()` 裸 `except Exception`，引擎异常被吞并记 `error`，汇总时不区分「单例异常」与「评分结果」。 | 仅捕获预期异常（如输入校验），非预期异常记录 case id 后抛出，避免假 green。 |
+| `verify_layer3_checkpoint.py:51-62` | D4 | 10 例校验循环裸 `except Exception: traceback.print_exc(); dir_results[name] = {}`，引擎异常被吞并继续跑，可能假 PASS。 | 仅捕获已知异常；非预期异常抛出让验证脚本以非零退出。 |
+
+### P1（必修/验证纪律）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `calib_assertions.py:300-328` | D3/D6 | `_write_baseline()` 依赖正则匹配 `baseline: [✅⚠️❌]` 单行，YAML 格式一旦换行/加引号即失效；且 `⚠️` 含 VS16 需特殊处理。 | 用 `yaml` 库加载→修改→安全写回，或加格式断言。 |
+| `regression67.py:239-297` / `regression_famous.py:117-171` | D1/D4 | 两脚本 judge/统计/写回逻辑高度重复（`order` 字典、回归判定、CAT 分类打印）。 | 抽到 `backtest/_baseline.py` 共享 `BaselineRunner`。 |
+| `verify_layer3_checkpoint.py:21-32` | D1 | `CASES` 列表与 `mangpai/calib_zhenbao.py` 的 `CASES` 重复；一处改书锚另一处易漏。 | 从 `calib_zhenbao` 导入或加同步单测。 |
+| `blind_eval.py:304-327` | D3 | `summarize_groups()` 按 verdict 文本首词分组，对新增 verdict 文案或标点敏感，无单测锁定。 | 补单元测试覆盖未知分组/空分组；或改用 `score_caiming` 解析函数统一口径。 |
+| `heldout/_*.py` 诊断脚本 | D4/D6 | 大量脚本裸写 `/tmp/*.json`（`_zy_all_dump.py:68`、`_zy3_dump.py:121`、`_zy55_dump.py:83`、`_gm_all_dump.py:40`、`_gm40_diag.py:65`），无 `with`、无清理、路径硬编码。 | 统一用 `with open`/临时目录；输出路径改为命令行参数或 `tempfile`。 |
+| `scripts/build_book_index.py:75-93` | D4 | 写 `book-index/*.md` 与 `book-index.md` 无原子写；目录不存在时依赖 `mkdir(exist_ok=True)` 但写入失败无恢复。 | 先写 `.md.tmp` 再 `os.replace`；加 try/except 记录失败文件。 |
+| `output/_llm_batch_trainset.py:40` | D4 | `MangpaiEngine.compute_all()` 裸 `except Exception`，引擎错误被记 `engine_error` 后该例无校验即落入 batch 结果。 | 细化异常；非预期异常应让批跑失败而非混入有效结果。 |
+| `output/_n2_eval.py:148-188` / `_t3_eval.py:145-184` | D1 | `run()` 函数（ThreadPoolExecutor + jsonl append + 汇总）与 prompt 组装大量重复。 | 抽到 `output/_eval_common.py` 共享 runner。 |
+| `output/_n2_calibrate.py` / `_t3_calibrate.py` / `_v3_calibrate.py` | D1 | 校准逻辑（一致率、翻转召回、达标判定）三份实现几乎一致。 | 抽到公共校准模块。 |
+
+### P2（技术债/建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `blind_eval.py:476-490` | D4 | `--rescore` 读写快照均无 `with`。 | 改 `with open(...)`。 |
+| `regression67.py:270` / `regression_famous.py:143` | D4 | 基线读取 `json.load(open(...))` 无 `with`。 | 改 `with open(...)`。 |
+| `heldout/_zy_all_dump.py:52`、`_zy55_dump.py:55`、`_b5_diag.py:48`、`_zy3_dump.py:53,72,76`、`_zy2_detail.py:67`、`_zy_master.py:106`、`_zy55_feat.py:72` | D4 | 诊断脚本为容错使用裸 `except Exception`，会吞 `ImportError`/`SyntaxError` 等。 | 仅捕获 `ValueError`/`AttributeError` 等预期异常。 |
+| 全部 heldout/output 诊断脚本 | D7 | 大量 `sys.path.insert(0, ...)` 手动改路径；pytest 已能发现包，冗余。 | 删除；需要时下沉到 `conftest.py` 或 `pyproject.toml`。 |
+| 全部 heldout/output 诊断脚本 | D6 | 硬编码 `/tmp/`、快照文件名、batch 目录名（如 `llm_batch_20260818_v5`）、模型名（`deepseek-v4-pro`）。 | 抽到模块级常量并允许环境变量覆盖。 |
+| `scripts/build_book_index.py:37-44` | D3/D6 | `is_noise()` 过滤逻辑可能误杀合法短章节标题；`gaoji-ocr` 特殊过滤硬编码。 | 加白名单/注释说明；将 OCR 过滤规则参数化。 |
+| `verify_mangpai.py:1-1483` | D2 | 单文件 1483 行，432 项检查全部内联；新增检查需改大文件。 | 按节拆分为 `verify_mangpai_*.py` 或测试函数分组。 |
+| `verify_dayun.py` / `verify_layer1.py` / `verify_layer3_checkpoint.py` | D2 | 验证脚本使用全局 `passed`/`failed` 计数器，非 pytest 结构，CI 集成弱。 | 逐步迁移为 `pytest` 用例或至少封装 `main()` 返回非零退出码。 |
+
+### 死脚本/历史残留清单
+
+| 类别 | 文件 | 状态 | 说明 |
+|---|---|---|---|
+| 在用（CI/管线） | `blind_eval.py`、`verify_heldout.py`、`build_yaml.py`、`extract_cases.py`、`curate.py`、`annotations_heldout.py`、`annotations_meta.py` | 保留 | 留出集管线与盲测门禁核心 |
+| 在用（验证） | `verify_mangpai.py`、`verify_dayun.py`、`verify_layer1.py`、`verify_layer3_checkpoint.py` | 保留 | 六件套验证 |
+| 在用（LLM 通道评审） | `output/_llm_batch_trainset.py`、`_llm_batch_analyze.py`、`_n2_eval.py`、`_n2_analyze.py`、`_n2_sample.py`、`_n2_calibrate.py`、`_w4_sample.py`、`_w5_crosscheck.py`、`_t3_dump.py` | 保留 | 当前 LLM 加料层评审/校准管线 |
+| 历史诊断（可归档） | `heldout/_a1_exp.py`、`_zy2_sim2.py`、`_zy2_sim3.py`、`_zy3_sim.py`、`_zy4_sim.py`、`_zy55_feat.py`、`_zy55_sim.py`、`_zy_margin.py` | 归档 | 已收敛/被后续条款替代的历史模拟 |
+| 历史诊断（保留备查） | `heldout/_a1_diag.py`、`_a1_diag2.py`、`_a14_diag.py`、`_b5_diag.py`、`_gm40_diag.py`、`_gm_all_dump.py`、`_gm_sim.py`、`_zy2_detail.py`、`_zy2_sim.py`、`_zy3_dump.py`、`_zy_all_dump.py`、`_zy55_dump.py`、`_zy_master.py` | 保留但注释说明 | 偶尔用于根因分析，不纳入 CI |
+| 历史 output（可归档） | `output/t1_gold_review/`、`output/review5_v*/`、`output/review5_v2_e2e_20260821/` 下脚本 | 归档 | 旧轮次评审脚本/结果 |
+| 新脚本 | `scripts/build_book_index.py` | 保留 | 索引生成器，需补原子写 |
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 7 |
+| P1 | 9 |
+| P2 | 8 |
