@@ -276,3 +276,46 @@
 | P0 | 2 |
 | P1 | 9 |
 | P2 | 7 |
+
+---
+
+## H5 · 飞书集成批（2026-08-25）
+
+审查范围（6 文件）：`mangpai/feishu/client.py`、`router.py`、`service.py`、`formatter.py`、`bot.py`、`README.md`。
+
+### P0（运行时崩溃/阻塞发布）
+
+无。
+
+### P1（必修）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `formatter.py:17` | D1 | `DISCLAIMER` 与 `llm_channel.py:38` `_DISCLAIMER_LINE` 文本重复，维护易漂移。 | 统一从 `llm_channel` 导入或抽到公共常量。 |
+| `service.py:22-23` | D1/D6 | `_LLM_FAIL_PREFIXES` 字符串硬编码，与 `llm_channel` 降级文本强耦合；前缀格式一变即漏检。 | `llm_channel` 返回结构化字段或导出失败原因常量。 |
+| `bot.py:53` | D4 | `_respond` 裸 `except Exception` 吞掉所有排盘异常，日志后返回固定提示，掩盖根因。 | 仅捕获预期异常（FeishuError/LLMBackendError/EngineError），未预期异常继续抛出。 |
+| `bot.py:58/62` | D4 | reply 发送及纯文本兜底连续两处裸 `except Exception`，过度吞异常。 | 细化异常类型，非预期异常抛出。 |
+| `bot.py:119` | D4 | `_Handler.do_POST` 裸 `except Exception` 返回 500，吞掉所有回调处理异常。 | 区分已知异常；非预期异常记录后继续抛出或保留 traceback。 |
+| `bot.py:92-95/99-102` | D6 | `_MAX_WORKERS` 信号量仅限制 HTTP handler 线程，`handle_event` 后台排盘线程无界，高并发下可能耗尽资源。 | 把信号量语义延伸至后台任务，或用有界线程池。 |
+| `bot.py:81-85` | D6 | `_seen_mids` 检查-写入-滚动窗口非原子，多线程同 mid 可能重复处理。 | 加锁保护去重窗口操作。 |
+
+### P2（技术债/建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `client.py:34-39` | D4 | `_urllib_post` 未捕获 `json.JSONDecodeError`，非 JSON 响应会穿透。 | 捕获并包装为 `FeishuError`。 |
+| `client.py:83-87` | D5 | `send()` 生产零调用（V6 已备案），`build_content('post')` 同，属死 API 面。 | 加 deprecation 或移入 archive。 |
+| `router.py:17-27` | D6 | `CITY_LON` 36 城市经度表硬编码，更新需改代码。 | 支持外部配置或说明更新机制。 |
+| `router.py:66-75` | D6 | `_pop_lon_or_city` 对越界经度静默转城市匹配，错误提示不准确。 | 非法经度显式报错。 |
+| `router.py:103-110` | D6 | `parse_pillars` 未校验干支数量/性别是否弹出，不完整输入流入 service。 | 前置 `len(pillars)==4` 与 gender 必填校验。 |
+| `service.py:46` | D6 | 四柱直排默认 `year=2000`，影响流年锚，用户无感知。 | 抽常量并提示默认年份。 |
+| `bot.py:87-90` | D6 | 文本 content 只处理 JSON 对象，对 JSON 数组/字符串会抛 `AttributeError`，依赖外层裸 except。 | 校验 `isinstance(content, dict)`。 |
+| `README.md` | D6 | 缺“机器人无响应”排查指引（Encrypt Key/Token/权限）。 | 加 FAQ 小节。 |
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 0 |
+| P1 | 7 |
+| P2 | 8 |
