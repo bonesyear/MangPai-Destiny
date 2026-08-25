@@ -319,3 +319,69 @@
 | P0 | 0 |
 | P1 | 7 |
 | P2 | 8 |
+
+---
+
+## H6 · 测试基建批（2026-08-25）
+
+审查范围（51 文件）：`mangpai/tests/` 下全部 `test_*.py` + `calib_assertions.py`，含 `heldout/` 子目录测试/诊断脚本与快照基建。
+
+### P0（运行时崩溃/阻塞发布）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `heldout/blind_eval.py:288-291` | D4/D6 | `_load_snapshot()` 直接用 `json.load(open(...))` 无 `with`，异常时文件句柄泄漏；且 `data.pop('_meta', None)` 原地修改已加载的快照字典，若调用方仍引用原对象则 meta 丢失。 | 改为 `with open(...) as f: data = json.load(f); meta = data.pop('_meta', None); return data, meta` 并在文档说明返回的是副本。 |
+| `calib_assertions.py:257-296` | D4/D6 | `--write-baseline` 直接原地改写 `calib_assertions.yaml`，无备份、无校验、无上锁；误操作会破坏校准基线。 | 写回前校验 items 数量与键集合，先写 `.yaml.tmp` 再原子重命名，或要求 `--force` 显式确认。 |
+| `backtest/regression67.py:241-297` / `regression_famous.py:119-169` | D4/D6 | 同样 `--write-baseline` 原地改写 `baseline67.json` / `famous_baseline.json`，存在误写风险。 | 同上：校验+临时文件+原子替换。 |
+| `heldout/_zy_all_dump.py:52` / `_zy55_dump.py:55` / `_b5_diag.py:48` / `_zy3_dump.py:53,72,76` / `verify_heldout.py:51` | D4 | 诊断/考古脚本裸 `except Exception:` 吞掉所有异常，考古时可能静默跳过失败案例。 | 仅捕获预期异常（如引擎内部已知豁免），非预期异常记录四柱并抛出。 |
+
+### P1（必修/测试纪律）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `test_chuangong.py:21` | D1/D3 | 全模块 `pytestmark = pytest.mark.xfail(strict=False)`，20 个用例实际不执行；模块本身锁自造 spec 无书锚，属于「保留备查」的死测试。 | 要么删除该模块（已备案伪标），要么改为正常执行并明确标记为内部 spec 契约测试。 |
+| `test_f1_gate.py:147-149` | D2 | `test_self_check_rmb_offline` 仅调用 `llm_backend._self_check()`，无返回值/副作用断言，属于「只跑不查」。 | 断言 `_self_check()` 不抛异常并返回预期峰谷价，或至少断言 `_PRICE` 表非空。 |
+| `test_subjective.py:185-187` | D2 | `test_payload_is_json_serializable` 仅执行 `json.dumps(payload)`，无 `assert`；异常外无验证。 | 增加 `assert isinstance(json.dumps(...), str)` 或断言 dumps 成功且结果非空。 |
+| `test_caiming_m2.py:16` / `test_f1_gate.py:15` / `test_subjective.py:5,13` | D5 | 真·未使用顶层导入：`classify_caifu_view`、`format_report`、`Path`、`ENVELOPE_RULES`。 | 删除。 |
+| `test_dayun_objective.py:18` / `test_g9_zihe_g5_g1.py:2` / `test_liunian_k5.py:14` / `test_narrative.py:12` / `test_yingqi_shouyuan.py:26` / `test_yunfan.py:12` / `test_zhengfan_k2.py:15` / `test_zhiye.py:17` / `test_zuogong_m9.py:12` | D5 | 11 个文件导入 `pytest` 但未使用任何 `pytest.raises/mark/fixture`。 | 删除冗余导入。 |
+| `test_p0_blindgap.py:22` / `test_body_parts.py:10` / `test_yunfan.py:14` / `test_g9_zihe_g5_g1.py:22` / `test_juefa.py:10` / `test_chuangong.py:17` / `test_gongliang.py:13` / `test_property.py:21` / `test_gongfei.py:10` / `test_zhengfan_shuli.py:18` / `test_f11_yongshen_caiming.py:25` / `test_zeishen_bushen.py:19` / `test_subjective.py:9` / `test_narrative.py:14` / `test_zhengfan_k2.py:17` / `test_dayun_objective.py:20` / `test_zhiye.py:19` / `test_caiming_m2.py:13` | D5/D7 | 18 个测试文件重复 `sys.path.insert(0, os.path.dirname(...))` 手动改路径；pytest 已能发现 `mangpai` 包，冗余且污染全局路径。 | 统一删除；若确有需要，下沉到 `conftest.py` 或 `pyproject.toml`/`pytest.ini` 配置。 |
+| `test_body_parts.py:1-30` | D3 | 测试一个已备案「未接线」模块的数据表，测试本身维护 dead data 而非行为契约。 | 若模块长期不接线，将测试改为「数据表存在性+结构」契约并注释说明；或随模块清理一并移除。 |
+
+### P2（建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `test_llm_channel.py:1-757` | D2 | 单文件 757 行、51 个测试函数，虽函数短但维度混杂（L0/L1/L2/N1/锚定/键清单）。 | 按维度拆分为 `test_llm_l0_l1.py`、`test_llm_l2_enum.py`、`test_llm_anchor.py`、`test_llm_n1.py`。 |
+| `test_feishu.py:17-140` | D2/D1 | `FakeHTTP`/`FakeClient` 等 mock 类只在本文件使用，其他 feishu 测试难以复用。 | 提取到 `tests/conftest.py` 或 `tests/feishu_fixtures.py`。 |
+| `test_juefa.py:17-30` / `test_zeishen_bushen.py:19-46` / `test_p0_blindgap.py:33-35` / `test_g9_zihe_g5_g1.py:26-31` | D1 | 各文件重复定义 `_run(gans, zhis)` / `_ids(r)` / `_skips(r)` / `_wa(...)` 等 helper。 | 下沉到公共 `tests/conftest.py` 或 `tests/helpers.py`。 |
+| `heldout/blind_eval.py:304-327` | D3 | `summarize_groups` 按 verdict 文本首词分组，对新增分组或 verdict 文案改动敏感，无单测锁定分组行为。 | 增加 `summarize_groups` 单元测试，覆盖新增未知分组与空分组。 |
+| `heldout/snapshots/` | D6 | 快照文件名依赖人工约定，无脚本校验 meta 链连续性（`_meta.note` / `rubric_version` / git_sha）。 | 增加 `tests/test_snapshot_hygiene.py`：校验最新快照存在、meta 完整、文件名符合 `YYYYMMDD_x.json`、rubric_version 与 blind_eval 当前版本一致。 |
+| `test_a_llm_redline.py:55-66` / `test_xiangmao.py:102` / `test_d6b_zinv.py:134` / `test_qianyi.py:146` | D2 | 多文件重复「json.dumps 后字符串 in/not in」红线检查模式，无公共 helper。 | 抽 `assert_no_redline(blob, keywords)` 到 helper。 |
+
+### 「绿但没验证」风险清单
+
+| 文件:行号 | 风险 | 说明 |
+|---|---|---|
+| `test_chuangong.py:21` | 全模块 xfail 不执行 | 20 个测试标记 xfail(strict=False)，pytest 报 XPASS/XFAIL 但实际不验证行为；是最大「绿但不验证」风险。 |
+| `test_f1_gate.py:147-149` | 无显式断言 | `_self_check()` 调用即通过，未验证峰谷价/币种结构。 |
+| `test_subjective.py:185-187` | 无显式断言 | `json.dumps` 成功即通过，未验证序列化结果结构。 |
+| `test_property.py:92-119` | 误报风险 | 顶层语句无 `assert`，实际通过 `_assert_invariants` 内部断言；需保留 helper 命名清晰以避免误读。 |
+
+### 哨兵纪律核查
+
+- **各批次哨兵结构良好**：`test_f1_gate.py`、`test_f11_yongshen_caiming.py`、`test_f12_guanming_juefa.py`、`test_f13_shensha.py`、`test_f14_zaihuo_llm.py`、`test_f15_zhiye.py`、`test_f16_hunyin.py`、`test_f17_xueli_liuqin.py`、`test_f18_shipaige_gongmen.py`、`test_f19_yunfan.py`、`test_d6b_zinv.py`、`test_qianyi.py`、`test_xiangmao.py` 均明确标注书锚/批次，断言具体（命中类型/具体文案/档位/字段），符合「先红后绿」可复现要求。
+- **`test_chuangong.py` 非真哨兵**：全模块 xfail，未参与回归门禁，需在后续批次决定删除或转正。
+
+### 快照基建核查
+
+- `blind_eval.py` 快照读写逻辑基本健康：支持 `--out`/`--baseline`/`--diff`/`--rescore`，`_meta` 带 `git_sha`/`rubric_version`/`note`。
+- 主要风险在**基线写回**：`calib_assertions.py`、`regression67.py`、`regression_famous.py` 均支持 `--write-baseline`，缺乏原子写与校验，存在人为误操作风险。
+- `heldout/snapshots/` 文件 49 份，meta 完整，但缺少自动化校验脚本确认链连续性。
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 4 |
+| P1 | 7 |
+| P2 | 6 |
