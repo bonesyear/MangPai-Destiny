@@ -10,6 +10,7 @@
 
 - **项目**：段建业盲派命理引擎（Python3，无重型依赖；`yaml` 必备，`sxtwl` 用于节气，`anthropic` 软依赖仅叙事层）。
 - **分层铁律**：`foundation/`（学派中性）← `mangpai/objective/`（纯检测）← `mangpai/subjective/`（解释判断）← `mangpai/engine.py`（编排），**单向依赖不可破坏**。
+- **原著索引**（2026-08-25 建，机械生成零 LLM）：`docs/book-index.md` 总表 + `docs/book-index/index-*.md` 分文件（十书：理象学×2/初级/高级/中级/授课/渊海子平/子平真诠×2/滴天髓——章节标题+行号，导航用粗定位，精确核对仍以读原文行号为准）。探索型找锚（不知行号只知主题）先查索引再跳原文。
 - **受保护勿改**：`subjective/schools.py`、`subjective/prompts/`、`objective/constants.py` 的数据表。
 - **同音陷阱**：`gongfei.py`（功神/废神，`classify_gongshen`）与 `gongshen.py`（宫身，`analyze_gongshen`）同音异义**刻意共存**，勿合并勿改名；第三条（批8 增补）：`gongmen_wuzhi.py`=**公门武职**（gaoji 8.2），非「宫门五物」（五书 grep 零命中，批8 任务书曾误写）。
 - **数据**：heldout 215 例（`mangpai/tests/heldout/cases.yaml`，⚠️ 只评估不反推）/ trainset 294 例（`mangpai/tests/trainset/cases.yaml`）。
