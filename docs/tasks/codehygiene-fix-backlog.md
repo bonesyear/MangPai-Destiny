@@ -454,3 +454,56 @@
 | P0 | 7 |
 | P1 | 9 |
 | P2 | 8 |
+
+---
+
+## H8 · 引擎编排 + 边角批（2026-08-25）
+
+审查范围：
+- 引擎编排核心：`mangpai/engine.py`
+- objective 边角：`mangpai/__init__.py`、`mangpai/objective/__init__.py`（`verify_mangpai.py` 由 H7 覆盖，本批不复审）
+- subjective 边角：`mangpai/subjective/__init__.py`、`mangpai/subjective/schools.py`（selectors 注册/保护链机制）
+- foundation 首审：`foundation/__init__.py`、`foundation/objective/__init__.py`、`foundation/objective/nayin.py`、`foundation/objective/ganqing.py`
+
+### P0（运行时崩溃 / 静默失败 / 阻塞导入）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `mangpai/subjective/guanming.py:39,139` | D7 | 模块仅导入 `Dict/List/Optional/Set`，但 `classify_guanming_combo` 形参注解使用 `Any`，导致 `from mangpai import ...` / engine 导入链触发 `NameError`，整个包目前无法导入。 | `from typing import Dict, List, Optional, Set, Any`。 |
+| `mangpai/engine.py:15,133,145,157` | D7 | `typing.Optional` 未导入，却用于 `_current_age`/`_current_dayun`/`_pair` 注解；修复 guanming.py 后继续触发 `NameError`。 | 在 `from typing import ...` 中补 `Optional`。 |
+| `mangpai/engine.py:107-113` | D4 | `_safe_compute` 裸 `except Exception` 捕获所有异常并返回 `None`，engine 编排层统一吞掉所有模块的 `TypeError/ValueError/AttributeError`，导致模块 Bug 静默降级为空结果。 | 仅捕获预期异常（如输入校验），非预期异常记录后抛出；或引入 `EngineComputeError` 显式降级。 |
+
+### P1（必修）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `mangpai/engine.py:194-683` | D2 | `compute_all()` 约 490 行、40+ 模块调用，顺序耦合强，单文件承担 objective→subjective→summary 全链路。 | 拆分为 `_compute_objective`/`_compute_subjective`/`_build_summary` 三阶段。 |
+| `mangpai/engine.py:208-679` | D4/D6 | 模块结果回写模式不一致：`canggan/chang_sheng/xiangfa` 用 `if is not None`，其余用 `or {}`/`or []`；失败时有的缺键、有的空容器，消费者无法区分「无信号」与「异常降级」。 | 统一回写模式：异常时缺键，或统一返回结构化 `{"_error": ...}`。 |
+| `mangpai/engine.py:126,142` | D4 | `_auto_liunian_list` / `_current_age` 裸 `except Exception`，系统时间/输入年份异常静默回退。 | 细化异常类型；非法输入显式返回 `None` 并记录原因。 |
+| `mangpai/engine.py:524` | D7 | `assess_direction_signals` 在函数体内局部导入，依赖关系被隐藏。 | 上提到模块级；若存在循环导入则解耦。 |
+| `mangpai/__init__.py:42-43,58` | D5/D7 | 公共 API 仍导出 `analyze_juefa`/`analyze_chuangong`（chuangong 已弃用、juefa 仅 yongshen 内部使用），却未导出活跃的 `analyze_zinv`/`analyze_qianyi`/`analyze_xiangmao`。 | 清理死导出，补齐当前 selectors 对应模块；或在 __all__ 中显式标注 deprecated。 |
+| `mangpai/__init__.py:26-29,61-63` | D7 | `__all__` 与导入符号不一致：导入了 `get_shensha_xiang`/`get_liushi_ganzhi_xiang`/`SHENSHA_XIANG`/`LIUSHI_GANZHI_XIANG` 但未导出。 | 同步 __all__ 或删除未导出导入。 |
+| `mangpai/subjective/schools.py:24-44` | D6/D7 | selectors 为硬编码元组，无机制保证 engine 新增/删除键与 selectors 同步；build_payload 对缺失 selector 静默跳过。 | 增加 `test_selectors_cover_engine_keys` 契约测试，或 engine 侧导出 `ENGINE_KEYS`。 |
+| `mangpai/subjective/__init__.py:210-216` | D6 | `_synthesize_dayun` 直接访问 `analysis['ji_count']`/`analysis['dayun']`，未验证返回形状；数据异常会崩溃。 | 加形状断言或 `get` 回退。 |
+
+### P2（技术债 / 建议）
+
+| 文件:行号 | 维度 | 问题描述 | 修法建议 |
+|---|---|---|---|
+| `foundation/objective/__init__.py:19-34` | D7 | 包级 `__all__` 未包含子模块已导出的 `get_nayin_wuxing`/`BEHAVIOR_TYPES`。 | 同步包级 __all__。 |
+| `foundation/objective/ganqing.py:671-682` | D6 | `get_ganqing` 返回的 `rules` 是 `GanQingRule` dataclass 列表，非 JSON 序列化；若被上层误入 payload 会触发序列化失败。 | 返回时 `asdict()` 转换，或明确标注「非 payload」。 |
+| `foundation/objective/ganqing.py:620` | D6 | `state` 条件匹配使用子串 `s in states`，弱契约，易误命中。 | 改为精确集合成员判定或文档化子串语义。 |
+| `mangpai/objective/__init__.py:29` | D7 | `detect_zihe` 被导入但不在 `__all__`，`from mangpai.objective import *` 不可见。 | 加入 __all__ 或删除冗余导入。 |
+| `mangpai/engine.py:356` | D5/D6 | `gongshen` 被计算但不在 selectors，仅通过 `narrative` 摘要间接进入 payload；无文档说明是否 intentional。 | 明确是否加入 selectors，或在注释中说明「预消化、不进 LLM 原始 JSON」。 |
+| `mangpai/engine.py:401-403` | D6 | `_auto_liunian_injected` 未在 `__init__` 初始化，依赖 `getattr` 兜底；同实例多次调用 compute_all 会残留 True。 | 在 `__init__` 中初始化为 `False`。 |
+| `mangpai/subjective/__init__.py:154-169` | D6 | `_resolve` 把纯数字字符串键（如 `'0'`）一律视为列表下标，dict 键为数字字符串时误解析。 | 区分 `isinstance(cur, list)` 与 `isinstance(cur, dict)` 的索引逻辑。 |
+| `mangpai/subjective/__init__.py:191-198` | D6 | `selectors == ("*",)` 分支不走 `_trim_dayun`/`_synthesize_dayun`，与显式 selectors 行为不一致。 | 统一补 trim/synthesize。 |
+| `mangpai/subjective/schools.py:37-42` | D3 | `zinv/qianyi/xiangmao` 注释写「LLM 七维不扩不进 prompt」，但这三个键均在 selectors 中，会进入 prompt。 | 修正注释，明确「进特征 JSON / 七维叙述」两层区别。 |
+
+### 统计
+
+| 级别 | 数量 |
+|---|---|
+| P0 | 3 |
+| P1 | 8 |
+| P2 | 9 |
