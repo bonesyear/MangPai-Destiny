@@ -708,3 +708,247 @@
 | P0 | 0 | 无新增运行时崩溃点；H8 P0 `_safe_compute` 裸 `except` 经本批全模块确认 |
 | P1 | 4 | ① `analyze_gongliang` 五阶段可执行拆分<br>② `detect_relations` 6 组 O(n²) 循环合并 + 子函数拆分<br>③ `compute_all` 四阶段拆分<br>④ selectors/engine-key 自动契约测试 |
 | P2 | 2 | ① `WX_BEI_SHENG` 反向映射替换 `_day_faction`/`gongliang:864` 线性扫描<br>② `engine.__init__` 初始化 `_auto_liunian_injected` |
+
+---
+
+## H12 · 覆盖率核查 + 补漏批（2026-08-25）
+
+审查范围：mangpai/ 全部 Python 文件 + scripts/ + output/ 的 `_*.py` + 顶层 `verify_*.py`。
+
+### 覆盖率核查
+
+全仓范围内共 **176** 个 Python 文件；H1-H11 已覆盖 **162** 个，漏网 **14** 个。
+
+| 文件 | H 批覆盖情况 | 状态 |
+|------|-------------|------|
+| `mangpai/__init__.py` | H8 | 已审 |
+| `mangpai/calib_zhenbao.py` | — | 漏网 |
+| `mangpai/engine.py` | H8,H11 | 已审 |
+| `mangpai/feishu/__init__.py` | — | 漏网 |
+| `mangpai/feishu/bot.py` | H5 | 已审 |
+| `mangpai/feishu/client.py` | H5 | 已审 |
+| `mangpai/feishu/formatter.py` | H5 | 已审 |
+| `mangpai/feishu/router.py` | H5 | 已审 |
+| `mangpai/feishu/service.py` | H5 | 已审 |
+| `mangpai/objective/__init__.py` | H8 | 已审 |
+| `mangpai/objective/advanced.py` | H1 | 已审 |
+| `mangpai/objective/anhe.py` | H1 | 已审 |
+| `mangpai/objective/bazi_calc.py` | H1 | 已审 |
+| `mangpai/objective/binzhu.py` | H1 | 已审 |
+| `mangpai/objective/biqi.py` | H1 | 已审 |
+| `mangpai/objective/body_parts.py` | H1 | 已审 |
+| `mangpai/objective/canggan.py` | H1 | 已审 |
+| `mangpai/objective/changsheng.py` | H1 | 已审 |
+| `mangpai/objective/constants.py` | H1 | 已审 |
+| `mangpai/objective/dayun.py` | H1 | 已审 |
+| `mangpai/objective/gongfei.py` | H1 | 已审 |
+| `mangpai/objective/gongshen.py` | H1 | 已审 |
+| `mangpai/objective/he_types.py` | H1 | 已审 |
+| `mangpai/objective/jiaoyun.py` | H1 | 已审 |
+| `mangpai/objective/muku.py` | H1 | 已审 |
+| `mangpai/objective/nayin.py` | H1 | 已审 |
+| `mangpai/objective/shensha.py` | H1 | 已审 |
+| `mangpai/objective/shenshu.py` | H1 | 已审 |
+| `mangpai/objective/soil_type.py` | H1 | 已审 |
+| `mangpai/objective/tiyong.py` | H1 | 已审 |
+| `mangpai/objective/virtual_solid.py` | H1 | 已审 |
+| `mangpai/objective/wood_type.py` | H1 | 已审 |
+| `mangpai/objective/xiangfa.py` | H1 | 已审 |
+| `mangpai/objective/yingqi.py` | H1 | 已审 |
+| `mangpai/objective/zihe.py` | H1 | 已审 |
+| `mangpai/objective/zuogong_detect.py` | H1,H11 | 已审 |
+| `mangpai/subjective/__init__.py` | H8 | 已审 |
+| `mangpai/subjective/caiming.py` | H2 | 已审 |
+| `mangpai/subjective/chuangong.py` | H3 | 已审 |
+| `mangpai/subjective/dayun.py` | — | 漏网 |
+| `mangpai/subjective/gongliang.py` | H2,H11 | 已审 |
+| `mangpai/subjective/gongmen_wuzhi.py` | H3 | 已审 |
+| `mangpai/subjective/guanming.py` | H2 | 已审 |
+| `mangpai/subjective/hunyin.py` | H2 | 已审 |
+| `mangpai/subjective/juefa.py` | H3 | 已审 |
+| `mangpai/subjective/laoyu.py` | H2 | 已审 |
+| `mangpai/subjective/liunian.py` | — | 漏网 |
+| `mangpai/subjective/liuqin.py` | H2 | 已审 |
+| `mangpai/subjective/llm_backend.py` | H4 | 已审 |
+| `mangpai/subjective/llm_channel.py` | H4 | 已审 |
+| `mangpai/subjective/llm_prompt.py` | H4 | 已审 |
+| `mangpai/subjective/narrative.py` | H3,H4 | 已审 |
+| `mangpai/subjective/qianyi.py` | — | 漏网 |
+| `mangpai/subjective/schools.py` | H4,H8 | 已审 |
+| `mangpai/subjective/shipaige.py` | H3 | 已审 |
+| `mangpai/subjective/xiangfa_ops.py` | H2 | 已审 |
+| `mangpai/subjective/xiangmao.py` | — | 漏网 |
+| `mangpai/subjective/xueli.py` | H3 | 已审 |
+| `mangpai/subjective/yingqi_subj.py` | H3 | 已审 |
+| `mangpai/subjective/yongshen.py` | H2 | 已审 |
+| `mangpai/subjective/yunfan.py` | H3 | 已审 |
+| `mangpai/subjective/zaihuo.py` | H3 | 已审 |
+| `mangpai/subjective/zeishen_bushen.py` | H3 | 已审 |
+| `mangpai/subjective/zhengfan.py` | H3 | 已审 |
+| `mangpai/subjective/zhiye.py` | H2 | 已审 |
+| `mangpai/subjective/zinv.py` | — | 漏网 |
+| `mangpai/subjective/zuogong_confirm.py` | H2 | 已审 |
+| `mangpai/tests/backtest/__init__.py` | — | 漏网 |
+| `mangpai/tests/backtest/famous_cases.py` | — | 漏网 |
+| `mangpai/tests/backtest/harness.py` | — | 漏网 |
+| `mangpai/tests/backtest/regression67.py` | H7 | 已审 |
+| `mangpai/tests/backtest/regression_famous.py` | H7 | 已审 |
+| `mangpai/tests/calib_assertions.py` | H6,H7 | 已审 |
+| `mangpai/tests/heldout/_a14_diag.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_a1_diag.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_a1_diag2.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_a1_exp.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_b5_diag.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_gm40_diag.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_gm_all_dump.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_gm_sim.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy2_detail.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy2_sim.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy2_sim2.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy2_sim3.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy3_dump.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy3_sim.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy4_sim.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy55_dump.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy55_feat.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy55_sim.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy_all_dump.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy_margin.py` | H7 | 已审 |
+| `mangpai/tests/heldout/_zy_master.py` | H7 | 已审 |
+| `mangpai/tests/heldout/annotations_heldout.py` | H9 | 已审 |
+| `mangpai/tests/heldout/annotations_meta.py` | H9 | 已审 |
+| `mangpai/tests/heldout/blind_eval.py` | H7 | 已审 |
+| `mangpai/tests/heldout/build_yaml.py` | — | 漏网 |
+| `mangpai/tests/heldout/curate.py` | — | 漏网 |
+| `mangpai/tests/heldout/diag_case.py` | — | 漏网 |
+| `mangpai/tests/heldout/extract_cases.py` | — | 漏网 |
+| `mangpai/tests/heldout/verify_heldout.py` | H7 | 已审 |
+| `mangpai/tests/test_a_llm_redline.py` | H6 | 已审 |
+| `mangpai/tests/test_anhe.py` | H6 | 已审 |
+| `mangpai/tests/test_body_parts.py` | H6 | 已审 |
+| `mangpai/tests/test_caiming_m2.py` | H6 | 已审 |
+| `mangpai/tests/test_chuangong.py` | H6 | 已审 |
+| `mangpai/tests/test_d3_dayun_payload.py` | H6 | 已审 |
+| `mangpai/tests/test_d6b_zinv.py` | H6 | 已审 |
+| `mangpai/tests/test_dayun_objective.py` | H6 | 已审 |
+| `mangpai/tests/test_entry_guards.py` | H6 | 已审 |
+| `mangpai/tests/test_f11_yongshen_caiming.py` | H6 | 已审 |
+| `mangpai/tests/test_f12_guanming_juefa.py` | H6 | 已审 |
+| `mangpai/tests/test_f13_shensha.py` | H6 | 已审 |
+| `mangpai/tests/test_f14_zaihuo_llm.py` | H6 | 已审 |
+| `mangpai/tests/test_f15_zhiye.py` | H6 | 已审 |
+| `mangpai/tests/test_f16_hunyin.py` | H6 | 已审 |
+| `mangpai/tests/test_f17_xueli_liuqin.py` | H6 | 已审 |
+| `mangpai/tests/test_f18_shipaige_gongmen.py` | H6 | 已审 |
+| `mangpai/tests/test_f19_yunfan.py` | H6 | 已审 |
+| `mangpai/tests/test_f1_gate.py` | H6 | 已审 |
+| `mangpai/tests/test_fb_shensha_yearref.py` | H6 | 已审 |
+| `mangpai/tests/test_feishu.py` | H6 | 已审 |
+| `mangpai/tests/test_g9_zihe_g5_g1.py` | H6 | 已审 |
+| `mangpai/tests/test_gongfei.py` | H6 | 已审 |
+| `mangpai/tests/test_gongliang.py` | H6 | 已审 |
+| `mangpai/tests/test_guanming_g.py` | H6 | 已审 |
+| `mangpai/tests/test_juefa.py` | H6 | 已审 |
+| `mangpai/tests/test_laoyu.py` | H6 | 已审 |
+| `mangpai/tests/test_liunian_k5.py` | H6 | 已审 |
+| `mangpai/tests/test_liunian_yingqi.py` | H6 | 已审 |
+| `mangpai/tests/test_llm_backend.py` | H6 | 已审 |
+| `mangpai/tests/test_llm_channel.py` | H6 | 已审 |
+| `mangpai/tests/test_muku.py` | H6 | 已审 |
+| `mangpai/tests/test_narrative.py` | H6 | 已审 |
+| `mangpai/tests/test_p0_blindgap.py` | H6 | 已审 |
+| `mangpai/tests/test_p2_cong_baoju.py` | H6 | 已审 |
+| `mangpai/tests/test_property.py` | H6 | 已审 |
+| `mangpai/tests/test_qianyi.py` | H6 | 已审 |
+| `mangpai/tests/test_qiyun_jiaoyun.py` | H6 | 已审 |
+| `mangpai/tests/test_subjective.py` | H6 | 已审 |
+| `mangpai/tests/test_virtual_solid.py` | H6 | 已审 |
+| `mangpai/tests/test_wood_type.py` | H6 | 已审 |
+| `mangpai/tests/test_xiangmao.py` | H6 | 已审 |
+| `mangpai/tests/test_yingqi_shouyuan.py` | H6 | 已审 |
+| `mangpai/tests/test_yongshen_r2r3.py` | H6 | 已审 |
+| `mangpai/tests/test_yunfan.py` | H6 | 已审 |
+| `mangpai/tests/test_zeishen_bushen.py` | H6 | 已审 |
+| `mangpai/tests/test_zhengfan_k2.py` | H6 | 已审 |
+| `mangpai/tests/test_zhengfan_shuli.py` | H6 | 已审 |
+| `mangpai/tests/test_zhiye.py` | H6 | 已审 |
+| `mangpai/tests/test_zuogong_m9.py` | H6 | 已审 |
+| `mangpai/verify_dayun.py` | H7 | 已审 |
+| `mangpai/verify_layer1.py` | H7 | 已审 |
+| `mangpai/verify_layer3_checkpoint.py` | H7 | 已审 |
+| `mangpai/verify_mangpai.py` | H7 | 已审 |
+| `output/_kang_dump.py` | H10 | 已审 |
+| `output/_kang_verify.py` | H10 | 已审 |
+| `output/_llm_batch_analyze.py` | H10 | 已审 |
+| `output/_llm_batch_rescore.py` | H10 | 已审 |
+| `output/_llm_batch_retry.py` | H10 | 已审 |
+| `output/_llm_batch_trainset.py` | H10 | 已审 |
+| `output/_n2_analyze.py` | H10 | 已审 |
+| `output/_n2_calibrate.py` | H10 | 已审 |
+| `output/_n2_eval.py` | H10 | 已审 |
+| `output/_n2_sample.py` | H10 | 已审 |
+| `output/_t3_anchor_scan.py` | H10 | 已审 |
+| `output/_t3_calibrate.py` | H10 | 已审 |
+| `output/_t3_dump.py` | H10 | 已审 |
+| `output/_t3_eval.py` | H10 | 已审 |
+| `output/_v3_calibrate.py` | H10 | 已审 |
+| `output/_v3_judge_sample.py` | H10 | 已审 |
+| `output/_v3_sample.py` | H10 | 已审 |
+| `output/_w4_sample.py` | H10 | 已审 |
+| `output/_w5_crosscheck.py` | H10 | 已审 |
+| `scripts/build_book_index.py` | H7 | 已审 |
+
+漏网文件清单：
+
+- `mangpai/calib_zhenbao.py`
+- `mangpai/feishu/__init__.py`
+- `mangpai/subjective/dayun.py`
+- `mangpai/subjective/liunian.py`
+- `mangpai/subjective/qianyi.py`
+- `mangpai/subjective/xiangmao.py`
+- `mangpai/subjective/zinv.py`
+- `mangpai/tests/backtest/__init__.py`
+- `mangpai/tests/backtest/famous_cases.py`
+- `mangpai/tests/backtest/harness.py`
+- `mangpai/tests/heldout/build_yaml.py`
+- `mangpai/tests/heldout/curate.py`
+- `mangpai/tests/heldout/diag_case.py`
+- `mangpai/tests/heldout/extract_cases.py`
+
+### 漏网文件补审问题表
+
+| 文件:行号 | 维度 | 级别 | 问题描述 | 修法建议 |
+|---|---|---|---|---|
+| `zinv.py:143-149` | D4 | P0 | `detect_relations` 裸 `except Exception:`，子息模块入口在关系计算失败时静默降级为空字典，丢失信号且可能隐藏引擎 Bug。 | 仅捕获预期输入异常；非预期异常抛出并记录四柱。 |
+| `zinv.py:151-155` | D4 | P0 | `analyze_liuqin` 裸 `except Exception:`，六亲结果静默失败，下游使用空 `liuqin_result` 导致子息星定位回退到私有启发式。 | 细化异常，非预期异常抛出。 |
+| `liunian.py:88` | D1 | P1 | 局部定义 `_check_pair`，与 `constants`/`dayun`/`zuogong_detect` 中同名 helper 重复。 | 复用公共 helper。 |
+| `liunian.py:43` | D5 | P1 | `_YANG_GANS` 集合定义后未被使用。 | 删除或注释说明保留原因。 |
+| `liunian.py:152,321,361` | D7 | P1 | 多处函数内局部 import `yongshen` 符号，降低静态可读性。 | 上提到模块级。 |
+| `qianyi.py:63` | D1 | P1 | `_pair_in` 与 `zinv.py` 中同名 helper 重复。 | 抽到 `subjective.utils` 或复用现有工具。 |
+| `zinv.py:66,82,88` | D1 | P1 | `_pair_in`/`_gz_of`/`_benqi_shishen` 与 `qianyi`/`liunian` 重复实现。 | 下沉为公共 helper。 |
+| `calib_zhenbao.py:118` | D4 | P1 | 顶层循环裸 `except Exception:`，校准案例失败仅打印 traceback 继续执行，可能隐藏回归。 | 仅捕获预期异常；非预期异常记录 case id 后抛出。 |
+| `liunian.py:207` | D6 | P2 | `_sheng_wx_of` 线性扫描 `WX_SHENG.items()` 反查印五行，与 H1/H3 指出的低效模式一致。 | 建 `WX_BEI_SHENG` 反向映射统一替换。 |
+| `liunian.py:215-265` | D6 | P2 | 地支旺衰评分中月令双倍/当令 +2 等权重为裸 magic numbers，无命名常量。 | 抽 `_MONTH_WEIGHT=2`、`_LING_WEIGHT=2` 等常量。 |
+| `qianyi.py:67` | D1 | P2 | `_gz_of` 与 `zinv.py` 重复，岁运条目解析未统一。 | 复用 `zinv._gz_of` 或下沉公共 helper。 |
+| `harness.py:10-12` | D7 | P2 | 手动 `sys.path.insert` 改路径；pytest 已能发现包。 | 删除或下沉到 conftest。 |
+| `diag_case.py:18-20` | D7 | P2 | 手动 `sys.path.insert` 改路径。 | 删除。 |
+| `build_yaml.py:47` | D4 | P2 | `json.load(open(...))` 无 `with`，句柄泄漏。 | 改为 `with open(...)`。 |
+| `curate.py:30,49,69` | D4 | P2 | 多处 `json.load/dump(open(...))` 无 `with`；数据文件写回亦非原子。 | 统一 `with open`；关键输出加 `.tmp`+`os.replace`。 |
+| `extract_cases.py:179,269` | D4 | P2 | `open(path).read()` 与 `json.dump(..., open(...))` 无 with / 非原子写。 | 统一 `with open`；草稿输出可原子写。 |
+
+> 注：`subjective/dayun.py`、`xiangmao.py`、`feishu/__init__.py`、`tests/backtest/__init__.py`、`tests/backtest/famous_cases.py` 经补审未发现新增 P0/P1/P2 问题。
+
+### 同型残留最终计数（全仓最后一次扫描）
+
+| 同型问题 | 总数 | 涉及文件数 | 说明 |
+|---|---|---|---|
+| 裸 `except Exception:` | 115 | 30 | 覆盖 H1-H11 已标位置及漏网文件；修复批主要规模依据 |
+| 原子写缺失（`json.dump(..., open(...))` 等直接覆盖写） | 12 | 11 | 快照/基线/诊断脚本为主，H7/H10 已大部分标记 |
+
+### 本批统计
+
+| 级别 | 数量 | 项 |
+|---|---|---|
+| P0 | 2 | `zinv.py` 两处裸 `except Exception:` 吞异常 |
+| P1 | 6 | `liunian.py` 重复 helper/死变量/局部导入；`qianyi.py`/`zinv.py` 重复 helper；`calib_zhenbao.py` 顶层裸 except |
+| P2 | 8 | `liunian.py` 线性扫描/magic number；`qianyi.py` 重复 `_gz_of`；`harness.py`/`diag_case.py`/`build_yaml.py`/`curate.py`/`extract_cases.py` 路径/句柄/原子写 |
