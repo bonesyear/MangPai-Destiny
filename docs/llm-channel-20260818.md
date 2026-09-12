@@ -16,7 +16,7 @@ text = render_structured_reading(
     engine_result,            # MangpaiEngine.compute_all() 的返回 dict
     user_question=None,       # 命主所问，缺省做通推断语
     call_llm=True,            # False=只返回组装好的 prompt 文本
-    model=None,               # 缺省 deepseek-v4-flash（env DEEPSEEK_MODEL 可覆盖）
+    model=None,               # 缺省 deepseek-flash（V4.1 正式 ID，env DEEPSEEK_MODEL 可覆盖）
     validate='mark',          # 校验模式，见下
 )
 ```

@@ -27,8 +27,8 @@ def test_price_tier_peak_windows():
 
 def test_estimate_cost_flash_tiers():
     # 2026-08-21 人民币口径：峰 ¥3.0/¥9.0，谷 ¥1.5/¥4.5（/1M tokens）
-    peak = _estimate_cost('deepseek-v4-flash', _U, at=_at(10))
-    off = _estimate_cost('deepseek-v4-flash', _U, at=_at(20))
+    peak = _estimate_cost('deepseek-flash', _U, at=_at(10))
+    off = _estimate_cost('deepseek-flash', _U, at=_at(20))
     assert abs(peak - (10_000 * 3.0 + 5_000 * 9.0) / 1e6) < 1e-12
     assert abs(off - (10_000 * 1.5 + 5_000 * 4.5) / 1e6) < 1e-12
     assert abs(peak - 2 * off) < 1e-12  # 谷档=峰档半价

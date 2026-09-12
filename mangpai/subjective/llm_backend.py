@@ -4,17 +4,17 @@
 
 - key 来源：环境变量 DEEPSEEK_API_KEY，缺省回退解析 /root/.hermes/.env
 - 端点：POST https://api.deepseek.com/chat/completions（OpenAI 兼容）
-- 默认 model=deepseek-v4-flash，thinking 开启 + JSON mode
+- 默认 model=deepseek-flash（V4.1 正式 ID；旧名 deepseek-v4-flash），thinking 开启 + JSON mode
   （response_format={"type": "json_object"}，thinking 计入 output tokens）
 - 重试：超时/5xx/网络错误重试，指数退避；4xx 不重试直接抛
 - 成本：按官方定价表折算人民币（¥/1M tokens），按请求时间（北京时间）自动选峰/谷档，
   随返回 dict 带出 usage/cost/price_tier/elapsed
 
-定价（¥/1M tokens，api-docs.deepseek.com/zh-cn/quick_start/pricing 2026-08-21 复核；
-cache miss 口径，含 thinking）：
+定价（¥/1M tokens，api-docs.deepseek.com/zh-cn/quick_start/pricing 2026-08-28 复核；
+deepseek-flash = V4.1，价格沿用 V4 口径待官网逐项复核；cache miss 口径，含 thinking）：
                  peak            off-peak（半价）
-  v4-flash input ¥3.0 / out ¥9.0   input ¥1.5 / out ¥4.5
-  v4-pro   input ¥9.0 / out ¥27.0  input ¥4.5 / out ¥13.5
+  flash    input ¥3.0 / out ¥9.0   input ¥1.5 / out ¥4.5
+  pro      input ¥9.0 / out ¥27.0  input ¥4.5 / out ¥13.5
 峰段（官方：北京时间 09:00-12:00、14:00-18:00），其余时段半价。
 2026-08-16 峰谷价生效；历史批次成本（如 2026-08-18 五轮批跑）按当时美元口径计，不回算。
 2026-08-21 改人民币口径（官方国内站直接人民币报价）；cache hit 另有 0.10/0.05 档未用。
@@ -34,10 +34,11 @@ _ENV_FILE = '/root/.hermes/.env'
 # ¥/1M tokens: {'peak': (input, output), 'offpeak': (input, output)}。
 # cache hit 更便宜，按 miss 保守估。2026-08-21 人民币口径（官方国内站报价）。
 _PRICE = {
-    'deepseek-v4-flash': {'peak': (3.0, 9.0), 'offpeak': (1.5, 4.5)},
+    'deepseek-flash': {'peak': (3.0, 9.0), 'offpeak': (1.5, 4.5)},
+    'deepseek-v4-flash': {'peak': (3.0, 9.0), 'offpeak': (1.5, 4.5)},  # 旧 ID 别名（兼容历史配置）
     'deepseek-v4-pro': {'peak': (9.0, 27.0), 'offpeak': (4.5, 13.5)},
 }
-_DEFAULT_MODEL = 'deepseek-v4-flash'
+_DEFAULT_MODEL = 'deepseek-flash'
 
 _BJT = timezone(timedelta(hours=8))
 # 峰段（北京时间，整点边界）：09:00-12:00、14:00-18:00；其余半价
@@ -166,11 +167,13 @@ def _self_check():
     peak = datetime(2026, 8, 18, 10, 0, tzinfo=_BJT).timestamp()    # 北京 10:00 峰
     off = datetime(2026, 8, 18, 20, 0, tzinfo=_BJT).timestamp()     # 北京 20:00 谷
     assert _price_tier(peak) == 'peak' and _price_tier(off) == 'offpeak'
-    # 人民币口径（2026-08-21 起）：v4-flash 峰 ¥3.0/¥9.0、谷 ¥1.5/¥4.5（/1M tokens）
-    assert abs(_estimate_cost('deepseek-v4-flash', usage, at=peak)
+    # 人民币口径（2026-08-21 起）：deepseek-flash 峰 ¥3.0/¥9.0、谷 ¥1.5/¥4.5（/1M tokens）
+    assert abs(_estimate_cost('deepseek-flash', usage, at=peak)
                - (10_000 * 3.0 + 5_000 * 9.0) / 1e6) < 1e-12
-    assert abs(_estimate_cost('deepseek-v4-flash', usage, at=off)
+    assert abs(_estimate_cost('deepseek-flash', usage, at=off)
                - (10_000 * 1.5 + 5_000 * 4.5) / 1e6) < 1e-12
+    # 旧 ID 别名仍可计价（兼容历史配置）
+    assert _estimate_cost('deepseek-v4-flash', usage, at=peak) == _estimate_cost('deepseek-flash', usage, at=peak)
     assert _estimate_cost('unknown-model', {'prompt_tokens': 1}) == 0.0
     print('llm_backend self-check OK')
 
