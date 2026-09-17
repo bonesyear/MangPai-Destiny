@@ -130,13 +130,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 # ───────────────────── 1. 牢狱字 ─────────────────────
@@ -462,18 +459,15 @@ def detect_fanju_chen_chou(
         return {'fanju': False, 'fanju_type': '', 'has_chen_chou': False,
                 'chen_chou': [], 'laoyu': False, 'details': ['四柱不全']}
 
-    try:
-        # analyze_zhengfan 签名=(work_actions, day_he_type, gans, zhis)——
-        # 与 yongshen._ensure_zhengfan 同径（旧调用误传 relations= 实抛
-        # TypeError 被吞，法五上线即死，批5 P0-1；书 中级:5592）。
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
-        zg = analyze_zuogong(
-            day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-        wa = zg.get('work_actions') or []
-        zf = analyze_zhengfan(wa, None, gans, zhis)
-    except Exception:
-        zf = {}
+    # analyze_zhengfan 签名=(work_actions, day_he_type, gans, zhis)——
+    # 与 yongshen._ensure_zhengfan 同径（旧调用误传 relations= 实抛
+    # TypeError 被吞，法五上线即死，批5 P0-1；书 中级:5592）。
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+    zg = analyze_zuogong(
+        day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
+    wa = zg.get('work_actions') or []
+    zf = analyze_zhengfan(wa, None, gans, zhis)
     fanju = zf.get('type') == 'fan'
     fanju_type = zf.get('configuration', '')
 
@@ -637,10 +631,7 @@ def detect_jiesha_wangshen(
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'has_jiesha': False, 'has_wangshen': False, 'laoyu_signal': False, 'details': ['四柱不全']}
-    try:
-        shen = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        shen = {}
+    shen = resolve_shensha(day_gan, zhis, shensha_result)
     js = shen.get('劫煞') or {}
     ws_ = shen.get('亡神') or {}
     # 修批B：主键=日支侧（F13），并入 year_ref/day_ref 子键——year-only

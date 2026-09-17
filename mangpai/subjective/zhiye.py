@@ -46,6 +46,7 @@ M2 基础职业类目（七桶未成象时的第二梯队，段氏《中级》�
   贫而全局无做功 -> unemployed（无业）。七桶最高分 < 阈值时不再硬塞，
   输出「未分类」+ 最高分桶名作提示（hint），fallback 升格为合法第一输出。
 """
+import logging
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -59,6 +60,8 @@ from mangpai.objective.muku import analyze_muku
 from mangpai.objective.xiangfa import get_liushi_ganzhi_xiang
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.yongshen import assess_direction_signals
+
+_logger = logging.getLogger(__name__)
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -149,13 +152,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 def _main_qi_cats(day_gan: str, gans: List[str], zhis: List[str], i: int) -> Set[str]:
@@ -1274,12 +1274,9 @@ def _classify_base_career(
     # 维生，实际是个宾馆服务员」）：身弱扶抑 + 财多（≥2位明现）+ tier 贫 -> 体力。
     fuwu_pinren = False
     if tier == '贫':
-        try:
-            from mangpai.subjective.yongshen import classify_strength
-            if str(classify_strength(day_gan, gans, zhis)) == '身弱':
-                fuwu_pinren = (cm.get('caifu_view') or {}).get('cai_count', 0) >= 2
-        except Exception:
-            pass
+        from mangpai.subjective.yongshen import classify_strength
+        if str(classify_strength(day_gan, gans, zhis)) == '身弱':
+            fuwu_pinren = (cm.get('caifu_view') or {}).get('cai_count', 0) >= 2
     if not (bijiao_work or lu_tili or fuwu_pinren):
         return {}
     hint = '农' if work_zhis & _TU_ZHIS else ('工' if work_zhis & _JIN_ZHIS else '农')
@@ -1347,14 +1344,8 @@ def classify_zhiye(
 
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
-    try:
-        muku = analyze_muku(zhis, gans)
-    except Exception:
-        muku = {}
-    try:
-        ss = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        ss = {}
+    muku = analyze_muku(zhis, gans)
+    ss = resolve_shensha(day_gan, zhis, shensha_result)
 
     scores: Dict[str, int] = {}
     evidence: Dict[str, List[str]] = {}
@@ -1483,8 +1474,9 @@ def classify_zhiye(
             corroborate.append(f'夹官局→军职/公门加权（{jia_guan}处）')
         if xo.get('hexiang'):
             corroborate.append(f'合象{len(xo["hexiang"])}处（产新象印证组合）')
-    except Exception:
-        pass
+    except Exception as e:
+        _logger.warning('analyze_xiangfa_ops 象法互证失败，跳过互证加权',
+                        exc_info=True)
     for _b, _n in _corro_adds.items():
         scores[_b] = scores.get(_b, 0) + min(_n, 2)
         if _n > 2:
@@ -1496,14 +1488,11 @@ def classify_zhiye(
     # 凶向信号缺省自调（laoyu 过火不计入）。
     # 岁运反局（A1）经 yunfan_result 透传，与原局反局同链 gating。
     # M2：ds 提前算好，同时供基础职业类目（无业/体力劳动者）消费。
-    try:
-        ds = assess_direction_signals(
-            day_gan, gans, zhis, relations=rel,
-            zhengfan_result=zhengfan_result, laoyu_result=laoyu_result,
-            yunfan_result=yunfan_result,
-        )
-    except Exception:
-        ds = {}
+    ds = assess_direction_signals(
+        day_gan, gans, zhis, relations=rel,
+        zhengfan_result=zhengfan_result, laoyu_result=laoyu_result,
+        yunfan_result=yunfan_result,
+    )
     if ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai') \
             or ds.get('yongshen_xiong') or ds.get('mingju_xiong'):
         if scores.get('military', 0) > 0:
@@ -1528,11 +1517,8 @@ def classify_zhiye(
                             or scores.get('lawyer', 0) > 0):
         _tier_g = (caiming_result or {}).get('tier_static', '')
         if _tier_g in ('贫', '小康'):
-            try:
-                from mangpai.subjective.yongshen import classify_strength as _cs2
-                _strength_g = str(_cs2(day_gan, gans, zhis))
-            except Exception:
-                _strength_g = ''
+            from mangpai.subjective.yongshen import classify_strength as _cs2
+            _strength_g = str(_cs2(day_gan, gans, zhis))
             if _strength_g in ('身弱', '从弱'):
                 _gate_g = (f'官杀为忌克身贫贱gating（官杀主气{_gs_char_n}字+'
                            f'{_strength_g}+{_tier_g}命——段氏：官杀重重克身，'
@@ -1567,11 +1553,8 @@ def classify_zhiye(
     # 「身弱无主位帮扶不能任财」为前提（qi14 亿万企业家：日支寅禄帮身，财3位
     # 而富；b67-初中：比劫全在宾位年柱，仍为富屋贫人）。
     if scores.get('merchant', 0) > 0:
-        try:
-            from mangpai.subjective.yongshen import classify_strength as _cs
-            _strength = str(_cs(day_gan, gans, zhis))
-        except Exception:
-            _strength = ''
+        from mangpai.subjective.yongshen import classify_strength as _cs
+        _strength = str(_cs(day_gan, gans, zhis))
         _cai_cnt = sum(1 for i in range(4)
                        if '财' in _pillar_cats(day_gan, gans[i], zhis[i]))
         _has_yin = _has_cat(day_gan, gans, zhis, '印')
@@ -1643,11 +1626,8 @@ def classify_zhiye(
     if WX_KE.get(GAN_WX.get(day_gan, ''), '') == '金' and (
             sum(1 for z in zhis if z in ('申', '酉'))
             + sum(1 for g in gans if g in ('庚', '辛'))) >= 2:
-        try:
-            from mangpai.subjective.yongshen import classify_strength as _cs4
-            _st4 = str(_cs4(day_gan, gans, zhis))
-        except Exception:
-            _st4 = ''
+        from mangpai.subjective.yongshen import classify_strength as _cs4
+        _st4 = str(_cs4(day_gan, gans, zhis))
         if _st4 == '从强':
             scores['accountant'] = scores.get('accountant', 0) + 5
             evidence['accountant'] = evidence.get('accountant', []) + [
@@ -1675,12 +1655,9 @@ def classify_zhiye(
         # 未命中给「未分类」+ 最高分桶提示（hint），不再硬塞七桶。
         cm = caiming_result
         if cm is None:
-            try:
-                from mangpai.subjective.caiming import analyze_caiming
-                cm = analyze_caiming(day_gan, gans, zhis, relations=rel,
-                                     shensha_result=ss, yunfan_result=yunfan_result)
-            except Exception:
-                cm = {}
+            from mangpai.subjective.caiming import analyze_caiming
+            cm = analyze_caiming(day_gan, gans, zhis, relations=rel,
+                                 shensha_result=ss, yunfan_result=yunfan_result)
         base_career = _classify_base_career(day_gan, gans, zhis, wa, cm, ds)
         if base_career:
             primary = base_career['bucket']

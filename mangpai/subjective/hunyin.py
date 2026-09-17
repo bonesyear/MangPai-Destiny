@@ -32,6 +32,7 @@ hunyin - 盲派婚姻专辑·主观层（subjective）
           结离婚应期需大运流年输入，本模块给信号不给断言。
 置信度：中
 """
+import logging
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
@@ -44,6 +45,8 @@ from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 from mangpai.subjective.zhengfan import _compute_qishi
+
+_logger = logging.getLogger(__name__)
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -69,10 +72,7 @@ def _qishi_dang(gans: List[str], zhis: List[str]) -> Dict:
     对方党 ≥2 为「制不住」（书「原局水火之力量相当…制不住夫星」:4303-4308）。
     仅采书明文势党（复用 zhengfan._compute_qishi），单向/两神不定喜忌。
     """
-    try:
-        q = _compute_qishi(gans, zhis)
-    except Exception:
-        q = None
+    q = _compute_qishi(gans, zhis)
     if not (q and q.get('kind') == '势党'):
         return {'dang': '', 'opp': 0}
     dang = 'shi' if q.get('pair') == ['金', '水'] else 'zao'
@@ -171,13 +171,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 def _dayzhi_attacked(wa: List[Dict]) -> List[str]:
@@ -823,10 +820,7 @@ def detect_lu_ban_taohua(
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'is_lu_ban': False, 'factors': ['四柱不全']}
-    try:
-        shen = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        shen = {}
+    shen = resolve_shensha(day_gan, zhis, shensha_result)
     hits = (((shen.get('桃花') or {}).get('lu_ban') or {}).get('hits')) or []
     factors = [f'禄{h["lu"]}合{h["partner"]}（{"/".join(h["cats"])}），'
                f'禄被桃花绊（{h["pillar"]}柱），主情欲重、为情所累'
@@ -888,10 +882,7 @@ def classify_jiehun_sifa(
 
     # 法四·桃花合宫/居宫（F13：取日支起算口径——day_ref 子键恒在，
     # engine 默认 reference='day' 时主键即日支口径，gaoji:7912）
-    try:
-        shen = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        shen = {}
+    shen = resolve_shensha(day_gan, zhis, shensha_result)
     _tao = shen.get('桃花') or {}
     th = (_tao.get('day_ref') or _tao).get('zhi', '')
     if th:
@@ -1081,8 +1072,9 @@ def analyze_hunyin(
         try:
             direction_result = assess_direction_signals(
                 day_gan, gans or [], zhis or [], relations=relations)
-        except Exception:
-            direction_result = {}
+        except Exception as e:
+            _logger.warning("assess_direction_signals 失败，降级为空: %s", e, exc_info=True)
+            direction_result = {'compute_error': True}
 
     parts = [f'婚姻{quality.get("quality","平")}']
     if duohun.get('is_duohun'):

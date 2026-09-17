@@ -112,13 +112,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 # 合用动作类型（对称关系，from/to 无方向语义）
@@ -537,11 +534,8 @@ def analyze_xueli(
 
     # A3：方向总线信号（缺省自调）
     if direction_result is None:
-        try:
-            direction_result = assess_direction_signals(
-                day_gan, gans or [], zhis or [], relations=relations)
-        except Exception:
-            direction_result = {}
+        direction_result = assess_direction_signals(
+            day_gan, gans or [], zhis or [], relations=relations)
 
     summary = f'学历{level.get("level","中")}；{wenli.get("direction","文理兼")}'
     po = shen.get('破坏_shen', [])

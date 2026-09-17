@@ -237,3 +237,152 @@ def test_calib_smoke_10_cases_no_crash():
     for case in cases:
         out = ca.run_case(case)  # 内部 MangpaiEngine(...).compute_all() 全量
         assert isinstance(out, dict)
+
+
+# ---------------------------------------------------------------- 7. subjective 层（H-fix-2b）
+#
+# 传导类哨兵：模块内基础数据自调（_ensure_* / 缺省自调）注入异常 → 必须上抛；
+# 旧码吞掉返回 {}（对未修复代码=红），修复后传导（绿）。
+# 降级类契约：可选增强信号注入异常 → 不崩、主链完好、降级结构明确（日志可查）。
+
+_G4 = ['戊', '己', '庚', '丁']
+_Z4 = ['辰', '未', '午', '亥']
+
+
+def _injected_bug(*a, **k):
+    raise RuntimeError('injected bug')
+
+
+# 7a. _ensure_relations 传导（10 模块参数化）
+_ENSURE_REL_MODS = ['caiming', 'zhiye', 'guanming', 'liuqin', 'hunyin',
+                    'zaihuo', 'xiangfa_ops', 'gongmen_wuzhi', 'laoyu', 'xueli']
+
+
+@pytest.mark.parametrize('modname', _ENSURE_REL_MODS)
+def test_ensure_relations_propagates(modname, monkeypatch):
+    """基础数据自调 detect_relations 失败 → 上抛，不得静默 {}。"""
+    import importlib
+    mod = importlib.import_module(f'mangpai.subjective.{modname}')
+    monkeypatch.setattr(mod, 'detect_relations', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        mod._ensure_relations('庚', _G4, _Z4, None)
+
+
+@pytest.mark.parametrize('modname', _ENSURE_REL_MODS)
+def test_ensure_relations_guard_unchanged(modname):
+    """前置守卫语义不变：四柱不全返回 {}、显式 relations 透传。"""
+    import importlib
+    mod = importlib.import_module(f'mangpai.subjective.{modname}')
+    assert mod._ensure_relations('', _G4, _Z4, None) == {}
+    assert mod._ensure_relations('庚', ['戊'], _Z4, None) == {}
+    sentinel = {'work_actions': []}
+    assert mod._ensure_relations('庚', _G4, _Z4, sentinel) is sentinel
+
+
+# 7b. _ensure_muku 传导
+@pytest.mark.parametrize('modname', ['caiming', 'xiangfa_ops'])
+def test_ensure_muku_propagates(modname, monkeypatch):
+    import importlib
+    mod = importlib.import_module(f'mangpai.subjective.{modname}')
+    monkeypatch.setattr(mod, 'analyze_muku', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        mod._ensure_muku(_G4, _Z4, None)
+
+
+# 7c. yunfan 缺省自调传导（原局做功 / 正反局基线 / 从格强弱）
+def test_yunfan_natal_zuogong_propagates(monkeypatch):
+    import mangpai.subjective.yunfan as yf
+    monkeypatch.setattr(yf, 'analyze_zuogong', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        yf.analyze_yunfan(_G4, _Z4, '庚')
+
+
+def test_yunfan_natal_zhengfan_propagates(monkeypatch):
+    import mangpai.subjective.yunfan as yf
+    monkeypatch.setattr(yf, 'analyze_zhengfan', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        yf.analyze_yunfan(_G4, _Z4, '庚')
+
+
+def test_yunfan_strength_propagates(monkeypatch):
+    import mangpai.subjective.yunfan as yf
+    monkeypatch.setattr(yf, 'classify_strength', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        yf.analyze_yunfan(_G4, _Z4, '庚')
+
+
+# 7d. gongliang 缺省自调传导（做功 / 贼捕）
+def test_gongliang_zuogong_propagates(monkeypatch):
+    import mangpai.subjective.gongliang as gl
+    monkeypatch.setattr(gl, 'analyze_zuogong', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        gl.analyze_gongliang(None, '庚', _G4, _Z4)
+
+
+def test_gongliang_zeishen_propagates(monkeypatch):
+    import mangpai.subjective.gongliang as gl
+    import mangpai.subjective.zeishen_bushen as zb
+    monkeypatch.setattr(zb, 'analyze_zeishen_bushen', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        gl.analyze_gongliang(None, '庚', _G4, _Z4)
+
+
+# 7e. zinv 传导（relations/liuqin 是子息星定位唯一来源，H12 P0）
+def test_zinv_relations_propagates(monkeypatch):
+    import mangpai.subjective.zinv as zv
+    monkeypatch.setattr(zv, 'detect_relations', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        zv.analyze_zinv('庚', _G4, _Z4, '男')
+
+
+def test_zinv_liuqin_propagates(monkeypatch):
+    import mangpai.subjective.zinv as zv
+    monkeypatch.setattr(zv, 'analyze_liuqin', _injected_bug)
+    with pytest.raises(RuntimeError, match='injected bug'):
+        zv.analyze_zinv('庚', _G4, _Z4, '男', relations={})
+
+
+# 7f. 降级显式性契约（可选增强信号失败：不崩 + 主链完好 + 明确降级）
+def test_zuogong_confirm_binzhu_degrades(monkeypatch):
+    """宾主 enrichment 失败 → 明确降级（日志），做功主链不受影响。"""
+    import mangpai.subjective.zuogong_confirm as zc
+    monkeypatch.setattr(zc, 'analyze_binzhu', _injected_bug)
+    res = zc.analyze_zuogong('己', '巳', '甲', '子', '丙', '寅', '甲', '戌')
+    assert isinstance(res, dict) and 'work_actions' in res
+
+
+def test_hunyin_direction_degrades(monkeypatch):
+    """方向总线增强信号失败 → 婚姻判定主链完好，降级切片中性可区分。"""
+    import mangpai.subjective.hunyin as hy
+    monkeypatch.setattr(hy, 'assess_direction_signals', _injected_bug)
+    res = hy.analyze_hunyin('庚', _G4, _Z4, '男')
+    assert isinstance(res, dict) and res.get('summary')
+    assert res['direction_signals']['direction'] == '中性'
+
+
+# 7g. engine 层契约一致性（2a 分类 × 2b 内部改造对齐）
+@pytest.mark.parametrize('attr,key', [
+    ('analyze_hunyin', 'hunyin'), ('analyze_liuqin', 'liuqin'),
+    ('analyze_xueli', 'xueli'), ('analyze_xiangfa_ops', 'xiangfa_ops'),
+    ('analyze_gongmen_wuzhi', 'gongmen_wuzhi'), ('analyze_zinv', 'zinv'),
+])
+def test_engine_degrade_module_contract(attr, key, monkeypatch):
+    """降级类模块整体失败 → _MODULE_DEFAULTS 明确默认值，主链完好。"""
+    import mangpai.engine as eng_mod
+    monkeypatch.setattr(eng_mod, attr, _injected_bug)
+    res = MangpaiEngine(_valid_bazi_data()).compute_all()
+    assert res[key] == {}
+    assert 'summary' in res
+
+
+@pytest.mark.parametrize('attr,key', [
+    ('analyze_caiming', 'caiming'), ('analyze_guanming', 'guanming'),
+    ('analyze_zhiye', 'zhiye'), ('analyze_gongliang', 'gongliang'),
+    ('analyze_yunfan', 'yunfan'), ('analyze_zaihuo', 'zaihuo'),
+])
+def test_engine_propagate_module_contract(attr, key, monkeypatch):
+    """传导类模块整体失败 → EngineComputeError 传导，不得吞为 {}。"""
+    import mangpai.engine as eng_mod
+    monkeypatch.setattr(eng_mod, attr, _injected_bug)
+    with pytest.raises(EngineComputeError, match=key):
+        MangpaiEngine(_valid_bazi_data()).compute_all()

@@ -73,6 +73,7 @@ gongliang - 段氏做功等级量化（四层功量）·主观层
           包制/层层相制/七杀当财为结构启发式，非盲师口传定量表。
 置信度：中
 """
+import logging
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -91,6 +92,8 @@ from mangpai.subjective.yongshen import (
     detect_jishen_zhiyongshen,
     detect_shangguan_jianguan,
 )
+
+_logger = logging.getLogger(__name__)
 
 # ── 四层功 tier 名（段氏富贵量级）──
 _TIER_NAMES: Dict[int, str] = {
@@ -289,13 +292,10 @@ def analyze_gongliang(
         if gans and zhis and len(gans) == 4 and len(zhis) == 4:
             if not day_gan:
                 day_gan = gans[PILLAR_KEYS.index('day')]
-            try:
-                zuogong_result = analyze_zuogong(
-                    day_gan, zhis[PILLAR_KEYS.index('day')],
-                    gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-                )
-            except Exception:
-                zuogong_result = {}
+            zuogong_result = analyze_zuogong(
+                day_gan, zhis[PILLAR_KEYS.index('day')],
+                gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+            )
         else:
             zuogong_result = {}
 
@@ -315,11 +315,8 @@ def analyze_gongliang(
     # 计入功量点——zb 的包制/冲链启发式存在误检（如例六包制、普通4冲链），盲目 +1
     # 会与源文层数相悖，故功量点仍以本模块 san_he_formed / _chain_length 保守判为准。
     if zeishen_bushen_result is None and day_gan and gans and zhis and len(gans) == 4:
-        try:
-            from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
-            zeishen_bushen_result = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
-        except Exception:
-            zeishen_bushen_result = None
+        from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
+        zeishen_bushen_result = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
     _zb = zeishen_bushen_result or {}
     _zb_sub: Dict = _zb.get('zeishen_bushen') or {}
     _zb_bao = _zb.get('bao_zhi')
@@ -769,10 +766,7 @@ def analyze_gongliang(
     #   为一层功。去重口径：官杀+财 正是原神用神同制配对之一，同制成立时已被 +2
     #   覆盖；仅同制不成立时，统摄独立计一层。消费 caiming.classify_caifu_view。
     if yuanshen_hit is None and day_gan and gans and zhis and len(gans) == 4:
-        try:
-            cf = classify_caifu_view(day_gan, gans, zhis)
-        except Exception:
-            cf = {}
+        cf = classify_caifu_view(day_gan, gans, zhis)
         tong = [v for v in (cf.get('views') or []) if '统' in v]
         if tong:
             points += 1
@@ -1107,7 +1101,8 @@ def analyze_gongliang(
         try:
             from mangpai.subjective.yongshen import classify_strength
             _strength_gl = classify_strength(day_gan, gans, zhis)
-        except Exception:
+        except Exception as e:
+            _logger.warning('强弱判定失败，从格标注跳过: %s', e, exc_info=True)
             _strength_gl = ''
 
     # ── 分数（层内连续刻画强弱）──

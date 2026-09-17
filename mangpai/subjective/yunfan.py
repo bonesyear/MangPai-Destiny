@@ -709,16 +709,13 @@ def analyze_yunfan(
 
     # ── 原局做功数据（缺省自调 analyze_zuogong）──
     if natal_work_actions is None or natal_gong_shen is None or natal_fei_shen is None:
-        try:
-            zg = analyze_zuogong(
-                day_gan, natal_zhis[PILLAR_KEYS.index('day')] if len(natal_zhis) == 4 else '',
-                natal_gans[0] if len(natal_gans) > 0 else '', natal_zhis[0] if len(natal_zhis) > 0 else '',
-                natal_gans[1] if len(natal_gans) > 1 else '', natal_zhis[1] if len(natal_zhis) > 1 else '',
-                natal_gans[3] if len(natal_gans) > 3 else '', natal_zhis[3] if len(natal_zhis) > 3 else '',
-                kong_wang=kong_wang,
-            ) if len(natal_gans) == 4 and len(natal_zhis) == 4 else {}
-        except Exception:
-            zg = {}
+        zg = analyze_zuogong(
+            day_gan, natal_zhis[PILLAR_KEYS.index('day')] if len(natal_zhis) == 4 else '',
+            natal_gans[0] if len(natal_gans) > 0 else '', natal_zhis[0] if len(natal_zhis) > 0 else '',
+            natal_gans[1] if len(natal_gans) > 1 else '', natal_zhis[1] if len(natal_zhis) > 1 else '',
+            natal_gans[3] if len(natal_gans) > 3 else '', natal_zhis[3] if len(natal_zhis) > 3 else '',
+            kong_wang=kong_wang,
+        ) if len(natal_gans) == 4 and len(natal_zhis) == 4 else {}
         work_actions = natal_work_actions if natal_work_actions is not None else (zg.get('work_actions') or [])
         gshen = natal_gong_shen if natal_gong_shen is not None else (zg.get('gong_shen') or [])
         fei = natal_fei_shen if natal_fei_shen is not None else (zg.get('fei_shen') or [])
@@ -730,20 +727,14 @@ def analyze_yunfan(
         wtypes = natal_work_types or []
 
     # ── 原局正反局基线（zhengfan）──
-    try:
-        natal_zf = analyze_zhengfan(work_actions, day_he_type, natal_gans, natal_zhis)
-    except Exception:
-        natal_zf = {'configuration': '基线判定失败', 'type': 'neutral'}
+    natal_zf = analyze_zhengfan(work_actions, day_he_type, natal_gans, natal_zhis)
 
     dayun_fan: List[Dict] = []
     dayun_ji: List[Dict] = []
     # G5：从格行运规则（破从/合去忌神）——strength/所从 全运岁共用，一次判得
-    try:
-        _strength = classify_strength(day_gan, natal_gans, natal_zhis)
-        _cong_label = classify_cong_target(
-            day_gan, natal_gans, natal_zhis, _strength).get('label', '')
-    except Exception:
-        _strength, _cong_label = '', ''
+    _strength = classify_strength(day_gan, natal_gans, natal_zhis)
+    _cong_label = classify_cong_target(
+        day_gan, natal_gans, natal_zhis, _strength).get('label', '')
     for entry in (dayun_list or []):
         gz = entry.get('gz', '')
         if gz and len(gz) >= 2:

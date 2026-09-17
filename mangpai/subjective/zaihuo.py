@@ -148,13 +148,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 def _wx_counts(day_gan: str, gans: List[str], zhis: List[str]) -> Dict[str, int]:
@@ -282,11 +279,8 @@ def classify_jibing(
     all_yin = all((g not in _YANG_GANS if g else True) for g in gans) and \
               all((z in set('丑卯巳未酉亥') if z else True) for z in zhis)
     has_chuan_po = any(a.get('type') in ('穿', '破') for a in wa)
-    try:
-        muku = analyze_muku(zhis, gans)
-        has_mu = bool(muku.get('tombs'))
-    except Exception:
-        has_mu = False
+    muku = analyze_muku(zhis, gans)
+    has_mu = bool(muku.get('tombs'))
     if (all_yang or all_yin) and has_chuan_po and has_mu:
         special.append('癌症（阴阳战+穿破带墓）')
 
@@ -346,12 +340,8 @@ def detect_chehuo(
 
     # 多马星——F13 改消费在局马数（in_pillars）：供给层 'count'=并集马支数
     # 恒≥3（批8 实锤死判据），在局马数（马支实际落柱）才有判别力。
-    try:
-        ss = resolve_shensha(day_gan, zhis, shensha_result)
-        ma_count = len((ss.get('马星') or {}).get('in_pillars') or [])
-    except Exception:
-        ss = {}
-        ma_count = 0
+    ss = resolve_shensha(day_gan, zhis, shensha_result)
+    ma_count = len((ss.get('马星') or {}).get('in_pillars') or [])
 
     # 触发：穿/冲 涉车象支
     triggers: List[str] = []
@@ -530,10 +520,7 @@ def detect_siwang(
                 markers.append(f'寿元星（{shouyuan_cat}）{PILLAR_NAMES_CN[i]}柱遭{"、".join(kinds)}')
 
         # 2. 寿元星入墓 / 墓被冲开
-        try:
-            muku = analyze_muku(zhis, gans)
-        except Exception:
-            muku = {}
+        muku = analyze_muku(zhis, gans)
         tombs = muku.get('tombs') or []
         open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
         closed_tombs = {t.get('zhi') for t in (muku.get('closed_tombs') or [])}
@@ -569,20 +556,14 @@ def detect_siwang(
                 markers.append(f'禄神（{lu_zhi}）遭{t}')
                 break
         # 禄入墓
-        try:
-            muku2 = analyze_muku(zhis, gans)
-            lu_wx = GAN_WX.get(day_gan, '')
-            for z in _tomb_zhis_of_wx(lu_wx):
-                if z in {t.get('zhi') for t in (muku2.get('open_tombs') or [])} and lu_zhi in zhis:
-                    markers.append(f'禄神入{z}墓被冲开')
-        except Exception:
-            pass
+        muku2 = analyze_muku(zhis, gans)
+        lu_wx = GAN_WX.get(day_gan, '')
+        for z in _tomb_zhis_of_wx(lu_wx):
+            if z in {t.get('zhi') for t in (muku2.get('open_tombs') or [])} and lu_zhi in zhis:
+                markers.append(f'禄神入{z}墓被冲开')
 
     # 凶性三煞（亡神/劫煞/灾煞）并空亡
-    try:
-        ss = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        ss = {}
+    ss = resolve_shensha(day_gan, zhis, shensha_result)
     xiong_sha: List[str] = []
     for key in ('亡神', '劫煞', '灾煞'):
         v = ss.get(key)
@@ -684,12 +665,9 @@ def analyze_zaihuo(
 
     # A3：方向总线信号（缺省自调；zaihuo 已自有 yunfan 切片，透传一致口径）
     if direction_result is None:
-        try:
-            direction_result = assess_direction_signals(
-                day_gan, gans, zhis, relations=relations,
-                yunfan_result=yunfan_result)
-        except Exception:
-            direction_result = {}
+        direction_result = assess_direction_signals(
+            day_gan, gans, zhis, relations=relations,
+            yunfan_result=yunfan_result)
 
     order = {'高': 3, '中': 2, '低': 1, '无': 0}
     laoyu_risk = (laoyu_result or {}).get('risk', '无') or '无'

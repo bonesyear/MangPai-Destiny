@@ -141,18 +141,12 @@ def analyze_zinv(
         return _empty
 
     if relations is None:
-        try:
-            relations = detect_relations(
-                day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1],
-                gans[3], zhis[3])
-        except Exception:
-            relations = {}
+        relations = detect_relations(
+            day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1],
+            gans[3], zhis[3])
     if liuqin_result is None:
-        try:
-            liuqin_result = analyze_liuqin(day_gan, gans, zhis, gender,
-                                           relations=relations)
-        except Exception:
-            liuqin_result = {}
+        liuqin_result = analyze_liuqin(day_gan, gans, zhis, gender,
+                                       relations=relations)
 
     # 星定位唯一来源=liuqin 输出（不重造）
     cat = ((liuqin_result.get('zixi_youwu') or {}).get('child_star_cat')

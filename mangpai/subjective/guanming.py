@@ -120,13 +120,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 # ───────────────────── 制用做功四类 + 生用化用 ─────────────────────
@@ -330,11 +327,8 @@ def classify_guanming_combo(
     if guan_wx and guan_zhi_idxs:
         _guan_tombs = {z for z, els in TOMB_MAP.items() if guan_wx in els}
         if not (_guan_tombs & set(zhis)):
-            try:
-                from mangpai.objective.bazi_calc import get_kong_wang
-                _year_kw = get_kong_wang(gans[0], zhis[0]).get('zhi', [])
-            except Exception:
-                _year_kw = []
+            from mangpai.objective.bazi_calc import get_kong_wang
+            _year_kw = get_kong_wang(gans[0], zhis[0]).get('zhi', [])
             _kw_all = set(_kw_zhis) | set(_year_kw)
             if all(f'{PILLAR_KEYS[i]}_zhi' in _zhi_hard_targets
                    and zhis[i] in _kw_all for i in guan_zhi_idxs):
@@ -535,26 +529,23 @@ def classify_guanming_combo(
     # （身弱/从强，guan_wei_ji）者合制得官——与 G3 去官得官同口径；官为
     # 用神被合绊者失官不录（属 R3 财/官失用域）。自合不并入 zuogong 通用
     # 合做功源（柱内干支合，非柱间做功），故在此单独检测。
-    try:
-        from mangpai.objective.zihe import detect_zihe
-        _zihe_g = detect_zihe(gans, zhis)
-        for _rec in _zihe_g.get('pillars') or []:
-            if _rec.get('is_day') or not _rec.get('activated'):
-                continue
-            _gi = _rec['idx']
-            if GAN_WX.get(gans[_gi], '') != guan_wx:
-                continue  # 柱上之干非官杀不论
-            if not guan_wei_ji:
-                continue  # 官非忌神（身强官为用/从弱官为喜），合绊失官不录得官
-            key = '合制·自合制官'
-            if key not in combos:
-                combos.append(key)
-                details.append(
-                    f'{key}（{_rec["key_cn"]}柱{_rec["gz"]}自合，{gans[_gi]}官被支中'
-                    f'{_rec["he_shen"]}合绊=制）：官为忌神被合制，制官得官'
-                    f'（48期康熙例：甲被午中己合绊，制官得官，级别省级）')
-    except Exception:
-        pass
+    from mangpai.objective.zihe import detect_zihe
+    _zihe_g = detect_zihe(gans, zhis)
+    for _rec in _zihe_g.get('pillars') or []:
+        if _rec.get('is_day') or not _rec.get('activated'):
+            continue
+        _gi = _rec['idx']
+        if GAN_WX.get(gans[_gi], '') != guan_wx:
+            continue  # 柱上之干非官杀不论
+        if not guan_wei_ji:
+            continue  # 官非忌神（身强官为用/从弱官为喜），合绊失官不录得官
+        key = '合制·自合制官'
+        if key not in combos:
+            combos.append(key)
+            details.append(
+                f'{key}（{_rec["key_cn"]}柱{_rec["gz"]}自合，{gans[_gi]}官被支中'
+                f'{_rec["he_shen"]}合绊=制）：官为忌神被合制，制官得官'
+                f'（48期康熙例：甲被午中己合绊，制官得官，级别省级）')
 
     # 生用化用
     shengyong: List[str] = []
@@ -939,16 +930,13 @@ def analyze_guanming(
     # gongliang 缺省自调（只读消费，不改功量层）
     gl = gongliang_result
     if gl is None:
-        try:
-            from mangpai.subjective.gongliang import analyze_gongliang
-            from mangpai.subjective.zuogong_confirm import analyze_zuogong
-            zg = analyze_zuogong(
-                day_gan, zhis[PILLAR_KEYS.index('day')],
-                gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-            )
-            gl = analyze_gongliang(zg, day_gan, gans, zhis)
-        except Exception:
-            gl = {}
+        from mangpai.subjective.gongliang import analyze_gongliang
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        zg = analyze_zuogong(
+            day_gan, zhis[PILLAR_KEYS.index('day')],
+            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+        )
+        gl = analyze_gongliang(zg, day_gan, gans, zhis)
     level = assess_guanming_level(day_gan, gans or [], zhis or [], gl)
 
     # ── 官命否决（P0 B 反 over-fire + M1）：反局/牢狱/比劫夺财破财/过河拆桥破财

@@ -1073,3 +1073,43 @@ P0 中裸 except 约占 **88%**；全量中裸 except 约占 **23%**，重复/�
 - `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（P2，H-fix-2b/c 或守卫批）
 - `_auto_liunian_injected` `__init__` 未初始化（P2 备案维持）
 - subjective 层 67 处裸 except → H-fix-2b；诊断/验证脚本 → H-fix-2c
+
+---
+
+## H-fix-2b（2026-09-18，执行登记）
+
+### 阶段 0 计数定边界（实测为准）
+
+- 实测 `grep -rn "except Exception" mangpai/subjective/*.py` = **91 处**（v2 计划口径 67，漂移 +24）：`except Exception:` ×90 + `except Exception as e:` ×1；裸 `except:` = 0。
+- 逐文件：caiming 11 / zhiye 10 / yongshen 9 / liuqin 9 / zaihuo 7 / xiangfa_ops 7 / gongmen_wuzhi 7 / zuogong_confirm 5 / hunyin 5 / guanming 4 / gongliang 4 / yunfan 3 / narrative 3 / laoyu 3 / xueli 2 / zinv 2。
+
+### 改造分类（91 处全处置，复用 2a 模式）
+
+- **传导 70**：删 try/except（`_ensure_relations`×10、`_ensure_muku`×2、缺省自调 analyze_zuogong/zhengfan/muku/resolve_shensha/classify_strength 等主链计算），异常上抛交 engine `_safe_compute` 统一分流（传导类→EngineComputeError、降级类→warning+`_MODULE_DEFAULTS` 整体降级，消灭「部分空」）；前置守卫原样保留。
+- **安全降级 18**：保留 catch 显式化（`except Exception as e:` + `_logger.warning(exc_info=True)`），降级 dict 加 `'compute_error': True`——可选增强信号：方向总线 A3 只读切片×4（hunyin/liuqin/gongmen_wuzhi/zaihuo 特例核实 engine 恒传后转传导）、zuogong_confirm 装饰信号×5（binzhu/tiyong/wood/soil/virtual）、caiming zihe/G9×3、yongshen juefa、gongliang 从格标注、zhiye xiangfa 互证、liuqin 换象互证、narrative LLM 边界。
+- **白名单 4**：xiangfa_ops foundation 软依赖→`ImportError`；narrative json.dumps→`(TypeError, ValueError)`；narrative 年龄计算→`(TypeError, ValueError, OverflowError)`；narrative LLM 调用→`(ImportError, OSError)+anthropic.APIError`（软解析）。
+- **改后计数 91→17**（17 处全为显式 `except Exception as e:` 降级点，零裸 except）。
+
+### 注入扩展（test_inject_faults.py 36→79 测，+43）
+
+7a `_ensure_relations` 传导 10 模块参数化×2（含守卫语义不变反断言）/ 7b `_ensure_muku`×2 / 7c yunfan 缺省自调×3 / 7d gongliang×2 / 7e zinv×2（H12 P0 私有启发式回退封死）/ 7f 降级契约×2 / 7g engine 层契约×12（降级类 6 键 `_MODULE_DEFAULTS` 一致性 + 传导类 6 键 EngineComputeError）。
+**哨兵纪律**：stash 未修复代码实测 **19 红**（全传导注入点：7a×10+7b×2+7c×3+7d×2+7e×2）→ 修复后 79 全绿。
+
+### H-fix-2b 暴露/发现登记
+
+| 项 | 裁定 |
+|---|---|
+| 吞改抛暴露真实崩溃面 | **无**——509 例六件套+分片累计 3000+ 例横扫零触发，无 load-bearing catch |
+| `gongmen_wuzhi.classify_gongjianfa` muku 自调结果（open_tombs）从未使用=死调用 | P2 转 H-fix-4 死代码批 |
+| `xiangfa_ops.py:1331-1334` if/else 两分支相同死逻辑 | P2 转后续批 |
+| `caiming._zeishen_jingzhi` docstring 残留旧吞咽口径（「异常一律按不净」） | 本批顺手清（注释零行为） |
+| `zaihuo.py:388` 正官误标「七杀」 | 维持 2a 裁定：正常路径字节变更，延后文本/判定批 |
+
+### 六件套（全绿）
+
+verify 432+70+64+20 / pytest **919 passed**+1xf+19xp / blind vs `snapshots/20260917_hfix2a.json` **heldout+trainset 零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）/ 双 seed 逐字节一致 / 67/famous 无变化 / calib 常驻 2 条零新增。引擎判定零改动（compute_all 正常路径逐字节不变）。快照=`snapshots/20260918_hfix2b.json`；回滚点=tag `hfix2b-pre`。
+
+### 残留（转后续批）
+
+- `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（2a 遗留 P2，2c/守卫批）。
+- 诊断/验证脚本 ~20 处裸 except → H-fix-2c。

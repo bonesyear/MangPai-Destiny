@@ -44,6 +44,7 @@ gongmen_wuzhi - 盲派公门武职专辑·主观层（subjective）
           依赖 gongliang 功量层，公门武职口径与行政级别对应为段氏主流归纳。
 置信度：中
 """
+import logging
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -55,6 +56,8 @@ from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
+
+_logger = logging.getLogger(__name__)
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -133,13 +136,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 def _pos_idx(pos: str) -> int:
@@ -185,14 +185,8 @@ def classify_junguan(
     """
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
-    try:
-        ss = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        ss = {}
-    try:
-        muku = analyze_muku(zhis, gans)
-    except Exception:
-        muku = {}
+    ss = resolve_shensha(day_gan, zhis, shensha_result)
+    muku = analyze_muku(zhis, gans)
 
     combos: List[str] = []
     ev: List[str] = []
@@ -264,10 +258,7 @@ def classify_gongjianfa(
     """
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
-    try:
-        muku = analyze_muku(zhis, gans)
-    except Exception:
-        muku = {}
+    muku = analyze_muku(zhis, gans)
     open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
 
     groups: List[str] = []
@@ -372,10 +363,7 @@ def detect_gongmen_wuzhi_xiang(
     """
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
-    try:
-        ss = resolve_shensha(day_gan, zhis, shensha_result)
-    except Exception:
-        ss = {}
+    ss = resolve_shensha(day_gan, zhis, shensha_result)
     gongmen: List[str] = []
     wuzhi: List[str] = []
 
@@ -512,16 +500,13 @@ def analyze_gongmen_wuzhi(
     # gongliang 缺省自调
     gl = gongliang_result
     if gl is None:
-        try:
-            from mangpai.subjective.gongliang import analyze_gongliang
-            from mangpai.subjective.zuogong_confirm import analyze_zuogong
-            zg = analyze_zuogong(
-                day_gan, zhis[PILLAR_KEYS.index('day')],
-                gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-            )
-            gl = analyze_gongliang(zg, day_gan, gans, zhis)
-        except Exception:
-            gl = {}
+        from mangpai.subjective.gongliang import analyze_gongliang
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        zg = analyze_zuogong(
+            day_gan, zhis[PILLAR_KEYS.index('day')],
+            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+        )
+        gl = analyze_gongliang(zg, day_gan, gans, zhis)
 
     xiang = detect_gongmen_wuzhi_xiang(day_gan, gans, zhis, relations,
                                        shensha_result=ss)
@@ -534,8 +519,9 @@ def analyze_gongmen_wuzhi(
         try:
             direction_result = assess_direction_signals(
                 day_gan, gans, zhis, relations=relations, gongliang_result=gl)
-        except Exception:
-            direction_result = {}
+        except Exception as e:
+            _logger.warning("assess_direction_signals 失败，降级为空: %s", e, exc_info=True)
+            direction_result = {'compute_error': True}
 
     is_wuzhi = jg.get('is_junguan') or gjf.get('is_gongjianfa') or \
         bool(xiang.get('wuzhi'))

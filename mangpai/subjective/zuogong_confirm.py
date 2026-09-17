@@ -30,6 +30,7 @@ zuogong_confirm - 盲派做功引擎·做功成立确认层（subjective）
           数量+结构+主被动+方向综合判定
 置信度：中
 """
+import logging
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.zuogong_detect import detect_relations, _day_faction
@@ -45,6 +46,8 @@ from mangpai.objective.tiyong import classify_tiyong
 from mangpai.objective.wood_type import analyze_wood_type
 from mangpai.objective.soil_type import analyze_soil
 from mangpai.objective.virtual_solid import analyze_virtual_solid
+
+_logger = logging.getLogger(__name__)
 
 # ── 做功层次评估（原 objective/work_level，解释性判断，置信度中）──
 # Level 0: 无功（废神多，需看大运激发）
@@ -464,7 +467,8 @@ def analyze_zuogong(
     try:
         binzhu_result = analyze_binzhu(year_zhi, month_zhi, day_zhi, hour_zhi,
                                        year_gan, month_gan, day_gan, hour_gan)
-    except Exception:
+    except Exception as e:
+        _logger.warning('binzhu 宾主分析失败，回退硬编码主宾柱位: %s', e, exc_info=True)
         binzhu_result = None
     # 由 binzhu 三层模型推导主/宾柱位（替代硬编码 _ZHU_PILLARS）：
     #   主位 = layer1（日、时）；宾位 = layer2 近宾 + layer3 远宾（年、月）
@@ -491,7 +495,8 @@ def analyze_zuogong(
     if shishen:
         try:
             ti_result = classify_tiyong(shishen, day_gan)
-        except Exception:
+        except Exception as e:
+            _logger.warning('tiyong 体用分类失败，跳过体用补充判定: %s', e, exc_info=True)
             ti_result = None
     # 深度消费 ti_result：按各柱十神聚合体/用元素集合，供正反向做功补充判定。
     # 食伤为中性居体用之间，消费其 bias：食神偏体(入 ti)、伤官偏用(入 yong)，
@@ -875,17 +880,20 @@ def analyze_zuogong(
     #   virtual_solid.vulnerable_to_ke  虚透天干被克 -> 损害加重标注
     try:
         wood_result = analyze_wood_type(day_gan, year_zhi, month_zhi, day_zhi, hour_zhi)
-    except Exception:
-        wood_result = {}
+    except Exception as e:
+        _logger.warning('wood_type 木性信号自算失败，跳过该标注: %s', e, exc_info=True)
+        wood_result = {'compute_error': True}
     try:
         soil_result = analyze_soil(year_zhi, month_zhi, day_zhi, hour_zhi)
-    except Exception:
-        soil_result = {}
+    except Exception as e:
+        _logger.warning('soil 燥湿生克信号自算失败，跳过该标注: %s', e, exc_info=True)
+        soil_result = {'compute_error': True}
     try:
         vs_result = analyze_virtual_solid(
             day_gan, day_zhi, year_gan, year_zhi, month_gan, month_zhi, hour_gan, hour_zhi)
-    except Exception:
-        vs_result = {}
+    except Exception as e:
+        _logger.warning('virtual_solid 虚透信号自算失败，跳过该标注: %s', e, exc_info=True)
+        vs_result = {'compute_error': True}
 
     wood_signals = {
         'is_wood': wood_result.get('is_wood', False),

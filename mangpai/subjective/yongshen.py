@@ -41,11 +41,14 @@
   - 不改 gongliang 功量点累加，仅在其后施加方向性封顶/标记。
 """
 
+import logging
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE, HUA_YONG_MAP,
 )
+
+_logger = logging.getLogger(__name__)
 
 # 十神大类 <-> 日干五行
 def _wx_cat(day_wx: str, wx: str) -> str:
@@ -237,10 +240,7 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
     # 衰旺计数取用，shouke:454；批6 P0-2）——22期例7（己乙丙己/丑丑辰亥，
     # conc=6）旧被 conc>=6 粗闸抢跑误判从弱，书「乙木印星根在亥，印星有根，
     # 故不能从」「以身弱看」（zhenbao:744-747）。
-    try:
-        st = _cong_gen_fu_state(day_gan, gans, zhis)
-    except Exception:
-        st = None
+    st = _cong_gen_fu_state(day_gan, gans, zhis)
     if selfc >= 6 or (selfc >= 5 and yue_self and conc <= 2):
         return '从强'
     if conc >= 6 or (conc >= 5 and not yue_self and selfc <= 2):
@@ -335,14 +335,11 @@ def _ensure_work_actions(day_gan: str, gans: List[str], zhis: List[str],
                          work_actions: Optional[List[Dict]]) -> List[Dict]:
     if work_actions:
         return work_actions
-    try:
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
-        zg = analyze_zuogong(
-            day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-        return zg.get('work_actions') or []
-    except Exception:
-        return []
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+    zg = analyze_zuogong(
+        day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
+    return zg.get('work_actions') or []
 
 
 def _tiejie_heban_positions(gans: List[str], zhis: List[str]) -> Set[str]:
@@ -443,11 +440,8 @@ def detect_bijiao_duocai(
     # G9（48期）：非日柱之激活自合柱，柱上之干被坐支藏干合绊失用
     # （康熙型「甲被午中己合绊」）——与 R1b 受害方口径统一：失用之干
     # 不能做功夺财。日柱自合不在此列（日主自合=日主从支，非比劫夺财域）。
-    try:
-        from mangpai.objective.zihe import detect_zihe
-        heban_pos |= set(detect_zihe(gans, zhis).get('ban_gan_positions') or [])
-    except Exception:
-        pass
+    from mangpai.objective.zihe import detect_zihe
+    heban_pos |= set(detect_zihe(gans, zhis).get('ban_gan_positions') or [])
     duocai_hits = 0
     hit_descs: List[str] = []
     for a in wa:
@@ -707,14 +701,11 @@ def detect_jishen_zhiyongshen(
     #     同类（财）者，财合日主=财来就我、承载日主取用，非忌神坏印——
     #     yx-煤矿-2 壬午日午中丁财自合，书明文壬午运（财）发财十亿。
     _zihe_js_dayzhi = False
-    try:
-        from mangpai.objective.zihe import detect_zihe
-        _dzh = detect_zihe(gans, zhis).get('day_zihe')
-        _zihe_js_dayzhi = bool(
-            _dzh and _dzh.get('activated')
-            and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == js_cat)
-    except Exception:
-        pass
+    from mangpai.objective.zihe import detect_zihe
+    _dzh = detect_zihe(gans, zhis).get('day_zihe')
+    _zihe_js_dayzhi = bool(
+        _dzh and _dzh.get('activated')
+        and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == js_cat)
 
     hits: List[str] = []
     for a in wa:
@@ -906,8 +897,9 @@ def detect_shangguan_jianguan(
     try:
         from mangpai.subjective.juefa import analyze_juefa
         sg = analyze_juefa(gans, zhis, day_gan).get('shangguan_jue') or {}
-    except Exception:
-        sg = {}
+    except Exception as e:
+        _logger.warning('伤官诀分向(juefa)计算失败，按无分向降级: %s', e, exc_info=True)
+        sg = {'compute_error': True}
     vd = sg.get('verdict', '') if sg.get('matched') else ''
 
     # ── 成势怕见官 severe 条款（K3-294批5 A4 漏检侧，不论身强弱）──
@@ -1251,11 +1243,8 @@ def detect_guansha_rumu_xiong(
     strength = classify_strength(day_gan, gans, zhis)
     if strength != '身弱':
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
-    try:
-        from mangpai.subjective.laoyu import detect_guansha_rumu
-        r = detect_guansha_rumu(day_gan, gans, zhis, relations=relations)
-    except Exception:
-        r = {}
+    from mangpai.subjective.laoyu import detect_guansha_rumu
+    r = detect_guansha_rumu(day_gan, gans, zhis, relations=relations)
     detected = bool(r.get('laoyu_signal'))
     # 墓之宾主归属（高级篇 2.5「以主位之墓库，去收藏、控制…墓库制忌，其祸
     # 自消」）：杀（忌）入主位（日/时）之墓=我把忌神困入牢笼=制忌自消（主位
@@ -1349,14 +1338,11 @@ def detect_heban_yongshen(
     # 明读「丑土不克水」——受绊失能者是克财之比劫（忌神侧），日支自合之财
     # 不失用（身旺财旺发财）。与 caiming G9 日主自合合财升档同口径。
     _day_cai_zihe = False
-    try:
-        from mangpai.objective.zihe import detect_zihe
-        _dzh = detect_zihe(gans, zhis).get('day_zihe')
-        _day_cai_zihe = bool(
-            _dzh and _dzh.get('activated')
-            and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == '财')
-    except Exception:
-        pass
+    from mangpai.objective.zihe import detect_zihe
+    _dzh = detect_zihe(gans, zhis).get('day_zihe')
+    _day_cai_zihe = bool(
+        _dzh and _dzh.get('activated')
+        and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == '财')
 
     def _huaqi_exempt(huaqi: str, victim_wx: str) -> bool:
         """合化出喜用豁免（P1 R3 精化）：合之化气五行属喜用类且异于受害方
@@ -1519,26 +1505,20 @@ def detect_zhuwei_ti_chonghuai(
 
 def _ensure_zhengfan(day_gan: str, gans: List[str], zhis: List[str],
                      relations: Optional[Dict]) -> Dict:
-    try:
-        from mangpai.subjective.zhengfan import analyze_zhengfan
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
-        zg = analyze_zuogong(
-            day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-        wa = zg.get('work_actions') or []
-        # day_he_type 简单留空（zhengfan 容许 None）
-        return analyze_zhengfan(wa, None, gans, zhis)
-    except Exception:
-        return {}
+    from mangpai.subjective.zhengfan import analyze_zhengfan
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+    zg = analyze_zuogong(
+        day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
+    wa = zg.get('work_actions') or []
+    # day_he_type 简单留空（zhengfan 容许 None）
+    return analyze_zhengfan(wa, None, gans, zhis)
 
 
 def _ensure_laoyu(day_gan: str, gans: List[str], zhis: List[str],
                   relations: Optional[Dict]) -> Dict:
-    try:
-        from mangpai.subjective.laoyu import analyze_laoyu
-        return analyze_laoyu(day_gan, gans, zhis, relations=relations)
-    except Exception:
-        return {}
+    from mangpai.subjective.laoyu import analyze_laoyu
+    return analyze_laoyu(day_gan, gans, zhis, relations=relations)
 
 
 # ───────────────────── G1 十干喜忌（11期，标注层） ─────────────────────

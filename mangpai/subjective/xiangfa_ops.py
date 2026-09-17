@@ -28,6 +28,7 @@ xiangfa_ops - 盲派象法操作层·主观层（subjective）
           主体域标签为工程化归纳（非盲师口传定量表）。
 置信度：中
 """
+import logging
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -55,9 +56,11 @@ from mangpai.subjective.zeishen_bushen import (
 # 软依赖：foundation 缺失则该层降级为空，不影响其余象层。
 try:
     from foundation.objective import match_ganqing, season_of as _ganqing_season_of
-except Exception:  # pragma: no cover - foundation 不可用时降级
+except ImportError:  # pragma: no cover - foundation 不可用时降级
     match_ganqing = None
     _ganqing_season_of = None
+
+_logger = logging.getLogger(__name__)
 
 _YANG_GANS = set('甲丙戊庚壬')
 _YANG_ZHIS = set('子寅辰午申戌')
@@ -139,7 +142,8 @@ def _ganqing_layer_domains(
             gan, season=season, month_zhi=month_zhi,
             stems=gans, branches=zhis, day_gz=day_gz,
         )
-    except Exception:
+    except Exception as e:
+        _logger.warning(f"干支性情象层匹配失败: {e}", exc_info=True)
         return set()
     doms: Set[str] = set()
     for r in rules or []:
@@ -334,13 +338,10 @@ def _ensure_relations(
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
     idx_day = PILLAR_KEYS.index('day')
-    try:
-        return detect_relations(
-            day_gan, zhis[idx_day],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[idx_day],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 def _ensure_muku(gans: List[str], zhis: List[str], muku_result: Optional[Dict]) -> Dict:
@@ -349,10 +350,7 @@ def _ensure_muku(gans: List[str], zhis: List[str], muku_result: Optional[Dict]) 
         return muku_result
     if len(zhis) != 4:
         return {}
-    try:
-        return analyze_muku(zhis, gans)
-    except Exception:
-        return {}
+    return analyze_muku(zhis, gans)
 
 
 # ───────────────────── 1. 共象 ─────────────────────
@@ -1205,13 +1203,10 @@ def juxiang(
             })
 
     # ── 2. 夹局之象（消费 detect_jia_ju 纯结构检测）──
-    try:
-        jj = detect_jia_ju(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        jj = {'jia_ju': []}
+    jj = detect_jia_ju(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
     for j in jj.get('jia_ju', []):
         subtype = j.get('subtype', '夹局')
         findings.append({
@@ -1338,10 +1333,7 @@ def analyze_xiangfa_ops(
 
     # 缺省自调客观检测（共象需神煞，合/化/制需 relations，墓象需 muku）
     if shensha_result is None and day_gan and len(zhis) == 4:
-        try:
-            shensha_result = compute_shensha_ext(day_gan, zhis)
-        except Exception:
-            shensha_result = None
+        shensha_result = compute_shensha_ext(day_gan, zhis)
 
     gong = gongxiang(day_gan, gans, zhis, shensha_result)
     he = hexiang(day_gan, gans, zhis, relations)
@@ -1473,12 +1465,9 @@ def xiangfa_fallback(
     # ── 回退激活：做功不成立（zuogong 无功/无功量），缺省自调 ──
     zg = zuogong_result
     if zg is None:
-        try:
-            from mangpai.subjective.zuogong_confirm import analyze_zuogong
-            zg = analyze_zuogong(
-                day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3])
-        except Exception:
-            zg = {}
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        zg = analyze_zuogong(
+            day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3])
     work_types = (zg or {}).get('work_types') or []
     work_level = (zg or {}).get('work_level') or 0
     out['fallback_active'] = (not work_types) or work_level == 0

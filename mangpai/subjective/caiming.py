@@ -47,6 +47,7 @@ caiming - 盲派财命定性·主观层（subjective）
           取财五法优先级为段氏主流口径归纳。
 置信度：中
 """
+import logging
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
@@ -59,6 +60,8 @@ from mangpai.objective.binzhu import analyze_binzhu
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.objective.muku import analyze_muku
 from mangpai.subjective.yongshen import assess_direction_signals, _LIUHE_VICTIMS
+
+_logger = logging.getLogger(__name__)
 
 _YANG_GANS = set('甲丙戊庚壬')
 _PILLAR_NAME: Dict[str, str] = {k: v for k, v in zip(PILLAR_KEYS, ['年柱', '月柱', '日柱', '时柱'])}
@@ -231,13 +234,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 def _ensure_muku(gans: List[str], zhis: List[str], muku_result: Optional[Dict]) -> Dict:
@@ -246,10 +246,7 @@ def _ensure_muku(gans: List[str], zhis: List[str], muku_result: Optional[Dict]) 
         return muku_result
     if len(zhis) != 4:
         return {}
-    try:
-        return analyze_muku(zhis, gans)
-    except Exception:
-        return {}
+    return analyze_muku(zhis, gans)
 
 
 def _tomb_chong_xing_open(zhi: str, zhis: List[str]) -> bool:
@@ -523,8 +520,9 @@ def _assess_caixing_path(
             _zg = gans[_gi] + zhis[_gi]
             heban.append(f'{PILLAR_NAMES_CN[_gi]}干{gans[_gi]}（财）坐{_zg}自合柱，'
                          f'被支中藏干合绊失用（48期天地合）')
-    except Exception:
-        _zihe = {}
+    except Exception as e:
+        _logger.warning('自合柱检测失败，财来就我豁免跳过: %s', e, exc_info=True)
+        _zihe = {'compute_error': True}
     for i in range(3):
         a, b = zhis[i], zhis[i + 1]
         if not a or not b:
@@ -582,8 +580,8 @@ def _assess_caixing_path(
         if _dz and _dz.get('activated'):
             if GAN_WX.get(_dz.get('he_shen', ''), '') == cai_wx:
                 out['hecai_work'] = True
-    except Exception:
-        pass
+    except Exception as e:
+        _logger.warning('日主自合读取失败，G9 合财做功跳过: %s', e, exc_info=True)
 
     # 财星本气支入墓未开（开库则墓中财复出，不论阻；戌冲/刑开则不入墓，
     # muku.is_entomb 已特判）
@@ -676,13 +674,10 @@ def classify_caifu_view(
     _cai_wx = WX_KE.get(GAN_WX.get(day_gan, ''), '')
     _active_ku: Set[str] = set()
     if _cai_wx:
-        try:
-            _mu = _ensure_muku(gans, zhis, muku_result)
-            for _tb in _mu.get('tombs', []) or []:
-                if _tb.get('status') == '开库' and _cai_wx in (_tb.get('element_tombed') or []):
-                    _active_ku.add(_tb.get('zhi', ''))
-        except Exception:
-            pass
+        _mu = _ensure_muku(gans, zhis, muku_result)
+        for _tb in _mu.get('tombs', []) or []:
+            if _tb.get('status') == '开库' and _cai_wx in (_tb.get('element_tombed') or []):
+                _active_ku.add(_tb.get('zhi', ''))
         for _he, _wx in SAN_HE.items():
             if _wx == _cai_wx and all(z in zhis for z in _he):
                 _active_ku.update(z for z in _he if z in TOMB_MAP)
@@ -1312,7 +1307,7 @@ def detect_zhibujin_dangcai(
 def _zeishen_jingzhi(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
     """贼神捕神净制判定（段氏理象学）：净=贼神原神俱制、制之干净，量级同制尽。
 
-    zhibujin 封顶富的豁免判据——软依赖 zeishen_bushen，异常一律按不净（封顶）。
+    zhibujin 封顶富的豁免判据——依赖 zeishen_bushen，计算失败上抛（不静默按不净）。
     K3-294批5 A9：净制须捕神强度≥贼神强度（捕弱于贼则制不住、制不净）——
     yx-贫家境贫寒一贫书锚（捕火5.0<贼金6.25 假净制上浮巨富，书判一贫如洗；
     双胞胎甲寅时同构，书判富百万系「戊喜见甲」非净制之功）。巨富锚俱捕强
@@ -1321,19 +1316,16 @@ def _zeishen_jingzhi(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
     为空，制局目标集缺 zuogong 补全（含 auxiliary 过滤），净制口径与引擎
     zb_res 分叉；现与 engine/gongliang/huanxiang 同源（单源化）。
     """
-    try:
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
-        from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
-        zg = analyze_zuogong(day_gan, zhis[2], gans[0], zhis[0],
-                             gans[1], zhis[1], gans[3], zhis[3])
-        r = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
-        zb = r.get('zeishen_bushen') or {}
-        if zb.get('jing_zhi') != '净':
-            return False
-        return float(zb.get('bushen_strength') or 0) >= \
-            float(zb.get('zeishen_strength') or 0)
-    except Exception:
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+    from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
+    zg = analyze_zuogong(day_gan, zhis[2], gans[0], zhis[0],
+                         gans[1], zhis[1], gans[3], zhis[3])
+    r = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
+    zb = r.get('zeishen_bushen') or {}
+    if zb.get('jing_zhi') != '净':
         return False
+    return float(zb.get('bushen_strength') or 0) >= \
+        float(zb.get('zeishen_strength') or 0)
 
 
 def assess_caiming_level(
@@ -1380,10 +1372,7 @@ def assess_caiming_level(
     has_guancai = any(v.startswith('官统财') or v.startswith('财统官')
                       or v.startswith('过河拆桥·富格') for v in views)
     has_zhibujin = False
-    try:
-        has_zhibujin = detect_zhibujin_dangcai(day_gan, gans or [], zhis or []).get('found', False)
-    except Exception:
-        pass
+    has_zhibujin = detect_zhibujin_dangcai(day_gan, gans or [], zhis or []).get('found', False)
     has_lu_or_shishang = any(v in views for v in ('禄神当财', '伤食当财'))
     guohe_pocai = caifu_view.get('guohe_chaiqiao_type') == '破财'
     # 制库得财（理象学制例一）：月令墓库被主位冲/刑开，库中财与原神同制
@@ -1400,11 +1389,8 @@ def assess_caiming_level(
     # 从格（从财/从弱/从强）豁免：从格以所从之神为局主，扶抑系「浮财/身财平衡」
     # 口径不适用（段氏从财格=财成势从之，巨富潜质，非浮财）。
     strength = ''
-    try:
-        from mangpai.subjective.yongshen import classify_strength
-        strength = str(classify_strength(day_gan, gans or [], zhis or []))
-    except Exception:
-        pass
+    from mangpai.subjective.yongshen import classify_strength
+    strength = str(classify_strength(day_gan, gans or [], zhis or []))
     cong_ge = strength.startswith('从')
     # A7 从格顺势档根判门（K3-294批5）：日主坐支为日主五行之墓库（坐库通根）
     # 且根未被双夹冲/合会转化坏者，「去之不得」不从——从财/从儿「基阶不落下
@@ -1504,11 +1490,8 @@ def assess_caiming_level(
     # 「儿又生儿」之流通；从儿无财者儿不生儿、不流通，基阶不升（22期）。
     if strength == '从弱' and not ds_xiong and not cong_cai_pin \
             and not cong_floor_blocked:
-        try:
-            from mangpai.subjective.yongshen import classify_cong_target
-            _ct = classify_cong_target(day_gan, gans or [], zhis or [], strength)
-        except Exception:
-            _ct = {}
+        from mangpai.subjective.yongshen import classify_cong_target
+        _ct = classify_cong_target(day_gan, gans or [], zhis or [], strength)
         if _ct.get('label') == '从儿':
             _ss_wx_c = WX_SHENG.get(GAN_WX.get(day_gan, ''), '')
             _ss_cnt = sum(1 for g in (gans or []) if GAN_WX.get(g) == _ss_wx_c) + \
@@ -1532,7 +1515,8 @@ def assess_caiming_level(
         try:
             from mangpai.objective.zihe import detect_zihe
             _dz2 = detect_zihe(gans or [], zhis or []).get('day_zihe')
-        except Exception:
+        except Exception as e:
+            _logger.warning('自合柱检测失败，G9 升档跳过: %s', e, exc_info=True)
             _dz2 = None
         if _dz2 and _dz2.get('activated'):
             _cai_wx_g9 = WX_KE.get(GAN_WX.get(day_gan, ''), '')
@@ -1842,16 +1826,13 @@ def analyze_caiming(
     # gongliang 缺省自调（只读消费，不改功量层）
     gl = gongliang_result
     if gl is None:
-        try:
-            from mangpai.subjective.gongliang import analyze_gongliang
-            from mangpai.subjective.zuogong_confirm import analyze_zuogong
-            zg = analyze_zuogong(
-                day_gan, zhis[PILLAR_KEYS.index('day')],
-                gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-            )
-            gl = analyze_gongliang(zg, day_gan, gans, zhis)
-        except Exception:
-            gl = {}
+        from mangpai.subjective.gongliang import analyze_gongliang
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        zg = analyze_zuogong(
+            day_gan, zhis[PILLAR_KEYS.index('day')],
+            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+        )
+        gl = analyze_gongliang(zg, day_gan, gans, zhis)
     # 凶向信号（反局/牢狱/比劫夺财/过河拆桥破财）——双轨（P0-a 原局/运岁分离）：
     #   direction_natal: 原局级凶向（yunfan_result=None，岁运反局不入链）-> tier_static；
     #   direction_full : 含「当前运岁」反局切片（A1）-> tier（含 delta，流年事件用）。

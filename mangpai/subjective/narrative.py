@@ -10,6 +10,7 @@
   - anthropic SDK（可选；无 API key/网络时降级）
 """
 from __future__ import annotations
+import logging
 import os
 from typing import Any, Dict, Optional
 
@@ -18,6 +19,15 @@ from mangpai.subjective.prompts.hao_style_fewshot import (
     HAO_STYLE_SYSTEM_PROMPT,
     format_fewshot_block,
 )
+
+_logger = logging.getLogger(__name__)
+
+# LLM 调用预期异常族：anthropic SDK 软依赖，基类须软解析
+try:
+    import anthropic as _anthropic
+    _LLM_CALL_EXC = (_anthropic.APIError,)
+except ImportError:  # pragma: no cover - anthropic 未安装
+    _LLM_CALL_EXC = ()
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +419,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     years, ages, counts, bands = set(), set(), set(), set()
     try:
         blob = json.dumps(engine_result, ensure_ascii=False, default=str)
-    except Exception:
+    except (TypeError, ValueError):
         blob = str(engine_result)
 
     for m in re.finditer(r'(18\d{2}|19\d{2}|20\d{2})', blob):
@@ -421,7 +431,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     if birth_year:
         try:
             ages.add(datetime.now().year - int(birth_year))
-        except Exception:
+        except (TypeError, ValueError, OverflowError):
             pass
     for pat in (r'(\d+)步大运', r'(\d+)流年', r'入墓(\d+)处', r'锁(\d+)',
                 r'命中(\d+)法', r'约(\d+)个', r'(\d+)岁运联动',
@@ -560,7 +570,8 @@ def render_hao_narrative(
 
     try:
         text = _call_llm(HAO_STYLE_SYSTEM_PROMPT, user_prompt, model=model)
-    except Exception as e:
+    except (ImportError, OSError) + _LLM_CALL_EXC as e:
+        _logger.warning('郝断语 LLM 调用失败，降级返回 prompt', exc_info=True)
         # 降级：返回组装好的 prompt，供外部接 LLM；不抛错、不破验证。
         return (
             f"[LLM 不可用，降级返回 prompt 文本 | 原因: {e}]\n\n"

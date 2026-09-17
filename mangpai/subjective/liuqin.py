@@ -35,6 +35,7 @@ liuqin - 盲派六亲专辑·主观层（subjective）
           阈值为「刑冲穿合任一即换」段氏主流口径；父母变法各师口传有细微差异。
 置信度：中
 """
+import logging
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
@@ -47,6 +48,8 @@ from mangpai.objective.shensha import compute_shensha_ext
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
+
+_logger = logging.getLogger(__name__)
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -94,13 +97,10 @@ def _ensure_relations(day_gan, gans, zhis, relations):
         return relations
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {}
-    try:
-        return detect_relations(
-            day_gan, zhis[PILLAR_KEYS.index('day')],
-            gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-        )
-    except Exception:
-        return {}
+    return detect_relations(
+        day_gan, zhis[PILLAR_KEYS.index('day')],
+        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
+    )
 
 
 def _wx_cat(day_gan: str, wx: str) -> str:
@@ -282,10 +282,7 @@ def detect_parent_zaoshi(
     parent_palace_idx = [0, 1]
 
     # 1. 财临库地：父星坐墓库
-    try:
-        muku = analyze_muku(zhis, gans)
-    except Exception:
-        muku = {}
+    muku = analyze_muku(zhis, gans)
     tombs = muku.get('tombs') or []
     for i in (0, 1, 2, 3):
         z = zhis[i]
@@ -417,10 +414,7 @@ def detect_parent_qiyang(
     wa: List[Dict] = rel.get('work_actions') or []
     markers: List[str] = []
 
-    try:
-        muku = analyze_muku(zhis, gans)
-    except Exception:
-        muku = {}
+    muku = analyze_muku(zhis, gans)
     tombs_zhis = {tb.get('zhi') for tb in (muku.get('tombs') or [])}
 
     # 1. 年月食伤入墓
@@ -545,10 +539,7 @@ def detect_zixi_youwu(
     markers: List[str] = []
 
     cat = _child_star_cat(day_gan, gans, zhis, gender)
-    try:
-        muku = analyze_muku(zhis, gans)
-    except Exception:
-        muku = {}
+    muku = analyze_muku(zhis, gans)
     tombs = muku.get('tombs') or []
     open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
     closed_tombs = {t.get('zhi') for t in (muku.get('closed_tombs') or [])}
@@ -704,7 +695,8 @@ def detect_zixi_xingbie(
             if f.get('domain') == cat or cat in (f.get('domain') or ''):
                 corroborated = True
                 break
-    except Exception:
+    except Exception as e:
+        _logger.warning("换象互证计算失败，跳过互证: %s", e, exc_info=True)
         corroborated = False
 
     final_gender = ''
@@ -850,10 +842,7 @@ def detect_xiongdi_keshun(
         markers.append(f'月透{month_gan_ss}（兄弟有损）')
 
     # 比劫坐墓逢冲
-    try:
-        muku = analyze_muku(zhis, gans)
-    except Exception:
-        muku = {}
+    muku = analyze_muku(zhis, gans)
     tombs_zhis = {tb.get('zhi') for tb in (muku.get('tombs') or [])}
     for i in range(4):
         if _pillar_has_cat(day_gan, gans[i], zhis[i], '比劫') and zhis[i] in tombs_zhis:
@@ -868,16 +857,13 @@ def detect_xiongdi_keshun(
 
     # 羊刃逢冲（F13：全刃表口径，戊刃在午、未双刃——旧 zhi 单值对
     # 刃在未盘漏检；取首个落柱刃位查冲）
-    try:
-        ss = compute_shensha_ext(day_gan, zhis)
-        yr_zhis = (ss.get('羊刃') or {}).get('zhi_all') or []
-        yr_pillar = next((i for i, z in enumerate(zhis) if z in yr_zhis), None)
-        if yr_pillar is not None:
-            if any(a.get('type') == '冲' and (a.get('from_pos') == f'{PILLAR_KEYS[yr_pillar]}_zhi'
-                   or a.get('to_pos') == f'{PILLAR_KEYS[yr_pillar]}_zhi') for a in wa):
-                markers.append('羊刃逢冲（必应凶）')
-    except Exception:
-        pass
+    ss = compute_shensha_ext(day_gan, zhis)
+    yr_zhis = (ss.get('羊刃') or {}).get('zhi_all') or []
+    yr_pillar = next((i for i, z in enumerate(zhis) if z in yr_zhis), None)
+    if yr_pillar is not None:
+        if any(a.get('type') == '冲' and (a.get('from_pos') == f'{PILLAR_KEYS[yr_pillar]}_zhi'
+               or a.get('to_pos') == f'{PILLAR_KEYS[yr_pillar]}_zhi') for a in wa):
+            markers.append('羊刃逢冲（必应凶）')
 
     # 比劫入空亡
     for i in range(4):
@@ -1104,8 +1090,8 @@ def detect_zixi_youlie(
             you.append('时柱为喜用（子女宫坐喜用神）')
         elif js_cats and (hour_cats & js_cats) and not (hour_cats & ys_cats):
             lie.append('时柱为忌神（子女宫坐忌神）')
-    except Exception:
-        pass
+    except Exception as e:
+        _logger.warning("时柱喜用增补腿计算失败，跳过: %s", e, exc_info=True)
 
     verdict = '劣' if lie else ('优' if you else '平')
     parts = ([f'优：{"、".join(you)}'] if you else []) + ([f'劣：{"、".join(lie)}'] if lie else [])
@@ -1162,8 +1148,9 @@ def analyze_liuqin(
         try:
             direction_result = assess_direction_signals(
                 day_gan, gans, zhis, relations=relations)
-        except Exception:
-            direction_result = {}
+        except Exception as e:
+            _logger.warning("assess_direction_signals 失败，降级为空: %s", e, exc_info=True)
+            direction_result = {'compute_error': True}
 
     pstar = classify_parent_star(day_gan, gans, zhis)
     pzs = detect_parent_zaoshi(day_gan, gans, zhis, relations)
