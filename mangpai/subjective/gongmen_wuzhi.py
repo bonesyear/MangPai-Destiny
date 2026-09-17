@@ -258,8 +258,6 @@ def classify_gongjianfa(
     """
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
-    muku = analyze_muku(zhis, gans)
-    open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
 
     groups: List[str] = []
     ev: List[str] = []

@@ -40,8 +40,6 @@ from mangpai.objective.constants import (
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
 
-_YANG_GANS = set('甲丙戊庚壬')
-
 # 刃位单一事实源在 objective.shensha（_YANG_REN 主刃位 / _YANG_REN_FULL 段氏
 # 全刃位，戊取午未双刃）；此处仅别名兼容，不再自带副本（M2 口径统一）。
 from mangpai.objective.shensha import _YANG_REN, _YANG_REN_FULL  # noqa: F401

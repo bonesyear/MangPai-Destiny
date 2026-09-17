@@ -40,7 +40,6 @@ from mangpai.subjective.gongmen_wuzhi import analyze_gongmen_wuzhi
 from mangpai.subjective.liuqin import analyze_liuqin
 from mangpai.subjective.zaihuo import analyze_zaihuo
 from mangpai.subjective.juefa import analyze_juefa
-from mangpai.subjective.chuangong import analyze_chuangong
 
 __all__ = [
     'MangpaiEngine', 'calc_mangpai_full', 'Pillars',
@@ -55,7 +54,7 @@ __all__ = [
     'assess_work_level', 'analyze_gongliang',
     'analyze_shenshu', 'analyze_dayun_mangpai', 'analyze_liunian_mangpai', 'analyze_yunfan',
     'analyze_zhiye', 'analyze_gongmen_wuzhi', 'analyze_liuqin', 'analyze_zaihuo',
-    'analyze_juefa', 'analyze_chuangong',
+    'analyze_juefa',
     'compute_jiaoyun_timeline', 'safe_compute_jiaoyun',
     'analyze_shipaige',
     'get_gan_xiang', 'get_zhi_xiang', 'get_shishen_xiang',

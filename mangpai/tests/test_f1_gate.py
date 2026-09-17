@@ -64,7 +64,7 @@ def test_no_larkmd_unsupported_chars_llm_path(monkeypatch):
 # ---------------------------------------------------------------- P1 死亡词 mark→reject + L2 误报窗
 
 def _fake_backend(text):
-    return {'text': text, 'usage': {}, 'cost_usd': 0.0,
+    return {'text': text, 'usage': {}, 'cost_cny': 0.0,
             'price_tier': 'offpeak', 'elapsed_s': 0.0, 'model': 'mock'}
 
 

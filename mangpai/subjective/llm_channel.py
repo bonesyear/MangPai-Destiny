@@ -406,7 +406,7 @@ def format_reading(reading: dict, validation: dict, backend: dict) -> str:
         lines.append(f"[model={backend.get('model')} "
                      f"in={u.get('prompt_tokens', '?')} out={u.get('completion_tokens', '?')} "
                      f"elapsed={backend.get('elapsed_s', 0):.1f}s "
-                     f"cost≈¥{backend.get('cost_usd', 0):.4f}]")
+                     f"cost≈¥{backend.get('cost_cny', 0):.4f}]")
     # 免责声明（V4 P0-1）：LLM 叙述路径尾部固定一行
     lines.append(_DISCLAIMER_LINE)
     return '\n'.join(lines)

@@ -1323,10 +1323,7 @@ def analyze_xiangfa_ops(
             gans = [p.year_gan, p.month_gan, p.day_gan, p.hour_gan]
         if not zhis:
             zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
-        if not day_gan:
-            day_gan = p.day_gan
-        else:
-            day_gan = p.day_gan
+        day_gan = p.day_gan
 
     gans = gans or []
     zhis = zhis or []

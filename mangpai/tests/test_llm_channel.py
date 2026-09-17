@@ -747,7 +747,7 @@ def test_render_bazi_line_carries_gender(monkeypatch):
         return {'text': _json.dumps(
             {d: {'conclusion': 'x', 'basis': [], 'confidence': '中'}
              for d in DIMENSIONS}, ensure_ascii=False),
-            'usage': {}, 'cost_usd': 0.0, 'price_tier': 'offpeak',
+            'usage': {}, 'cost_cny': 0.0, 'price_tier': 'offpeak',
             'elapsed_s': 0.0, 'model': 'mock'}
 
     monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek', fake)

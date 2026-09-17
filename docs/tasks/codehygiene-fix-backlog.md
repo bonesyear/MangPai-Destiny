@@ -1188,3 +1188,60 @@ verify 432+70+64+20 / pytest **934 passed**+1xf+19xp（925+9 哨兵）/ blind vs
 - `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（2a 遗留 P2，守卫批）。
 - H5 P1 formatter.DISCLAIMER 与 llm_channel._DISCLAIMER_LINE 文本重复（统一化属 H-fix-4 清理面）。
 - output/ 批跑脚本的 jsonl append 写（`_n2_eval`/`_t3_eval` 等）为追加模式非覆盖写，不入原子写范围，标注不改。
+
+---
+
+## H-fix-4a（2026-09-18，执行登记 · 死代码/死数据清理批——纯删除类）
+
+### 阶段 0 「真死」核查（全仓 grep 证据，覆盖 mangpai/ + foundation/ + scripts/ + tests/ + output/ + docs/）
+
+| 项 | 证据 | 处置 |
+|---|---|---|
+| `objective/advanced.py` 整模块（6 eager re-export + `__getattr__` lazy-import subjective.zhengfan 反向依赖） | `grep advanced` 全 .py 仅自引用 6 处（自身 docstring/函数），零调用方 | **整模块删除**（git rm） |
+| `SHIPAI_DOMAINS`/`METHODOLOGY`（shipaige.py:107/120） | 全仓仅自身定义 + 修批C 明议「留作碎片原文档案」（KB 2026-08-22 记载） | **不删**（既有留档决议优先，见「未删待议」） |
+| `subjective/chuangong.py` + `test_chuangong.py` | engine 零消费；消费方仅 `mangpai/__init__.py` 死导出 + 20 条全 xfail 锁自造 spec 测试（H6 裁定可删）；grep 无其它 import | **删模块+删死测试+删 `mangpai/__init__.py` 导出**；`docs/chuangong-spec.md` 留档 |
+| `subjective/gongmen_wuzhi.py` 整模块 | engine.py:718 仍写 `result['gongmen_wuzhi']`（`test_a_llm_redline.py:127` 断言键保留=修批A③锁定决策）；删除将改 compute_all 输出键 → 违红线 | **不删整模块**（见「未删待议」），仅删内部死调用 |
+| gongmen `classify_gongjianfa` muku 死调用（:261-262） | `muku`/`open_tombs` 赋值后函数体（264-349）零引用；`analyze_muku` 顶层导入仍被 :189（classify_junguan）使用故保留 | **删 2 行死调用** |
+| `xiangfa_ops.py:1326-1329` if/else 同支 | 两分支均 `day_gan = p.day_gan` | **塌缩为单赋值** |
+| `gongliang.py:717-718` `_po_bao` 滤「天干包局」 | 互斥前提证明：天干包局须 `_gy==_gh`（:697）→ `_cat_gy==_cat_gh` → 单元 frozenset 不可能命中 `_OPPOSITE`（两元集）→ `_po_bao` 恒 False 于该形态在场时，过滤永不生效 | **删死过滤**（`_po_bao` 变量仍用于 :715 十神包局 gate，保留） |
+| `dayun.py:285` `_analyze_tomb_effect` 死局部 `dy_wx` | 函数体内零引用（grep dy_wx 仅 84-228 他函数活用途） | **删 1 行** |
+| `liunian.py:43` 死常量 `_YANG_GANS` | 全仓零引用 | **删 1 行** |
+| `virtual_solid.py:28` 死别名 `_GAN_WX_LOOKUP = GAN_WX` | 仅本模块 3 处自用；改直用 `GAN_WX` 后删别名 | **改名引用 3 处 + 删别名** |
+| `zihe.py:50-51` isinstance 防御死分支 | `constants.XING_PAIRS:88-94` 全部字面 tuple（12 条全核对），防御分支永不可达 | **删分支** |
+| `jiaoyun.py:189` `if not span` 分支 | H1 称 span=9 恒真；但该分支承载公开 API `span=0/None` 边界语义，删除改变边缘行为 | **不删**（宁留勿删，见待议） |
+| `detect_relations` 死分支 | H1 所报均为重复逻辑/大函数拆分面（work_types 内部 gate 等），无纯死分支 | 留 H-fix-4b |
+| `foundation/objective/__init__.py` `__all__` 遗漏 `get_nayin_wuxing`（H10/H8 P2） | 子模块已导出、verify_layer1:13/71 为活读者 | **补齐 import + __all__**（非删除） |
+| `NAYIN_WUXING` constants 副本（H10/H1 P2） | 改前程序化断言两副本逐字节相等（30/30 键值全同）；foundation 为单一事实源 | **constants.py 改为 re-export import**，`jiaoyun.py` 等消费方零改动 |
+| `virtual_solid` 死计数字段 / `soil_type` wet/dry / `shensha` 华盖 year_ref 等输出面死字段 | 均为 engine/payload 输出字段，删除=正常路径字节变更，违本批红线 | **不删**（须专门输出面批，见待议） |
+| 8 历史模拟脚本（H7 清单） | 全 .py 零 import（仅 docs/CHANGELOG 历史记述提及） | **git mv → `mangpai/tests/heldout/archive/`**（保留历史，不删） |
+
+### 改名（D 类：cost_usd → cost_cny）
+
+- 字段实际存人民币（2026-08-21 起，H4 P1 + H10 P1 确认的命名滞后）。全仓消费面 12 处全改：`llm_backend.py:98,161`（docstring+返回键）、`llm_channel.py:409`（format_reading ¥ 标签处）、`output/_llm_batch_trainset.py:52,85`（写+汇总）、`output/_llm_batch_analyze.py:58,62`（读+**修正错误换算**：删 `×7.2` 美元折算，直出 `¥`）、`output/_n2_eval.py:170,186-188`、`_t3_eval.py:167,184-186`、`_llm_batch_retry.py:41-42`（读侧均双键兼容历史批 `cost_usd`）、`output/review5_v4_20260821/audit_v4.py:59`（归档脚本活调用侧同步）、`test_f1_gate.py:67`、`test_llm_channel.py:750`（mock 同步）。**首轮 grep 被 head_limit 截断漏 4 处在用管线脚本，二轮全量复核补齐**。
+- 历史 jsonl 数据文件不改（旧键值口径不变，读侧双键兼容）；`output/t1_gold_review/v4pro_review.py` 读历史数据不归档不动（H7 已标可归档，留 H-fix-8）。
+- 文档同步：`docs/llm-channel-20260818.md` 3 处字段名更新（历史口径节保留 `cost_usd` 字样=史实）。
+- 抽查：`llm_backend._self_check()` 离线跑过（峰 ¥3.0/¥9.0、谷 ¥1.5/¥4.5 断言绿）；pytest test_llm_backend 绿。
+
+### 未删待议清单（分诊纪律：宁留勿误删）
+
+| 项 | 理由 |
+|---|---|
+| `SHIPAI_DOMAINS`/`METHODOLOGY` 死数据 | 修批C 明议「留作碎片原文档案」，与本批删除清单冲突 → 从旧议，不删 |
+| `gongmen_wuzhi.py` 整模块下线 | engine result 键保留是修批A③/F18 锁定决策且有哨兵断言；删除违「输出逐字节不变」红线 → 须专门批（先撤 engine 键+快照换基线） |
+| 输出面死字段（virtual_solid counts / soil wet·dry / 华盖 year_ref 等） | 删除即变 payload/compute_all 字节 → 须专门「输出面」批（红线冲突） |
+| `jiaoyun.py:189` `if not span` | 公开 API 边缘语义（span=0/None），非纯死 → 留 |
+| `liunian.py:47` `_YANG_REN`/`_YANG_REN_FULL` 别名 import | F13 明注「别名兼容」刻意保留（noqa F401）→ 不动 |
+| `mangpai/__init__.py` `analyze_juefa` 导出 | H8 P1 列为候选但 juefa 为活模块，导出非死 → 宁留 |
+| `mangpai/objective/MODULE_ATTRS.md` 中 advanced/chuangong 记述 | 文档记述待 H-fix-8 文档批统一清 |
+
+### 六件套（vs `snapshots/20260918_hfix3.json`）
+
+- verify 432 + 70 + 64 + 20 全绿（layer1 须 sxtwl 环境=/usr/bin/python3.14；本机 3.11 无 sxtwl 为环境既有事实，非本批引入）
+- pytest **934 passed**+1xf（hfix3 口径 934+1xf+19xp → 删 test_chuangong 19 条 xpassed 死测试后 xp 归零，passed 数不变；改名适配 2 处 mock）
+- blind vs hfix3：heldout+trainset **零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）
+- 双 seed（剥 _meta）逐字节一致 ✅
+- 67/famous 无变化；calib 由 pytest 覆盖
+- payload 探针：键数 41 与 selectors/hfix3 口径一致，`gongmen_wuzhi` engine 键保留；无 prompt-only 字段误删（本批零输出字段删除）
+- import 冒烟：3.11 + 3.14 双绿（advanced/chuangong 删除后 `import mangpai`/`import foundation` 正常）
+- 引擎判定零改动：compute_all 正常路径输出逐字节不变（blind 零抖动坐实）
+- 回滚点：tag `hfix4a-pre`；快照=`snapshots/20260918_hfix4a.json`

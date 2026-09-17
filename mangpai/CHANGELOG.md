@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 H-fix-4a · 死代码/死数据清理批（纯删除类，引擎正常路径输出逐字节不变）
+
+| 项目 | 内容 |
+|------|------|
+| 删模块×2 | `objective/advanced.py`（6 eager re-export 死 shim + `__getattr__` lazy-import subjective 反向依赖，全仓零调用方）；`subjective/chuangong.py` + `tests/test_chuangong.py`（engine 零消费+20 条全 xfail 锁自造 spec 死测试）+ `mangpai/__init__.py` 死导出清理；`docs/chuangong-spec.md` 留档 |
+| 死调用/死分支/死变量 | gongmen_wuzhi `classify_gongjianfa` muku 自调死调用（:261-262，open_tombs 零引用）；xiangfa_ops if/else 同支塌缩（:1326）；gongliang `_po_bao` 滤「天干包局」死过滤（互斥前提永滤不到）；dayun `_analyze_tomb_effect` 死局部 dy_wx；liunian 死常量 `_YANG_GANS`；virtual_solid 死别名 `_GAN_WX_LOOKUP`（3 处改直用 GAN_WX）；zihe XING_PAIRS isinstance 防御死分支 |
+| 统一/补齐（非删除） | `NAYIN_WUXING` 改由 foundation.objective.nayin 单一事实源 re-export（改前断言两副本 30/30 键值全等）；foundation `__all__` 补 `get_nayin_wuxing`（H10/H8 P2） |
+| 改名 | `cost_usd` → `cost_cny` 全仓 6 处（llm_backend 返回键/docstring、llm_channel format_reading、_llm_batch_trainset 写、_llm_batch_analyze 读+**删错误的 ×7.2 美元折算**、两测试 mock）；历史 jsonl 不改，analyze 双键兼容；docs/llm-channel-20260818.md 同步 |
+| 归档 | H7 清单 8 历史模拟脚本 git mv → `mangpai/tests/heldout/archive/`（_a1_exp/_zy2_sim2/_zy2_sim3/_zy3_sim/_zy4_sim/_zy55_feat/_zy55_sim/_zy_margin），全 .py 零 import 实证 |
+| 未删待议 | SHIPAI_DOMAINS/METHODOLOGY（修批C 明议留档优先）；gongmen_wuzhi 整模块（engine 键保留=修批A③ 锁定决策，删除违输出红线）；输出面死字段（virtual_solid counts/soil wet·dry/华盖 year_ref，须专门输出面批）；jiaoyun `if not span` 边缘语义；详见 backlog H-fix-4a 节 |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest 934 passed+1xf（删 19 xp 死测试）、blind vs `snapshots/20260918_hfix3.json` heldout+trainset 零翻转零抖动、双 seed 逐字节一致、67/famous 无变化、payload 键数 41 不变、3.11+3.14 import 冒烟双绿；快照=`snapshots/20260918_hfix4a.json`；回滚点=tag `hfix4a-pre` |
+
 ## 2026-08-22 修批 G3 · 引擎侧收尾（xiangmao.py 仅锚注与 desc 措辞，判定逻辑/输出键零改动）
 
 | 项目 | 内容 |

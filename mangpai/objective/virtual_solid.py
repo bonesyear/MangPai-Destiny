@@ -25,8 +25,6 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.changsheng import get_changsheng_mangpai
 
-_GAN_WX_LOOKUP = GAN_WX
-
 # 长生强位（生旺）-> 偏实；弱位（死墓绝）-> 偏虚
 _STRONG_STAGES = {'长生', '临官', '帝旺'}
 _WEAK_STAGES = {'死', '墓', '绝'}
@@ -60,7 +58,7 @@ def _pillar_gen_sheng(gan_wx: str, zhi: str) -> tuple:
         details.append(f'坐支({zhi}本气同五行)')
     else:
         for gan, _qi in CANG_GAN_MANGPAI.get(zhi, []):
-            if _GAN_WX_LOOKUP.get(gan, '') == gan_wx:
+            if GAN_WX.get(gan, '') == gan_wx:
                 has_root = True
                 details.append(f'坐支({zhi}藏{gan})')
                 break
@@ -92,7 +90,7 @@ def _find_yin_support(
     for pn, pg in all_gans:
         if not pg or pg == gan:
             continue
-        if _GAN_WX_LOOKUP.get(pg, '') == yin_wx:
+        if GAN_WX.get(pg, '') == yin_wx:
             has_yin = True
             sources.append(f'{pn}干{pg}')
     # 地支印（本气 + 藏干）
@@ -104,7 +102,7 @@ def _find_yin_support(
             sources.append(f'{pn}支({pz})')
         else:
             for cg, _q in CANG_GAN_MANGPAI.get(pz, []):
-                if _GAN_WX_LOOKUP.get(cg, '') == yin_wx:
+                if GAN_WX.get(cg, '') == yin_wx:
                     has_yin = True
                     sources.append(f'{pn}支({pz}藏{cg})')
                     break

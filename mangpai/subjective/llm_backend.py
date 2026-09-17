@@ -95,7 +95,7 @@ def call_deepseek(
     timeout: float = 120.0,
     retries: int = 2,
 ) -> dict:
-    """调 DeepSeek chat completion，返回 {'text','usage','cost_usd','price_tier','elapsed_s','model'}。
+    """调 DeepSeek chat completion，返回 {'text','usage','cost_cny','price_tier','elapsed_s','model'}。
 
     thinking 模式下 temperature 等采样参数无效（API 忽略），不传。
     失败抛 LLMBackendError，由调用方降级（同 narrative._call_llm 契约）。
@@ -158,7 +158,7 @@ def call_deepseek(
             return {
                 'text': text,
                 'usage': usage,
-                'cost_usd': _estimate_cost(model, usage, at=t0_wall),
+                'cost_cny': _estimate_cost(model, usage, at=t0_wall),
                 'price_tier': _price_tier(t0_wall),
                 'elapsed_s': time.monotonic() - t0,
                 'model': model,

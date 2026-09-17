@@ -17,7 +17,7 @@ from foundation.objective.ganqing import (
     season_of, is_yang_zhi,
 )
 from foundation.objective.nayin import (
-    NAYIN_TABLE, NAYIN_WUXING, get_nayin,
+    NAYIN_TABLE, NAYIN_WUXING, get_nayin, get_nayin_wuxing,
 )
 
 __all__ = [
@@ -30,5 +30,5 @@ __all__ = [
     'get_ganqing', 'match_ganqing', 'match_zhiqing',
     'season_of', 'is_yang_zhi',
     # nayin
-    'NAYIN_TABLE', 'NAYIN_WUXING', 'get_nayin',
+    'NAYIN_TABLE', 'NAYIN_WUXING', 'get_nayin', 'get_nayin_wuxing',
 ]

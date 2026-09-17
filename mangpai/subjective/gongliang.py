@@ -714,8 +714,6 @@ def analyze_gongliang(
                        and frozenset({_cat_gy, _cat_gh}) in _OPPOSITE)
         if _shishen_bao_gan and not _po_bao:
             _bao_forms.append((f'十神包局（{_shishen_bao_gan}）', {'year_gan', 'hour_gan'}))
-        if _po_bao:
-            _bao_forms = [(n, w) for n, w in _bao_forms if n != '天干包局']
         if _bao_forms:
             # 「进而制之或化之」：非辅助做功由包围载体发起/承受，落于所包（月日）
             _INNER_POS = {'month_gan', 'month_zhi', 'day_gan', 'day_zhi'}

@@ -44,18 +44,18 @@ mangpai/
   objective/  26 模块：bazi_calc/canggan/changsheng/constants/nayin/shensha/shenshu/
     xiangfa(静态四层象数据)/binzhu/tiyong/gongfei/gongshen/muku/anhe/zihe/he_types/
     zuogong_detect(纯检测)/virtual_solid/wood_type/soil_type/jiaoyun/dayun(纯检测)/
-    yingqi/biqi/body_parts/advanced(deprecated shim,lazy-import zhengfan)
+    yingqi/biqi/body_parts/advanced 已删(H-fix-4a,死 shim 零调用)
   subjective/ 31 模块：zuogong_confirm(analyze_zuogong+assess_work_level)/zhengfan/
     gongliang(1-4层功量)/zeishen_bushen/yongshen(方向层R1-R3+N1-N3+classify_strength)/
     caiming/guanming/zhiye/hunyin/xueli/laoyu/liuqin/zinv(子女岁运应期+借腹,D6b 新模块,§4.13)/
     qianyi(迁移marker+应期窗,缺口批1,§4.14)/xiangmao(相貌marker层,缺口批2,§4.15)/
     zaihuo/gongmen_wuzhi/xiangfa_ops
     (换象/局象/化象/借象操作层)/yunfan(岁运反局)/dayun/liunian/shipaige/juefa/
-    chuangong/yingqi_subj/narrative/schools(保护)/prompts(保护)/
+    yingqi_subj/narrative/schools(保护)/prompts(保护)/
     llm_channel/llm_prompt/llm_backend(LLM 三件套,§8 有载)
   feishu/      飞书集成包(飞书批+E1 上线必修)：client/router/service/formatter/bot+README(528 行)
   tests/
-    heldout/   cases.yaml(215) blind_eval.py snapshots/ diag_case.py _*_diag/_*_sim(诊断考古)
+    heldout/   cases.yaml(215) blind_eval.py snapshots/ diag_case.py _*_diag/_*_sim(诊断考古) archive/(H-fix-4a 归档的历史模拟 8 脚本)
     trainset/  cases.yaml(294)
     backtest/  regression67.py famous_cases.py famous_baseline.json regression_famous.py
     calib_assertions.py/.yaml  test_*.py(794 测,含 test_feishu 34/test_d6b_zinv 12/test_llm_channel 27/test_qianyi 11/test_xiangmao 7)
@@ -234,8 +234,8 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 ### 4.12 辅助层补条（批8/批9——原 KB 未记）
 
-- **chuangong=伪标模块**：docstring 署「段氏理象学·置信度高」与项目自家 excerpts.md:244「❌ 非段氏体系」直接冲突，五书 grep 零命中；20 条绿测试锁自造 spec；spec 集成要求未执行=全字段零消费。任务书「十二神串宫压运」与本模块同名不同物（两者五书均无出处）。
-- **advanced=死 shim**：弃用告警仅 zhengfan 单符号触发（6 eager 符号静默），全库零调用方。
+- **chuangong=伪标模块（H-fix-4a 已删模块+xfail 死测试）**：docstring 署「段氏理象学·置信度高」与项目自家 excerpts.md:244「❌ 非段氏体系」直接冲突，五书 grep 零命中；20 条绿测试锁自造 spec；spec 集成要求未执行=全字段零消费。任务书「十二神串宫压运」与本模块同名不同物（两者五书均无出处）。需求文档 docs/chuangong-spec.md 留档。
+- **advanced=死 shim（H-fix-4a 已删模块）**：弃用告警仅 zhengfan 单符号触发（6 eager 符号静默），全库零调用方——H-fix-4a 复核零引用后整模块删除。
 - **virtual_solid 两原则偏离（批9，F4 已修）**：「虚实只就一柱干支而言」（理象学:5647-5649）曾被改成全局四支找根→**已收窄为本柱坐支**（本气/藏干算根）；「坐印都是实」（初级:2461，甲子列实表）曾被判虚透怕克→**已修：坐支本气为印=实**，例外燥土未戌脆金（庚戌/辛未书列虚表，:3120-3122）。is_solid 传导 zuogong_confirm「虚透被克损害加重」消费侧契约不变已核对。同型 **F4 已修**：wood_type 补「水不生木之根也是死木」甄别（理象学:12613-12615；机制=水支与木根支相破（盲派破子卯/卯午，:2934-2936）/冲/穿则不生）——岳飞造（:3187-3189）/戴妃造（:12615）均已从活木改死木。传导：岳飞 gongliang score 78→84（活木 fear_metal 打折撤销），level 仍 L3 书层不变，boundary 标注路径转为 score 近沿（test_gongliang 两测已同步）。残留 P1 未修：长生微调/他柱印扫描/「有气偏虚」中间态无书锚（批9 P1，留后续批）。
 - **engine↔模块双轨死输出四例**（批9+批10）：soil/virtual/wood（engine 计算结果进 result+prompt，但 zuogong_confirm.py:864-962 自算不读 engine 结果——当前行为一致，参数演进后会分叉）+zihe（result['zihe'] 零消费不进 payload，guanming/yongshen/caiming 全部自调 detect_zihe）。
 - **shenshu/shipaige 对照源仅郑民生公开碎片**（批8）：段氏五书 grep「一财是财/十排歌」零命中；shenshu 数量诀 70 句与碎片逐字吻合（干净）；shipaige 断语层 39 条碎片几乎零实现+两处冠名冲突（官杀为子/劫财抗杀），docstring「置信度：低」自承属实——**shipaige 断语层不可作书证**。**F18 已重写**：断语层逐条=碎片原文+行号（六域 28 条可机械检测者），三 P0（官杀为子/劫财抗杀/食神生旺）全修，未实现条目入 todos；「断语层不可作书证」标注维持。
@@ -506,7 +506,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 | `python3 -m pytest mangpai/tests/ -q` | 842 collected（822 passed+1 xfailed+19 xpassed，N2b+N3 实测；N1 记 821、缺口批2 记 794 passed、批1 记 787 passed、修批E6/E7 记 776 passed、E5 记 773 passed、E1 记 767、U4 记 762 passed、D5 记 747/727、修批B/C 记 682、F19 记 668/648、批10 记 499、旧记 473 均作废） |
 | `mangpai/tests/heldout/blind_eval.py` | 三维盲测评估器：`--out 快照 --note 备注 --baseline 基线` 一条龙；`--diff A B` 对比；`--rescore` rubric 重评；输出含 M2 分组/M3 CI/显著性/文本抖动 |
 | `mangpai/tests/heldout/diag_case.py` | 单盘诊断（原 _p2_diag 转正）：`python3 diag_case.py 乙己己庚 巳丑未午 [--gender 女 --dayun X --liunian Y]`，dump gongliang/caiming/guanming/zhiye 内部状态 |
-| `mangpai/tests/heldout/_zy55_dump/_zy55_sim/_zy55_feat/_zy_all_dump/_zy_margin/_zy_master/_zy2_*/_zy3_*/_zy4_sim` | 职业批诊断考古（dump+条款网格模拟器，特征预计算模式可复用） |
+| `mangpai/tests/heldout/_zy55_dump/_zy_all_dump/_zy_master/_zy2_*/_zy3_dump` + `archive/`（_zy55_sim/_zy55_feat/_zy_margin/_zy2_sim2/_zy2_sim3/_zy3_sim/_zy4_sim/_a1_exp，H-fix-4a 归档） | 职业批诊断考古（dump+条款网格模拟器，特征预计算模式可复用；已收敛的历史模拟在 archive/） |
 | `_gm40_diag/_gm_all_dump/_gm_sim` | 官命批诊断考古（veto 翻转模拟） |
 | `_a14_diag/_a1_*/_b5_diag` | 财命批诊断考古 |
 | `mangpai/tests/backtest/regression67.py` / `regression_famous.py` | 67 书例回测 / 23 名人回测（famous_baseline.json 已 git add -f） |

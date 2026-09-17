@@ -43,8 +43,8 @@ LLM 不可用（无 key/网络失败）时降级返回 prompt 文本，不抛错
 ### 后端
 
 `llm_backend.call_deepseek(system, user, ...)` →
-`{'text','usage','cost_usd','price_tier','elapsed_s','model'}`；失败抛 `LLMBackendError` 由调用方降级。
-`cost_usd` 按请求发出的实际时段（北京时间）自动选峰/谷档，`price_tier` 标注所中档（见 §3）。
+`{'text','usage','cost_cny','price_tier','elapsed_s','model'}`；失败抛 `LLMBackendError` 由调用方降级。
+`cost_cny`（人民币口径，2026-09-18 由 cost_usd 改名）按请求发出的实际时段（北京时间）自动选峰/谷档，`price_tier` 标注所中档（见 §3）。
 
 ## §2 验证记录
 
@@ -102,7 +102,7 @@ v5 残余 10 条（hunyin 6 / xiangfa 3 / caiming 1）全部唯一展开转正�
 - 峰段：UTC 01:00-04:00 / 06:00-10:00 = **北京时间 09:00-12:00、14:00-18:00**；其余时段半价。
 - v4-flash：peak $0.44/$1.32，off-peak $0.22/$0.66（input/output，$/1M tokens）。
 - v4-pro：peak $1.32/$3.96，off-peak $0.66/$1.98。
-- 计价实现：`llm_backend._PRICING` 双档表 + `_price_tier(at)`（按请求发出的北京时间选档），成本随 `cost_usd`/`price_tier` 出账。
+- 计价实现：`llm_backend._PRICING` 双档表 + `_price_tier(at)`（按请求发出的北京时间选档），成本随 `cost_cny`/`price_tier` 出账。
 
 ### 批次脚本一键命令
 

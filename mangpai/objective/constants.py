@@ -206,13 +206,9 @@ NAYIN_WEIGHT: Dict[str, int] = {
 }
 
 # ── 纳音五行归类 ──
-NAYIN_WUXING: Dict[str, str] = {
-    '海中金': '金', '剑锋金': '金', '白蜡金': '金', '砂中金': '金', '金箔金': '金', '钗钏金': '金',
-    '炉中火': '火', '山头火': '火', '霹雳火': '火', '山下火': '火', '覆灯火': '火', '天上火': '火',
-    '大林木': '木', '杨柳木': '木', '松柏木': '木', '平地木': '木', '桑柘木': '木', '石榴木': '木',
-    '涧下水': '水', '泉中水': '水', '长流水': '水', '天河水': '水', '大溪水': '水', '大海水': '水',
-    '路旁土': '土', '城头土': '土', '屋上土': '土', '壁上土': '土', '大驿土': '土', '沙中土': '土',
-}
+# 单一事实源在 foundation.objective.nayin（中性层）；此处仅 re-export，
+# 供既有 `from mangpai.objective.constants import NAYIN_WUXING` 调用方使用。
+from foundation.objective.nayin import NAYIN_WUXING  # noqa: F401
 
 # ── 六十甲子纳音表 ──
 NAYIN_TABLE: Dict[str, str] = {

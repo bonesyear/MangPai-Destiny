@@ -47,8 +47,7 @@ _XU_ACTIVATORS: Set[str] = set()
 for _a, _b in LIU_CHONG:
     if '戌' in (_a, _b):
         _XU_ACTIVATORS.add(_b if _a == '戌' else _a)
-for _pair in XING_PAIRS:
-    _pa = _pair if isinstance(_pair, tuple) else tuple(_pair)
+for _pa in XING_PAIRS:
     if '戌' in _pa:
         _XU_ACTIVATORS.update(x for x in _pa if x != '戌')
 

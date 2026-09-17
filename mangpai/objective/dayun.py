@@ -282,8 +282,6 @@ def _analyze_tomb_effect(
     亦当引拔（段氏墓库篇「透干引拔」）。默认 None，仅以本命天干透干引拔，
     保持大运分析既有行为。
     """
-    dy_wx = ZHI_WX.get(dy_zhi, '')
-
     opens: List[Dict] = []
     closes: List[Dict] = []
 
