@@ -159,7 +159,14 @@ def _advance_gz(gz: str, step: int) -> str:
 
     仅用于无上游 dayun_list 时的兼容退路；正常路径应直接复用上游 dayun_list，
     不在此自算顺逆。
+
+    Raises:
+        ValueError: 非法干支输入（H-fix-2a 入口校验，原裸 index()/IndexError
+            穿透）。
     """
+    if (not isinstance(gz, str) or len(gz) != 2
+            or gz[0] not in TIAN_GAN or gz[1] not in DI_ZHI):
+        raise ValueError(f'非法干支 gz={gz!r}：须为 2 字合法干支（如 甲子）')
     g = TIAN_GAN.index(gz[0])
     z = DI_ZHI.index(gz[1])
     return TIAN_GAN[(g + step) % 10] + DI_ZHI[(z + step) % 12]

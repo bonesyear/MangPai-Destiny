@@ -129,7 +129,7 @@ def call_deepseek(
         t0_wall = time.time()  # 计价按请求发出的实际时段选峰/谷档
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                payload = json.loads(resp.read().decode('utf-8'))
+                raw = resp.read()
         except urllib.error.HTTPError as e:
             # 4xx（鉴权/参数错）重试无意义，直接抛
             if 400 <= e.code < 500:
@@ -140,6 +140,14 @@ def call_deepseek(
             continue
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             last_err = LLMBackendError(f'网络错误: {e}')
+            continue
+        try:
+            payload = json.loads(raw.decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            # HTTP 200 但返回体非 JSON（网关错误页/代理拦截/编码异常）：
+            # 包装为 LLMBackendError 走重试，禁止 JSONDecodeError 裸穿透（H4 P0）
+            last_err = LLMBackendError(
+                f'HTTP 200 但返回体非 JSON: {e}; 前 100 字符: {raw[:100]!r}')
             continue
         try:
             msg = payload['choices'][0]['message']

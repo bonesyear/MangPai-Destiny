@@ -1045,3 +1045,31 @@ P0 中裸 except 约占 **88%**；全量中裸 except 约占 **23%**，重复/�
 | `zaihuo.py:517-526,478` | P2 | 注释「刑破穿害」与代码 `('刑','破','穿','冲')` 不符（含冲），未备案 |
 
 > 合计 12 条（P1×2、P2×10），无 P0。两个 P1 建议 H-fix-2a 错误注入框架落地时优先处置。
+
+---
+
+## H-fix-2a（2026-09-17，执行登记）
+
+### 本批落地
+
+| 项 | 处置 |
+|---|---|
+| 错误注入框架 | `mangpai/tests/test_inject_faults.py` 36 测（非法干支/畸形 bazi_data/空 actions/越界/JSONDecodeError/end_age=None + calib 10 例冒烟）；红阶段实测 8 注入点全暴露旧失败面（裸 `substring not found`/IndexError/AttributeError 穿透、畸形输入静默接受、end_age=None TypeError 击穿 compute_all、JSONDecodeError 穿透） |
+| `_safe_compute` 37+ 模块分类 | 传导 14（shensha/zuogong/zeishen_bushen/gongliang/muku/zhengfan/relations/yunfan/laoyu/direction/caiming/guanming/zhiye/zaihuo → `EngineComputeError` 包装传导）；降级 29（warning + `_write` 回写 `_MODULE_DEFAULTS` 明确结构）；白名单 2（`_auto_liunian_list`/`_current_age` 收窄为时钟/数值类异常+记录原因） |
+| 回写契约统一（H8 P1） | `or {}`/`or []`/`or ''`/缺键三态 → `_write()` 显式 `is not None` + 失败写 `_MODULE_DEFAULTS` 深拷贝；engine.py 裸 `except Exception` 3→1（仅剩 _safe_compute 分流转折点） |
+| 入口校验 3 项 P0 | `dayun_gz_sequence`/`_advance_gz` 非法干支 → ValueError 带「非法干支」定位；`_cand_hua[0]` 同源复用 `_hua_actions`+判空守卫（当前不可达，防御纵深）；`MangpaiEngine.__init__` 新增 `_validate_bazi_data`（非 dict/缺四柱/非法干支 → `EngineInputError`） |
+| `JSONDecodeError` 包装（H4 P0） | llm_backend HTTP 200 非 JSON/非法 UTF-8 → `LLMBackendError('HTTP 200 但返回体非 JSON…')` 走重试，不再穿透 |
+| `engine.py:179` end_age=None（H-fix-1 抽查 P1） | `_current_dayun` 显式 None→`sa+10` 缺省 + 非数值 sa/ea 跳过守卫 |
+
+### H-fix-2a 暴露/裁定（既有问题处置记录）
+
+| 项 | 裁定 |
+|---|---|
+| `zaihuo.py:388` 正官误标「七杀」（H-fix-1 抽查 P1） | **书锚已核**：gaoji 牢狱章「正官、七杀：代表法律、规章、约束、官非。为牢狱之灾的直接符号」（gaoji-ocr ~14843-14848）——`_cat=='官杀'` 计入凶神**计数**有书锚，不动；误在 **label 文本**（正官盘标「七杀」）。但 label 进 `xiong_shen`→`desc` 输出文本，修正=正常路径字节变更，违本批红线「引擎正常路径输出逐字节不变」→ **延后至文本/判定批**，修法已给定：按实际十神标「正官」/「七杀」（可并存），计数逻辑不动 |
+| 吞改抛暴露真实 bug | 六件套全量（215 heldout + 294 trainset 经 blind/pytest + 67 + famous + calib）无一传导类模块在合法输入下抛异常——未暴露存量崩溃面 |
+
+### 残留（转后续批）
+
+- `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（P2，H-fix-2b/c 或守卫批）
+- `_auto_liunian_injected` `__init__` 未初始化（P2 备案维持）
+- subjective 层 67 处裸 except → H-fix-2b；诊断/验证脚本 → H-fix-2c

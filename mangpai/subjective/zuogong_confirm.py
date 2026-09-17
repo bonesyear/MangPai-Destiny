@@ -654,8 +654,11 @@ def analyze_zuogong(
         and ('day_zhi' in wa.get('from_pos', '') or 'day_zhi' in wa.get('to_pos', ''))
         for wa in work_actions
     )
-    _hua_chengju = (any(wa.get('type') == '杀印相生' and not wa.get('auxiliary')
-                        for wa in work_actions)
+    _hua_actions = [
+        wa for wa in work_actions
+        if wa.get('type') == '杀印相生' and not wa.get('auxiliary')
+    ]
+    _hua_chengju = (bool(_hua_actions)
                     and _hua_is_chengju(day_gan, gans, zhis, _day_zhi_he_center))
     # 争合判定：日干合两柱同被合（如己合年甲+时甲），合用之力分散减弱。化用成局
     # （月干司令透干之印化杀=当官之命）为高层功量，争合合用须让位予化用成局
@@ -705,12 +708,12 @@ def analyze_zuogong(
     def _cand_hua(c):
         if not c['hua_chengju']:
             return None
-        hua_actions = [
-            wa for wa in work_actions
-            if wa.get('type') == '杀印相生' and not wa.get('auxiliary')
-        ]
+        # H-fix-2a 判空守卫：_hua_actions 与 _hua_chengju 已同源复用
+        # （正常路径不可达空列表），守卫防两处过滤条件未来漂移致 [0] 越界
+        if not _hua_actions:
+            return None
         return {'type': '化用', 'path': '杀印相生（化杀为印·泄官杀生身）',
-                'action': hua_actions[0], 'strength': c['hua_strength']}
+                'action': _hua_actions[0], 'strength': c['hua_strength']}
 
     def _cand_sheng(c):
         if not c['sheng_qualified']:

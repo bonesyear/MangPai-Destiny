@@ -679,7 +679,18 @@ def dayun_gz_sequence(year_gan: str, month_gz: str, is_male: bool,
 
     Returns:
         {'direction': '顺'|'逆', 'dayun': [{'gz': ..., 'order': 1..steps}]}
+
+    Raises:
+        ValueError: 非法干支输入（H-fix-2a 入口校验，原裸 index()/IndexError
+            穿透——'substring not found' 无定位信息）。
     """
+    if not isinstance(year_gan, str) or len(year_gan) != 1 or year_gan not in GAN:
+        raise ValueError(
+            f'非法天干 year_gan={year_gan!r}：须为单字天干（甲乙丙丁戊己庚辛壬癸）')
+    if (not isinstance(month_gz, str) or len(month_gz) != 2
+            or month_gz[0] not in GAN or month_gz[1] not in ZHI):
+        raise ValueError(
+            f'非法干支 month_gz={month_gz!r}：须为 2 字合法干支（如 甲子）')
     forward = (GAN.index(year_gan) % 2 == 0) == is_male
     step = 1 if forward else -1
     mt, md = GAN.index(month_gz[0]), ZHI.index(month_gz[1])
