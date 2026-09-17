@@ -650,7 +650,7 @@ def _detect_liunian_fan(
                     'fan_type': '岁运联动·三刑',
                     'severity': '极重',
                     'reason': f'流年{op_zhi}+大运{dy_zhi}+原局构成'
-                              f'{''.join(sorted(g))}三刑——搅局破原局单一做功，无事生非',
+                              f'{"".join(sorted(g))}三刑——搅局破原局单一做功，无事生非',
                 })
                 break
         # 流年支刑大运支（二支刑，次凶）

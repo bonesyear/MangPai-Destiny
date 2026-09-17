@@ -12,7 +12,7 @@ MangpaiEngine 接收 calc_bazi_full() 的输出，逐模块计算盲派分析结
 """
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from mangpai.objective import (
     Pillars,

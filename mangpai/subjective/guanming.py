@@ -36,7 +36,7 @@ guanming - 盲派官命定性·主观层（subjective）
           各师口径有异；行业取象为段氏主流口径归纳，非盲师定量表。
 置信度：中
 """
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,

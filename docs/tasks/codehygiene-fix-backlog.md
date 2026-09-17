@@ -1017,3 +1017,31 @@ P0 中裸 except 约占 **88%**；全量中裸 except 约占 **23%**，重复/�
 | P1 | 247 | ~31 |
 | P2 | 141 | ~18 |
 | 合计 | 498 | ~45（跨级合并后） |
+
+---
+
+## H-fix-1 新发现（2026-09-17，执行中登记）
+
+| 文件:行号 | 维度 | 级别 | 问题描述 | 处置 |
+|---|---|---|---|---|
+| `mangpai/subjective/yunfan.py:653` | D7 | P0 | f-string 内嵌同名单引号 `f'{''.join(...)}'`，PEP 701（3.12+）才合法，3.11 import 即 SyntaxError；H8 仅报 typing 两处，此系双版本冒烟实测抓到的第三处崩溃面 | **本批已修**（内层改双引号，输出逐字节不变） |
+| `mangpai/tests/test_f1_gate.py:46` vs `mangpai/feishu/router.py:35` | 测试漂移 | P1 | e88d6bc 将 HELP 隐私告知去 DeepSeek 具体名（通用化「第三方大模型服务」），但测试仍断言 `'DeepSeek' in h`——HEAD 即存量红，pytest 1 failed（839+1xf+19xp 绿） | 待修（改测试断言对齐 router 文案，或回书裁定）；非 H-fix-1 引入 |
+
+### H-fix-1 轻量抽查（5 关键模块，只记录不改；k3-256k 子代理执行，主会话复核）
+
+| 文件:行号 | 级别 | 问题描述 |
+|---|---|---|
+| `engine.py:179` | P1 | `_current_dayun` 对显式 `end_age: None` 注入未防 TypeError；:411/:465 调用不在 `_safe_compute` 内会炸 compute_all |
+| `engine.py:407` | P2 | `liunian_data` 注入 truthy 非 dict 时 `.get` 抛 AttributeError，同在保护网外 |
+| `guanming.py:725,775,780` | P2 | `classify_hangye_xiang`/`detect_guansha_yougen` 无四柱长度校验，短列表 IndexError（同文件 :196 有校验，口径不一） |
+| `guanming.py:514,520` | P2 | `PILLAR_KEYS.index(...)` 无 `in` 前置校验，异构 relations 触发 ValueError |
+| `zuogong_detect.py:551-570` | P2 | `san_he_participants` 循环外初始化只 append 不重置，双三合组时串组（当前四柱下实际不可达，潜伏改漏） |
+| `zuogong_detect.py:1004-1009` | P2 | `_chong_pair`/`_he_pair` 与既有 `_check_pair` 完全等价的冗余封装 |
+| `gongliang.py:720-721` | P2 | `_po_bao` 过滤「天干包局」为死代码（互斥前提，永滤不到） |
+| `zaihuo.py:388-389` | P1 | 凶神汇聚用 `_cat=='官杀'`（含正官）却标 `'七杀'`——正官误标且误计入凶神计数影响 risk 升档 |
+| `zaihuo.py:734,736` | P2 | `zaihuo_llm_view` 缺 `'risk'` 键时 `.get` 放过、直取抛 KeyError |
+| `zaihuo.py:226-227,238-239,274,367-368` | P2 | 导出的 `classify_jibing`/`detect_chehuo` 无四柱长度校验（`analyze_zaihuo` :674 有，导出入口无） |
+| `zaihuo.py:571-577` | P2 | 「禄入墓被冲开」未走 `is_entomb` 验证禄真实入墓，可误报 marker；与 :532-545 口径差无注释 |
+| `zaihuo.py:517-526,478` | P2 | 注释「刑破穿害」与代码 `('刑','破','穿','冲')` 不符（含冲），未备案 |
+
+> 合计 12 条（P1×2、P2×10），无 P0。两个 P1 建议 H-fix-2a 错误注入框架落地时优先处置。

@@ -43,7 +43,7 @@ def test_disclaimer_llm_reading_path():
 
 def test_help_carries_privacy_notice_and_disclaimer():
     h = handle('/help')
-    assert '第三方' in h and 'DeepSeek' in h      # 外发告知（V4 P1-2）
+    assert '第三方' in h and '大模型' in h      # 外发告知（V4 P1-2；厂商名不写死）
     assert DISCLAIMER.strip() in h
 
 
