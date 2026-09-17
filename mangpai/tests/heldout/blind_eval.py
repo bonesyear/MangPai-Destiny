@@ -35,11 +35,13 @@ from collections import Counter
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
-for p in (_HERE, _REPO):
+for p in (_HERE, _REPO, os.path.dirname(_HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 import yaml
+
+from _atomic_io import atomic_write_json
 
 from mangpai import MangpaiEngine
 
@@ -291,7 +293,8 @@ def _git_sha():
 
 def _load_snapshot(path):
     """读快照并剥离 _meta（meta 仅溯源，不参与 summarize/diff/rescore）。"""
-    data = json.load(open(path, encoding='utf-8'))
+    with open(path, encoding='utf-8') as f:
+        data = json.load(f)
     return data, data.pop('_meta', None)
 
 
@@ -461,6 +464,16 @@ def diff(before, after):
     return flips
 
 
+def _validate_snapshot(payload):
+    """快照写入前校验（H-fix-3）：_meta 溯源字段在场 + 至少一个 split 非空。"""
+    meta = payload.get('_meta') or {}
+    if not meta.get('rubric_version'):
+        raise ValueError('快照缺 _meta.rubric_version，拒绝写入')
+    splits = [k for k in payload if k != '_meta' and payload[k]]
+    if not splits:
+        raise ValueError('快照无任何 split 数据，拒绝写入')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', help='评估结果 JSON 输出路径')
@@ -477,7 +490,8 @@ def main():
     args = ap.parse_args()
 
     if args.rescore:
-        data = json.load(open(args.rescore, encoding='utf-8'))
+        with open(args.rescore, encoding='utf-8') as f:
+            data = json.load(f)
         for split, cases in data.items():
             if split == '_meta':
                 continue
@@ -491,7 +505,7 @@ def main():
                 else:
                     e.get('scores', {}).pop('职业', None)
         out_path = args.rescore.replace('.json', '') + '_rescore.json'
-        json.dump(data, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+        atomic_write_json(out_path, data)
         for split, cases in data.items():
             if split == '_meta':
                 continue
@@ -529,8 +543,8 @@ def main():
         payload['_meta'] = {'git_sha': _git_sha(),
                             'rubric_version': RUBRIC_VERSION,
                             'note': args.note}
-        json.dump(payload, open(args.out, 'w', encoding='utf-8'),
-                  ensure_ascii=False, indent=1)
+        # H-fix-3：快照原子写 + 写入前校验（_meta 溯源字段须在场）
+        atomic_write_json(args.out, payload, validate=_validate_snapshot)
         print(f'(saved -> {args.out})')
     if args.baseline:
         before, mb = _load_snapshot(args.baseline)

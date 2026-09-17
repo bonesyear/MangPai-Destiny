@@ -20,6 +20,8 @@ for p in (_HERE, _REPO_ROOT):
 
 import yaml
 
+from _atomic_io import atomic_write
+
 from mangpai import MangpaiEngine
 from mangpai.subjective.caiming import analyze_caiming
 from mangpai.subjective.guanming import analyze_guanming
@@ -300,7 +302,8 @@ def main():
 def _write_baseline(cur, cnt):
     """按行改写 baseline（保留注释/flow 格式；items 须单行 flow 风格）。"""
     import re
-    lines = open(YAML_PATH, encoding='utf-8').read().splitlines(keepends=True)
+    with open(YAML_PATH, encoding='utf-8') as f:
+        lines = f.read().splitlines(keepends=True)
     case_id = None
     n_sub = 0
     id_re = re.compile(r'^\s+- id: (\S+)')
@@ -325,7 +328,22 @@ def _write_baseline(cur, cnt):
     txt = re.sub(r'baseline_counts: \{[^}]*\}',
                  f"baseline_counts: {{✅: {cnt.get('✅', 0)}, ⚠️: {cnt.get('⚠️', 0)}, ❌: {cnt.get('❌', 0)}}}",
                  txt)
-    open(YAML_PATH, 'w', encoding='utf-8').write(txt)
+    _validate_baseline_yaml(txt, len(cur))
+    atomic_write(YAML_PATH, txt, backup=True)
+
+
+def _validate_baseline_yaml(txt, expected_items):
+    """写入前校验（H-fix-3）：可反解析 + cases/items 非空且条数对齐 + counts 在场。"""
+    try:
+        doc = yaml.safe_load(txt)
+    except yaml.YAMLError as e:
+        raise SystemExit(f'write-baseline: 写出内容 YAML 反解析失败，拒绝写入: {e}')
+    cases = (doc or {}).get('cases') or []
+    n = sum(len(c.get('items') or []) for c in cases)
+    counts = ((doc or {}).get('meta') or {}).get('baseline_counts')
+    if not cases or n != expected_items or counts is None:
+        raise SystemExit(f'write-baseline: 反解析结构异常（items={n} 预期 {expected_items}，'
+                         f'counts={counts}），拒绝写入')
 
 
 if __name__ == '__main__':

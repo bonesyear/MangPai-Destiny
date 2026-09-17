@@ -1152,3 +1152,39 @@ verify 432+70+64+20 / pytest **925 passed**+1xf+19xp（919+6 哨兵）/ blind vs
 
 - `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（2a 遗留 P2，守卫批）。
 - 异常策略线（2a 引擎层 / 2b subjective 层 / 2c 脚本层）**收官**。
+
+---
+
+## H-fix-3（2026-09-18，执行登记 · 原子写批 + llm_channel 免责提级项）
+
+### 阶段 0 写回点清点（复核 grep，补全任务书清单）
+
+- **基线/快照级（原子写 + 写入前校验 + backup）**：`calib_assertions.py`（calib YAML，最高优先）/ `blind_eval.py` 快照 `--out` + `--rescore` 写 / `regression67.py` / `regression_famous.py`（`--write-baseline` 与 current 存档两路）。
+- **管线产物（原子写 + 校验）**：`curate.py` merged.json + review.txt / `extract_cases.py` candidates.json / **补全项** `build_yaml.py` heldout/trainset cases.yaml + dropped.txt（评估数据源，原清单未列）。
+- **索引**：`scripts/build_book_index.py` 总表 + 分文件 2 处。
+- **诊断 /tmp 写（顺带，6 处全改）**：`_gm_all_dump`/`_zy_all_dump`/`_zy55_dump`/`_gm40_diag`/`_zy_margin`/`_zy3_dump`。
+- **读取侧句柄泄漏顺带修**（H6/H7 P0/P2）：`blind_eval._load_snapshot` + `--rescore` 读 / `regression67`/`regression_famous` baseline 读 / `curate.py` candidates 读 / `extract_cases.py` 原文读 / `build_yaml.py` merged 读，全部 `with open`。
+
+### 落地
+
+| 项 | 处置 |
+|---|---|
+| 公共工具 | `mangpai/tests/_atomic_io.py`：`atomic_write`（写 `.tmp`+fsync+`os.replace`，`backup=True` 留存 `.bak`）+ `atomic_write_json`（dumps→loads 反解析 + `validate(parsed)` 回调，抛错即拒绝写入） |
+| 基线写回校验 | calib：`_validate_baseline_yaml`（YAML 反解析 + cases/items 条数对齐计算结果 + baseline_counts 在场）；regression67/famous：`_validate_baseline`（非空 + verdict 值域 ✅⚠️❌——⚠️ 双码点 U+26A0+VS16，须用字符串元组，frozenset('✅⚠️❌') 拆码点会全漏，calib 注释同款教训）；blind 快照：`_validate_snapshot`（_meta.rubric_version 在场 + 至少一 split 非空）；curate/extract/build_yaml 各自关键字段校验 |
+| `--write-baseline` 防护 | 不加 `--force`（保持既有调用方兼容），改采**非破坏性防护**：覆盖既有基线前自动留存 `<path>.bak` + 写入前校验拒绝异常内容；原子替换杜绝半写 |
+| llm_channel 免责提级（H4 P1） | `validate='reject'` L0 拦截降级补 `_DISCLAIMER_LINE`（llm_channel.py:467）；四条降级路径逐条核对：LLM 不可用 ✓ / JSON 失败 ✓ / 死亡红线 ✓ / L0 拦截 **补后 ✓**。`not call_llm` 调试预览路径（:442）非降级通道，不带免责=设计内 |
+
+### 哨兵（先红后绿）
+
+- `test_atomic_io.py` 8 测：写入中途失败（fsync/replace 注入 OSError）→ 目标完好 + `.tmp` 残留；validate 抛错拒绝写入；backup 留存 `.bak`；calib 非法 YAML/条数不符拒绝写入（SystemExit）；calib 端到端改写 + `.bak` + 源 YAML 结构异常拒写原文件不动。
+- `test_f1_gate.py::test_reject_l0_degrade_carries_disclaimer`：L0 reject 路径免责——**stash 实测先红后绿**（旧码 1 failed，修复后绿）。
+
+### 六件套（全绿）
+
+verify 432+70+64+20 / pytest **934 passed**+1xf+19xp（925+9 哨兵）/ blind vs `snapshots/20260918_hfix2c.json` heldout+trainset **零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）/ 双 seed 逐字节一致 / 67/famous 无变化（current67/current_famous 重写后逐字节不变）/ calib 常驻 2 条零新增 / build_book_index 重跑输出逐字节不变。引擎/主观层判定零改动（本批只改脚本 IO 与 llm_channel 降级文案）。快照=`snapshots/20260918_hfix3.json`。
+
+### 残留（转后续批）
+
+- `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（2a 遗留 P2，守卫批）。
+- H5 P1 formatter.DISCLAIMER 与 llm_channel._DISCLAIMER_LINE 文本重复（统一化属 H-fix-4 清理面）。
+- output/ 批跑脚本的 jsonl append 写（`_n2_eval`/`_t3_eval` 等）为追加模式非覆盖写，不入原子写范围，标注不改。

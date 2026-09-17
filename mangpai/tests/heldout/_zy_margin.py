@@ -7,11 +7,12 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
-for p in (_HERE, _REPO):
+for p in (_HERE, _REPO, os.path.dirname(_HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 import yaml
+from _atomic_io import atomic_write_json
 from blind_eval import _bazi_data, _ZY_RULES, _ZY_EXCLUDE
 from mangpai import MangpaiEngine
 from mangpai.subjective.zhiye import (_compute_shishen, _cat, _pillar_cats,
@@ -100,7 +101,7 @@ for k, e in d.items():
         'has_inner': bool(inner_zhis) and not gan_has_shishen,
     })
 
-json.dump(rows, open('/tmp/zy_margin.json', 'w'), ensure_ascii=False, indent=1)
+atomic_write_json('/tmp/zy_margin.json', rows)
 
 # 汇总：三条款 现行命中 vs 变体命中 交叉（按 primary==merchant / 金标merchant 分组）
 def grp(r):

@@ -6,11 +6,12 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
-for p in (_HERE, _REPO):
+for p in (_HERE, _REPO, os.path.dirname(_HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 import yaml
+from _atomic_io import atomic_write_json
 from blind_eval import _bazi_data, _ZY_RULES, _ZY_EXCLUDE
 from mangpai import MangpaiEngine
 from mangpai.subjective.zhiye import (
@@ -121,7 +122,7 @@ for split, path in (('trainset', os.path.join(_HERE, '..', 'trainset', 'cases.ya
             'base_career': (zy.get('base_career') or {}).get('bucket', ''),
         }
 
-json.dump(out, open('/tmp/zy3_all.json', 'w'), ensure_ascii=False, indent=1)
+atomic_write_json('/tmp/zy3_all.json', out)
 print(f'dumped {len(out)} cases -> /tmp/zy3_all.json')
 n_err = sum(1 for e in out.values()
             if e['primary'] and e['primary'] not in e['gold'])

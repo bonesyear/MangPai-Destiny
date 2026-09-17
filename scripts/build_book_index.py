@@ -6,7 +6,13 @@
 """
 import re
 import os
+import sys
 from pathlib import Path
+
+_TESTS = Path(__file__).resolve().parent.parent / "mangpai" / "tests"
+if str(_TESTS) not in sys.path:
+    sys.path.insert(0, str(_TESTS))
+from _atomic_io import atomic_write
 
 DOCS = Path(__file__).resolve().parent.parent / "mangpai" / "docs"
 
@@ -77,7 +83,7 @@ def main():
             lines.append("（未识别到章节标题——标题格式特殊，需人工补充）")
         for lineno, title in hits:
             lines.append(f"{lineno:>7} | {title}")
-        per.write_text("\n".join(lines), encoding="utf-8")
+        atomic_write(per, "\n".join(lines))
         total_entries += len(hits)
         print(f"  {per.name}: {len(hits)} 命中 / {total} 行")
     # 总索引（每书一行，指向分文件）
@@ -90,7 +96,7 @@ def main():
             continue
         stem = rel.split("/")[-1].replace(".txt", "")
         idx_lines.append(f"- [{name}](book-index/index-{stem}.md)")
-    idx.write_text("\n".join(idx_lines), encoding="utf-8")
+    atomic_write(idx, "\n".join(idx_lines))
     print(f"\n总索引: {idx} | 分文件目录: {out_dir} | 共 {total_entries} 命中")
 
 if __name__ == "__main__":

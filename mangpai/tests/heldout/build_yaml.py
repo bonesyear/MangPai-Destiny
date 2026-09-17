@@ -17,6 +17,23 @@ sys.path.insert(0, HERE)
 from annotations_meta import CALIB10, B67, PHANTOM, DROP
 from annotations_heldout import KEPT, MANUAL
 
+_TESTS = os.path.dirname(HERE)
+if _TESTS not in sys.path:
+    sys.path.insert(0, _TESTS)
+from _atomic_io import atomic_write
+
+
+def _validate_cases_yaml(txt, expected_n):
+    """写入前校验（H-fix-3）：可反解析 + 条目数对齐 + 每条带 id/bazi/verdicts。"""
+    try:
+        doc = yaml.safe_load(txt)
+    except yaml.YAMLError as e:
+        raise SystemExit(f'build_yaml: 写出内容 YAML 反解析失败，拒绝写入: {e}')
+    if not isinstance(doc, list) or len(doc) != expected_n or \
+            any(not all(e.get(k) for k in ('id', 'bazi', 'verdicts')) for e in doc):
+        raise SystemExit(f'build_yaml: 反解析结构异常（n={None if not isinstance(doc, list) else len(doc)}'
+                         f' 预期 {expected_n}），拒绝写入')
+
 
 def bazi_of(gans, zhis):
     return {'year': gans[0] + zhis[0], 'month': gans[1] + zhis[1],
@@ -44,7 +61,8 @@ def entry(cid, name, c, ann):
 
 
 def main():
-    merged = json.load(open(os.path.join(HERE, 'merged.json'), encoding='utf-8'))
+    with open(os.path.join(HERE, 'merged.json'), encoding='utf-8') as f:
+        merged = json.load(f)
     bykey = {}
     for c in merged:
         k = '/'.join([''.join(c['gans']), ''.join(c['zhis']), c['gender']])
@@ -96,7 +114,7 @@ def main():
         print(f'⚠️ 未路由: {k} {c["sources"]} {c["context"][:60]!r}')
     if orphan_kept or unrouted:
         print('存在未决项，中止。'); sys.exit(1)
-    # 写 YAML
+    # 写 YAML（H-fix-3：原子写 + 写入前反解析校验——cases.yaml 是评估数据源）
     head_h = ('# ⚠️ 留出集 · 严禁用于修引擎 ⚠️\n'
               '# V3/K1 郝金阳/段建业断例留出集 — 仅供引擎评估，任何引擎修改不得参考本文件断语。\n'
               '# 来源: shouke-jiaocheng.txt(授课教程) + mingli-zhenbao-50qi.txt(50期资料)\n'
@@ -105,17 +123,16 @@ def main():
     head_t = ('# 训练侧案例集（已用于校准/修引擎，可安全使用）\n'
               '# calib10 = calib_assertions.yaml 金标准10例的简单格式镜像；\n'
               '# b67-*  = regression67.py 67例中出自这两本书的书例（已用于修引擎）。\n')
-    with open(os.path.join(HERE, 'cases.yaml'), 'w', encoding='utf-8') as f:
-        f.write(head_h)
-        yaml.dump(held, f, allow_unicode=True, sort_keys=False, width=120)
+    txt_h = head_h + yaml.dump(held, allow_unicode=True, sort_keys=False, width=120)
+    _validate_cases_yaml(txt_h, len(held))
+    atomic_write(os.path.join(HERE, 'cases.yaml'), txt_h)
     tdir = os.path.join(HERE, '..', 'trainset')
     os.makedirs(tdir, exist_ok=True)
-    with open(os.path.join(tdir, 'cases.yaml'), 'w', encoding='utf-8') as f:
-        f.write(head_t)
-        yaml.dump(train, f, allow_unicode=True, sort_keys=False, width=120)
-    with open(os.path.join(HERE, 'dropped.txt'), 'w', encoding='utf-8') as f:
-        for k, why in dropped:
-            f.write(f'{k}\t{why}\n')
+    txt_t = head_t + yaml.dump(train, allow_unicode=True, sort_keys=False, width=120)
+    _validate_cases_yaml(txt_t, len(train))
+    atomic_write(os.path.join(tdir, 'cases.yaml'), txt_t)
+    atomic_write(os.path.join(HERE, 'dropped.txt'),
+                 ''.join(f'{k}\t{why}\n' for k, why in dropped))
     print(f'heldout={len(held)} trainset={len(train)} dropped={len(dropped)}')
 
 

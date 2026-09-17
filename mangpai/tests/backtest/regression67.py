@@ -10,9 +10,11 @@ import sys, json, os
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
-for p in (_HERE, _REPO_ROOT):
+for p in (_HERE, _REPO_ROOT, os.path.dirname(_HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
+
+from _atomic_io import atomic_write_json
 
 from harness import zuogong, gongliang, run
 
@@ -236,6 +238,20 @@ def compute():
             alarms.append(name)
     return out, alarms
 
+# ⚠️ 为双码点（U+26A0+VS16），frozenset('✅⚠️❌') 会拆成单码点漏掉 ⚠️——须用字符串元组
+_VALID_VERDICTS = ('✅', '⚠️', '❌')
+
+
+def _validate_baseline(arch):
+    """写入前校验（H-fix-3）：非空 + 每条 verdict 在合法值域。"""
+    if not arch:
+        raise ValueError('baseline 为空，拒绝写入')
+    bad = [k for k, v in arch.items()
+           if not isinstance(v, dict) or v.get('verdict') not in _VALID_VERDICTS]
+    if bad:
+        raise ValueError(f'baseline 结构异常（verdict 缺失/非法）: {bad[:5]}')
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     write_baseline = '--write-baseline' in sys.argv
@@ -267,7 +283,8 @@ def main():
             print(f"    {k}: {cur[k][1]}")
     n_reg = 0
     if base_path and os.path.exists(base_path):
-        base = json.load(open(base_path))
+        with open(base_path, encoding='utf-8') as f:
+            base = json.load(f)
         print(f"\n=== vs baseline ({os.path.basename(base_path)}) ===")
         reg, imp = [], []
         for k, (v, d) in cur.items():
@@ -291,10 +308,11 @@ def main():
             print("  无变化")
     else:
         print(f"\n(baseline 不存在: {base_path}，仅打印当前判定)")
-    # 存档
+    # 存档（H-fix-3：原子写 + 基线写回校验/备份）
     arch = {k: {'verdict': v, 'detail': d} for k, (v, d) in cur.items()}
     out_path = DEFAULT_BASELINE if write_baseline else CURRENT_OUT
-    json.dump(arch, open(out_path, 'w'), ensure_ascii=False, indent=1)
+    atomic_write_json(out_path, arch, validate=_validate_baseline,
+                      backup=write_baseline)
     print(f"\n(archived -> {out_path})")
     sys.exit(1 if n_reg else 0)
 

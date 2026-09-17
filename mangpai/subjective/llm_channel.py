@@ -466,7 +466,8 @@ def render_structured_reading(
         return f'[断语被死亡红线校验拦截，不予展示]\n{_DISCLAIMER_LINE}'
     if validate == 'reject' and any(x['layer'] == 'L0' for x in report['violations']):
         return ('[断语被 L0 schema 校验拦截，不予输出]\n'
-                + '\n'.join(f"  - {x['detail']}" for x in report['violations']))
+                + '\n'.join(f"  - {x['detail']}" for x in report['violations'])
+                + f'\n{_DISCLAIMER_LINE}')
     return format_reading(data, report, resp)
 
 

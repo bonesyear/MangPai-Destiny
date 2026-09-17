@@ -179,6 +179,18 @@ def test_degrade_returns_carry_disclaimer(monkeypatch):
     assert out.startswith('[LLM 输出非合法 JSON') and DISCLAIMER.strip() in out
 
 
+def test_reject_l0_degrade_carries_disclaimer(monkeypatch):
+    """H-fix-3（H4 P1 提级）：validate='reject' L0 拦截降级同样自带免责行——
+    四条降级路径（LLM 不可用/JSON 失败/死亡红线/L0 拦截）免责齐全。"""
+    data = _dims()
+    del data['相貌']  # 缺维 → L0 schema 违规
+    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
+                        lambda *a, **kw: _fake_backend(json.dumps(data, ensure_ascii=False)))
+    out = render_structured_reading(_ENGINE, validate='reject')
+    assert out.startswith('[断语被 L0 schema 校验拦截，不予输出]')
+    assert DISCLAIMER.strip() in out
+
+
 def test_format_reading_larkmd_sanitized():
     """F6-5：附注 bullets 去 '- '；LLM conclusion 三符（- /> /---）sanitize。"""
     data = _dims('总述\n- 一条\n> 引用\n---')

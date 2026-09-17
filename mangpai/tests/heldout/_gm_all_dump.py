@@ -6,11 +6,12 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
-for p in (_HERE, _REPO):
+for p in (_HERE, _REPO, os.path.dirname(_HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 import yaml
+from _atomic_io import atomic_write_json
 from blind_eval import _bazi_data
 from mangpai import MangpaiEngine
 
@@ -37,6 +38,6 @@ for c in cases:
         'has_guansha': combo.get('has_guansha'),
         'details': combo.get('details') or [],
     }
-json.dump(out, open('/tmp/gm_all.json', 'w'), ensure_ascii=False, indent=1)
+atomic_write_json('/tmp/gm_all.json', out)
 n_ok = sum(1 for e in out.values() if e['is_guanming'] == e['expect'])
 print(f'total={len(out)} acc={n_ok}/{len(out)} = {n_ok/len(out):.2%}')

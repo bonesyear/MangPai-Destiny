@@ -7,11 +7,12 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
-for p in (_HERE, _REPO):
+for p in (_HERE, _REPO, os.path.dirname(_HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 import yaml
+from _atomic_io import atomic_write_json
 from blind_eval import _bazi_data, _ZY_RULES, _ZY_EXCLUDE
 from mangpai import MangpaiEngine
 from mangpai.subjective.zhiye import _pillar_cats
@@ -66,7 +67,7 @@ for split, path in (('trainset', os.path.join(_HERE, '..', 'trainset', 'cases.ya
             'caiming_tier': res.get('caiming', {}).get('tier_static', ''),
         }
 
-json.dump(out, open('/tmp/zy_all.json', 'w'), ensure_ascii=False, indent=1)
+atomic_write_json('/tmp/zy_all.json', out)
 print(f'dumped {len(out)} cases -> /tmp/zy_all.json')
 
 # heldout 商人三例专项

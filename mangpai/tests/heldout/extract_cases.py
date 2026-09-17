@@ -24,6 +24,11 @@ ZHI_FIX = {'己': '巳', '已': '巳', '戍': '戌', '末': '未', '西': '酉',
            '免': '卯', '牛': '丑', '卞': '丑'}
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+_TESTS = os.path.dirname(HERE)
+if _TESTS not in sys.path:
+    sys.path.insert(0, _TESTS)
+from _atomic_io import atomic_write_json
+
 BOOKS = {
     'shouke': os.path.join(HERE, '..', '..', 'docs', 'duan-books', 'shouke-jiaocheng.txt'),
     'zhenbao': os.path.join(HERE, '..', '..', 'docs', 'duan-books', 'mingli-zhenbao-50qi.txt'),
@@ -176,7 +181,8 @@ def context_block(lines, i, cap=26):
 
 
 def extract(path, tag):
-    lines = open(path, encoding='utf-8').read().splitlines()
+    with open(path, encoding='utf-8') as f:
+        lines = f.read().splitlines()
     cands, seen_lines = [], set()
     for i, L in enumerate(lines):
         m = MARKER.search(L)
@@ -254,6 +260,16 @@ def extract(path, tag):
     return cands
 
 
+def _validate_candidates(dedup):
+    """写入前校验（H-fix-3）：非空 + 每条带 gans/zhis/gender 关键字段。"""
+    if not dedup:
+        raise ValueError('candidates 为空，拒绝写入')
+    bad = [c.get('line', '?') for c in dedup
+           if not all(c.get(k) for k in ('gans', 'zhis', 'gender'))]
+    if bad:
+        raise ValueError(f'candidates 结构异常（缺关键字段）: line={bad[:5]}')
+
+
 def main():
     all_c = []
     for tag, path in BOOKS.items():
@@ -266,7 +282,7 @@ def main():
             best[key] = c
     dedup = sorted(best.values(), key=lambda c: (c['file'], c['line']))
     out = os.path.join(HERE, 'candidates.json')
-    json.dump(dedup, open(out, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    atomic_write_json(out, dedup, validate=_validate_candidates)
     inv = [c for c in dedup if not c['valid']]
     unm = [c for c in dedup if c['unmarked']]
     print(f'total={len(dedup)} valid={len(dedup)-len(inv)} unmarked={len(unm)}')

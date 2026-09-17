@@ -6,11 +6,12 @@ import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
-for p in (_HERE, _REPO):
+for p in (_HERE, _REPO, os.path.dirname(_HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 import yaml
+from _atomic_io import atomic_write_json
 from blind_eval import _bazi_data, score_guanming
 from mangpai import MangpaiEngine
 
@@ -62,7 +63,7 @@ for cid in bad_ids:
         'other_scores': snap['trainset'][cid].get('scores', {}),
     }
 
-json.dump(out, open('/tmp/gm40.json', 'w'), ensure_ascii=False, indent=1)
+atomic_write_json('/tmp/gm40.json', out)
 for cid, e in out.items():
     print(f"\n=== {cid} [{e['fpfn']}] {e['bazi']} {e['gender']} 运:{e['dayun'] or '-'} 年:{e['liunian'] or '-'}")
     print(f"  verdict: {e['verdict']}  | engine is_guanming={e['is_guanming']} vetoed={e['vetoed']}")

@@ -11,8 +11,11 @@ import json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(REPO, 'tests', 'backtest'))
+sys.path.insert(0, os.path.join(REPO, 'tests'))
 sys.path.insert(0, REPO)
 import yaml
+
+from _atomic_io import atomic_write, atomic_write_json
 import regression67 as r67
 
 
@@ -45,8 +48,19 @@ def contaminated():
     return out
 
 
+def _validate_merged(cases):
+    """写入前校验（H-fix-3）：非空 + 每条带 gans/zhis/gender/sources 关键字段。"""
+    if not cases:
+        raise ValueError('merged 为空，拒绝写入')
+    bad = [c.get('idx', '?') for c in cases
+           if not all(c.get(k) for k in ('gans', 'zhis', 'gender', 'sources'))]
+    if bad:
+        raise ValueError(f'merged 结构异常（缺关键字段）: idx={bad[:5]}')
+
+
 def main():
-    cands = json.load(open(os.path.join(HERE, 'candidates.json'), encoding='utf-8'))
+    with open(os.path.join(HERE, 'candidates.json'), encoding='utf-8') as f:
+        cands = json.load(f)
     cont = contaminated()
     merged = {}
     for c in cands:
@@ -66,18 +80,19 @@ def main():
     for i, c in enumerate(cases):
         c['idx'] = i
         c['contam'] = cont.get(key_of(c['gans'], c['zhis'], c['gender']), '')
-    json.dump(cases, open(os.path.join(HERE, 'merged.json'), 'w', encoding='utf-8'),
-              ensure_ascii=False, indent=1)
+    atomic_write_json(os.path.join(HERE, 'merged.json'), cases,
+                      validate=_validate_merged)
     n_cal = sum(1 for c in cases if c['contam'].startswith('calib10'))
     n_b67 = sum(1 for c in cases if c['contam'].startswith('backtest67'))
     print(f'merged={len(cases)} calib10={n_cal} backtest67={n_b67} heldout-pool={len(cases)-n_cal-n_b67}')
-    with open(os.path.join(HERE, 'review.txt'), 'w', encoding='utf-8') as f:
-        for c in cases:
-            gz = '/'.join([''.join(c['gans']), ''.join(c['zhis'])])
-            f.write(f"━━ #{c['idx']} [{'CONTAM:'+c['contam']+']' if c['contam'] else 'POOL'}] "
-                    f"{c['gender']} {gz} src={';'.join(c['sources'])}"
-                    f"{' UNMARKED' if c['unmarked'] else ''}\n")
-            f.write(c['context'] + '\n')
+    review = []
+    for c in cases:
+        gz = '/'.join([''.join(c['gans']), ''.join(c['zhis'])])
+        review.append(f"━━ #{c['idx']} [{'CONTAM:'+c['contam']+']' if c['contam'] else 'POOL'}] "
+                      f"{c['gender']} {gz} src={';'.join(c['sources'])}"
+                      f"{' UNMARKED' if c['unmarked'] else ''}\n")
+        review.append(c['context'] + '\n')
+    atomic_write(os.path.join(HERE, 'review.txt'), ''.join(review))
 
 
 if __name__ == '__main__':
