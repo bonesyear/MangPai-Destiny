@@ -1113,3 +1113,42 @@ verify 432+70+64+20 / pytest **919 passed**+1xf+19xp / blind vs `snapshots/20260
 
 - `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（2a 遗留 P2，2c/守卫批）。
 - 诊断/验证脚本 ~20 处裸 except → H-fix-2c。
+
+---
+
+## H-fix-2c（2026-09-18，执行登记 · 异常策略线收官）
+
+### 阶段 0 计数定边界（实测为准）
+
+- 任务书口径两 grep = **15 处**（`output/*.py` 3：`_kang_dump`×2/`_llm_batch_trainset`×1；`mangpai/tests/*.py`+`scripts/`+`heldout/` 12：blind_eval×2/verify_heldout×1/诊断脚本×9）。
+- 加任务书 H7/阶段1 显式点名的验证脚本 3 处（`verify_layer3_checkpoint.py:58,71`、`calib_zhenbao.py:118`），**实际改造 18 处**。
+
+### 改造分类（18 处全处置，脚本层三原则）
+
+- **验证脚本 6 处（禁吞引擎异常，假 green 清零）**：
+  - `blind_eval.py:225` **传导**——引擎异常记 case id + 快照 error 字段 + 打印，main() 收尾按 error 计数 `sys.exit(1)`（快照/diff 照常产出供诊断）；正常路径零 error → 输出逐字节不变。
+  - `verify_layer3_checkpoint.py:71`（B 环节）**传导**——异常补 `check(..., False)` 显式失败；旧版静默置 `{}`，未被下游断言覆盖的案例（如第1期）失败可假绿（哨兵实证 exit 0）。A 环节 :58 旧版已 `check False` 计失败，维持。
+  - `calib_zhenbao.py:118` **传导**——打印 case id + traceback 后 `raise`（H12 P1）。
+  - `verify_heldout.py:51` **传导（失败通道，既已合规）**——异常即案例失败、exit 1；哨兵锁回归，代码不动。
+  - `blind_eval.py:284` `_git_sha` **白名单**——收窄为 `(OSError, subprocess.SubprocessError)`（git 不可用环境降级，与引擎无关）。
+- **批跑脚本 3 处（单例失败不中断整批，不静默）**：`_llm_batch_trainset.py:40` 已有 engine_error 记录+汇总计数，本批补失败案例 id 清单打印；`_kang_dump.py:41,47` 补 traceback 留痕。
+- **诊断脚本 9 处（允许降级但必须打日志）**：`_b5_diag:48`（补 case id）/`_zy2_detail:67`/`_zy3_dump:53,72,76`/`_zy55_dump:55`/`_zy55_feat:72`/`_zy_all_dump:52`/`_zy_master:106`——降级默认值保留，逐处补 `!! {case_id} {函数} 异常` 打印。
+- 改后脚本层裸 `except Exception`（无 `as e` 无日志）仅剩 `verify_heldout.py:51` 一处（失败通道合规）；无裸 `except:`。
+
+### 哨兵（test_verify_integrity.py 6 测，先红后绿）
+
+注入引擎异常 → 验证脚本必失败：blind_eval error 记录/exit 1、layer3 compute_all 异常 exit≠0、layer3 B 环节选择性注入（第1期，旧版假绿洞）exit≠0、calib re-raise、verify_heldout exit 1 回归锁。**红阶段实测 3 红 3 绿**（3 红=真假绿洞：blind_eval 退出码/layer3 B 环节/calib re-raise；3 绿=既合规项），修复后 6/6 绿。
+
+### 暴露/发现登记
+
+- 吞改抛暴露真实崩溃面：**无**（六件套 509 例零触发）。
+- `verify_layer3.py:51-62` A 环节旧版实为显式失败（check False），H7「假 PASS」定性仅 B 环节成立——已按实况修正认知并只改 B。
+
+### 六件套（全绿）
+
+verify 432+70+64+20 / pytest **925 passed**+1xf+19xp（919+6 哨兵）/ blind vs `snapshots/20260918_hfix2b.json` heldout+trainset 零翻转零抖动 / 双 seed 逐字节一致 / 67/famous 无变化 / calib 常驻 2 条零新增。引擎判定零改动（脚本层全部改动只在异常路径）。快照=`snapshots/20260918_hfix2c.json`；回滚点=tag `hfix2c-pre`。
+
+### 残留（转后续批）
+
+- `engine.py:407` liunian_data truthy 非 dict `.get` AttributeError（2a 遗留 P2，守卫批）。
+- 异常策略线（2a 引擎层 / 2b subjective 层 / 2c 脚本层）**收官**。

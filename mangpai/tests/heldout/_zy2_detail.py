@@ -64,7 +64,8 @@ for tid in TARGETS:
     wa = [a for a in (rel.get('work_actions') or []) if not a.get('auxiliary')]
     try:
         ss = compute_shensha_ext(day_gan, zhis)
-    except Exception:
+    except Exception as e:
+        print(f'!! {tid} compute_shensha_ext 异常: {e!r}')  # H-fix-2c：降级须留痕
         ss = {}
     print(f"\n== {tid} {bz} gold={','.join(e['gold'])} pri={e['primary']} "
           f"tier={e['caiming_tier']} gm={e['is_guanming']} ==")

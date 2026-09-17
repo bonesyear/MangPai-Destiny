@@ -118,3 +118,4 @@ for c in CASES:
     except Exception as e:
         import traceback; traceback.print_exc()
         print(f"!! {name} 失败: {e}")
+        raise  # H-fix-2c：校准脚本不吞引擎异常（H12 P1），失败显式传导

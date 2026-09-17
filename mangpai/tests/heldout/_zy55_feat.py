@@ -69,7 +69,8 @@ for cid, e in d.items():
     n_yin = sum(1 for c in pcats if '印' in c)
     try:
         ss = compute_shensha_ext(day_gan, zhis)
-    except Exception:
+    except Exception as e:
+        print(f'!! {cid} compute_shensha_ext 异常: {e!r}')  # H-fix-2c：降级须留痕
         ss = {}
     yangren = bool((ss.get('羊刃') or {}).get('in_pillars'))
     tao = bool((ss.get('桃花') or {}).get('in_pillars'))

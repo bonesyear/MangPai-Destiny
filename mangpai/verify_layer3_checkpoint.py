@@ -71,6 +71,8 @@ for name, gans, zhis, gender, year in CASES:
     except Exception as e:
         import traceback; traceback.print_exc()
         gm_results[name] = {}
+        # H-fix-2c：引擎异常=显式失败——未被下游断言覆盖的案例失败也不得假绿
+        check(f'{name} 官命计算', False, f'异常{e}')
 
 # B1. 应否决例：乞丐(比劫夺财破财)、贪财坐牢(反局/牢狱) -> is_guanming=False
 #     注：贪财坐牢从强格官杀为忌神，反局否决当生效

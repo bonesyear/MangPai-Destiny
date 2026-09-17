@@ -53,6 +53,7 @@ for cid in bad_ids:
         wa = rel.get('work_actions') or []
         ds = assess_direction_signals(day_gan, gans, zhis, relations=rel)
     except Exception as e:
+        print(f'!! {cid} detect_relations/assess_direction_signals 异常: {e!r}')  # H-fix-2c
         wa, ds = [], {'err': repr(e)}
     verdict = c.get('verdicts', {}).get('职业', '')
     out[cid] = {

@@ -223,8 +223,11 @@ def eval_cases(path):
         try:
             res = MangpaiEngine(_bazi_data(c)).compute_all()
         except Exception as e:
+            # H-fix-2c：引擎异常不静默——记 case id + 入快照 error 字段，
+            # main() 收尾按 error 计数非零退出（验证可信度 > 单例容错，防假 green）
             entry['error'] = repr(e)
             out[cid] = entry
+            print(f'!! {cid} 引擎异常: {e!r}')
             continue
         gm, cm, zy = res.get('guanming', {}), res.get('caiming', {}), res.get('zhiye', {})
         if '官命' in verdicts:
@@ -276,12 +279,13 @@ _ORDER = {'✅': 0, '⚠️': 1, '❌': 2}
 
 # ── M5 快照工具：_meta（git sha/rubric 版本/备注）溯源，加载时剥离 ──
 def _git_sha():
+    import subprocess
     try:
-        import subprocess
         r = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'],
                            capture_output=True, text=True, cwd=_REPO)
         return r.stdout.strip()
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
+        # 白名单（H-fix-2c）：git 不可用等环境降级，与引擎无关
         return ''
 
 
@@ -533,6 +537,11 @@ def main():
         _print_meta('baseline', mb)
         print(f'\n=== vs 基线 {args.baseline} ===')
         _print_diff(before, result)
+    # H-fix-2c：引擎异常计数 >0 → 验证不可信，退出码 1（快照/diff 照常产出供诊断）
+    n_err = sum(1 for data in result.values() for e in data.values() if 'error' in e)
+    if n_err:
+        print(f'!! 引擎异常 {n_err} 例（见输出 error 字段）——验证结果不可信')
+        sys.exit(1)
 
 
 if __name__ == '__main__':

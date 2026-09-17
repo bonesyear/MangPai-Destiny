@@ -49,7 +49,8 @@ for split, path in (('trainset', os.path.join(_HERE, '..', 'trainset', 'cases.ya
         pcats = [sorted(_pillar_cats(day_gan, gans[i], zhis[i])) for i in range(4)]
         try:
             ss = compute_shensha_ext(day_gan, zhis)
-        except Exception:
+        except Exception as e:
+            print(f'!! {c["id"]} compute_shensha_ext 异常: {e!r}')  # H-fix-2c：降级须留痕
             ss = {}
         out[split + ':' + c['id']] = {
             'split': split, 'id': c['id'],

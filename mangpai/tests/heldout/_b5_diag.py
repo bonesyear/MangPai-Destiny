@@ -46,5 +46,6 @@ if __name__ == '__main__':
         try:
             diag(cid)
         except Exception as e:
+            print(f'!! {cid} 诊断异常: {e!r}')  # H-fix-2c：降级须带 case id 留痕
             import traceback; traceback.print_exc()
         print()

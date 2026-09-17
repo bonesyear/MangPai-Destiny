@@ -50,7 +50,8 @@ for split, path in (('trainset', os.path.join(_HERE, '..', 'trainset', 'cases.ya
         day_gan = gans[2]
         try:
             ss = compute_shensha_ext(day_gan, zhis)
-        except Exception:
+        except Exception as e:
+            print(f'!! {c["id"]} compute_shensha_ext 异常: {e!r}')  # H-fix-2c：降级须留痕
             ss = {}
         rel = res.get('relations') or {}
         wa = rel.get('work_actions') or []
@@ -69,11 +70,13 @@ for split, path in (('trainset', os.path.join(_HERE, '..', 'trainset', 'cases.ya
             ds = assess_direction_signals(
                 day_gan, gans, zhis, relations=rel,
                 yunfan_result=res.get('yunfan_current'))
-        except Exception:
+        except Exception as e:
+            print(f'!! {c["id"]} assess_direction_signals 异常: {e!r}')  # H-fix-2c
             ds = {}
         try:
             strength = str(classify_strength(day_gan, gans, zhis))
-        except Exception:
+        except Exception as e:
+            print(f'!! {c["id"]} classify_strength 异常: {e!r}')  # H-fix-2c
             strength = ''
         # 复刻 M2 比劫参与做功判据
         bijiao_work = False

@@ -103,7 +103,8 @@ for k, e in d.items():
     zq = [zhu_qi_cat(day_gan, gans, zhis, i) for i in range(4)]
     try:
         ss = compute_shensha_ext(day_gan, zhis)
-    except Exception:
+    except Exception as e:
+        print(f'!! {k} compute_shensha_ext 异常: {e!r}')  # H-fix-2c：降级须留痕
         ss = {}
     end_cats = [act_cats(day_gan, gans, zhis, a) for a in wa]
     # 条款分解
