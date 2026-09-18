@@ -746,6 +746,7 @@ class MangpaiEngine:
             kong_wang=self.kong_wang,
             zhengfan_result=result.get('zhengfan'),
             laoyu_result=laoyu_res,
+            gender=self.input_data.get('gender', '男'),
         ))
 
         self._write(result, 'hunyin', self._safe_compute(

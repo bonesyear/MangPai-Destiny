@@ -44,7 +44,7 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.bazi_calc import get_kong_wang
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective.muku import is_entomb
+from mangpai.objective.muku import is_entomb, analyze_muku
 from mangpai.objective.shensha import _YANG_REN_FULL
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _shishen_cat,
@@ -100,6 +100,7 @@ def classify_guanming_combo(
     zhis: List[str],
     relations: Optional[Dict] = None,
     kong_wang: Any = None,
+    gender: Optional[str] = None,
 ) -> Dict:
     """官命做功组合判定：制用四类 + 生用化用。
 
@@ -177,6 +178,12 @@ def classify_guanming_combo(
 
     combos: List[str] = []
     details: List[str] = []
+
+    # A12（P2）：女命夫宫域分流开关——女命日支（夫宫）参与做功的官杀类
+    # combo 归「夫荣」域不计己官（chuji:2206-2209「此造女命不为当官，因夫宫
+    # 巳火做功…如果是男命就为官了」；yanjiu:5646 同造重出）。gender 缺省
+    # （calib/旧调用路径）不触发，零行为变化。
+    _female = str(gender) in ('女', '坤', 'female')
 
     # 官杀/比劫本气力（G2/G3 用：干支主气计数，空亡支不计，日干不计入比劫）
     _kw_zhis: List[str] = []
@@ -434,6 +441,21 @@ def classify_guanming_combo(
                 #  本身就是制，额外要印制化无书据；其锚丁未孪生造与庭长造
                 #  （zhongji:3808-3813 羊刃合杀当官）同构，书的区分依据是反局
                 #  （日时丁壬合「见辰有牢狱」zhongji:3814-3822），由反局否决承担）
+                # A12 女命夫宫域分流（P2 消费侧域级过滤）：女命日支（夫宫）
+                # 参与做功的官杀类 combo 归「夫荣」域不计己官——「此造女命不为
+                # 当官，因夫宫巳火做功…如果是男命就为官了」（chuji:2206-2209；
+                # yanjiu:5646「巳是夫宫…夫宫的原身戊去子」同造重出）。印类
+                # combo（印主权力，与夫宫做功不同法理）与财命域劫刃制财不在
+                # 此列；真阳锚 cj-2097（印类豁免+印化官杀兜底）/yx-部长（移除
+                # 涉日支 combo 后余非日支 combo 不翻），假阳锚 cj-2206。
+                if _female and pkey in ('伤食制官杀', '劫刃制官杀',
+                                        '官杀制比劫', '官杀制伤食') and (
+                        from_pos == 'day_zhi' or to_pos == 'day_zhi'):
+                    details.append(
+                        f'{key}（女命夫宫分流）：日支（夫宫）参与做功，'
+                        '归夫荣域不计己官（chuji:2206「女命不为当官，因夫宫'
+                        '巳火做功…如果是男命就为官了」）')
+                    break
                 if key not in combos:
                     combos.append(key)
                     act_label = '合制' if is_he else '制用'
@@ -649,8 +671,41 @@ def classify_guanming_combo(
         guan_zhi_zhikong = False
         details.append(
             '官杀透干且有杀刃相制/印化官杀做功，官未全灭，不以制空论（G6收窄）')
+    # A17 旺杀入墓墓不开不作功（P2 消费侧 flag，仿 G6 形态）：官杀主气地支
+    # ≥2（多而墓——「酉中神双现不为合局，且金多，叫入墓」chuji:1399-1403）
+    # 且全部入同一在局墓库、墓无冲刑未开（「不冲不刑是墓」）、且局中无官杀
+    # 做功 combo（含藏杀被制）亦无印化官杀者，官被收墓不作功，不立官命
+    # （「旺杀入墓，墓又不开，所以不当官」chuji:1405、「七杀过旺而入丑墓，
+    # 杀旺入墓主没事做」chuji:1409；第二独立锚 chuji:3161「印入墓，墓又不
+    # 开，不作功，穷命、无官」）。豁免=有官杀做功：曾国藩「四柱的功在墓杀」
+    # （lixiangxue:6972）/阎百川「旺杀入墓，丑统命局的全部七杀」
+    # （lixiangxue:7182）=墓统杀为所用，与「墓不开不作功」的书内区分；
+    # 真阳锚 reg67-曾国藩乙未/famous-曾国藩/reg67-军官师级，假阳锚 cj-1395。
+    guan_rumu_bukai = False
+    if guan_wx and _guan_tombs:
+        _guan_main_idxs = [i for i in range(4)
+                           if zhis[i] not in _kw_zhis
+                           and ZHI_WX.get(zhis[i]) == guan_wx]
+        if len(_guan_main_idxs) >= 2:
+            _open_tombs = {t['zhi'] for t in analyze_muku(zhis).get('tombs', [])
+                           if t.get('status') == '开库'}
+            for _t in sorted(_guan_tombs):
+                if _t in zhis and _t not in _open_tombs and all(
+                        is_entomb(zhis[i], _t, zhis, gans)
+                        for i in _guan_main_idxs):
+                    guan_rumu_bukai = True
+                    break
+    if guan_rumu_bukai and (
+            any('官杀' in c or c == '藏杀被制' for c in combos)
+            or '印化官杀' in shengyong):
+        guan_rumu_bukai = False  # 墓统杀为所用（有官杀做功），不以入墓不论
+    if guan_rumu_bukai and (combos or shengyong_core):
+        details.append(
+            '旺杀入墓墓不开：官杀主气支多而入墓、墓无冲刑未开且无官杀做功，'
+            '官被收墓不作功，不立官命（chuji:1405/1409/3161）')
     is_guanming = bool(combos or shengyong_core) and (
-        has_guansha or _yin_combo_hit or bool(shengyong)) and not guan_zhi_zhikong
+        has_guansha or _yin_combo_hit or bool(shengyong)) and not guan_zhi_zhikong \
+        and not guan_rumu_bukai
 
     return {
         'zhiyong_combos': combos,
@@ -936,6 +991,7 @@ def analyze_guanming(
     kong_wang: Any = None,
     zhengfan_result: Optional[Dict] = None,
     laoyu_result: Optional[Dict] = None,
+    gender: Optional[str] = None,
 ) -> Dict:
     """官命综合：做功组合 + 管财官带帽 + 行业取象 + 层次量化。
 
@@ -946,6 +1002,7 @@ def analyze_guanming(
       岁运反局入凶向否决链，与原局反局同受正向官命结构门槛保护。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
       免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
+    gender: 性别（A12 女命夫宫域分流用，P2）；缺省 None 不触发，零行为变化。
 
     Returns:
         {
@@ -968,7 +1025,7 @@ def analyze_guanming(
         day_gan = p.day_gan
 
     combo = classify_guanming_combo(day_gan, gans or [], zhis or [], relations,
-                                    kong_wang=kong_wang)
+                                    kong_wang=kong_wang, gender=gender)
     guancai = detect_guancai_daimao(day_gan, gans or [], zhis or [])
     hangye = classify_hangye_xiang(day_gan, gans or [], zhis or [], combo)
 

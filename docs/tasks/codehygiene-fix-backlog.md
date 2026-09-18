@@ -1650,3 +1650,40 @@ H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 t
 - A4 印类方向门 10 锚逐例复验全 True（岳飞/蒋介石/周恩来×2/例6副省级/曾国藩×2/银行行长×3）。
 - check_layering+check_typing_imports 通过；3.11.15/3.14.4 双版本 compute_all 冒烟一致。
 - 残留：本批代码改动未提交（工作树）；P2（A12+A13-A18 可机制化者）为下一批。
+
+## P2 官命 fp 窄修簇批（2026-09-18，执行登记 · 引擎精度批 P 系列第二批——判定改动批，objective 零改动）
+
+> 依据：方案 `~/.claude/projects/-root-metaphysics/memory/kimi-engine-precision-plan-20260918.md` P2 节；预注册 `docs/kimi-p2-guanming-prereg-20260918.md`（动工前落盘：fp 簇 7 例定位+双端锚+四保护锚 margin+收档清单）。基线推进 `snapshots/20260918_p1.json` → **`20260918_p2.json`**（LATEST 已推进）。
+
+### 落地项（2 条，全走 guanming 消费侧）
+
+| 项 | 位置 | 落地 |
+|---|---|---|
+| A12 女命夫宫域分流 | `subjective/guanming.py` `classify_guanming_combo`+`analyze_guanming` 增 `gender` 形参；`engine.py` 调用补 gender（编排侧接线） | 女命日支（夫宫）参与做功的官杀类 combo 归「夫荣」域不计己官；印类/财域/藏杀被制/G9/食合官支/贼捕/化用不动；gender 缺省 None 零行为变化。书锚 chuji:2206-2209+yanjiu:5646；真阳锚 cj-2097/yx-部长，假阳锚 cj-2206 |
+| A17 旺杀入墓墓不开不作功 | `subjective/guanming.py` 新 flag（仿 G6 形态，消费 `muku.analyze_muku` 公共 API） | 官杀主气支≥2 全入同一在局墓+墓未开+无官杀做功 combo/印化官杀 → 不立官命；豁免=有官杀做功（曾国藩「功在墓杀」/阎百川 lixiangxue:7182 墓统杀为所用）；detail 仅决定性时追加。书锚 chuji:1405/1409+第二独立锚 chuji:3161；真阳锚 曾国藩×2/军官师级，假阳锚 cj-1395 |
+| 哨兵 | `mangpai/tests/test_p2_guanming_fp.py` 10 测 | 先红（5 红：gender kwarg 不存在+A17 未立）后绿（10/10）；含男命对照/缺省兼容/双真阳锚/公安保护锚/vacuous 防误火 |
+
+### 收档清单（A13/A14/A15/A16/A18，5 条不机制化）
+
+- **A13 争合官无力**（reg67-申机器工人，zhongji:1233）：单例孤锚（全书官域争合唯一处，余皆婚姻域）；「争合」只解释合官一支，翻判须连撤 3 个硬制 combo 机制不符；与 R3GUAN「官合身=官来找我」（cj-处级-2「合身，肯定是个官」）锚冲突。
+- **A14 合绊无功**（zj-教师无官，zhongji:2308）：翻判须否决印类 combo（印制伤食寅克戌纯宾位）——触方向门禁令（KB §4.7，10 锚）；「子丑合不做功」系闲注案例语非通用条款。
+- **A15 制不尽→实测=合用官被穿破**（cj-老总，chuji:3258-3262「卯辰穿，子卯破，日主合用的东西地支不能坏」）：该盘另有印化官杀 shengyong 独立立官（化用真功单独可立），撤 combo 不足以翻判；单例无书明文条款。**侦察偏差备案**：KB 标 A15=制不尽，实测该例书文机制=合用官被穿破，以书原文为准。
+- **A16 禄上坐官**（cj-平辛辛苦苦挣钱，chuji:2285）：孤例（全书唯一处）；翻判须同时撤印类 combo（印制财/财制印），触方向门禁令。
+- **A18 制财尽**（cj-巨富制尽，chuji:916-922）：与 G7 窄豁免真阳锚 cj-县长（戊戌壬戌辛亥甲午）同构不可分（同为辛亥日两戌制日支亥印制伤食），动之则翻 cj-县长 ✅——同 F15 C4 教训。
+
+### 翻转明细与逐条归因（全量 blind diff，vs p1）
+
+- **trainset 官 100→102✅（+2，方案带 +2~5 下沿；M3：Δ+1.7%<半宽和 12.0% 噪声带内，CI 下界 79.6%→81.6%）**：cj-2206（A12，chuji:2206）/cj-1395（A17，chuji:1405）。**财/职零翻转**。
+- **heldout 三维零翻转**：官 48✅/财 47✅/职 24✅ 保（红线①②达成；scored 命中面=零，预注册命中）。
+- **文本抖动 2 条**：cj-妓女（trainset）/shouke-qi23-闹婚不离（heldout）veto_reasons []→[岁运反局…]——A12 夫宫分流后 is_guanming_raw=False，官命域 veto 链收窄（含岁运剥除）不再适用，机制设计内连锁；两例官命维 unscorable 零评分影响。
+- **落地偏差备案**：预注册探针（按 combo key 并集 positions）曾预判 reg67-制例二/shouke-li084-夫不要她翻转，实码按动作逐个判定更窄，两例实际不变（colateral 小于预注册，良性偏差）。
+
+### 验证（全绿）
+
+- 哨兵 10 测先红后绿；pytest **1087 passed+1xf**（1077+新增 10）；verify 432+70+64+20 全绿。
+- 双 seed（PYTHONHASHSEED=0 vs 默认，同 note 复跑）blind 快照逐字节一致（cmp 通过）。
+- regression67/famous 无变化；calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财）零新增。
+- 四保护锚 margin 检验全保（cj-2097/yx-部长/reg67-公安/cj-公安 True；朱元璋=heldout 只评估 True——⚠️偏差备案：任务书称四锚「均在 trainset 可查到」，实测朱元璋仅在 heldout，以只评估方式核验）；本批无降分条款，margin≤1 禁降分规则不适用；邻近锚曾国藩×2/军官师级靠「有官杀做功」豁免（=条款核心区分非补丁）。
+- A4 印类方向门 10 锚逐例复验全 True。
+- check_layering+check_typing_imports 通过；3.11.15（verify）/3.14.4（pytest 全量+verify_layer1）双版本冒烟一致。
+- 残留：本批代码改动未提交（工作树）；官命残留 ❌13（§6.2：fp 簇余 5 收档+C 备案 7+散落 1）；P3（财命残簇 A4/A12/A13）为下一批。

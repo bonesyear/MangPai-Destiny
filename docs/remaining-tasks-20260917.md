@@ -1,5 +1,7 @@
 # 收工记录 · H-fix 序列收官（2026-09-17 立项，2026-09-18 收官）
 
+> **后续指针**：P2 官命 fp 窄修簇批已于 2026-09-18 落地收官，收工记录=`docs/remaining-tasks-20260918.md`（本文件保留 H-fix/L0/L1 终态档案职责）。
+
 > H-fix-1~8 全批落地。本文件 = 序列终态 + 剩余待议项汇总（backlog「未删待议」/「待议问题」/v2 计划⏸️节）。
 > 详账：`docs/tasks/codehygiene-fix-backlog.md` H-fix 各节；快照链：`mangpai/tests/heldout/snapshots/README.md`。
 
@@ -50,7 +52,7 @@
 - **阶段甲·零输出项（5 项全落地，blind vs hfix7 零翻转零抖动）**：B2 liunian 入口守卫（truthy 非 list/dict → `EngineInputError`，注入测试 3 测）/ B3 `_auto_liunian_injected` `__init__` 初始化+方法开头重置（复调哨兵红→绿）/ B4 冗余+死块删除（外层承重守卫保留）/ C2 DISCLAIMER 单源化（文本逐字一致确认，纯代码统一零抖动）/ C3 `test_snapshot_hygiene.py`（首战抓出 e3/gap2 两快照 note 空，已补录）。
 - **阶段乙·输出变更项（抖动全归因后一次换基线）**：B1 xiangfa_ops 排序化 4 处 + **同族补漏 frozenset join 2 处**（`gongmen_wuzhi.py:266`/`zhiye.py:552`——三 seed 对拍实测抓出，B6 关闭裁定的 join 消费漏网）/ C1 zaihuo 官杀 label 修正（计数不动）。
 - **验收**：payload 特征 JSON 509 例 seed 0/7/42 全一致（B1 核心价值达成）；抖动归因白名单外 0 路径（xiangfa_ops/zaihuo-chehuo/zhiye-lawyer/gongmen/narrative 五域全设计内）；评分字段零翻转；六件套全绿（pytest 1066+1xf）。
-- **下批衔接**：L1 已换基线，**P1 官命检测簇批已于 2026-09-18 落地**（从 `20260918_l1.json` 起跑，基线推进 `20260918_p1.json`——新检测面×2（A8 支杀化印/A19 食合官支）+新消费边×2（A11 贼捕制印/G9 扩展），trainset 官 96→100✅ 全预注册、heldout 三维零翻转零抖动、财/职零翻转、六件套全绿；预注册=`docs/kimi-p1-guanming-prereg-20260918.md`，详账=backlog P1 节）。**下批=P2**（官命 fp 窄修簇 A12+A13-A18 可机制化者，方案 `kimi-engine-precision-plan-20260918.md` P2 节，从 `20260918_p1.json` 起跑）。
+- **下批衔接**：L1 已换基线，**P1 官命检测簇批已于 2026-09-18 落地**（从 `20260918_l1.json` 起跑，基线推进 `20260918_p1.json`——新检测面×2（A8 支杀化印/A19 食合官支）+新消费边×2（A11 贼捕制印/G9 扩展），trainset 官 96→100✅ 全预注册、heldout 三维零翻转零抖动、财/职零翻转、六件套全绿；预注册=`docs/kimi-p1-guanming-prereg-20260918.md`，详账=backlog P1 节）。**P2 官命 fp 窄修簇批亦于 2026-09-18 落地收官**（基线推进 `20260918_p2.json`，trainset 官 100→102✅，收工=`docs/remaining-tasks-20260918.md`）。**下批=P3**（财命残簇批 A4/A12/A13，方案 `kimi-engine-precision-plan-20260918.md` P3 节，从 `20260918_p2.json` 起跑）。
 
 ### 待办 · D 真实凭证冒烟（上线 checklist #3，事件触发）
 
