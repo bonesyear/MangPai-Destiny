@@ -1,6 +1,7 @@
 # 飞书机器人接入（mangpai/feishu）
 
 外层应用，引擎零改动：feishu → engine/subjective 单向只消费，LLM 输出不落 compute_all dict。
+**飞书仅为可选接入层**——核心流程（排盘 → 判定 → LLM 叙述）完全可脱离飞书运行，库调用方式见根目录 README「完整流程示例」节。
 
 ## 环境变量
 
@@ -9,9 +10,9 @@
 | `FEISHU_APP_ID` | ✅ | 自建应用 App ID |
 | `FEISHU_APP_SECRET` | ✅ | 自建应用 App Secret |
 | `FEISHU_VERIFICATION_TOKEN` | ✅ | 事件订阅的 Verification Token（不配则启动即报错，零校验可被伪造事件白嫖） |
-| `FEISHU_USE_LLM` | 否 | `0` 关闭 LLM 七维段（默认开，validate=mark，失败自动降级引擎直出） |
+| `MANGPAI_USE_LLM` | 否 | `0` 关闭 LLM 七维段（默认开，validate=mark，失败自动降级引擎直出）；通用别名优先，旧名 `FEISHU_USE_LLM` 仍兼容 |
 | `FEISHU_PORT` | 否 | webhook 监听端口，默认 9700 |
-| `DEEPSEEK_API_KEY` | LLM 开时必填 | 见 `docs/llm-channel-20260818.md`（谷段半价） |
+| `MANGPAI_LLM_API_KEY` | LLM 开时必填 | 完整配置项（端点/模型/THINKING/超时等）见根目录 README「配置你自己的 LLM」节与 [`.env.example`](../../.env.example)；旧名 `DEEPSEEK_API_KEY` 仍兼容（峰谷价计价仅对 DeepSeek 有效，其他 provider 显示「未计价」） |
 
 凭证一律走环境变量，仓库内不落地。
 
@@ -36,7 +37,7 @@
 
 ```bash
 FEISHU_APP_ID=cli_xxx FEISHU_APP_SECRET=xxx \
-FEISHU_VERIFICATION_TOKEN=xxx DEEPSEEK_API_KEY=xxx \
+FEISHU_VERIFICATION_TOKEN=xxx MANGPAI_LLM_API_KEY=your-api-key \
 python3 -m mangpai.feishu.bot
 ```
 

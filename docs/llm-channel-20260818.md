@@ -16,7 +16,7 @@ text = render_structured_reading(
     engine_result,            # MangpaiEngine.compute_all() 的返回 dict
     user_question=None,       # 命主所问，缺省做通推断语
     call_llm=True,            # False=只返回组装好的 prompt 文本
-    model=None,               # 缺省 deepseek-flash（V4.1 正式 ID，env DEEPSEEK_MODEL 可覆盖）
+    model=None,               # 缺省 deepseek-flash（V4.1 正式 ID，env MANGPAI_LLM_MODEL 可覆盖，旧名 DEEPSEEK_MODEL 仍兼容）
     validate='mark',          # 校验模式，见下
 )
 ```
@@ -24,7 +24,10 @@ text = render_structured_reading(
 返回 = 展示文本（五维 conclusion+basis+confidence，附校验附注与 cost 行）。
 LLM 不可用（无 key/网络失败）时降级返回 prompt 文本，不抛错；输出非合法 JSON 不予展示。
 
-命令行单命示例：`python3 -m mangpai.subjective.llm_channel [case_id] [question]`（吃 trainset 案例）。
+> **配置项（S1 起）**：端点/密钥/模型/超时/thinking 开关等全部可经 `MANGPAI_LLM_*` 环境变量配置，可指向任意 OpenAI 兼容服务（OpenAI/Ollama/vLLM/其他厂商，严格兼容服务设 `MANGPAI_LLM_THINKING=0`）——总表与 provider 示例见根目录 README「配置你自己的 LLM」节 + `.env.example`。
+> **计价口径**：`cost_cny` 计价表**仅对 DeepSeek 定价有效**（峰/谷档亦 DeepSeek 专属机制）；其他 provider/未知模型显式返回 None，展示为「未计价」（不显示误导性 ¥0）。
+
+命令行单命示例：`python3 -m mangpai.subjective.llm_channel [case_id] [question]`（吃 trainset 案例，需在仓库根目录运行——案例路径为 cwd 相对路径，已知限制随 CLI 入口批修复）。
 
 ### validate 三模式
 
@@ -102,7 +105,7 @@ v5 残余 10 条（hunyin 6 / xiangfa 3 / caiming 1）全部唯一展开转正�
 - 峰段：UTC 01:00-04:00 / 06:00-10:00 = **北京时间 09:00-12:00、14:00-18:00**；其余时段半价。
 - v4-flash：peak $0.44/$1.32，off-peak $0.22/$0.66（input/output，$/1M tokens）。
 - v4-pro：peak $1.32/$3.96，off-peak $0.66/$1.98。
-- 计价实现：`llm_backend._PRICING` 双档表 + `_price_tier(at)`（按请求发出的北京时间选档），成本随 `cost_cny`/`price_tier` 出账。
+- 计价实现：`llm_backend._PRICE` 双档表 + `_price_tier(at)`（按请求发出的北京时间选档），成本随 `cost_cny`/`price_tier` 出账（非 DeepSeek provider 恒为 None=未计价）。
 
 ### 批次脚本一键命令
 
@@ -128,7 +131,7 @@ python3 output/_llm_batch_rescore.py output/llm_batch_<日期>
 
 ## §5 维护项
 
-- **峰谷价机制**：定价表在 `llm_backend._PRICING`（peak/offpeak 双档，cache miss 口径）；官方调价时改表 + 复核 `test_llm_backend.py` 三测。`_estimate_cost(model, usage, at=None)` 的 `at` 缺省=调用时刻，探针可传任意 epoch 秒复算历史档位。
+- **峰谷价机制**：定价表在 `llm_backend._PRICE`（peak/offpeak 双档，cache miss 口径，**仅 DeepSeek 有效**——其他 provider/未知模型 `cost_cny=None` 未计价）；官方调价时改表 + 复核 `test_llm_backend.py` 三测。`_estimate_cost(model, usage, at=None)` 的 `at` 缺省=调用时刻，探针可传任意 epoch 秒复算历史档位。
 - **历史成本口径**：2026-08-18 五轮批跑 jsonl 内 `cost_usd` 为旧平价口径（已标注，不回算）；此后新批次自动按峰谷档出账。
 - **未来迭代记录位**：prompt/校验器迭代历史见 `docs/tasks/kimi-llm-{mvp,iter,iter2,iter3,iter4,remap,polish}.md`；新迭代在同目录续档 + 本文件 §2 轨迹表追加一行。L2 财档越限 11 条（小康→富为主）与官命矛盾 3 条为下批候选面。
 - **与 narrative.py 的关系**：llm_channel = narrative 的结构化升级旁路，复用其 `_bazi_line` / `summarize_engine_result` / `validate_narrative_numbers` 与 few-shot 范例（`prompts/hao_style_fewshot`，受保护只读）；`render_hao_narrative` 旧散文通道保留并存，两通道互不回写引擎。

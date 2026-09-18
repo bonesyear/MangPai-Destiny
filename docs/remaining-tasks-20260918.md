@@ -1,3 +1,24 @@
+# 收工记录 · 2026-09-18（S2 对外文档批落地 · 分享目标「看得懂」部分——纯文档零代码）
+
+> 接续本文件 S1 节（其「文档待修清单」6 项，本批全清）。本批 = 分享可用性修批 S2（评估报告 `~/.claude/projects/-root-metaphysics/memory/kimi-shareability-assessment-20260918.md` S2 方案节；任务书 `docs/tasks/kimi-s2-docs.md`）。详账=`docs/tasks/codehygiene-fix-backlog.md` S2 节。**零 `.py` 改动、零基线推进**（纯文档批，同 F2/E2 先例，六件套不必跑）。
+
+## 一、S2 落地终态
+
+| 项 | 内容 |
+|---|---|
+| `.env.example`（新建，仓库根） | 全部配置项 **16 项**（`MANGPAI_LLM_*` 八项 + `MANGPAI_USE_LLM` + `DEEPSEEK_*` 兼容×2 + `FEISHU_*`×5），每项带用途/缺省/必填注释，**零真实凭证**（占位符） |
+| README 三节 | ①**安装**：Python 3.10+（3.11/3.14 实测）+ 依赖三分层（引擎核心零依赖 / pyyaml 工具链 / sxtwl·anthropic 可选）——修正「纯标准库」误导；②**配置你自己的 LLM**：配置总表 + DeepSeek/OpenAI/Ollama/vLLM 四示例 + `THINKING=0` 适用场景 + 关闭 LLM（`MANGPAI_USE_LLM=0`/不配 key）；③**完整流程示例**：`calc_mangpai_full` → `render_structured_reading` 端到端 + CLI demo（标注 cwd 限制） |
+| 失实点修正×4 | `README.md` 隐私节开关名→`MANGPAI_USE_LLM`；`privacy-policy.md:78/79/123` 措辞与 S1 能力同步（可替换成真+具体操作路径）；`feishu/README.md` 变量表改指新变量+「飞书=可选接入层」；`llm-channel-20260818.md` 补配置链接+「计价表仅 DeepSeek 有效，其他 provider 未计价」+顺带修 `_PRICING`→`_PRICE` 两处 |
+| 可复现性自检 | 干净 venv（3.11.15 零安装）按 README 实跑：[A] 引擎 ✅；[B] 无 key 自动降级 ✅；[C] mock 本地端点（127.0.0.1）完整流程 ✅（THINKING=0 剔字段/未计价显示）——**零外部 API** |
+
+## 二、剩余事项
+
+- **下批=S3 CLI 入口批**（可选可缓）：`python3 -m mangpai.cli` 两段式一条命令 + `llm_channel.py:483` cwd 相对路径改 `Path(__file__)` 锚定（本批已文档标注）。
+- 分享目标终态：S1（技术可配）+S2（看得懂）落地后，外部使用者可凭 README 三节 + `.env.example` 用任意 OpenAI 兼容 LLM 跑通完整流程——评估报告 B1/B2/B3/B4/B6 阻碍项全清，B5（通用 CLI 入口）待 S3。
+- 本文件此前各节所载事项（D 真实凭证冒烟待办、A3 条件项等）原样维持。
+
+---
+
 # 收工记录 · 2026-09-18（S1 LLM 通道配置化批落地 · 分享目标前提批——叙事旁路层，引擎零触）
 
 > 接续本文件 T-教授节。本批 = 分享可用性修批 S1（评估报告 `~/.claude/projects/-root-metaphysics/memory/kimi-shareability-assessment-20260918.md` S1 方案节；任务书 `docs/tasks/kimi-s1-llm-config.md`）。详账=`docs/tasks/codehygiene-fix-backlog.md` S1 节。**无基线推进**（引擎判定零改动、DeepSeek 默认路径零变化，快照链不动）。

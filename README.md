@@ -66,6 +66,85 @@ result = calc_mangpai_full(1992, 10, 9, 13, 58, 'male', 114.09)
 print(result['summary'])
 ```
 
+## 安装
+
+Python 3.10+（3.11.15 / 3.14.4 双版本全量实测通过；3.10 语法面兼容、未单独实测）。
+
+**引擎核心零依赖（纯标准库）**，排盘数据全部内嵌，clone 即可用。其余组件按需安装：
+
+```bash
+pip install pyyaml       # 跑 demo / 测试 / 评估工具需要（llm_channel CLI、blind_eval 等读 cases.yaml）
+pip install sxtwl        # 可选：交运精确时刻（缺省优雅降级为缺省值，主流程不受影响）
+pip install anthropic    # 可选：仅遗留叙事通道 narrative.py 需要（正式通道 llm_channel 不需要）
+```
+
+> 说明：README 旧版"纯标准库"表述仅对**引擎核心**成立；LLM demo/测试/评估链路需要 `pyyaml`。
+
+## 配置你自己的 LLM（可选）
+
+LLM 叙事层是**可选组件**：不配置即纯引擎模式，零外发。配置后可指向 **DeepSeek（默认）/ OpenAI / 本地 Ollama / vLLM / 任意 OpenAI 兼容服务**。全部配置为环境变量，模板见 [`.env.example`](.env.example)，总表：
+
+| 变量 | 缺省 | 说明 |
+|------|------|------|
+| `MANGPAI_LLM_API_KEY` | 无（必填） | API Key（回退链：→ `DEEPSEEK_API_KEY` → env 文件） |
+| `MANGPAI_LLM_BASE_URL` | DeepSeek 官方端点 | 任意 OpenAI 兼容端点 |
+| `MANGPAI_LLM_MODEL` | `deepseek-flash` | 模型名（回退链：→ `DEEPSEEK_MODEL`） |
+| `MANGPAI_LLM_THINKING` | `1` | `0`=请求体剔除 `thinking`/`reasoning_effort` 两字段——**接 OpenAI/Ollama/vLLM 等严格兼容服务时设 0**（否则可能 HTTP 400 unknown field） |
+| `MANGPAI_LLM_REASONING_EFFORT` | `low` | 仅 thinking 开启时发出 |
+| `MANGPAI_LLM_TIMEOUT` / `MANGPAI_LLM_RETRIES` | `120` / `2` | 本地模型首载慢可调大超时 |
+| `MANGPAI_LLM_ENV_FILE` | `~/.env` | env 文件回退路径 |
+| `MANGPAI_USE_LLM` | `1` | `0`=关闭 LLM 叙述，纯引擎直出（旧名 `FEISHU_USE_LLM` 仍兼容） |
+
+provider 示例：
+
+```bash
+# DeepSeek（默认，无需改端点；峰谷价计价仅对 DeepSeek 有效）
+export MANGPAI_LLM_API_KEY=sk-your-key
+
+# OpenAI
+export MANGPAI_LLM_BASE_URL=https://api.openai.com/v1/chat/completions
+export MANGPAI_LLM_API_KEY=sk-your-key
+export MANGPAI_LLM_MODEL=gpt-4o-mini
+export MANGPAI_LLM_THINKING=0
+
+# 本地 Ollama（key 任意非空即可；首载慢，超时调大）
+export MANGPAI_LLM_BASE_URL=http://localhost:11434/v1/chat/completions
+export MANGPAI_LLM_API_KEY=ollama
+export MANGPAI_LLM_MODEL=qwen2.5:14b
+export MANGPAI_LLM_THINKING=0
+export MANGPAI_LLM_TIMEOUT=300
+
+# vLLM / 其他 OpenAI 兼容服务：同上，设 BASE_URL+MODEL+THINKING=0 即可
+
+# 关闭 LLM（纯引擎模式，零外发）
+export MANGPAI_USE_LLM=0   # 或干脆不配 API Key
+```
+
+其他 provider 的成本显示「未计价」（计价表仅对 DeepSeek 定价有效）。通道细节见 [docs/llm-channel-20260818.md](docs/llm-channel-20260818.md)。
+
+## 完整流程示例（排盘 → 判定 → LLM 叙述）
+
+```python
+from mangpai.engine import calc_mangpai_full
+from mangpai.subjective.llm_channel import render_structured_reading
+
+# 1) 引擎层：本地确定性计算，零外发
+result = calc_mangpai_full(1992, 10, 9, 13, 58, 'male', 114.09)
+print(result['summary'])
+
+# 2) LLM 叙事层：按上面配置走你自选的 LLM；未配 key 时自动降级返回 prompt 文本（不抛错）
+text = render_structured_reading(result, user_question='此造财运如何？')
+print(text)
+```
+
+命令行 demo（吃 trainset 内置案例，需 `pip install pyyaml`，且**须在仓库根目录运行**——案例路径为 cwd 相对路径，已知限制将随 CLI 入口批修复）：
+
+```bash
+python3 -m mangpai.subjective.llm_channel b67-李嘉诚 "财运"
+```
+
+飞书机器人仅为**可选接入层**（见 [mangpai/feishu/README.md](mangpai/feishu/README.md)），核心流程完全可脱离飞书运行。
+
 ## 知识库 & 审计
 
 - `docs/remaining-tasks-20260717.md` — 待修复项清单（含人机交互依赖标注）
@@ -79,14 +158,14 @@ print(result['summary'])
 
 ## 依赖
 
-Python 3.10+，纯标准库。零外部日历依赖。排盘数据全部内嵌。
+Python 3.10+；**引擎核心纯标准库**，零外部日历依赖，排盘数据全部内嵌。demo/测试/评估工具链需 `pyyaml`，交运精确时刻可选 `sxtwl`——安装命令见上文「安装」节。
 
 ## 隐私
 
 本系统按 **privacy-by-design** 构建，三条核心原则：
 
 - **本地优先**：命理推演（排盘/做功/十神/大运流年/应期等）为确定性逻辑运算，**完全在本地完成**，不联网、不落盘、不遥测。
-- **默认零外发**：引擎本身零网络行为。唯一可能的外发是**可选的 LLM 叙事层**（将八字/性别/出生地经度提交 LLM API 生成自然语言解读）——该组件可关闭（`FEISHU_USE_LLM=0`）、可替换为本地模型 / 私有部署、源码完全可审计。
+- **默认零外发**：引擎本身零网络行为。唯一可能的外发是**可选的 LLM 叙事层**（将八字/性别/出生地经度提交 LLM API 生成自然语言解读）——该组件可关闭（`MANGPAI_USE_LLM=0`，飞书接入层旧名 `FEISHU_USE_LLM` 仍兼容）、可替换为任意 OpenAI 兼容服务（本地模型 / 私有部署，配置见上文「配置你自己的 LLM」节）、源码完全可审计。
 - **无状态**：不建用户档案、不写数据库、不记录使用历史——处理完即弃；生辰数据不用于任何模型训练。
 
 **数据主权归部署者**：本系统为开源/自托管项目，数据始终在使用者自己的控制范围内。仓库本身**不含任何使用者隐私数据**——`tests/` 下的验证用例取自段建业/郝金阳公开出版的著作断例（含原文出处行号），非真实用户数据；凭据一律通过环境变量注入，永不入库。

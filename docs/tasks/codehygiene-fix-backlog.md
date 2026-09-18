@@ -1888,3 +1888,26 @@ H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 t
 4. `README.md` 快速开始（B3/B4）：LLM 叙述配置零提及、无 `.env.example`、无安装清单（yaml 测试/demo 需要、sxtwl 可选）、「纯标准库」表述需限定引擎核心。
 5. `docs/llm-channel-20260818.md`：内部交付文档 README 未链接；补「成本估算仅 DeepSeek 定价有效，其他 provider 显示未计价」声明（B6）。
 6. `llm_channel.py:480` cwd 相对路径 `mangpai/tests/trainset/cases.yaml`（B5）——S3 CLI 批一并修（`Path(__file__)` 锚定）。
+
+---
+
+## S2 对外文档批（2026-09-18，分享目标「看得懂」部分——纯文档零代码，引擎判定零改动、无基线推进）
+
+> 依据：评估报告 `~/.claude/projects/-root-metaphysics/memory/kimi-shareability-assessment-20260918.md` S2 方案节 + S1 节「文档待修清单」6 项；任务书 `docs/tasks/kimi-s2-docs.md`。范围=`.env.example`（新建）+ README/privacy-policy/feishu README/llm-channel 文档，**零 `.py` 改动**。
+
+### 落地清单
+
+| # | 项 | 内容 |
+|---|---|---|
+| 1 | `.env.example`（仓库根，新建） | 全部配置项 16 项：`MANGPAI_LLM_*` 八项 + `MANGPAI_USE_LLM` 开关 + `DEEPSEEK_API_KEY/DEEPSEEK_MODEL` 兼容行 + `FEISHU_*` 五项可选接入层；每项带注释（用途/默认值/是否必填）；**零真实凭证**（占位符 `your-api-key-here` 等）；`.gitignore` 已含 `.env` 不误伤本模板 |
+| 2 | README「安装」节 | Python 3.10+（3.11.15/3.14.4 双版本全量实测，3.10 语法面兼容未单独实测）；引擎核心零依赖声明 + `pyyaml`（demo/测试/评估）/`sxtwl`（交运精确时刻，可选优雅降级）/`anthropic`（仅遗留 narrative 通道）三分层安装命令；**修正旧版「纯标准库」误导表述**（限定引擎核心，依赖节同步改口径） |
+| 3 | README「配置你自己的 LLM」节 | `MANGPAI_LLM_*` 八项+`MANGPAI_USE_LLM` 总表（含回退链/缺省）+ 四 provider 示例块（DeepSeek 默认 / OpenAI / 本地 Ollama / vLLM-任意兼容服务）+ `THINKING=0` 适用场景（严格兼容服务 400 unknown field 对策）+ 关闭 LLM 两种方式（`MANGPAI_USE_LLM=0` / 不配 key）+「未计价」口径声明 + 链接 llm-channel 文档 |
+| 4 | README「完整流程示例」节 | 两段式端到端代码（`calc_mangpai_full` → `render_structured_reading`，含无 key 自动降级说明）+ CLI demo 命令（标注 cwd 相对路径限制=S3 关联项）+ 飞书=可选接入层声明与链接 |
+| 5 | 失实点修正×4 | ①`README.md` 隐私节：`FEISHU_USE_LLM` → `MANGPAI_USE_LLM`（旧名兼容说明）+「可替换」补配置指向；②`docs/privacy-policy.md:78/79/123`：开关名同步 +「可替换」补 `MANGPAI_LLM_BASE_URL/MODEL/API_KEY` 具体操作（S1 落地后承诺成真）+ §六控制权表补本地模型操作路径；③`mangpai/feishu/README.md`：变量表 `FEISHU_USE_LLM`→`MANGPAI_USE_LLM`（别名优先）、`DEEPSEEK_API_KEY`→`MANGPAI_LLM_API_KEY` 指新变量表+链接 `.env.example`、运行命令同步、补「飞书为可选接入层，核心流程可脱离」；④`docs/llm-channel-20260818.md`：§1 补配置项链接+「**计价表仅对 DeepSeek 有效**，其他 provider 显示未计价」声明+model env 名更新+CLI cwd 限制标注；顺带修两处 `llm_backend._PRICING`→`_PRICE`（文档失实，代码实名为 `_PRICE`） |
+| 6 | S3 关联项 | `llm_channel.py:483`（原记 480）`cases_path = 'mangpai/tests/trainset/cases.yaml'` cwd 相对路径——**本批仅文档标注**（README CLI demo 处+llm-channel 文档 §1），代码修复留 S3 CLI 入口批（`Path(__file__)` 锚定）；S1 待修清单 #6 同项销记 |
+
+### 验证（DoD）
+
+- **可复现性自检（干净 venv + 零外部 API）**：`/tmp/s2venv`（python 3.11.15，零 pip 安装）按 README 步骤实跑——[A] 引擎快速开始 ✅（sxtwl 缺失 warning 优雅降级，与安装节声明一致）；[B] 未配 key（`MANGPAI_LLM_ENV_FILE` 截断回退链）→ `render_structured_reading` 自动降级返回 prompt 文本 ✅；[C] mock 本地 OpenAI 兼容端点（`MANGPAI_LLM_BASE_URL` 指向 `127.0.0.1` http.server）→ 完整流程 排盘→判定→LLM 叙述 ✅：`THINKING=0` 请求体已剔除 `thinking`/`reasoning_effort`、占位 key/自定义 model/端点全生效、成本行显示「未计价」。脚本 `/tmp/s2_check.py`（tmp 易失，步骤即 README 三节本身）。
+- **零代码改动**：`git status` = 仅 `.env.example`（新增）+ `README.md` / `docs/privacy-policy.md` / `mangpai/feishu/README.md` / `docs/llm-channel-20260818.md` / backlog / 收工文档——零 `.py`、零测试改动；六件套不必跑（无代码变动，同 F2/E2 文档批先例）。
+- 未调用任何外部 API（mock 全程 127.0.0.1）。
