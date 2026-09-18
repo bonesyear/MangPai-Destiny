@@ -1,5 +1,25 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 H-fix-8 · 文档/基线同步批（纯文档/基建，H-fix 序列收尾；引擎/主观层零改动）
+
+| 项目 | 内容 |
+|------|------|
+| 数字同步（H9 P1） | 根 README：58 模块→**59**（Foundation 2 / Objective 27 / Subjective 30——H-fix-4a 删 advanced/chuangong、H-fix-4b 增 shishen/_relation_utils/utils）、860→**1059 验证用例（+1xf）**、架构职责删「串宫压运」（chuangong 已删）+新增公共模块说明、验证表补 verify_layer1 64/layer3 20/blind 行；heldout README：trainset 23→**294**、污染路由补 famous_cases、管线历史计数标注 |
+| MANUAL 4 例（H9 P1 结案） | `annotations_heldout.py` MANUAL 4 例（qi04-双胞胎弟弟丧妻/阮玲玉/qi14-美容师/卜文命学禄当财）显式声明为旁路（build_yaml 直接路由，不进 merged/candidates），注释+README 双备案 |
+| 快照基线机制（H9 P1） | 新增 `snapshots/LATEST` 指针（→`20260918_hfix7.json`），`blind_eval.py --baseline latest`/`--diff latest` 可解（`_resolve_snapshot_path`，刻意不随 --out 自动更新）；14 份无引用快照 git mv → `snapshots/archive/`；新建 `snapshots/README.md` 快照链总账（含 prehfix+hfix1~7 全序列 git_sha/对照基线） |
+| sys.path.insert 备案（H10 P2 结案） | output/ 批跑脚本 sys.path.insert **保留+备案**：output/ 非包、相对导入不可用，安装化需 pyproject+`pip install -e` 成本高且改变批跑工具调用习惯——批跑工具非生产代码，维持现状 |
+| 三件套 | KB §0/§1.1/§8/§9 同步 H-fix 全序列终态；CHANGELOG 补 H-fix-1/2a/2b/2c/3/4c/5 七条缺漏+本条；收工 `docs/remaining-tasks-20260917.md`（剩余待议项汇总） |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest **1059 passed+1xf**、blind vs `snapshots/20260918_hfix7.json` 零翻转零抖动、双 seed 逐字节一致、67/famous 无变化、`check_layering.py`+`check_typing_imports.py` 通过；本批唯一代码改动=blind_eval `_resolve_snapshot_path`（评估链异常路径外新增指针解析，正常路径输出不变） |
+
+## 2026-09-18 H-fix-5 · 大函数拆分批（H-fix 序列最后一批功能批，逐字等价第一红线；在 H-fix-6 之后落地）
+
+| 项目 | 内容 |
+|------|------|
+| 拆分（H11 方案） | `detect_relations` 772→~150 行编排器+13 子函数；`analyze_gongliang` 949→154 行+5 阶段子函数；`compute_all` 489→38 行+5 阶段子函数（①拆 base/extended 夹②，偏差已备案） |
+| 等价性 | 809/1627/518 样本 canonical sha256 对拍逐字节一致（PYTHONHASHSEED 0/7/42 三重）；契约测试 6/6 锁 48=41+7 |
+| 哨兵 | `test_hfix5_*` 三文件 +108 测（先红后绿） |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest **1059 passed+1xf**、blind vs `snapshots/20260918_hfix6.json` 零翻转零抖动、双 seed 逐字节一致、67/famous 无变化、check_layering 通过；快照=`snapshots/20260918_hfix5.json`；回滚点=tag `hfix5-pre`；新发现存量 6 条入 backlog 待议（xiangfa_ops set 迭代序随 PYTHONHASHSEED 旋转等，不修） |
+
 ## 2026-09-18 H-fix-7 · 评测框架统一批（output/ 工具脚本，引擎/主观层零改动）
 
 | 项目 | 内容 |
@@ -17,6 +37,15 @@
 | 三方实测 | engine 48（注入 dayun 含条件键 dayun_analysis）/ selectors 41 / payload 41；差异全显式处置：内部白名单 7（input/summary/relations/direction/gongshen/gongmen_wuzhi/jiaoyun_analysis）、特征直喂备案 2（chang_sheng/narrative）、**预留键 1（zinv，H4 结案——显式标注「预留（供未来扩展）」，供 H-fix-5 参照勿误删）** |
 | 阶段 2 结论 | 不引入 selectors 自动派生——集合相等断言已是强制归类契约，机械派生会抹掉 gongmen_wuzhi 式刻意摘除语义 |
 | 验证 | 六件套全绿：verify 432+70+64+20、pytest 951 passed+1xf（945+6）、blind vs `snapshots/20260918_hfix4c.json` heldout+trainset 零翻转零抖动、双 seed（剥 _meta）逐字节一致、67/famous 无变化、check_layering 通过；payload 键数 41 不变、生产代码零触；快照=`snapshots/20260918_hfix6.json`；差异处置详表=backlog H-fix-6 节 |
+
+## 2026-09-18 H-fix-4c · 局部 import / 循环依赖整理批（显式化+方向正确，行为零变更）
+
+| 项目 | 内容 |
+|------|------|
+| 局部 import | 生产局部 import 93→8 处（剩余 8 处全为软依赖/循环回避的刻意设计，逐处注释备案）；yongshen 星型回边全上提 |
+| 循环依赖 | gongliang⇄caiming 方向矫正，subjective 顶层依赖图无环；`scripts/check_layering.py` 分层检查入库（foundation←objective←subjective←engine 单向依赖 CI 守护，`--graph` 出依赖图） |
+| sys.path.insert 评估（H10/H6 遗留） | output/ 脚本保留+备案（非包、安装化成本高）；tests 内 18 文件留 H-fix-7/8 |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest 945 passed+1xf、blind vs `snapshots/20260918_hfix4b.json` 零翻转零抖动、双 seed 逐字节一致、67/famous 无变化；快照=`snapshots/20260918_hfix4c.json`；回滚点=tag `hfix4c-pre` |
 
 ## 2026-09-18 H-fix-4b · 重复逻辑下沉/统一批（重构类，引擎正常路径输出逐字节不变）
 
@@ -43,6 +72,52 @@
 | 归档 | H7 清单 8 历史模拟脚本 git mv → `mangpai/tests/heldout/archive/`（_a1_exp/_zy2_sim2/_zy2_sim3/_zy3_sim/_zy4_sim/_zy55_feat/_zy55_sim/_zy_margin），全 .py 零 import 实证 |
 | 未删待议 | SHIPAI_DOMAINS/METHODOLOGY（修批C 明议留档优先）；gongmen_wuzhi 整模块（engine 键保留=修批A③ 锁定决策，删除违输出红线）；输出面死字段（virtual_solid counts/soil wet·dry/华盖 year_ref，须专门输出面批）；jiaoyun `if not span` 边缘语义；详见 backlog H-fix-4a 节 |
 | 验证 | 六件套全绿：verify 432+70+64+20、pytest 934 passed+1xf（删 19 xp 死测试）、blind vs `snapshots/20260918_hfix3.json` heldout+trainset 零翻转零抖动、双 seed 逐字节一致、67/famous 无变化、payload 键数 41 不变、3.11+3.14 import 冒烟双绿；快照=`snapshots/20260918_hfix4a.json`；回滚点=tag `hfix4a-pre` |
+
+## 2026-09-18 H-fix-3 · 原子写批 + llm_channel 免责提级（脚本 IO 层，引擎/主观层判定零改动）
+
+| 项目 | 内容 |
+|------|------|
+| 原子写 | 19 处直接覆盖写全改：公共工具 `tests/_atomic_io.py`（`atomic_write` 写 .tmp+fsync+os.replace、backup 留 .bak；`atomic_write_json` dumps→loads 反解析+validate 回调拒写）；覆盖 calib YAML / blind 快照 --out 与 --rescore / regression67+famous 两路 baseline / curate+extract+build_yaml 管线产物 / build_book_index / 6 处诊断 /tmp 写；读取侧 7 处句柄泄漏顺带改 `with open` |
+| `--write-baseline` 防护 | 非破坏性：覆盖前自动留 `.bak` + 写入前校验（calib 条数对齐/baseline verdict 值域——⚠️ 双码点须字符串元组/快照 _meta 在场） |
+| 免责提级（H4 P1） | llm_channel `validate='reject'` L0 拦截降级补 `_DISCLAIMER_LINE`，四条降级路径免责全覆盖 |
+| 哨兵 | `test_atomic_io.py` 8 测 + L0 免责 1 测先红后绿 |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest 934 passed+1xf+19xp、blind vs `snapshots/20260918_hfix2c.json` 零翻转零抖动、双 seed 逐字节一致、67/famous 无变化、calib 常驻 2 条零新增；快照=`snapshots/20260918_hfix3.json` |
+
+## 2026-09-18 H-fix-2c · 异常策略·脚本层收官（验证脚本禁吞引擎异常，引擎零改动）
+
+| 项目 | 内容 |
+|------|------|
+| 改造 | 18 处全处置：验证脚本 6 处（blind_eval 引擎异常记 error→exit 1、layer3 B 环节假绿洞修显式失败、calib re-raise、verify_heldout 失败通道合规不动、_git_sha 收窄白名单）+批跑 3 处（失败记 case id 不中断不静默）+诊断 9 处（降级保留逐处补日志） |
+| 哨兵 | `test_verify_integrity.py` 6 测先红（3 真假绿洞）后绿 |
+| 验证 | 六件套全绿：pytest 925 passed+1xf+19xp、blind vs `snapshots/20260918_hfix2b.json` 零翻转零抖动、双 seed 一致、67/famous 无变化、calib 零新增；快照=`snapshots/20260918_hfix2c.json`；异常策略线（2a/2b/2c）收官 |
+
+## 2026-09-18 H-fix-2b · 异常策略·subjective 层（91 处裸 except 全处置，引擎正常路径逐字节不变）
+
+| 项目 | 内容 |
+|------|------|
+| 阶段 0 计数 | 实测 91 处（v2 计划口径 67，漂移 +24） |
+| 改造分类 | 传导 70（删 try/except 交 engine `_safe_compute` 统一分流）/ 安全降级 18（显式 `as e`+warning+`'compute_error': True` 标记）/ 白名单 4（软依赖/序列化/时钟收窄异常类型）；91→17 处显式降级点，零裸 except |
+| 注入扩展 | test_inject_faults 36→79 测（+43：_ensure_* 传导参数化/降级契约/engine 层 12 契约）；stash 实测 19 红→修复后全绿 |
+| 验证 | 六件套全绿：pytest 919 passed+1xf+19xp、blind vs `snapshots/20260917_hfix2a.json` 零翻转零抖动（官 48✅/财 47✅/职 24✅ 保）、双 seed 一致、67/famous 无变化、calib 零新增；快照=`snapshots/20260918_hfix2b.json`；回滚点=tag `hfix2b-pre` |
+
+## 2026-09-17 H-fix-2a · 异常策略·引擎层 + 错误注入框架（零翻转对照锚 pre-hfix 已立）
+
+| 项目 | 内容 |
+|------|------|
+| 前置 | `test_inject_faults.py` 36 测（非法干支/畸形输入/越界/JSONDecodeError/end_age=None + calib 10 例冒烟，红阶段 8 注入点全暴露旧失败面）；pre-hfix 基线快照=`snapshots/20260917_prehfix.json` |
+| `_safe_compute` 分类 | 37+ 模块：传导 14（EngineComputeError 包装）/ 降级 29（warning+`_MODULE_DEFAULTS` 整体降级，消灭「部分空」）/ 白名单 2（时钟/数值类收窄） |
+| 回写契约统一（H8 P1） | `or {}` 三态 → `_write()` 显式 `is not None`+失败写 `_MODULE_DEFAULTS` 深拷贝；engine 裸 except 3→1 |
+| 入口校验 3 P0 | 非法干支 ValueError 定位×2+`_cand_hua` 判空守卫；`MangpaiEngine.__init__` 新增 `_validate_bazi_data`（EngineInputError） |
+| JSONDecodeError（H4 P0） | llm_backend HTTP 200 非 JSON → LLMBackendError 走重试不穿透 |
+| 验证 | 六件套全绿（blind vs prehfix 零翻转零抖动；509 例+3000 例分片横扫无一传导类模块在合法输入下抛异常）；快照=`snapshots/20260917_hfix2a.json` |
+
+## 2026-09-17 H-fix-1 · import/typing 崩溃面修复（引擎零逻辑改动）
+
+| 项目 | 内容 |
+|------|------|
+| 修复 | `guanming.py` 补 `Any`、`engine.py` 补 `Optional`（3.11 import 即崩）、`yunfan.py:653` f-string 内嵌同名单引号改双引号（PEP 701 仅 3.12+ 合法，双版本冒烟实测抓到的第三处） |
+| 轻量抽查 | k3 通读 H11 施工图+扫 5 关键模块（engine/guanming/zuogong_detect/gongliang/zaihuo），登记 12 条（P1×2/P2×10，含 engine.py:179 end_age=None 随 2a 修、zaihuo 正官误标七杀裁定延后文本批） |
+| 验证 | 3.11/3.14 双版本 import 冒烟双绿+六件套全绿；blind vs prehfix 零翻转零抖动；快照=`snapshots/20260917_hfix1.json` |
 
 ## 2026-08-22 修批 G3 · 引擎侧收尾（xiangmao.py 仅锚注与 desc 措辞，判定逻辑/输出键零改动）
 

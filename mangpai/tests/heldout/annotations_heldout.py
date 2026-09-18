@@ -484,6 +484,9 @@ KEPT = {
 }
 
 # ── 手动补录（排版未被提取器捕获，原文嵌入散文）──
+# H-fix-8 备案（H9 P1 结案）：MANUAL 4 例是显式旁路——由 build_yaml.py 直接路由进
+# heldout/cases.yaml，不进 merged.json/candidates.json（提取管线产物）。非数据漂移；
+# 四例均带 source 书锚 + 原文逐字 q。勿「修正」为管线内例（键不在 merged 会触发未路由中止）。
 MANUAL = [
  dict(id='qi04-双胞胎弟弟丧妻', gans='丁丙庚戊', zhis='未午申寅', gender='男',
       source='zhenbao-qi04:116;shouke-qi04:148',

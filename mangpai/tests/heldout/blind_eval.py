@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """V3/M1 留出集盲测评估器 — 方向层（yongshen R2/R3）改动前后对比专用。
 
-⚠️ 本脚本只做评估：对 heldout/cases.yaml（215例）与 trainset/cases.yaml（23例）
+⚠️ 本脚本只做评估：对 heldout/cases.yaml（215例）与 trainset/cases.yaml（294例）
 跑 MangpaiEngine.compute_all()，按机械化 rubric 给 官命/财命/职业 三维打分，
 输出 JSON 供前后快照 diff。评估结果不得用于修引擎（留出集铁律）。
 
@@ -18,8 +18,9 @@
   python3 blind_eval.py --out /tmp/after.json            # 评估当前引擎
   python3 blind_eval.py --out /tmp/after.json --trainset-only
   python3 blind_eval.py --diff /tmp/before.json /tmp/after.json   # 前后对比报告
-  python3 blind_eval.py --out snapshots/YYYYMMDD_x.json --baseline snapshots/上一批.json
-  #   ↑ M5：评估+存快照（附 _meta: git sha/rubric 版本）并与基线快照 diff 一条龙
+  python3 blind_eval.py --out snapshots/YYYYMMDD_x.json --baseline latest
+  #   ↑ M5：评估+存快照（附 _meta: git sha/rubric 版本）并与基线快照 diff 一条龙；
+  #   latest = snapshots/LATEST 指针指向的当前基线（见 snapshots/README.md）
   # 确定性门禁（M1）: PYTHONHASHSEED=0 与默认 seed 各跑一次，输出须逐字节一致；
   #   diff/基线报告末尾「文本抖动」段 >0 即卫生失败。
   # 显著性门禁（M3）: 汇总行后附 Wilson 95% CI（acc±half/下界）；--diff 报告附
@@ -291,9 +292,24 @@ def _git_sha():
         return ''
 
 
+def _resolve_snapshot_path(path):
+    """H-fix-8：`latest` 或 LATEST 指针文件 → 指针指向的快照路径。
+
+    指针 = snapshots/LATEST 纯文本单行（快照文件名），指向当前基线快照；
+    推进基线 = 人工改写指针（刻意不随 --out 自动更新，防误推基线）。
+    """
+    base = os.path.basename(path.rstrip('/'))
+    if path != 'latest' and base != 'LATEST':
+        return path
+    ptr = os.path.join(_HERE, 'snapshots', 'LATEST') if path == 'latest' else path
+    with open(ptr, encoding='utf-8') as f:
+        name = f.read().strip()
+    return os.path.join(os.path.dirname(os.path.abspath(ptr)), name)
+
+
 def _load_snapshot(path):
     """读快照并剥离 _meta（meta 仅溯源，不参与 summarize/diff/rescore）。"""
-    with open(path, encoding='utf-8') as f:
+    with open(_resolve_snapshot_path(path), encoding='utf-8') as f:
         data = json.load(f)
     return data, data.pop('_meta', None)
 
@@ -484,7 +500,8 @@ def main():
                     help='用当前 _ZY_RULES 重评既有快照的职业维（rubric 扩展后重设基线用；'
                          '只依赖快照内 engine 裸值与断语，不重跑引擎）')
     ap.add_argument('--baseline', metavar='SNAPSHOT',
-                    help='评估完成后与该基线快照做 diff（M5：snapshots/ 内最新基线）')
+                    help='评估完成后与该基线快照做 diff（M5：snapshots/ 内最新基线；'
+                         'H-fix-8 起支持 latest 或 snapshots/LATEST 指针）')
     ap.add_argument('--note', default='',
                     help='写入快照 _meta 的备注（如验证状态），防拿错基线')
     args = ap.parse_args()

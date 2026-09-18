@@ -2,17 +2,28 @@
 
 `cases.yaml`（215 例）是郝金阳/段建业断例的**留出集（held-out）**：
 只用于评估引擎，**任何引擎修改（规则、阈值、权重、模板）都不得参考本文件中的断语**。
-训练侧已校准案例在 `../trainset/cases.yaml`（23 例），那里才是修引擎可以看的。
+训练侧已校准案例在 `../trainset/cases.yaml`（294 例），那里才是修引擎可以看的。
 
 ## 构成
 
 | 集 | 例数 | 内容 |
 |---|---|---|
 | heldout/cases.yaml | 215 | 两书全部未校准断例（授课教程 + 50期资料） |
-| trainset/cases.yaml | 23 | calib10（zhenbao-01/04/05/09/10/12/14a/14b/23a/23b）+ b67 书例 13 例 |
+| trainset/cases.yaml | 294 | calib10（zhenbao-01/04/05/09/10/12/14a/14b/23a/23b）+ b67 书例 + 扩容批次转入的已校准/已参考断例 |
 
-污染路由规则：凡出现在 `calib_assertions.yaml`（10 例）或 `backtest/regression67.py`
-（67 例）的同盘案例一律入 trainset，不入 heldout（性别无关匹配，零泄漏已验证）。
+污染路由规则：凡出现在 `calib_assertions.yaml`（10 例）、`backtest/regression67.py`
+（67 例）或 `backtest/famous_cases.py`（23 名人例）的同盘案例一律入 trainset，不入 heldout
+（性别无关匹配，零泄漏已验证）。heldout 215 例与 trainset 294 例按 `bazi+gender` 零重叠（H9 复核）。
+
+旁路说明（H-fix-8 备案，H9 P1 结案）：`annotations_heldout.py` 的 `MANUAL` 4 例
+（qi04-双胞胎弟弟丧妻 / qi04-阮玲玉 / qi14-美容师 / qi04-卜文命学禄当财）系排版未被提取器捕获的
+手动补录，由 `build_yaml.py` 直接路由进 heldout/cases.yaml，**不经过** `merged.json`/`candidates.json`
+——这是显式旁路而非数据漂移；四例均带 source 行号锚与原文逐字 quote。
+
+## 快照基线
+
+`snapshots/LATEST` 指针 = 当前基线快照（`blind_eval.py --baseline latest` 可解）；
+快照链总账与归档说明见 `snapshots/README.md`。
 
 ## 维度覆盖（heldout 215 例，共 476 条维度断语）
 
@@ -32,7 +43,8 @@ build_yaml.py      # 路由 + 校验（未路由/孤儿即中止）→ cases.yam
 verify_heldout.py  # 每例过 MangpaiEngine.compute_all() 不炸 + 干支合法性/echo 校验
 ```
 
-当前状态：`verify_heldout.py` → heldout 215/215 ✅、trainset 23/23 ✅。
+当前状态：`verify_heldout.py` → heldout 215/215 ✅、trainset 294/294 ✅。
+（上文管线段的 375/293 为 2026-07 初次构建时的历史计数，扩容批次沿用同管线。）
 
 ## 已知边界
 

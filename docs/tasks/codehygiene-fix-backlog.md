@@ -1523,3 +1523,41 @@ verify 432+70+64+20 / pytest **1059 passed**+1xf（无新增测试——本批�
 
 - xiangfa_ops set 迭代序不确定性（本批对拍再次实证）——归 H-fix-5 待议 1，后续卫生批裁定。
 - H-fix-8 文档/基线同步（v2 计划 🟢 后置最后一批）。
+
+---
+
+## H-fix-8（2026-09-18，执行登记 · 文档/基线同步批——H-fix 序列收尾，纯文档/基建，引擎/主观层零改动）
+
+> 核销 H9 P1 三条（README 23 例过期 / MANUAL 4 例未入 merged+candidates / 14 份无引用快照+缺 LATEST 指针）+ H10 sys.path.insert 备案结案 + H-fix 全序列文档同步。唯一代码改动=`blind_eval.py` 新增 `_resolve_snapshot_path`（评估链指针解析，正常路径输出不变）。
+
+### 任务 A · README/文档数字同步（实测为准）
+
+| 项 | 旧值 | 实测新值 | 处置 |
+|---|---|---|---|
+| 根 README 验证用例数 | 860 | **1059 passed+1 xfailed**（1060 collected） | 已改 |
+| 根 README 模块数 | 58 | **59**（H-fix-4a 删 2 → 56，H-fix-4b 增 3 → 59） | 已改 |
+| 各层模块数（架构表） | F2/O26/S30 | **Foundation 2 / Objective 27 / Subjective 30** | 已改（职责行删「串宫压运」——chuangong 已删） |
+| 新模块入架构说明 | — | `objective/shishen.py`·`_relation_utils.py`、`subjective/utils.py` | 架构表下补一句说明（公共 helper 下沉产物，分层不破） |
+| heldout README trainset 例数 | 23 | **294**（污染路由补 famous_cases；管线段 375/293 标注为初次构建历史计数） | 已改 |
+| MANUAL 4 例（H9 P1） | 未入 merged/candidates | 裁定=**显式旁路**（build_yaml 直接路由，非数据漂移） | annotations_heldout.py 注释+heldout README 双备案结案 |
+
+### 任务 B · 快照基线机制（H9 P1）
+
+- **`snapshots/LATEST` 指针**：纯文本单行 → `20260918_hfix7.json`；`blind_eval.py --baseline latest` / `--diff latest X` 可解（`_resolve_snapshot_path`）；**刻意不随 `--out` 自动更新**——推进基线=人工改写指针，防误推。
+- **14 份无引用快照**：git mv → `snapshots/archive/`（保留历史不删，快照链是审计证据）：20260801_f/f_rescore/p2、20260802_c/l、20260807_m、20260808_n/o/q_rescore、20260814_c、20260817_f8/f9/f14/f15。
+- **快照链文档**：新建 `snapshots/README.md`——当前基线指针用法 + H-fix 全序列链表（prehfix+hfix1~7，git_sha/对照基线/结果全录，hfix6→hfix5 顺序注记）+ 主链（2026-07~08）+ 归档清单 + 卫生规则。
+
+### 任务 C · 收尾同步
+
+- **sys.path.insert 备案（H10 P2 结案）**：output/ 批跑脚本 `sys.path.insert` **保留+备案**——output/ 非包（无 `__init__.py`）相对导入不可用；安装化需新建 pyproject+`pip install -e`，工程成本高且改变批跑工具调用习惯；批跑工具非生产代码。维持现状，不再立项。tests 内 18 文件 sys.path.insert 同理维持（动测试文件无收益）。
+- **KB 同步**：§0 验证口径（1059+1xf+两件套脚本）/§1.1（subjective 32→30、snapshots 指针、test 1059）/§8（pytest 计数、check_layering/check_typing_imports 行、`--baseline latest`、六件套代码块）/§9（H-fix-8 终态+序列总账：裸 except 残留 3 处合规、模块 58→59、明示暂不修项）。
+- **CHANGELOG**：补 H-fix-1/2a/2b/2c/3/4c/5 七条缺漏 + H-fix-8 本条（4a/4b/6/7 前批已写，核对无误）。
+- **收工记录**：`docs/remaining-tasks-20260917.md` 新建（H-fix 序列终态 + 剩余待议项清单）。
+
+### 六件套（全绿）
+
+verify 432+70+64+20 / pytest **1059 passed+1xf** / blind vs `snapshots/20260918_hfix7.json`（=`--baseline latest`）heldout+trainset **零翻转零抖动** / 双 seed（剥 _meta）逐字节一致 / 67/famous 无变化 / `check_layering.py`+`check_typing_imports.py` 通过。引擎/主观层零改动。
+
+### H-fix 序列收官声明
+
+H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 tag 回滚点。剩余待议项（backlog「未删待议」/「待议问题」+v2 计划⏸️节）汇总入 `docs/remaining-tasks-20260917.md`，勿再立重复项。
