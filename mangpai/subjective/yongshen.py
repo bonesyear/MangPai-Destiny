@@ -44,10 +44,17 @@
 import logging
 from typing import Dict, List, Optional, Set
 
+from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE, HUA_YONG_MAP,
+    LIU_CHONG, XING_PAIRS, SAN_HE, BAN_HE, LIU_HAI, LU,
 )
 from mangpai.objective.shishen import wx_cat as _wx_cat
+from mangpai.objective.zihe import detect_zihe
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
+from mangpai.subjective.zhengfan import analyze_zhengfan
+from mangpai.subjective.laoyu import analyze_laoyu, detect_guansha_rumu
+from mangpai.subjective.juefa import analyze_juefa
 
 _logger = logging.getLogger(__name__)
 
@@ -100,11 +107,6 @@ def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
               'has_yin': bool, 'yin_rooted': bool, 'yin_root_broken': bool,
               'yue_broken': bool}
     """
-    from mangpai.objective.canggan import get_canggan_mangpai
-    from mangpai.objective.constants import (
-        LIU_CHONG, XING_PAIRS, SAN_HE, BAN_HE, LIU_HAI,
-    )
-    from mangpai.objective.zihe import detect_zihe
     dw = GAN_WX.get(day_gan, '')
     yin = _yin_wx(dw)
     # G9（48期）：日主坐自合柱（如己亥）者「日主因合而从支/被支制」——
@@ -269,13 +271,12 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
     # 宽口径。两停局（selfc==conc）且根未被坏者（生例一富婆水木各半）
     # 维持主气计数，防两停误判从。
     if st.get('day_zihe') or selfc < conc or (st['roots'] and st['roots_broken']):
-        from mangpai.objective.constants import SAN_HE as _SH2, BAN_HE as _BH2
         zhi_wx_eff = [ZHI_WX.get(z, '') for z in zhis]
-        for _he, _wx in _SH2.items():
+        for _he, _wx in SAN_HE.items():
             if all(p in zhis for p in _he):
                 for p in _he:
                     zhi_wx_eff[zhis.index(p)] = _wx
-        for _he, _wx in _BH2.items():
+        for _he, _wx in BAN_HE.items():
             if _he[0] in zhis and _he[1] in zhis:
                 zhi_wx_eff[zhis.index(_he[0])] = _wx
                 zhi_wx_eff[zhis.index(_he[1])] = _wx
@@ -326,7 +327,6 @@ def _ensure_work_actions(day_gan: str, gans: List[str], zhis: List[str],
                          work_actions: Optional[List[Dict]]) -> List[Dict]:
     if work_actions:
         return work_actions
-    from mangpai.subjective.zuogong_confirm import analyze_zuogong
     zg = analyze_zuogong(
         day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
     )
@@ -431,7 +431,6 @@ def detect_bijiao_duocai(
     # G9（48期）：非日柱之激活自合柱，柱上之干被坐支藏干合绊失用
     # （康熙型「甲被午中己合绊」）——与 R1b 受害方口径统一：失用之干
     # 不能做功夺财。日柱自合不在此列（日主自合=日主从支，非比劫夺财域）。
-    from mangpai.objective.zihe import detect_zihe
     heban_pos |= set(detect_zihe(gans, zhis).get('ban_gan_positions') or [])
     duocai_hits = 0
     hit_descs: List[str] = []
@@ -471,14 +470,13 @@ def detect_bijiao_duocai(
                     continue  # 虚透无根，从化无力
             elif fp.endswith('_zhi'):
                 _cong_hua = False
-                from mangpai.objective.constants import SAN_HE as _SH, BAN_HE as _BH
                 _fz = zhis[_PK4.index(fp.split('_')[0])] if fp.split('_')[0] in _PK4 else ''
-                for _he, _wx in _SH.items():
+                for _he, _wx in SAN_HE.items():
                     if _fz and _fz in _he and _wx == caiwx and all(p in zhis for p in _he):
                         _cong_hua = True
                         break
                 if not _cong_hua:
-                    for _he, _wx in _BH.items():
+                    for _he, _wx in BAN_HE.items():
                         if _fz and _fz in _he and _wx == caiwx \
                                 and _he[0] in zhis and _he[1] in zhis:
                             _cong_hua = True
@@ -572,7 +570,6 @@ def classify_cong_target(
         })
         return out
     if strength == '从强':
-        from mangpai.objective.constants import LU
         bijie_n, yin_n = _count(dw), _count(yin)
         suo = dw if bijie_n >= yin_n else yin
         lu_zhi = LU.get(day_gan, '')
@@ -675,7 +672,6 @@ def detect_jishen_zhiyongshen(
     # (b) 贪合忘克：功神与被制者同入三字全之三合局，合化一行、局内不论
     #     相克——cj-老师 未印「克」亥食伤，然亥卯未全、未随局化财，
     #     书明文官统财合到主位、午运发财。
-    from mangpai.objective.constants import SAN_HE as _SAN_HE
     _zhis_set = set(z for z in zhis if z)
 
     def _same_sanhe(pa: str, pb: str) -> bool:
@@ -683,7 +679,7 @@ def detect_jishen_zhiyongshen(
             return False
         za = zhis[_PK4.index(pa.rsplit('_', 1)[0])]
         zb = zhis[_PK4.index(pb.rsplit('_', 1)[0])]
-        for grp in _SAN_HE:
+        for grp in SAN_HE:
             if len(grp) == 3 and za in grp and zb in grp and all(z in _zhis_set for z in grp):
                 return True
         return False
@@ -692,7 +688,6 @@ def detect_jishen_zhiyongshen(
     #     同类（财）者，财合日主=财来就我、承载日主取用，非忌神坏印——
     #     yx-煤矿-2 壬午日午中丁财自合，书明文壬午运（财）发财十亿。
     _zihe_js_dayzhi = False
-    from mangpai.objective.zihe import detect_zihe
     _dzh = detect_zihe(gans, zhis).get('day_zihe')
     _zihe_js_dayzhi = bool(
         _dzh and _dzh.get('activated')
@@ -811,7 +806,6 @@ def _mingxian_shishen_positions(
     day_gan: str, gans: List[str], zhis: List[str], targets: Set[str],
 ) -> Set[str]:
     """十神细分（如 伤官/正官/七杀）明现位 pos 集合（透干/本气/中气；余气不算）。"""
-    from mangpai.objective.canggan import get_canggan_mangpai
     pos: Set[str] = set()
     for i, pk in enumerate(_PK4):
         if i < len(gans) and gans[i] and _shishen_full(day_gan, gans[i]) in targets:
@@ -830,7 +824,6 @@ def _mingxian_cat_count(
     day_gan: str, gans: List[str], zhis: List[str], cat: str,
 ) -> int:
     """十神大类明现柱数（透干/本气/中气；一柱只计一次）。"""
-    from mangpai.objective.canggan import get_canggan_mangpai
     dw = GAN_WX.get(day_gan, '')
     n = 0
     for i in range(4):
@@ -886,7 +879,6 @@ def detect_shangguan_jianguan(
     # 伤官诀五行分向（总诀「伤官见官分宜畏，全在五行与节令」）——喜忌双向
     # 消费：喜见官侧入下方豁免一；怕见官侧入下方成势 severe 条款（A4）。
     try:
-        from mangpai.subjective.juefa import analyze_juefa
         sg = analyze_juefa(gans, zhis, day_gan).get('shangguan_jue') or {}
     except Exception as e:
         _logger.warning('伤官诀分向(juefa)计算失败，按无分向降级: %s', e, exc_info=True)
@@ -901,8 +893,6 @@ def detect_shangguan_jianguan(
     # severe（格局破败困顿）。反例守卫：qi19 伤官去官格（官透干被伤官干
     # 克去=去官吉，无本气官支冲战）不触；过河拆桥/董竹君/qi15 财明现不触。
     if '怕见官' in vd and len(shang_pos) >= 3:
-        from mangpai.objective.constants import LIU_CHONG as _LC
-        from mangpai.objective.canggan import get_canggan_mangpai as _gcm
         # 通关之财须明透（透干/支本气）——中气藏财力弱不能解冲战
         # （低保伤官书锚：申中壬中气财在局，书仍判「格局破败…靠低保维生」）。
         _cai_wx_s = WX_KE.get(GAN_WX.get(day_gan, ''), '')
@@ -916,12 +906,12 @@ def detect_shangguan_jianguan(
                     if not p.endswith('_zhi'):
                         continue
                     zi = _PK4.index(p.split('_')[0])
-                    if _shishen_full(day_gan, _gcm(zhis[zi])[0][0]) == ten_god:
+                    if _shishen_full(day_gan, get_canggan_mangpai(zhis[zi])[0][0]) == ten_god:
                         out.append(zi)
                 return out
             guan_bq = _bq_zhi_idxs(guan_pos, '正官')
             shang_bq = _bq_zhi_idxs(shang_pos, '伤官')
-            if any((zhis[si], zhis[gi]) in _LC or (zhis[gi], zhis[si]) in _LC
+            if any((zhis[si], zhis[gi]) in LIU_CHONG or (zhis[gi], zhis[si]) in LIU_CHONG
                    for si in shang_bq for gi in guan_bq):
                 return {'detected': True, 'severity': 'severe', 'strength': strength,
                         'hits': [], 'exemption': '',
@@ -998,10 +988,6 @@ def detect_shangguan_jianguan(
         # 者为官杀本气者不在此列（官伤相战正是 N1 本体——书法家 午官冲子伤
         # 官，不豁免）。
         if not exemption:
-            from mangpai.objective.constants import (
-                LIU_CHONG as _LC4, XING_PAIRS as _XP4, LIU_HAI as _LH4,
-            )
-            from mangpai.objective.canggan import get_canggan_mangpai as _gcm4
             shang_zhi_idx = [_PK4.index(p.split('_')[0]) for p in shang_pos
                              if p.endswith('_zhi')]
             if shang_zhi_idx and len(shang_zhi_idx) == len(shang_pos):
@@ -1009,10 +995,10 @@ def detect_shangguan_jianguan(
                     for j, z2 in enumerate(zhis):
                         if j == zi or not z2:
                             continue
-                        if ((zhis[zi], z2) in _LC4 or (z2, zhis[zi]) in _LC4
-                                or (zhis[zi], z2) in _XP4 or (z2, zhis[zi]) in _XP4
-                                or (zhis[zi], z2) in _LH4 or (z2, zhis[zi]) in _LH4):
-                            if _shishen_full(day_gan, _gcm4(z2)[0][0]) \
+                        if ((zhis[zi], z2) in LIU_CHONG or (z2, zhis[zi]) in LIU_CHONG
+                                or (zhis[zi], z2) in XING_PAIRS or (z2, zhis[zi]) in XING_PAIRS
+                                or (zhis[zi], z2) in LIU_HAI or (z2, zhis[zi]) in LIU_HAI):
+                            if _shishen_full(day_gan, get_canggan_mangpai(z2)[0][0]) \
                                     not in ('正官', '七杀'):
                                 return True
                     return False
@@ -1169,7 +1155,6 @@ def detect_caisheng_sha_gongshen(
         # 亥中甲(印)中气误读为财制印→印化无力误判，书明文壬卯运=印运发财）。
         # gj-财党杀攻身 寅(本气甲=财)克辰(本气戊=印)本气口径仍命中，不动。
         def _bq_positions(targets: Set[str]) -> Set[str]:
-            from mangpai.objective.canggan import get_canggan_mangpai
             pos: Set[str] = set()
             for i, pk in enumerate(_PK4):
                 if i < len(gans) and gans[i] and _shishen_full(day_gan, gans[i]) in targets:
@@ -1234,7 +1219,6 @@ def detect_guansha_rumu_xiong(
     strength = classify_strength(day_gan, gans, zhis)
     if strength != '身弱':
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
-    from mangpai.subjective.laoyu import detect_guansha_rumu
     r = detect_guansha_rumu(day_gan, gans, zhis, relations=relations)
     detected = bool(r.get('laoyu_signal'))
     # 墓之宾主归属（高级篇 2.5「以主位之墓库，去收藏、控制…墓库制忌，其祸
@@ -1329,7 +1313,6 @@ def detect_heban_yongshen(
     # 明读「丑土不克水」——受绊失能者是克财之比劫（忌神侧），日支自合之财
     # 不失用（身旺财旺发财）。与 caiming G9 日主自合合财升档同口径。
     _day_cai_zihe = False
-    from mangpai.objective.zihe import detect_zihe
     _dzh = detect_zihe(gans, zhis).get('day_zihe')
     _day_cai_zihe = bool(
         _dzh and _dzh.get('activated')
@@ -1450,8 +1433,6 @@ def detect_zhuwei_ti_chonghuai(
     """
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
         return {'detected': False, 'severity': None, 'reason': ''}
-    from mangpai.objective.constants import LIU_CHONG
-    from mangpai.objective.canggan import get_canggan_mangpai
     dw = GAN_WX.get(day_gan, '')
     if not dw:
         return {'detected': False, 'severity': None, 'reason': ''}
@@ -1496,8 +1477,6 @@ def detect_zhuwei_ti_chonghuai(
 
 def _ensure_zhengfan(day_gan: str, gans: List[str], zhis: List[str],
                      relations: Optional[Dict]) -> Dict:
-    from mangpai.subjective.zhengfan import analyze_zhengfan
-    from mangpai.subjective.zuogong_confirm import analyze_zuogong
     zg = analyze_zuogong(
         day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
     )
@@ -1508,7 +1487,6 @@ def _ensure_zhengfan(day_gan: str, gans: List[str], zhis: List[str],
 
 def _ensure_laoyu(day_gan: str, gans: List[str], zhis: List[str],
                   relations: Optional[Dict]) -> Dict:
-    from mangpai.subjective.laoyu import analyze_laoyu
     return analyze_laoyu(day_gan, gans, zhis, relations=relations)
 
 

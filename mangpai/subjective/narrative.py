@@ -10,8 +10,11 @@
   - anthropic SDK（可选；无 API key/网络时降级）
 """
 from __future__ import annotations
+import json
 import logging
 import os
+import re
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from mangpai.subjective.prompts.hao_style_fewshot import (
@@ -19,6 +22,7 @@ from mangpai.subjective.prompts.hao_style_fewshot import (
     HAO_STYLE_SYSTEM_PROMPT,
     format_fewshot_block,
 )
+from mangpai.subjective.zaihuo import zaihuo_llm_view
 
 _logger = logging.getLogger(__name__)
 
@@ -175,7 +179,6 @@ def _zaihuo_line(zh: dict) -> str:
     寿元星 markers——批10 寿元红线，siwang 不进 LLM 通道）。"""
     if not zh:
         return ''
-    from mangpai.subjective.zaihuo import zaihuo_llm_view
     view = zaihuo_llm_view(zh)
     mr = view.get('max_risk', '') or ''
     sm = view.get('summary', '') or ''
@@ -412,9 +415,6 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
       gongliang level/score 等）；
     - bands: 财命 summary 中的金额档字（百万/千万/亿/百亿/千亿…）。
     """
-    import json
-    import re
-    from datetime import datetime
 
     years, ages, counts, bands = set(), set(), set(), set()
     try:
@@ -455,7 +455,6 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
     Returns:
       {'ok': bool, 'violations': [{'text','kind','detail'}], 'whitelist': {...}}
     """
-    import re
 
     wl = _engine_number_whitelist(engine_result)
     violations = []

@@ -23,7 +23,11 @@ import re
 from typing import Any, Dict, Optional
 
 from mangpai.subjective import build_payload, _resolve, _MISSING
+from mangpai.subjective.llm_backend import call_deepseek, LLMBackendError
 from mangpai.subjective.llm_prompt import build_system_prompt, build_user_prompt
+from mangpai.subjective.prompts.hao_style_fewshot import (
+    FEWSHOT_EXAMPLES, format_fewshot_block,
+)
 from mangpai.subjective.narrative import (
     _bazi_line,
     summarize_engine_result,
@@ -425,9 +429,6 @@ def render_structured_reading(
     validate: 'mark'(默认)=违规附注于成品后；'reject'=L0 不过则拦截；
     'off'=不校验。LLM 不可用时降级返回 prompt 文本（不抛错）。
     """
-    from mangpai.subjective.prompts.hao_style_fewshot import (
-        FEWSHOT_EXAMPLES, format_fewshot_block,
-    )
     features = build_payload(engine_result)
     features_json = json.dumps(features, ensure_ascii=False, separators=(',', ':'))
     system = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
@@ -441,7 +442,6 @@ def render_structured_reading(
     if not call_llm:
         return f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
 
-    from mangpai.subjective.llm_backend import call_deepseek, LLMBackendError
     try:
         resp = call_deepseek(system, user, model=model)
     except LLMBackendError as e:
@@ -473,6 +473,8 @@ def render_structured_reading(
 
 def demo(case_id: str = 'b67-李嘉诚', question: str = ''):
     """单命示例：trainset 案例 → 引擎特征 → LLM 叙述 → 三层校验 → 展示。"""
+    # CLI 入口专用局部导入（H-fix-4c 保留）：demo/main 仅命令行调试调用，
+    # 延迟加载 engine 避免库调用方（feishu service 等）重复承担编排层导入。
     import yaml
     from mangpai.engine import MangpaiEngine
     cases_path = 'mangpai/tests/trainset/cases.yaml'

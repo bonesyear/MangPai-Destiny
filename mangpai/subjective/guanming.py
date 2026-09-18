@@ -42,11 +42,16 @@ from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
     LU, CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars, TOMB_MAP,
 )
+from mangpai.objective.bazi_calc import get_kong_wang
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.shensha import _YANG_REN_FULL
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _shishen_cat,
 )
+from mangpai.objective.zihe import detect_zihe
 from mangpai.subjective.utils import ensure_relations as _ensure_relations
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
+from mangpai.subjective.gongliang import analyze_gongliang
 from mangpai.subjective.xiangfa_ops import daixiang
 from mangpai.subjective.yongshen import assess_direction_signals, classify_strength
 
@@ -257,7 +262,6 @@ def classify_guanming_combo(
             has_yin = True
 
     # G2/G3 的方向与格局参数
-    from mangpai.subjective.yongshen import classify_strength
     strength = classify_strength(day_gan, gans, zhis)
     cong_ge = strength in ('从强', '从弱')          # 从格（G2/G3 豁免）
     # 官杀为忌（G3 去官得官保留）：身弱忌克/从强逆势；从弱 subtype 歧义
@@ -285,7 +289,6 @@ def classify_guanming_combo(
     if guan_wx and guan_zhi_idxs:
         _guan_tombs = {z for z, els in TOMB_MAP.items() if guan_wx in els}
         if not (_guan_tombs & set(zhis)):
-            from mangpai.objective.bazi_calc import get_kong_wang
             _year_kw = get_kong_wang(gans[0], zhis[0]).get('zhi', [])
             _kw_all = set(_kw_zhis) | set(_year_kw)
             if all(f'{PILLAR_KEYS[i]}_zhi' in _zhi_hard_targets
@@ -448,7 +451,6 @@ def classify_guanming_combo(
     #   做功字，宾位禄刃=他人之力）；③印不透干——印透则印已在天干发挥作用，
     #   制库非「去印」（ans17 虚名骗子 壬辰丙午甲寅丁卯：壬印透干，书判骗子
     #   非官 shouke:776-790，与总编同构卯刃穿辰之区分点）。
-    from mangpai.objective.shensha import _YANG_REN_FULL
     _luren_zhis = {LU.get(day_gan, '')} | set(_YANG_REN_FULL.get(day_gan, []))
     _luren_zhis.discard('')
     _yin_tombs = {z for z, els in TOMB_MAP.items() if yin_wx and yin_wx in els}
@@ -487,7 +489,6 @@ def classify_guanming_combo(
     # （身弱/从强，guan_wei_ji）者合制得官——与 G3 去官得官同口径；官为
     # 用神被合绊者失官不录（属 R3 财/官失用域）。自合不并入 zuogong 通用
     # 合做功源（柱内干支合，非柱间做功），故在此单独检测。
-    from mangpai.objective.zihe import detect_zihe
     _zihe_g = detect_zihe(gans, zhis)
     for _rec in _zihe_g.get('pillars') or []:
         if _rec.get('is_day') or not _rec.get('activated'):
@@ -817,7 +818,6 @@ def _has_positive_guanming(
 
     Returns: True=有正向官命结构（反局不该否决官命）；False=无（反局可否决）。
     """
-    from mangpai.subjective.yongshen import classify_strength
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
         return False
     strength = classify_strength(day_gan, gans, zhis)
@@ -888,8 +888,6 @@ def analyze_guanming(
     # gongliang 缺省自调（只读消费，不改功量层）
     gl = gongliang_result
     if gl is None:
-        from mangpai.subjective.gongliang import analyze_gongliang
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
         zg = analyze_zuogong(
             day_gan, zhis[PILLAR_KEYS.index('day')],
             gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],

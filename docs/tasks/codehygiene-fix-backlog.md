@@ -1298,3 +1298,82 @@ verify 432+70+64+20 / pytest **934 passed**+1xf+19xp（925+9 哨兵）/ blind vs
 
 - `engine.py:407` liunian_data truthy 非 dict（2a 遗留 P2，守卫批）。
 - `_pillar_cats` 族签名统一、H-fix-5 大函数拆分（detect_relations 850→~760 行，主体拆分留 H-fix-5）、selectors 契约（H-fix-6）。
+
+---
+
+## H-fix-4c（2026-09-18，执行登记 · 局部 import / 循环依赖整理批——显式化+方向正确，行为零变更）
+
+### 阶段 0 实测计数（改前口径复核）
+
+- 任务书 grep 口径 `grep -rn "^\s\+import \|^\s\+from " mangpai/ foundation/ scripts/` = **205 处**。
+- 其中生产层（mangpai/subjective+objective+engine+foundation）**94 行**，含 `nayin.py:15` docstring 内文本 1 行 → **实 93 处**（复核 H2 的 56 处口径：caiming 8/yongshen 25（4b 已减 1）/zhiye 6/xiangfa_ops 3/gongliang 2/liuqin 4/guanming 7/laoyu 1 = 56 ✓；其余 37 = H3 yunfan 5+gongmen 2、H4 llm 三件套 13、H8 engine 4+__init__ 4、H12 liunian 4、objective 5、juefa 1）。
+- 测试/诊断/脚本（D 类，保留不动）= 205−94 = **111 处**。
+
+### 分类处置统计（生产 93 处）
+
+| 类 | 数量 | 处置 |
+|----|------|------|
+| **A 纯冗余**（顶层已导入同符号/同模块，重复） | 13 | 删除：guanming:260/820 classify_strength（顶层 :51 已有）、gongliang:1085（并入顶层 yongshen 组）、llm_backend:173 datetime、yunfan:392 `_YR`（与 :215 重复）、caiming:1469 detect_zihe（与 :461 重复）、yongshen get_canggan×3/detect_zihe×3/LIU_CHONG 重复 |
+| **B 循环依赖规避** | 1 边保留 + 星型回边上提 | 见下「循环破除」 |
+| **C 重型/软依赖延迟** | 5 | **保留**（均有注释）：narrative anthropic×2、xiangfa_ops foundation（try/ImportError 降级）、jiaoyun sxtwl×2 |
+| **D 工具/CLI** | 3（生产内）+111（测试脚本） | 保留：llm_channel demo()/main 的 yaml/engine/sys（补注释说明）；测试/脚本 111 处不动 |
+| **安全上提**（无环局部→顶层） | 71 | 全部上提合并：subjective→objective 一律安全（objective 不反导）；subjective→subjective 逐边核查目标模块无反向顶层依赖后上提；别名 `_SH2/_SH/_SAN_HE/_LC/_LC4/_XP4/_LH4/_gcm/_gcm4/_YR/_SANHE/_cs/_cs2/_cs4/_cls_st` 统一改回正名 |
+| **改后剩余** | **8 处**（93→8） | B 1 + C 5 + D 3（另 nayin docstring 文本 1 行非代码） |
+
+### 阶段 1 循环破除记录
+
+- **`gongliang ↔ caiming` 双向依赖**：改前=gongliang 顶层 `from caiming import classify_caifu_view` + caiming:1782 局部 `from gongliang import analyze_gongliang`。**方向矫正**：caiming（领域层）→ gongliang（功量层）为正向，caiming 侧上提至顶层；gongliang 对 caiming 的反向消费（7c 官统财/财统官，gongliang.py:755）改为函数内局部导入+显式注释（全模块唯一使用点）。结果：**subjective 顶层依赖图无环**，回边 1 处显式备案。
+- **`yongshen` 星型中心回边**（局部导入 zuogong_confirm×2/laoyu×2/juefa/zhengfan）：逐一核查目标模块顶层零 subjective 依赖（laoyu 仅→zhengfan，zhengfan/juefa/zuogong_confirm 零）→ **非真循环，全部上提**，星型中心出边显式化。
+- **`gongmen_wuzhi.py` 局部回导 gongliang**（H3，现 :443-444）：核查 gongliang 顶层不依赖 gongmen_wuzhi → 无环，**上提**（+zuogong_confirm 同边上提）。
+- **分诊纪律执行**：循环「能不破不破」——真循环仅 gongliang⇄caiming 1 条，采方向矫正+回边显式化（非大改）；其余局部导入均非循环规避，属历史堆积，安全上提。
+
+### 阶段 2 sys.path.insert 评估（H10/H6 遗留）
+
+- output/ 批跑脚本 `sys.path.insert`：**保留+备案**。output/ 非包（无 `__init__.py`），相对导入不可用；改包安装需新建 pyproject + `pip install -e`，工程成本高且改变批跑工具调用习惯——批跑工具非生产代码，维持现状，归档/安装化留 H-fix-8 议。
+- tests 内 18 文件 `sys.path.insert`（H6 P1）：本批不动（删除即动测试文件，留 H-fix-7/8 随评测框架统一批处理）。
+
+### subjective 顶层依赖图（`scripts/check_layering.py --graph` 实测，供 H-fix-5 拆分参考）
+
+```
+caiming        -> gongliang, utils, yongshen, zeishen_bushen, zuogong_confirm
+gongliang      -> yongshen, zeishen_bushen, zuogong_confirm        （~~> caiming 函数内回边，显式备案）
+gongmen_wuzhi  -> gongliang, utils, yongshen, zuogong_confirm
+guanming       -> gongliang, utils, xiangfa_ops, yongshen, zuogong_confirm
+hunyin         -> utils, yongshen, zhengfan
+laoyu          -> utils, zhengfan, zuogong_confirm
+liunian        -> dayun, yongshen
+liuqin         -> utils, xiangfa_ops, yongshen
+llm_channel    -> subjective(包), llm_backend, llm_prompt, narrative, prompts
+llm_prompt     -> xiangmao
+narrative      -> prompts, zaihuo
+xiangfa_ops    -> utils, zeishen_bushen, zuogong_confirm
+xiangmao       -> liuqin
+xueli          -> utils, yongshen
+yongshen       -> juefa, laoyu, zhengfan, zuogong_confirm          （星型中心出边，全顶层显式）
+yunfan         -> yongshen, zhengfan, zuogong_confirm
+zaihuo         -> utils, yongshen
+zhiye          -> caiming, utils, xiangfa_ops, yongshen
+zinv           -> liuqin
+__init__       -> dayun, schools, zaihuo
+```
+- **双向边：0**（顶层图 DAG；唯一函数内回边 = gongliang~~>caiming）。
+- 入度中心：yongshen（9 模块）、utils（10）、zuogong_confirm（7）、zhengfan（4）、gongliang（4）——H-fix-5 拆分时 gongliang/caiming 在同强连通分量候选区，拆分顺序建议 utils/zuogong_confirm/zeishen_bushen → yongshen/zhengfan → gongliang → caiming/guanming/zhiye。
+
+### 分层铁律验证（新入库 `scripts/check_layering.py`）
+
+- AST 全量扫描 foundation+mangpai/objective+subjective+engine（66 文件）：断言 foundation 不导入 objective/subjective/engine、objective 不导入 subjective/engine、subjective 不导入 engine + subjective 顶层图无环，反向依赖即 exit 1。
+- 白名单 1 条例外显式备案：llm_channel demo()/main 函数内局部导入 engine（CLI 调试入口，延迟加载）。
+- 实测：**通过，无反向依赖，顶层图无环**。
+
+### 六件套（vs `snapshots/20260918_hfix4b.json`）
+
+- verify 432+70+64+20 全绿；pytest **945 passed**+1xf（修 5 处测试 mock 漂移：llm_channel.call_deepseek×4 + gongliang.analyze_zeishen_bushen×1 patch 目标随导入上提改消费侧，同 4b 先例；`test_l2_death_refusal_passes_render` 原误过——patch 未命中走真实降级路径碰巧断言成立，一并修正）；blind vs hfix4b heldout+trainset **零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）；双 seed（剥 _meta）逐字节一致 ✅；67/famous 无变化 ✅；calib 由 pytest 覆盖
+- import 冒烟：3.11 + 3.14 双绿（`import mangpai` + 全部改动模块）
+- 引擎判定零改动：本批仅移动 import 位置+别名正名，无任何语句/表达式变更
+- 回滚点：tag `hfix4c-pre`；快照=`snapshots/20260918_hfix4c.json`
+
+### 残留（转后续批）
+
+- `engine.py:407` liunian_data truthy 非 dict（2a 遗留 P2，守卫批）。
+- output/ 脚本 sys.path.insert 安装化、tests 18 文件 sys.path.insert（H-fix-7/8）。
+- H-fix-5 大函数拆分（依赖图见上）、selectors 契约（H-fix-6）。

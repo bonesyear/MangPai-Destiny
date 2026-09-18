@@ -40,6 +40,7 @@ from mangpai.objective.constants import (
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective._relation_utils import pair_in as _check_pair
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
+from mangpai.subjective.yongshen import classify_strength, _shishen_full
 
 # 刃位单一事实源在 objective.shensha（_YANG_REN 主刃位 / _YANG_REN_FULL 段氏
 # 全刃位，戊取午未双刃）；此处仅别名兼容，不再自带副本（M2 口径统一）。
@@ -145,7 +146,6 @@ def _judge_xiji(
 
     Returns: '喜' / '忌' / ''（无法判定）
     """
-    from mangpai.subjective.yongshen import classify_strength
     day_wx = GAN_WX.get(day_gan, '')
     if not day_wx or not wx:
         return ''
@@ -314,7 +314,6 @@ def _gan_strength(gan: str, natal_gans: List[str], natal_zhis: List[str]) -> int
 
 def _zhi_benqi_shishen(day_gan: str, zhi: str) -> str:
     """地支本气十神（配偶星判别用）。"""
-    from mangpai.subjective.yongshen import _shishen_full
     cg = get_canggan_mangpai(zhi)
     if not cg:
         return ''
@@ -354,7 +353,6 @@ def _ln_spouse_related(ln_zhi: str, day_gan: str, gender: Optional[str]) -> bool
     if _is_spouse_star(_zhi_benqi_shishen(day_gan, ln_zhi), gender):
         return True
     if ln_zhi in _MU_KU:
-        from mangpai.subjective.yongshen import _shishen_full
         for gan, _c in get_canggan_mangpai(ln_zhi):
             if _is_spouse_star(_shishen_full(day_gan, gan), gender):
                 return True
@@ -492,7 +490,6 @@ def classify_he_semantic(
     ctx = list(natal_zhis) + ([dayun_zhi] if dayun_zhi else [])
     if is_gan:
         s_t = _gan_strength(target, natal_gans, natal_zhis)
-        from mangpai.subjective.yongshen import _shishen_full
         shishen = _shishen_full(day_gan, target)
     else:
         s_t = _zhi_strength(target, ctx, kong_wang, month_zhi,

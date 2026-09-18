@@ -59,6 +59,8 @@ from mangpai.objective.shishen import (
     gan_wx_cat as _wx_cat,
 )
 from mangpai.subjective.utils import ensure_relations as _ensure_relations
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
+from mangpai.subjective.gongliang import analyze_gongliang
 from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
 
 _logger = logging.getLogger(__name__)
@@ -440,8 +442,6 @@ def analyze_gongmen_wuzhi(
     # gongliang 缺省自调
     gl = gongliang_result
     if gl is None:
-        from mangpai.subjective.gongliang import analyze_gongliang
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
         zg = analyze_zuogong(
             day_gan, zhis[PILLAR_KEYS.index('day')],
             gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],

@@ -36,8 +36,10 @@ from typing import Dict, List, Optional, Any, Tuple
 
 from mangpai.objective.constants import (
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, LIU_PO, XING_PAIRS, AN_HE,
-    GAN_WX, ZHI_WX, WX_SHENG, WX_KE, PILLAR_KEYS, TOMB_MAP, LU,
+    GAN_WX, ZHI_WX, WX_SHENG, WX_KE, PILLAR_KEYS, TOMB_MAP, LU, SAN_HE,
 )
+from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.shensha import _YANG_REN_FULL
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.zhengfan import analyze_zhengfan
 from mangpai.subjective.yongshen import classify_strength, classify_cong_target
@@ -212,8 +214,7 @@ def _detect_lu_ren_fangg(
     if lu and lu in _in and _pair_hit(op_zhi, lu, LIU_CHONG):
         targets.append(f'禄({lu})被冲')
     # 羊刃（阳干刃位，段氏全刃表：戊取午、未双刃）被冲
-    from mangpai.objective.shensha import _YANG_REN_FULL as _YR
-    for yr in _YR.get(day_gan, []):
+    for yr in _YANG_REN_FULL.get(day_gan, []):
         if yr and yr in _in and _pair_hit(op_zhi, yr, LIU_CHONG):
             targets.append(f'羊刃({yr})被冲')
     if targets:
@@ -302,7 +303,6 @@ def _detect_po_cong(
     else:  # 从弱
         # 破从·日主得根：运岁支藏干（含余气，22期例6 戌中丁火墓库余气根）含日主五行
         if op_zhi:
-            from mangpai.objective.canggan import get_canggan_mangpai
             # 得根合化豁免（K3-294批6 G5）：运岁支与原局支六合、或运支补全
             # 三合局（原局已有另两支）者，运支被原局合走/合化，所藏日主之根
             # 随合化而不立——日主实未得根，不破从。
@@ -313,8 +313,7 @@ def _detect_po_cong(
             gen_he_hua = any(nz and _pair_hit(op_zhi, nz, LIU_HE)
                              for nz in natal_zhis)
             if not gen_he_hua:
-                from mangpai.objective.constants import SAN_HE as _SANHE
-                for _he, _wx in _SANHE.items():
+                for _he, _wx in SAN_HE.items():
                     if op_zhi in _he \
                             and all(p == op_zhi or p in natal_zhis for p in _he):
                         gen_he_hua = True
@@ -389,8 +388,7 @@ def _detect_dayun_fan(
     hits_gong = [x for x in hits_gong
                  if not (x['type'] == '冲' and x['target_elem'] in TOMB_MAP)]
     if op_zhi and day_gan:
-        from mangpai.objective.shensha import _YANG_REN_FULL as _YR
-        lr_chars = {LU.get(day_gan, '')} | set(_YR.get(day_gan, []))
+        lr_chars = {LU.get(day_gan, '')} | set(_YANG_REN_FULL.get(day_gan, []))
         lr_chars.discard('')
         hits_gong += [x for x in inter
                       if x['type'] == '破' and x['target_pos'] in gong_pos
@@ -525,7 +523,6 @@ def _detect_dayun_fan(
             # 方成立。宾位墓透/无墓可透者不论——reg67 资本运营丁酉运丁伏吟被
             # 癸克，丁所透之未墓在宾位（年支），书明文「行酉运，亿万巨富」
             # （理象学:7720），假阳锚。
-            from mangpai.objective.canggan import get_canggan_mangpai
             _tomb_gs = any(
                 i < len(natal_zhis) and natal_zhis[i]
                 and natal_zhis[i] in TOMB_MAP

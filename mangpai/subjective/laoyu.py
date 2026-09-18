@@ -39,6 +39,7 @@ from mangpai.objective.shishen import (
 )
 from mangpai.subjective.utils import ensure_relations as _ensure_relations
 from mangpai.subjective.zhengfan import analyze_zhengfan
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
 
 # _YANG_GANS 随 _compute_shishen 下沉删除（H-fix-4b，与既有 _YANG_GAN_SET 重复）；
 # _compute_shishen/_cat/_ensure_relations 别名于顶部导入，本地副本删除。
@@ -422,7 +423,6 @@ def detect_fanju_chen_chou(
     # analyze_zhengfan 签名=(work_actions, day_he_type, gans, zhis)——
     # 与 yongshen._ensure_zhengfan 同径（旧调用误传 relations= 实抛
     # TypeError 被吞，法五上线即死，批5 P0-1；书 中级:5592）。
-    from mangpai.subjective.zuogong_confirm import analyze_zuogong
     zg = analyze_zuogong(
         day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
     )

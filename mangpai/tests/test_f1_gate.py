@@ -72,7 +72,8 @@ def test_death_word_mark_mode_rejects(monkeypatch):
     """mark 模式命中死亡红线词 → 整段拒出，原文与附注均不展示。"""
     data = _dims()
     data['应期']['conclusion'] = '六十八岁寿终'
-    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
+    # H-fix-4c：llm_channel 顶层绑定 call_deepseek（原函数内局部导入），patch 消费侧
+    monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek',
                         lambda *a, **kw: _fake_backend(json.dumps(data, ensure_ascii=False)))
     out = render_structured_reading(_ENGINE, validate='mark')
     assert out.startswith('[断语被死亡红线校验拦截，不予展示]')
@@ -102,7 +103,7 @@ def test_l2_death_refusal_passes_render(monkeypatch):
     """拒答句经误报窗豁免 → mark 模式正常展示（不触发 reject）。"""
     data = _dims()
     data['应期']['conclusion'] = '命理不测生死，不予断言寿数'
-    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
+    monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek',
                         lambda *a, **kw: _fake_backend(json.dumps(data, ensure_ascii=False)))
     out = render_structured_reading(_ENGINE, validate='mark')
     assert not out.startswith('[断语被')
@@ -168,12 +169,12 @@ def test_death_violation_structured_reject_flag():
 def test_degrade_returns_carry_disclaimer(monkeypatch):
     """F6-4：render 层降级/拦截文本自带免责行（不再单点依赖 service 前缀）。"""
     monkeypatch.setattr(
-        'mangpai.subjective.llm_backend.call_deepseek',
+        'mangpai.subjective.llm_channel.call_deepseek',
         lambda *a, **kw: (_ for _ in ()).throw(
             llm_backend.LLMBackendError('mock 失败')))
     out = render_structured_reading(_ENGINE, validate='mark')
     assert out.startswith('[LLM 不可用') and DISCLAIMER.strip() in out
-    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
+    monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek',
                         lambda *a, **kw: _fake_backend('not json'))
     out = render_structured_reading(_ENGINE, validate='mark')
     assert out.startswith('[LLM 输出非合法 JSON') and DISCLAIMER.strip() in out
@@ -184,7 +185,7 @@ def test_reject_l0_degrade_carries_disclaimer(monkeypatch):
     四条降级路径（LLM 不可用/JSON 失败/死亡红线/L0 拦截）免责齐全。"""
     data = _dims()
     del data['相貌']  # 缺维 → L0 schema 违规
-    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek',
+    monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek',
                         lambda *a, **kw: _fake_backend(json.dumps(data, ensure_ascii=False)))
     out = render_structured_reading(_ENGINE, validate='reject')
     assert out.startswith('[断语被 L0 schema 校验拦截，不予输出]')

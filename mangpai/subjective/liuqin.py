@@ -44,6 +44,7 @@ from mangpai.objective.constants import (
     is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.shensha import compute_shensha_ext
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.shishen import (
@@ -51,7 +52,10 @@ from mangpai.objective.shishen import (
     gan_wx_cat as _wx_cat,
 )
 from mangpai.subjective.utils import ensure_relations as _ensure_relations
-from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
+from mangpai.subjective.xiangfa_ops import huanxiang as _huanxiang
+from mangpai.subjective.yongshen import (
+    assess_direction_signals, direction_brief, classify_strength, _yongshen_cats,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -630,7 +634,6 @@ def detect_zixi_xingbie(
     # 互证：xiangfa_ops.huanxiang 制尽换象
     corroborated = False
     try:
-        from mangpai.subjective.xiangfa_ops import huanxiang as _huanxiang
         hx = _huanxiang(day_gan, gans, zhis, rel)
         for f in hx:
             if f.get('domain') == cat or cat in (f.get('domain') or ''):
@@ -838,7 +841,6 @@ def classify_xiongdi_paihang(
     Returns:
         {'is_eldest': bool|None, 'basis': str, 'desc': str}
     """
-    from mangpai.objective.changsheng import get_changsheng_mangpai
     month_zhi, day_zhi = zhis[1], zhis[2]
     stage = get_changsheng_mangpai(day_gan, month_zhi)
     yang_sheng = stage in ('长生', '临官', '帝旺')
@@ -1021,9 +1023,7 @@ def detect_zixi_youlie(
     try:
         strength = ((direction_result or {}).get('cong_target') or {}).get('strength', '')
         if not strength:
-            from mangpai.subjective.yongshen import classify_strength as _cls_st
-            strength = _cls_st(day_gan, gans, zhis)
-        from mangpai.subjective.yongshen import _yongshen_cats
+            strength = classify_strength(day_gan, gans, zhis)
         ys_cats, js_cats = _yongshen_cats(strength)
         hour_cats = _pillar_cats(day_gan, gans[3], zhis[3])
         # 喜忌混杂（喜用与忌神并见时柱）不立腿，防过火

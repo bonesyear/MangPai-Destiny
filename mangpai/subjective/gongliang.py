@@ -84,8 +84,9 @@ from mangpai.objective.constants import (
 from mangpai.objective.muku import is_entomb
 from mangpai.objective.shishen import wx_cat as _shishen_cat
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
-from mangpai.subjective.caiming import classify_caifu_view
+from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 from mangpai.subjective.yongshen import (
+    classify_strength,
     detect_bijiao_duocai,
     detect_caisheng_sha_gongshen,
     detect_guansha_rumu_xiong,
@@ -300,7 +301,6 @@ def analyze_gongliang(
     # 计入功量点——zb 的包制/冲链启发式存在误检（如例六包制、普通4冲链），盲目 +1
     # 会与源文层数相悖，故功量点仍以本模块 san_he_formed / _chain_length 保守判为准。
     if zeishen_bushen_result is None and day_gan and gans and zhis and len(gans) == 4:
-        from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
         zeishen_bushen_result = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
     _zb = zeishen_bushen_result or {}
     _zb_sub: Dict = _zb.get('zeishen_bushen') or {}
@@ -749,6 +749,10 @@ def analyze_gongliang(
     #   为一层功。去重口径：官杀+财 正是原神用神同制配对之一，同制成立时已被 +2
     #   覆盖；仅同制不成立时，统摄独立计一层。消费 caiming.classify_caifu_view。
     if yuanshen_hit is None and day_gan and gans and zhis and len(gans) == 4:
+        # 循环依赖显式化（H-fix-4c）：caiming 顶层导入本模块 analyze_gongliang
+        # （领域层→功量层，正向），本模块对 caiming 的反向消费保持函数内导入，
+        # 使 subjective 顶层依赖图无环（gongliang⇢caiming 为唯一回边）。
+        from mangpai.subjective.caiming import classify_caifu_view
         cf = classify_caifu_view(day_gan, gans, zhis)
         tong = [v for v in (cf.get('views') or []) if '统' in v]
         if tong:
@@ -1082,7 +1086,6 @@ def analyze_gongliang(
     _strength_gl = ''
     if day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4:
         try:
-            from mangpai.subjective.yongshen import classify_strength
             _strength_gl = classify_strength(day_gan, gans, zhis)
         except Exception as e:
             _logger.warning('强弱判定失败，从格标注跳过: %s', e, exc_info=True)

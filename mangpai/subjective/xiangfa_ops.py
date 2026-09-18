@@ -52,6 +52,7 @@ from mangpai.objective.shishen import (
 from mangpai.subjective.utils import (
     ensure_relations as _ensure_relations, ensure_muku as _ensure_muku,
 )
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.zeishen_bushen import (
     detect_zeishen_bushen, detect_bao_zhi, detect_chong_lian,
     _party_strength, _CHENG_DANG,
@@ -971,7 +972,6 @@ def huanxiang(
         zb = zb_result.get('zeishen_bushen') or {}
         bao = zb_result.get('bao_zhi') or bao
     else:
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
         zg = analyze_zuogong(day_gan, zhis[2], gans[0], zhis[0],
                              gans[1], zhis[1], gans[3], zhis[3])
         clian = detect_chong_lian(zhis, gans)
@@ -1393,7 +1393,6 @@ def xiangfa_fallback(
     # ── 回退激活：做功不成立（zuogong 无功/无功量），缺省自调 ──
     zg = zuogong_result
     if zg is None:
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
         zg = analyze_zuogong(
             day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3])
     work_types = (zg or {}).get('work_types') or []

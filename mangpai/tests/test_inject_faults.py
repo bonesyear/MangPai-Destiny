@@ -325,8 +325,9 @@ def test_gongliang_zuogong_propagates(monkeypatch):
 
 def test_gongliang_zeishen_propagates(monkeypatch):
     import mangpai.subjective.gongliang as gl
-    import mangpai.subjective.zeishen_bushen as zb
-    monkeypatch.setattr(zb, 'analyze_zeishen_bushen', _injected_bug)
+    # H-fix-4c：gongliang 顶层绑定 analyze_zeishen_bushen（原函数内局部导入），
+    # patch 目标随之上移到消费模块侧
+    monkeypatch.setattr(gl, 'analyze_zeishen_bushen', _injected_bug)
     with pytest.raises(RuntimeError, match='injected bug'):
         gl.analyze_gongliang(None, '庚', _G4, _Z4)
 

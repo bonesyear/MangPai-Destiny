@@ -750,7 +750,8 @@ def test_render_bazi_line_carries_gender(monkeypatch):
             'usage': {}, 'cost_cny': 0.0, 'price_tier': 'offpeak',
             'elapsed_s': 0.0, 'model': 'mock'}
 
-    monkeypatch.setattr('mangpai.subjective.llm_backend.call_deepseek', fake)
+    # H-fix-4c：llm_channel 顶层绑定 call_deepseek（原函数内局部导入），patch 消费侧
+    monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek', fake)
     eng = {'bazi': {'year': '甲子', 'month': '乙丑', 'day': '丙寅', 'hour': '丁卯'},
            'input': {'gender': '女'}}
     render_structured_reading(eng)

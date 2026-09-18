@@ -15,6 +15,7 @@ MangpaiEngine 接收 calc_bazi_full() 的输出，逐模块计算盲派分析结
 import copy
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from mangpai.objective import (
@@ -32,6 +33,7 @@ from mangpai.objective import (
     get_gan_xiang, get_zhi_xiang, get_shishen_xiang, get_gongwei_xiang,
 )
 from mangpai.objective.bazi_calc import calc_bazi_full, GAN, ZHI
+from mangpai.objective.jiaoyun import _year_gz
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.gongliang import analyze_gongliang
@@ -57,6 +59,7 @@ from mangpai.subjective.zaihuo import analyze_zaihuo
 from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 from mangpai.subjective.xiangfa_ops import analyze_xiangfa_ops
 from mangpai.subjective.narrative import summarize_engine_result
+from mangpai.subjective.yongshen import assess_direction_signals
 
 logger = logging.getLogger(__name__)
 
@@ -222,8 +225,6 @@ class MangpaiEngine:
         同口径（公元 4 年甲子，干=(y-4)%10、支=(y-4)%12）。当前年份取系统当年，
         故应期链路在无外部流年数据时仍能基于当下输出。
         """
-        from datetime import datetime
-        from mangpai.objective.jiaoyun import _year_gz
         try:
             cur_year = datetime.now().year
         except (OSError, OverflowError, ValueError) as e:
@@ -242,7 +243,6 @@ class MangpaiEngine:
         if not birth_year:
             return None
         try:
-            from datetime import datetime
             return datetime.now().year - int(birth_year)
         except (TypeError, ValueError) as e:
             # 白名单化（H8 P1）：出生年非数值属输入瑕疵，显式 None + 记录原因
@@ -634,7 +634,6 @@ class MangpaiEngine:
         # caiming/guanming/zhiye 已有内部否决链，口径同源）。
         # F1 标注：result['direction'] 仅模块间透传——payload(selectors)/
         # _build_summary/narrative 三出口均不可见（批10 备案，非纯死勿删）。
-        from mangpai.subjective.yongshen import assess_direction_signals
         self._write(result, 'direction', self._safe_compute(
             'direction', assess_direction_signals,
             self.day_gan, self.gans, self.zhis,

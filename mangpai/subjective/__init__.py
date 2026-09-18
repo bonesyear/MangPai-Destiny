@@ -11,7 +11,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from mangpai.objective.dayun import dayun_gz_sequence
+
 from .schools import School, MANGPAI_SCHOOL
+from .dayun import analyze_dayun_mangpai
+from .zaihuo import zaihuo_llm_view
 
 _PROMPT_DIR = Path(__file__).parent / "prompts"
 
@@ -83,8 +87,6 @@ def _synthesize_dayun(data: dict):
     if gender not in _MALE + _FEMALE:
         return None
 
-    from mangpai.objective.dayun import dayun_gz_sequence
-    from .dayun import analyze_dayun_mangpai
 
     seq = dayun_gz_sequence(gans[0], bazi['month'], gender in _MALE)
     analysis = analyze_dayun_mangpai(
@@ -191,7 +193,6 @@ def build_payload(data: dict, school: School = MANGPAI_SCHOOL) -> dict:
     if school.selectors == ("*",):
         data = _jsonable(data)
         if isinstance(data, dict) and 'zaihuo' in data:
-            from .zaihuo import zaihuo_llm_view
             data = dict(data)
             data['zaihuo'] = _jsonable(zaihuo_llm_view(data['zaihuo']))
         return _scrub_death(data)
@@ -204,7 +205,6 @@ def build_payload(data: dict, school: School = MANGPAI_SCHOOL) -> dict:
     # F14 寿元红线（批10）：zaihuo.siwang 死亡档/寿元星 markers 物理屏蔽，
     # payload 侧降级为 zaihuo_llm_view（疾病/车祸/牢狱三域视图）。
     if 'zaihuo' in payload:
-        from .zaihuo import zaihuo_llm_view
         payload['zaihuo'] = _jsonable(zaihuo_llm_view(payload['zaihuo']))
     # D3 补供：dayun_analysis——真实产出统一投影形状；engine 未产出时合成补供。
     if 'dayun_analysis' in school.selectors:

@@ -24,6 +24,7 @@ from typing import Dict, List, Optional
 
 from mangpai.objective.bazi_calc import ten_god
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.shensha import _YANG_REN_FULL
 from mangpai.objective.constants import (
     DI_ZHI, GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS, SAN_HE,
@@ -712,7 +713,6 @@ def _duanju_hits(gans, zhis, day_gan, ctx, gender):
     if ('甲' in gans or day_gan == '甲') and gans.count('庚') >= 2:
         emit('qinglong_baihu', f'甲木（青龙）逢庚（白虎）×{gans.count("庚")}——肢体伤')
     if gender == 'female':
-        from mangpai.objective.shensha import _YANG_REN_FULL
         ren_list = _YANG_REN_FULL.get(day_gan, [])
         if zhis[2] in ren_list:
             emit('female_day_ren', f'女命日支{zhis[2]}为羊刃——子宫刀伤')

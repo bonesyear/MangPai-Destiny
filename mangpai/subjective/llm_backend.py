@@ -170,7 +170,6 @@ def call_deepseek(
 
 def _self_check():
     """离线自检：成本折算与 key 解析逻辑（不触网）。"""
-    from datetime import datetime
     usage = {'prompt_tokens': 10_000, 'completion_tokens': 5_000}
     peak = datetime(2026, 8, 18, 10, 0, tzinfo=_BJT).timestamp()    # 北京 10:00 峰
     off = datetime(2026, 8, 18, 20, 0, tzinfo=_BJT).timestamp()     # 北京 20:00 谷

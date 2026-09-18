@@ -27,7 +27,7 @@ from mangpai.objective.constants import (
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, LIU_PO,
     XING_PAIRS, AN_HE, SAN_HE, BAN_HE,
     TOMB_MAP, LU, PILLAR_KEYS, PILLAR_NAMES_CN,
-    SI_SHENG, SI_ZHENG, DI_ZHI,
+    SI_SHENG, SI_ZHENG, DI_ZHI, HUA_YONG_MAP, BI_QI,
 )
 from mangpai.objective.bazi_calc import GAN, ZHI  # 天干/地支序列表（唯一定义处）
 from mangpai.objective.changsheng import get_changsheng_mangpai
@@ -109,7 +109,6 @@ def _check_hua(a: str, b: str, month_zhi: str = '') -> str:
     化气；否则合而不化（返回 ''）。month_zhi 缺省时保守不标化（旧行为不验
     月令直接标化气，属口径缺陷——M2 修复）。
     """
-    from mangpai.objective.constants import HUA_YONG_MAP
     hua_wx = HUA_YONG_MAP.get((a, b), '')
     if not hua_wx or not month_zhi:
         return ''
@@ -236,7 +235,6 @@ def _analyze_zhi_relations(
 
 def _classify_he(a: str, b: str) -> str:
     """分类六合类型（合绊/合克/合伤/闭气）。"""
-    from mangpai.objective.constants import BI_QI
     a_wx = ZHI_WX.get(a, '')
     b_wx = ZHI_WX.get(b, '')
 

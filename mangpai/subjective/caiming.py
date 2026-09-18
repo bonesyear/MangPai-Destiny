@@ -60,10 +60,17 @@ from mangpai.objective.binzhu import analyze_binzhu
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _shishen_cat,
 )
+from mangpai.objective.zihe import detect_zihe
 from mangpai.subjective.utils import (
     ensure_relations as _ensure_relations, ensure_muku as _ensure_muku,
 )
-from mangpai.subjective.yongshen import assess_direction_signals, _LIUHE_VICTIMS
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
+from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
+from mangpai.subjective.gongliang import analyze_gongliang
+from mangpai.subjective.yongshen import (
+    assess_direction_signals, _LIUHE_VICTIMS,
+    classify_strength, classify_cong_target,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -458,7 +465,6 @@ def _assess_caixing_path(
     # 癸巳同例）。合神非我方者（壬戌之丁火合壬财）仍论绊。
     _cailai_jiuwo = False
     try:
-        from mangpai.objective.zihe import detect_zihe
         _zihe = detect_zihe(gans, zhis)
         for _prec in _zihe.get('pillars') or []:
             if _prec.get('is_day') or not _prec.get('activated'):
@@ -1269,8 +1275,6 @@ def _zeishen_jingzhi(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
     为空，制局目标集缺 zuogong 补全（含 auxiliary 过滤），净制口径与引擎
     zb_res 分叉；现与 engine/gongliang/huanxiang 同源（单源化）。
     """
-    from mangpai.subjective.zuogong_confirm import analyze_zuogong
-    from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
     zg = analyze_zuogong(day_gan, zhis[2], gans[0], zhis[0],
                          gans[1], zhis[1], gans[3], zhis[3])
     r = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
@@ -1342,7 +1346,6 @@ def assess_caiming_level(
     # 从格（从财/从弱/从强）豁免：从格以所从之神为局主，扶抑系「浮财/身财平衡」
     # 口径不适用（段氏从财格=财成势从之，巨富潜质，非浮财）。
     strength = ''
-    from mangpai.subjective.yongshen import classify_strength
     strength = str(classify_strength(day_gan, gans or [], zhis or []))
     cong_ge = strength.startswith('从')
     # A7 从格顺势档根判门（K3-294批5）：日主坐支为日主五行之墓库（坐库通根）
@@ -1443,7 +1446,6 @@ def assess_caiming_level(
     # 「儿又生儿」之流通；从儿无财者儿不生儿、不流通，基阶不升（22期）。
     if strength == '从弱' and not ds_xiong and not cong_cai_pin \
             and not cong_floor_blocked:
-        from mangpai.subjective.yongshen import classify_cong_target
         _ct = classify_cong_target(day_gan, gans or [], zhis or [], strength)
         if _ct.get('label') == '从儿':
             _ss_wx_c = WX_SHENG.get(GAN_WX.get(day_gan, ''), '')
@@ -1466,7 +1468,6 @@ def assess_caiming_level(
                     # 一事不二升（例134 身旺财旺自合合财=富，非巨富），防叠加
     if not ds_xiong and not cong_ge and strength == '身强':
         try:
-            from mangpai.objective.zihe import detect_zihe
             _dz2 = detect_zihe(gans or [], zhis or []).get('day_zihe')
         except Exception as e:
             _logger.warning('自合柱检测失败，G9 升档跳过: %s', e, exc_info=True)
@@ -1779,8 +1780,6 @@ def analyze_caiming(
     # gongliang 缺省自调（只读消费，不改功量层）
     gl = gongliang_result
     if gl is None:
-        from mangpai.subjective.gongliang import analyze_gongliang
-        from mangpai.subjective.zuogong_confirm import analyze_zuogong
         zg = analyze_zuogong(
             day_gan, zhis[PILLAR_KEYS.index('day')],
             gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
