@@ -809,9 +809,68 @@ def analyze_zeishen_bushen(
     }
 
 
+# ──────────────────────────────────────────────────────────────────────
+# 党势级贼捕轴（A11，官命域消费专用）
+# ──────────────────────────────────────────────────────────────────────
+def detect_zeibu_dangshi(day_gan: str, gans: List[str], zhis: List[str]
+                         ) -> List[Dict]:
+    """党势级贼捕轴检测（A11，官命域消费专用）。
+
+    书锚：chuji:380-385「火与燥土成势要制金水，癸水成贼神…食伤制印的结构，
+    印是权力。印被制了，制了就要得到」（cj-书记 行癸丑壬申运升地委副书记）。
+    贼捕本义=党势悬殊（警察特别多、小偷一出现即被擒，chuji:374-378 追捕原理），
+    无须具体有向制边——与 detect_zeishen_bushen 的有向制边/合制单轴口径互补。
+    本函数为**纯新增**，不改 detect_zeishen_bushen 既有输出（gongliang/caiming
+    零传导）。
+
+    要件（阈值用本模块既有 _CHENG_DANG/_TAI_WANG）：
+      1. 贼神 X 虚透：透干且无本气支（孤立小偷；日主五行不为贼）；
+      2. 捕神 Y=克 X 者党势 >= _TAI_WANG（太旺）且 Y/X >= 3（势力悬殊）；
+      3. 贼之原神不救：原神无透干且无本气支，或原神之克星亦成势
+         （>=_CHENG_DANG，原神被制）。
+
+    Returns:
+        [{'bushen_wx', 'zeishen_wx', 'bushen_strength', 'zeishen_strength'}...]
+        按五行定序（金木水火土）扫描，确定性。
+    """
+    out: List[Dict] = []
+    day_wx = GAN_WX.get(day_gan, '')
+    if not day_wx or len(gans or []) != 4 or len(zhis or []) != 4:
+        return out
+    ke_by = {x: y for y, x in WX_KE.items()}       # X -> 克 X 者
+    sheng_by = {x: y for y, x in WX_SHENG.items()}  # X -> 生 X 者（原神）
+    for x in ('金', '木', '水', '火', '土'):
+        if x == day_wx:
+            continue  # 日主五行不为贼
+        if not any(GAN_WX.get(g) == x for g in gans if g):
+            continue  # 未透干
+        if any(ZHI_WX.get(z) == x for z in zhis if z):
+            continue  # 有本气支，非虚透
+        y = ke_by.get(x, '')
+        py = _party_strength(y, gans, zhis)
+        px = _party_strength(x, gans, zhis)
+        if py < _TAI_WANG or px <= 0 or py / px < 3:
+            continue
+        z0 = sheng_by.get(x, '')
+        yuan_save = bool(z0) and (
+            any(GAN_WX.get(g) == z0 for g in gans if g)
+            or any(ZHI_WX.get(z) == z0 for z in zhis if z)) \
+            and _party_strength(ke_by.get(z0, ''), gans, zhis) < _CHENG_DANG
+        if yuan_save:
+            continue
+        out.append({
+            'bushen_wx': y,
+            'zeishen_wx': x,
+            'bushen_strength': round(py, 2),
+            'zeishen_strength': round(px, 2),
+        })
+    return out
+
+
 __all__ = [
     'detect_bao_zhi',
     'detect_chong_lian',
     'detect_zeishen_bushen',
     'analyze_zeishen_bushen',
+    'detect_zeibu_dangshi',
 ]

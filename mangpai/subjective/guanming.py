@@ -44,9 +44,11 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.bazi_calc import get_kong_wang
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.muku import is_entomb
 from mangpai.objective.shensha import _YANG_REN_FULL
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _shishen_cat,
+    wx_cat as _wx_cat,
 )
 from mangpai.objective.zihe import detect_zihe
 from mangpai.subjective.utils import ensure_relations as _ensure_relations
@@ -54,6 +56,7 @@ from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.gongliang import analyze_gongliang
 from mangpai.subjective.xiangfa_ops import daixiang
 from mangpai.subjective.yongshen import assess_direction_signals, classify_strength
+from mangpai.subjective.zeishen_bushen import detect_zeibu_dangshi
 
 # _YANG_GANS 随 _compute_shishen 下沉删除（H-fix-4b，本文件无其它引用）；
 # _compute_shishen/_shishen_cat/_ensure_relations 别名于顶部导入，本地副本删除。
@@ -484,6 +487,41 @@ def classify_guanming_combo(
                         '（印配比禄，zhongji:3679）')
                 break
 
+    # A11 贼捕制印/制官杀（zeishen→guanming 新消费边，仿 A7 藏杀被制 append
+    # 先例）：党势级贼捕净制（detect_zeibu_dangshi），被制方（贼神）为印
+    # =「制印得权」（chuji:380-385 书记「火与燥土成势要制金水，癸水成贼神…
+    # 食伤制印的结构，印是权力。印被制了，制了就要得到」；机制类锚
+    # zhongji:3855-3857 朱镕基「财库制去印库，印为权力，制印得权」、
+    # gaoji:11171/11380）；为官杀=制官杀得权，与 G3 同口径——官弱为用神
+    # 被制不立（伤官制官不为官），官为忌/从格/伤官去官格豁免。
+    # 贼捕制印入印类 combo 家族：方向门禁令沿用（不按主宾/主位，10 锚勿动）。
+    for _ax in detect_zeibu_dangshi(day_gan, gans, zhis):
+        _ax_cat = _wx_cat(day_wx, _ax['zeishen_wx'])
+        if _ax_cat == '印':
+            key = '贼捕制印'
+            if key not in combos:
+                combos.append(key)
+                details.append(
+                    f'贼捕制印（捕神「{_ax["bushen_wx"]}」党势太旺'
+                    f'{_ax["bushen_strength"]}，贼神「{_ax["zeishen_wx"]}」印虚透'
+                    f'孤立{_ax["zeishen_strength"]}）：印是权力，制印得权'
+                    '（chuji:380 书记例「癸水成贼神」）')
+        elif _ax_cat == '官杀':
+            # G3 同口径：官弱为用神被制不为官；官为忌/从格/去官格者制官得权
+            if guan_strength < 2 and not guan_wei_ji and not cong_ge \
+                    and shishang_strength < 3:
+                details.append(
+                    f'贼捕制官杀：官杀弱（{guan_strength}）为用神被制，'
+                    '伤官制官不为官，不入官命（G3 同口径）')
+                continue
+            key = '贼捕制官杀'
+            if key not in combos:
+                combos.append(key)
+                details.append(
+                    f'贼捕制官杀（捕神「{_ax["bushen_wx"]}」党势太旺'
+                    f'{_ax["bushen_strength"]}，贼神「{_ax["zeishen_wx"]}」官杀虚透'
+                    f'孤立{_ax["zeishen_strength"]}）：制官杀得权（贼捕净制）')
+
     # G9 自合柱合制（48期康熙型）：非日柱之激活自合柱，柱上官星干被坐支
     # 藏干合绊=制（「年干甲被年支午中己合绊了，是制官得官」）。官为忌神
     # （身弱/从强，guan_wei_ji）者合制得官——与 G3 去官得官同口径；官为
@@ -506,12 +544,61 @@ def classify_guanming_combo(
                 f'{_rec["he_shen"]}合绊=制）：官为忌神被合制，制官得官'
                 f'（48期康熙例：甲被午中己合绊，制官得官，级别省级）')
 
+    # G9 扩展（A19 食合官支，chuji:1751-1756）：非日柱激活自合柱，柱上干为
+    # 食伤、坐支主气为官杀——「辛生了癸，癸合了巳，巳与未一党，巳又生未，
+    # 官制了食，官在这里有功，所以是当官的」（cj-主席 辛日癸巳时，正厅级）。
+    # 与 G9 自合制官同族而合方相反（G9=官干被支合绊失用，康熙例在年柱故
+    # G9 无主位门；本型=食干合官支、官得合有功），官为制方故不要求官为忌。
+    # 主位门：书规则三（zhongji:3683-3684）做功须有主位的字，书例（主席）
+    # 自合柱居时柱主位；纯宾位（年月）食合官支不立（F12 主位门合成例锚）。
+    # 官支入墓门（假阳反锚 lixiangxue:6340 普例1「所做的功仅仅是制时干之癸
+    # 水。所幸有巳入戌墓之功，能有工作单位，难以成大贵…只是个普通人」——
+    # 同构癸巳时柱，唯巳官入戌墓；入墓之物不做功（KB §4.1），官被收不入
+    # 合官得官）。
+    _guan_tombs = {z for z, els in TOMB_MAP.items() if guan_wx and guan_wx in els}
+    for _rec in _zihe_g.get('pillars') or []:
+        if _rec.get('is_day') or not _rec.get('activated'):
+            continue
+        if _rec['idx'] != 3:
+            continue  # 主位门：食合官支须居时柱主位（书规则三，主席例在时柱）
+        _gi = _rec['idx']
+        if _shishen_cat(_compute_shishen(day_gan, gans[_gi])) != '食伤':
+            continue  # 柱上之干非食伤不论
+        if ZHI_WX.get(zhis[_gi], '') != guan_wx:
+            continue  # 坐支主气非官杀不论
+        if any(is_entomb(zhis[_gi], _t, zhis, gans)
+               for _t in sorted(_guan_tombs) if _t in zhis):
+            details.append(
+                f'食合官支（{_rec["key_cn"]}柱{_rec["gz"]}自合）：'
+                f'{zhis[_gi]}官支入墓被收，入墓之物不做功，不立官命'
+                '（普例1「巳入戌墓…难以成大贵」lixiangxue:6340）')
+            continue
+        key = '合制·食合官支'
+        if key not in combos:
+            combos.append(key)
+            details.append(
+                f'{key}（{_rec["key_cn"]}柱{_rec["gz"]}自合，{gans[_gi]}食合'
+                f'{zhis[_gi]}官支）：官制食有功，合官得官'
+                '（chuji:1751 主席例：癸合了巳，官制了食，官在这里有功）')
+
     # 生用化用
     shengyong: List[str] = []
-    # 印化官杀（杀印相生）；G0 同口径：辅助做功（auxiliary）不计入官命组合
-    if any(a.get('type') == '杀印相生' and not a.get('auxiliary') for a in wa):
+    # 印化官杀（杀印相生/支杀化印）；G0 同口径：辅助做功（auxiliary）不计入
+    # 官命组合。支杀化印（A8 新型：杀不透干、支藏杀合印化杀生身，chuji:1369
+    # 「这种结构就是当官的。化杀得权」）与杀印相生同作印化官杀消费。
+    _shayin_hit = any(a.get('type') == '杀印相生' and not a.get('auxiliary')
+                      for a in wa)
+    _zhisha_hit = any(a.get('type') == '支杀化印' and not a.get('auxiliary')
+                      for a in wa)
+    if _shayin_hit or _zhisha_hit:
         shengyong.append('印化官杀')
-        details.append('印化官杀（杀印相生）：官杀->印->日主，化杀为印，主文职/职权')
+        if _zhisha_hit and not _shayin_hit:
+            details.append(
+                '印化官杀（支杀化印）：支藏杀合印化杀生身，化杀得权'
+                '（chuji:1369），主文职/职权')
+        else:
+            details.append(
+                '印化官杀（杀印相生）：官杀->印->日主，化杀为印，主文职/职权')
     # 官禄格（F12 按书修正）：「印生禄的，禄在主位，禄当权力，为官禄格」
     # （zhongji:3969，慈禧例「去官与官的原神，时上见禄…官都大到了极点」；
     # shouke:6392）——日主之禄居日支/时支（主位）且印星明现（印生日主即生禄）。
@@ -540,14 +627,14 @@ def classify_guanming_combo(
     if xiangfa_only and not combos and not shengyong_core:
         details.append(
             f'象法类（{"/".join(xiangfa_only)}）单独无做功组合佐证，不立官命（G4）')
-    # 印类 combo（财制印/印制伤食/伤食制印/印配比禄及合制变体）以印主权力，
+    # 印类 combo（财制印/印制伤食/伤食制印/印配比禄/贼捕制印及合制变体）以印主权力，
     # 书明文无官杀亦可立官命（reg67-印制伤食市长「四柱无官，印主权力，所以
     # 此造是个官员」；cj-5536 元朝丞相掌重权一品；cj-处级-5「财星制印的格局，
     # 是当官的命」；县委书记「伤去印，去印得权」zhongji:3868-3876；报社总编
     # 「羊刃制印库，有权」zhongji:4108），豁免 has_guansha 门槛（K3-294官命批）
     _yin_combo_hit = any(
         c.replace('合制·', '') in ('财制印', '印制伤食', '伤食制印',
-                                   '印配比禄·比劫制印库')
+                                   '印配比禄·比劫制印库', '贼捕制印')
         for c in combos)
     # G6 收窄（K3-294官命批）：官杀透干明现且另有杀刃相制/印化官杀之权柄做功
     # 者，不以支空制死论——支上官被制空，干上官杀犹存，官杀之气已入制杀得权/
@@ -928,7 +1015,7 @@ def analyze_guanming(
     if is_guanming_raw and veto_reasons:
         _combos_now = combo.get('zhiyong_combos', []) or []
         _yin_now = any(c.replace('合制·', '') in (
-            '财制印', '印制伤食', '伤食制印', '印配比禄·比劫制印库')
+            '财制印', '印制伤食', '伤食制印', '印配比禄·比劫制印库', '贼捕制印')
             for c in _combos_now)
         # R1GUAN2：从弱格比劫自身被官杀明制（官杀制比劫 combo 在场）者，比劫
         # 被制不能夺财，R1 比劫夺财不否决官命（克林顿/reg67-公安/县长-2/歌唱家

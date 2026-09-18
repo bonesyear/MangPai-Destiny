@@ -1622,3 +1622,31 @@ H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 t
 - **抖动逐条归因**（509 例全量输出 pre/post 对拍）：白名单外路径 **0**——xiangfa_ops 34290 路径（B1 序/域文本）/ zaihuo 129 例×2（`chehuo.xiong_shen`+`desc`，「七杀→正官」或「+正官」，score/risk 零触碰）/ zhiye 30 例（lawyer evidence「酉卯冲→卯酉冲」）/ gongmen_wuzhi 30 例×2（同族）/ narrative 167 例（digest 下游传导，全部有上游解释）。
 - **六件套**：verify 432+70+64+20 / pytest **1066 passed+1xf**（1059+新增 7：B2×3、B3×1、C1×1、C3×2）/ 67/famous 无变化 / calib 常驻 2 条零新增 / check_layering+check_typing_imports 通过 / 3.11+3.14 import 冒烟 ok。
 - **非目标维零翻转**：官 48✅/财 47✅/职 24✅ 保；引擎判定（score/层级）零改动。
+
+## P1 官命检测簇批（2026-09-18，执行登记 · 引擎精度批 P 系列首批——判定改动批，非卫生批）
+
+> 依据：方案 `~/.claude/projects/-root-metaphysics/memory/kimi-engine-precision-plan-20260918.md` P1 节；预注册 `docs/kimi-p1-guanming-prereg-20260918.md`（动工前落盘：受影响书例清单+双端锚+4锚/10锚）。基线推进 `snapshots/20260918_l1.json` → **`20260918_p1.json`**（LATEST 已推进）。
+
+### 落地项（新检测面×2 + 新消费边×2）
+
+| 项 | 位置 | 落地 |
+|---|---|---|
+| A8 支杀化印（新检测面①） | `objective/zuogong_detect.py` `_scan_shayin_huayong` | 新 type='支杀化印' 与 '杀印相生' **并列**，明杀透干门未动：杀不透干+印 active（透干/月令/坐下）+杀支与印支六合/半合+杀支非旬空（日/年并参）。**仅入 work_actions 不进 work_types**——confirm/gongliang/xiangfa 均以 type=='杀印相生' 精确匹配消费，新型结构性不可达（化用虚高 4 锚免疫）。书锚 chuji:1369-1371/zhongji:3911-3912·3932-3933/shouke:6648；反锚 shouke:5768（申杀旬空，li112 保） |
+| A19 食合官支（新检测面②合关系识别+消费边④G9 扩展） | `subjective/guanming.py` G9 循环扩展 | 非日柱激活自合柱+柱干食伤+坐支主气官杀 → combo '合制·食合官支'；**时柱主位门**（书规则三 zhongji:3683，主席例在时柱；F12 主位门合成例保）+**官支入墓门**（入墓之物不做功 KB §4.1；反锚 lixiangxue:6340 普例1「巳入戌墓…难以成大贵」）。书锚 chuji:1751-1756 |
+| A11 贼捕制印/制官杀（新消费边③ zeishen→guanming） | `subjective/zeishen_bushen.py` 新公开 `detect_zeibu_dangshi` + `guanming.py` 消费 | 党势级贼捕轴：贼虚透（透干无本气支）+捕=贼克星党≥_TAI_WANG(6.0)+捕/贼≥3+贼原神不救；贼=印→combo '贼捕制印'（入印类家族 `_yin_combo_hit`/`_yin_now`，方向门禁令沿用）；贼=官杀→combo '贼捕制官杀'（G3 同口径门）。书锚 chuji:380-385/zhongji:3855-3857/gaoji:11171·11380。纯新增函数，zeishen 既有输出零改动（gongliang/caiming 零传导），engine.py 零改动 |
+| 哨兵 | `mangpai/tests/test_p1_guanming_zeibu.py` 11 测 | 先红（ImportError）后绿（11/11）；含 A8 不进化用主功链契约（confirm primary_work≠化用）、li112 旬空门、普例1 入墓门、李昌镐 G6 保、zhenbao-01/岳飞 A11 不命中反锚 |
+
+### 翻转明细与逐条归因（全量 blind diff，vs l1）
+
+- **trainset 官 96→100✅（+4，方案带 +3~5 内；M3：Δ+3.5%<半宽和12.9% 噪声带内，CI 下界 75.6%→79.6%）**：cj-正处级化杀（A8，chuji:1371）/cj-书记（A11，chuji:380）/cj-主席（A19，chuji:1751）/cj-戴笠（A11——⚠️机制类书锚路径修复，该例书文机制=制财军权 C 备案 8，已在预注册声明）。**财/职零翻转**。
+- **heldout 三维零翻转零抖动**：官 48✅/财 47✅/职 24✅ 保（红线①②达成；scored ❌18 无一命中三机制，li207 杀透干属旧型校准域非本批对象）。
+- **文本抖动 1 条**：zj-平常八字 veto_reasons ['反局']→[]——A8 命中（申子合化杀生身，与 cj-正处级同构）→印化官杀=正向结构→官命域门槛剥反局，机制设计内（官命维 unscored 零评分影响）。
+
+### 验证（全绿）
+
+- 哨兵 11 测先红后绿；pytest **1077 passed+1xf**（1066+新增 11）；verify 432+70+64+20 全绿。
+- 双 seed（PYTHONHASHSEED=0 vs 默认）blind 快照剥 _meta 逐字节一致。
+- regression67/famous 无变化（化用虚高 4 锚 CAT1 在内✓）；calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财）零新增（探针实证两例三机制均不命中，存量维持）。
+- A4 印类方向门 10 锚逐例复验全 True（岳飞/蒋介石/周恩来×2/例6副省级/曾国藩×2/银行行长×3）。
+- check_layering+check_typing_imports 通过；3.11.15/3.14.4 双版本 compute_all 冒烟一致。
+- 残留：本批代码改动未提交（工作树）；P2（A12+A13-A18 可机制化者）为下一批。

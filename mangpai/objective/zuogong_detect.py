@@ -20,6 +20,7 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.muku import is_entomb, analyze_muku, is_gan_entombed
 from mangpai.objective.changsheng import get_changsheng_mangpai
+from mangpai.objective.bazi_calc import get_kong_wang
 from mangpai.objective.shensha import _YANG_REN as _YANG_REN_MAP
 from mangpai.objective._relation_utils import pair_in
 
@@ -572,6 +573,44 @@ def _scan_shayin_huayong(day_gan: str, day_wx: str, gans: List[str],
                     'desc': f'官杀({sha_gan}{sha_wx})生印({yin_wx})生日主({day_gan}{day_wx})，杀印相生化用做功',
                 })
                 work_types.add('化用')
+            # ── 支杀化印（A8 新型，与杀印相生并列；不放宽明杀透干门）──
+            # 书锚：chuji:1369-1371「子化了申生寅…这叫印化杀生身。这种结构就是
+            # 当官的。化杀得权」；zhongji:3911-3912 同造「年上七杀生印…现为正处，
+            # 还升」；zhongji:3932-3933「子水化了申杀，合成水局生身，副省长」；
+            # shouke:6648「癸印化酉官，申杀占主的位置」。杀不透干而支藏杀与
+            # 印支相合（六合/半合）化者，印化杀生身同功，立支杀化印新型。
+            # 反锚（旬空门）：shouke:5768「可申杀空亡，不是真的兵刃相击，系国家
+            # 足球队教练」——杀支落旬空（日/年并参，与 guanming G6 同口径）不立。
+            # 纪律：仅入 work_actions 供官命域（guanming 印化官杀）消费，**不进
+            # work_types**——confirm hua_success/gongliang 化用成局链零传导
+            # （化用虚高 4 锚=制例三/合例六/墓例一/复例二 结构性免疫）。
+            elif yin_active and sha_wx and yin_wx:
+                _kw_all = set(get_kong_wang(day_gan, zhis[2]).get('zhi', [])) | set(
+                    get_kong_wang(gans[0], zhis[0]).get('zhi', []))
+                _done = False
+                for si in range(4):
+                    if _done or ZHI_WX.get(zhis[si]) != sha_wx or zhis[si] in _kw_all:
+                        continue
+                    for yi in range(4):
+                        if yi == si or ZHI_WX.get(zhis[yi]) != yin_wx:
+                            continue
+                        _p1, _p2 = zhis[si] + zhis[yi], zhis[yi] + zhis[si]
+                        if not (BAN_HE.get(_p1) or BAN_HE.get(_p2)
+                                or _check_pair(zhis[si], zhis[yi], LIU_HE)):
+                            continue
+                        work_actions.append({
+                            'type': '支杀化印',
+                            'action': '化用',
+                            'from': f'日干({day_gan})',
+                            'to': f'{PILLAR_NAMES_CN[si]}支({zhis[si]})',
+                            'from_pos': 'day_gan',
+                            'to_pos': f'{PILLAR_KEYS[si]}_zhi',
+                            'desc': f'支杀({zhis[si]}{sha_wx})合印({zhis[yi]}{yin_wx})'
+                                    f'化杀生身，支杀化印做功（杀不透干，chuji:1369）',
+                        })
+                        # 不进 work_types（见上纪律）
+                        _done = True
+                        break
 
     return {
         'work_actions': work_actions,

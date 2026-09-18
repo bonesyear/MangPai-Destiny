@@ -1,5 +1,15 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 P1 · 官命检测簇批（引擎精度批 P 系列首批·判定改动批；预注册先行）
+
+| 项目 | 内容 |
+|------|------|
+| A8 支杀化印（新检测面） | `zuogong_detect._scan_shayin_huayong` 新 type='支杀化印' 与 '杀印相生' **并列**（明杀透干门未动）：杀不透干+印 active+杀支与印支六合/半合+杀支非旬空（日/年并参，反锚 shouke:5768 li112 足球队教练）；**仅入 work_actions 不进 work_types**——化用主功/功量链结构性不可达（化用虚高 4 锚免疫）。书锚 chuji:1369-1371/zhongji:3911·3932/shouke:6648 |
+| A19 食合官支（新检测面+G9 扩展消费边） | `guanming` G9 循环扩展：非日柱激活自合柱+柱干食伤+坐支主气官杀 → combo '合制·食合官支'；**时柱主位门**（zhongji:3683 规则三）+**官支入墓门**（入墓不做功，反锚 lixiangxue:6340 普例1「巳入戌墓…普通人」）。书锚 chuji:1751-1756（cj-主席） |
+| A11 贼捕制印（新消费边 zeishen→guanming） | `zeishen_bushen` 新公开 `detect_zeibu_dangshi`（党势级贼捕轴：贼虚透+捕党≥6.0 太旺+捕/贼≥3+原神不救）；`guanming` 消费：贼=印→combo '贼捕制印'（入印类家族，方向门禁令沿用）、贼=官杀→'贼捕制官杀'（G3 同口径门）。书锚 chuji:380-385/zhongji:3855-3857/gaoji:11171·11380；zeishen 既有输出与 engine.py 零改动 |
+| 翻转明细（全预注册） | trainset 官 **96→100✅**（+4，方案带 +3~5 内；M3 噪声带内，CI 下界 75.6%→79.6%）：cj-正处级化杀/cj-书记/cj-主席/cj-戴笠（机制类书锚路径，已声明）；**财/职零翻转**；heldout 三维**零翻转零抖动**（官 48✅ 保）；文本抖动 1 条（zj-平常八字 veto 剥除，A8 门槛设计内） |
+| 验证 | 哨兵 `test_p1_guanming_zeibu.py` 11 测先红后绿；pytest **1077 passed+1xf**；verify 432+70+64+20；双 seed 逐字节一致；67/famous 无变化；calib 常驻 2 条零新增；化用虚高 4 锚+A4 印类方向门 10 锚复验全保；check_layering+check_typing_imports 通过；3.11/3.14 冒烟一致。换基线 **`snapshots/20260918_p1.json`** + LATEST 推进；预注册=`docs/kimi-p1-guanming-prereg-20260918.md`，详账=backlog P1 节 |
+
 ## 2026-09-18 L1 · 遗留清理批（引擎精度批紧前批，单批两阶段一次换基线；引擎判定/score 零改动）
 
 | 项目 | 内容 |
