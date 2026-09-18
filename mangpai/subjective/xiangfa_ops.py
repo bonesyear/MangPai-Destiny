@@ -333,7 +333,7 @@ def gongxiang(
         # 主体域 -> 命中层列表
         domain_layers: Dict[str, List[str]] = {}
         for layer, doms in layer_domains.items():
-            for dom in doms:
+            for dom in sorted(doms):  # L1 B1：set 迭代排序化（M1 确定性）
                 domain_layers.setdefault(dom, []).append(layer)
 
         for dom, layers in domain_layers.items():
@@ -674,7 +674,7 @@ def zhixiang(
         from_zhu = _is_zhu(from_pos)
         to_zhu = _is_zhu(to_pos)
         # 被制方 = to（受方）；其十神为所得/所失之物
-        controlled_cats = list({
+        controlled_cats = sorted({  # L1 B1：set 迭代排序化（M1 确定性）
             _shishen_cat(ss) for ss in _shishen_list_of_pos(to_pos, day_gan, gans, zhis)
             if ss
         })
@@ -810,7 +810,7 @@ def jiexiang(
     for a_i, b_i in neighbor_pairs:
         a_only = pillar_cats[b_i] - pillar_cats[a_i]  # a 缺而 b 有
         b_only = pillar_cats[a_i] - pillar_cats[b_i]  # b 缺而 a 有
-        for cat in a_only:
+        for cat in sorted(a_only):  # L1 B1：set 迭代排序化（M1 确定性）
             if cat in ('比劫',):
                 continue  # 比劫为同我，不构成借象
             findings.append({
@@ -825,7 +825,7 @@ def jiexiang(
                 'locked': False,
                 'desc': f'{PILLAR_NAMES_CN[a_i]}柱借邻柱{PILLAR_NAMES_CN[b_i]}之{cat}象',
             })
-        for cat in b_only:
+        for cat in sorted(b_only):  # L1 B1：set 迭代排序化（M1 确定性）
             if cat in ('比劫',):
                 continue
             findings.append({
@@ -1087,13 +1087,14 @@ def juxiang(
     # 十神包：同十神大类≥3柱（透干+本气）。
     zhi_at = {pk: zhis[i] for i, pk in enumerate(PILLAR_KEYS)}
     # 干支包（年时同支 / 三柱同支）
-    for z in set(z for z in zhis if z):
+    for z in sorted(set(z for z in zhis if z)):  # L1 B1：set 迭代排序化（M1 确定性）
         pillars_with = [PILLAR_KEYS[i] for i, zz in enumerate(zhis) if zz == z]
         if len(pillars_with) >= 3 or (set(pillars_with) >= {'year', 'hour'} and len(pillars_with) >= 2):
+            doms_z = sorted(_domains_of_ganzhi('', z))  # L1 B1：.pop() 任意元素→排序取首
             findings.append({
                 'principle': '局象', 'type': '包局',
                 'qi_xiang': '干支包局',
-                'domain': _domains_of_ganzhi('', z).pop() if _domains_of_ganzhi('', z) else '',
+                'domain': doms_z[0] if doms_z else '',
                 'evidence': [f'地支{z}现于{"、".join(pillars_with)}柱，形成包围之势'],
                 'desc': f'地支{z}多柱重复，形成干支包局之象（包围/拱卫/困锁）',
             })

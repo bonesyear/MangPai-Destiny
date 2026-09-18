@@ -487,32 +487,31 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
         # 扫描仅认主宾交换目标，对此"食神藏财"主主内化之格漏检（生例四 企业家
         # 壬癸壬壬/寅卯子寅，时支寅藏甲食神、藏丙财，无明财）。入墓之物不做功
         # （复例一 亥入辰墓，食伤被困不泄秀）。仅补时支(idx=3)，与月/日支扫描不重叠。
-        if day_wx:
-            _nshi_idx = 3  # 时支（主位）
-            _nshi_zhi = zhis[_nshi_idx]
-            if _nshi_zhi:
-                _nshi_cang = CANG_GAN_MANGPAI.get(_nshi_zhi, [])
-                if _nshi_cang:
-                    _nshi_ben = _nshi_cang[0][0]
-                    if (_shishang_of(day_gan, _nshi_ben) is not None
-                            and not any(zk and zk != _nshi_zhi and zk in TOMB_MAP
-                                        and is_entomb(_nshi_zhi, zk, zhis, gans) for zk in zhis)
-                            and any(GAN_WX.get(g, '') == cai_wx for g, _ in _nshi_cang)
-                            and not any(GAN_WX.get(g, '') == cai_wx for g in gans)):
-                        _nshi_ss = _shishang_of(day_gan, _nshi_ben)
-                        _nshi_action = {
-                            'type': '食伤',
-                            'action': '生用',
-                            'subtype': '食伤生财',
-                            'from': f'日干({day_gan})',
-                            'to': f'{PILLAR_NAMES_CN[_nshi_idx]}支({_nshi_zhi}藏{_nshi_ben})',
-                            'from_pos': 'day_gan',
-                            'to_pos': f'{PILLAR_KEYS[_nshi_idx]}_zhi',
-                            'desc': f'{_nshi_zhi}藏{_nshi_ss}({_nshi_ben})泄秀，内食神生坐支藏财（食神藏财·才华）',
-                        }
-                        work_actions.append(_nshi_action)
-                        sheng_yong_actions.append(_nshi_action)
-                        work_types.add('生用')
+        _nshi_idx = 3  # 时支（主位）
+        _nshi_zhi = zhis[_nshi_idx]
+        if _nshi_zhi:
+            _nshi_cang = CANG_GAN_MANGPAI.get(_nshi_zhi, [])
+            if _nshi_cang:
+                _nshi_ben = _nshi_cang[0][0]
+                if (_shishang_of(day_gan, _nshi_ben) is not None
+                        and not any(zk and zk != _nshi_zhi and zk in TOMB_MAP
+                                    and is_entomb(_nshi_zhi, zk, zhis, gans) for zk in zhis)
+                        and any(GAN_WX.get(g, '') == cai_wx for g, _ in _nshi_cang)
+                        and not any(GAN_WX.get(g, '') == cai_wx for g in gans)):
+                    _nshi_ss = _shishang_of(day_gan, _nshi_ben)
+                    _nshi_action = {
+                        'type': '食伤',
+                        'action': '生用',
+                        'subtype': '食伤生财',
+                        'from': f'日干({day_gan})',
+                        'to': f'{PILLAR_NAMES_CN[_nshi_idx]}支({_nshi_zhi}藏{_nshi_ben})',
+                        'from_pos': 'day_gan',
+                        'to_pos': f'{PILLAR_KEYS[_nshi_idx]}_zhi',
+                        'desc': f'{_nshi_zhi}藏{_nshi_ss}({_nshi_ben})泄秀，内食神生坐支藏财（食神藏财·才华）',
+                    }
+                    work_actions.append(_nshi_action)
+                    sheng_yong_actions.append(_nshi_action)
+                    work_types.add('生用')
 
     return {
         'work_actions': work_actions,

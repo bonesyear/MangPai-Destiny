@@ -428,9 +428,6 @@ def _prepare_inputs(
     _zb_jing: str = _zb_sub.get('jing_zhi', '') if _zb_sub else ''
 
     # 推导 day_gan / gans / zhis（十神推断必需）
-    if (not day_gan or not gans or not zhis) and wa_list:
-        # 由 work_actions 的 from_pos/to_pos 反推 gans/zhis 不可靠，仅尽力推导 day_gan
-        pass
     if gans and zhis and not day_gan:
         day_gan = gans[PILLAR_KEYS.index('day')]
     day_wx = GAN_WX.get(day_gan, '')

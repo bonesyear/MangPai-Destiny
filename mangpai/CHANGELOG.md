@@ -1,5 +1,15 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 L1 · 遗留清理批（引擎精度批紧前批，单批两阶段一次换基线；引擎判定/score 零改动）
+
+| 项目 | 内容 |
+|------|------|
+| 阶段甲·零输出 5 项 | B2 `engine.py` liunian truthy 非 list/dict → 显式 `EngineInputError`（旧 `.get` 裸穿 AttributeError）+注入 3 测；B3 `_auto_liunian_injected` `__init__` 初始化+`_compute_yunshi` 开头重置（潜伏状态泄漏，复调哨兵红→绿）；B4 删 `zuogong_detect.py` 内层冗余 `if day_wx:`（外层承重守卫保留）+ `gongliang._prepare_inputs` `pass` 死块；C2 `feishu/formatter.DISCLAIMER` 单源化（`'\n'+llm_channel._DISCLAIMER_LINE`，文本逐字一致确认零抖动）；C3 新建 `test_snapshot_hygiene.py`（LATEST/meta/rubric/命名校验+反向构造证红；首战抓出 e3/gap2 快照 note 空已补录）。阶段甲 blind vs hfix7 零翻转零抖动 |
+| 阶段乙·输出 2 项 | B1 `xiangfa_ops.py` set 消费点排序化 4 处（`:336`/`:677`/`:813`/`:828`/`:1090`+`.pop()` 任意元素→sorted 取首）+ **同族补漏 frozenset join 2 处**（`gongmen_wuzhi.py:266`/`zhiye.py:552`，三 seed 对拍实测抓出的漏网）；C1 `zaihuo.py` 凶神 label 凡官杀误标「七杀」→ 按实际十神（正官/七杀可并存），**计数语义不动**（书锚 gaoji:~14843-14848），哨兵红→绿 |
+| 双 seed 复现（B1 核心） | 509 例 payload 特征 JSON `PYTHONHASHSEED=0/7/42` 三轮 sha256 全一致（修前 287 例 features 序差→清零）；blind 快照双 seed 剥 _meta 逐字节一致；全量输出残留序差 68 例全限 `relations/day_weak_zhis` 内部总线键（B6 关闭裁定域，不进 payload/selectors） |
+| 换基线 | 抖动归因白名单外 0 路径（xiangfa_ops/zaihuo-chehuo/zhiye-lawyer/gongmen/narrative 五域全设计内）后一次换基线：**`snapshots/20260918_l1.json` + LATEST 推进**；评分字段对 hfix7 零翻转零抖动（官 48✅/财 47✅/职 24✅ 保） |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest **1066 passed+1xf**（+7 新测）、67/famous 无变化、calib 常驻 2 条零新增、check_layering+check_typing_imports 通过、3.11+3.14 import 冒烟 ok；详账=backlog L1 节 |
+
 ## 2026-09-18 H-fix-8 · 文档/基线同步批（纯文档/基建，H-fix 序列收尾；引擎/主观层零改动）
 
 | 项目 | 内容 |

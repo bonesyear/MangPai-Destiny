@@ -187,6 +187,9 @@ class MangpaiEngine:
         self.input_data = bazi_data.get('input', {})
         self.bazi = bazi
         self._raw_bazi_data = bazi_data
+        # L1 B3：实例属性初始化（旧版仅 _compute_yunshi 条件赋值+getattr
+        # 兜底，同实例复调 compute_all 会残留 True）
+        self._auto_liunian_injected: bool = False
 
         self.pillars = Pillars(
             year_gan=self.year_gan, year_zhi=self.year_zhi,
@@ -531,12 +534,13 @@ class MangpaiEngine:
 
         条件分支（与拆分前一致）：dy_list 非空才写 dayun_analysis；
         无外部流年且 input 有出生年 → 自动构造三岁流年窗口并条件置
-        self._auto_liunian_injected（__init__ 未初始化、getattr 兜底，
-        R2 P3 备案行为原样保留）；liunian_data truthy 且 ln_list 非空才写
-        liunian_analysis；input 有年且月柱非空才写 jiaoyun_analysis。
+        self._auto_liunian_injected（L1 B3：__init__ 已初始化+本方法
+        开头重置，同实例复调不残留）；liunian_data truthy 且 ln_list 非空
+        才写 liunian_analysis；input 有年且月柱非空才写 jiaoyun_analysis。
 
         返回 {'dy_list':.., 'liunian_data':..} 供阶段⑤定位当前运岁。
         """
+        self._auto_liunian_injected = False  # L1 B3：同实例复调重置双保险
         # 大运数据键名适配：calc_bazi_full 返回 'da_yun'（dict，内含 'dayun' 列表）；
         # 兼容旧调用方直传 'dayun'（dict 或 list）。优先取 da_yun。
         dayun_data = (self._raw_bazi_data.get('da_yun')
@@ -570,10 +574,14 @@ class MangpaiEngine:
             liunian_data = self._auto_liunian_list()
             if liunian_data:
                 self._auto_liunian_injected = True
-                # R2 P3 备案：本属性仅此处条件赋值、__init__ 未初始化（读点
-                # engine.py:689 getattr 兜底）；同实例复调 compute_all 会残留
-                # True，无风险路径，文档批不初始化引擎仅标注。
 
+        # L1 B2：truthy 非 list/dict 的 liunian 显式抛错（旧版 .get 裸穿
+        # AttributeError——畸形输入静默吞掉是 H-fix-2 序列要消灭的形态）
+        if liunian_data and not isinstance(liunian_data, (list, dict)):
+            raise EngineInputError(
+                "liunian 须为 list 或含 'liunian' 键的 dict，"
+                f"实得 {type(liunian_data).__name__}"
+            )
         if liunian_data:
             ln_list = liunian_data if isinstance(liunian_data, list) else liunian_data.get('liunian', [])
             if ln_list:
@@ -686,7 +694,7 @@ class MangpaiEngine:
             result['yunfan'],
             f'{cur_dy_gan}{cur_dy_zhi}' if cur_dy_gan else '',
             include_dayun=bool(dy_list),
-            include_liunian=bool(cur_ln_list) and not getattr(self, '_auto_liunian_injected', False),
+            include_liunian=bool(cur_ln_list) and not self._auto_liunian_injected,
         )
 
         # 修批D（R2 P2 direction 重算簇）：laoyu 提前算一次，与 engine 已算的

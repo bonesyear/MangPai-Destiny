@@ -316,10 +316,13 @@ def detect_chehuo(
                 lu_damaged = True
                 break
 
-    # 凶神汇聚
+    # 凶神汇聚（L1 C1：按实际十神标「正官」/「七杀」——旧版凡官杀皆误标
+    # 「七杀」；计数语义不动：官杀在场即 +1，书锚 gaoji:~14843-14848）
     xiong_shen: List[str] = []
-    if any(_cat(_compute_shishen(day_gan, g)) == '官杀' for g in gans if g):
-        xiong_shen.append('七杀')
+    xiong_shen.extend(sorted({
+        _compute_shishen(day_gan, g) for g in gans if g
+        and _cat(_compute_shishen(day_gan, g)) == '官杀'
+    }))
     # F13：羊刃用全刃表口径（in_pillars 已按 _YANG_REN_FULL 检出，
     # 戊日刃在未盘旧 zhi 单值 '午' 漏检——理象学:2086 戊刃在午、未）
     if ss and (ss.get('羊刃') or {}).get('in_pillars'):

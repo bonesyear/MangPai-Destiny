@@ -6,7 +6,7 @@
 
 ## 当前基线指针
 
-- **`LATEST`**（纯文本单行）= 当前基线快照文件名，现指向 **`20260918_hfix7.json`**。
+- **`LATEST`**（纯文本单行）= 当前基线快照文件名，现指向 **`20260918_l1.json`**。
 - `blind_eval.py --baseline latest`（或 `--diff latest <快照>`）自动解指针（H-fix-8 起）。
 - 推进基线 = 人工改写 `LATEST` 一行——**刻意不随 `--out` 自动更新**，防误推基线。
 
@@ -25,7 +25,8 @@
 | `20260918_hfix4c.json` | H-fix-4c 局部 import/循环依赖整理 | 19662e9 | hfix4b | 零翻转零抖动 |
 | `20260918_hfix6.json` | H-fix-6 selectors/engine-keys 契约测试 | 471890c | hfix4c | 零翻转零抖动 |
 | `20260918_hfix5.json` | H-fix-5 大函数拆分（在 6 之后落地，见 v2 计划顺序调整） | 29524b6 | hfix6 | 零翻转零抖动 |
-| `20260918_hfix7.json` | H-fix-7 评测框架统一（**当前基线**） | 9129c6b | hfix5 | 零翻转零抖动 |
+| `20260918_hfix7.json` | H-fix-7 评测框架统一 | 9129c6b | hfix5 | 零翻转零抖动 |
+| `20260918_l1.json` | L1 遗留清理批（B1 xiangfa_ops 排序化 4 处+frozenset join 2 处、C1 zaihuo 官杀 label、B2/B3/B4/C2/C3 零输出项）（**当前基线**） | 见 _meta | hfix7 | 评分字段零翻转零抖动；文本抖动归因五域全部设计内 |
 
 注：hfix6→hfix5 顺序非笔误——v2 计划把契约测试（6）前置于大函数拆分（5），快照按实际落地顺序编号。
 

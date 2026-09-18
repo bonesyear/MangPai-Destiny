@@ -549,7 +549,7 @@ def _score_lawyer(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
         pair = frozenset({zhis[fi], zhis[ti]})
         if pair == frozenset({'卯', '酉'}) or pair == frozenset({'卯', '午'}):
             score += 2
-            ev.append(f'{"".join(pair)}{t}（依律破例）')
+            ev.append(f'{"".join(sorted(pair))}{t}（依律破例）')  # L1 B1 同族：frozenset join 排序化
             break
     # （F15 试案撤回注：8.2「伤官合杀/食神制杀」lawyer 条款曾落地又撤——
     #  与既有「伤官制官」同动作复计，误伤 li154 摇滚歌星/董竹君门户锚，红线

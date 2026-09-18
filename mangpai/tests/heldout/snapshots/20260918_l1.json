@@ -7241,8 +7241,8 @@
   }
  },
  "_meta": {
-  "git_sha": "854bbf2",
+  "git_sha": "a773445",
   "rubric_version": "v8-20260808",
-  "note": "缺口批2 xiangmao 相貌 marker 层（对 gap1 零翻转零抖动）"
+  "note": "L1 遗留清理批：B1 xiangfa_ops 排序化4处+frozenset join 2处、C1 zaihuo 官杀 label 修正（评分字段对 hfix7 零翻转零抖动，文本抖动归因 xiangfa_ops/zaihuo-chehuo/zhiye-lawyer/gongmen/narrative 五域全部设计内）"
  }
 }

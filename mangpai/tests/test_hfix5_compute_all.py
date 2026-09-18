@@ -216,6 +216,20 @@ def test_phase4_yunshi_auto_liunian_injected_flag():
     assert ctx2['liunian_data'] == LN
 
 
+def test_auto_liunian_injected_recall_no_leak():
+    """L1 B3 哨兵：同实例两次 compute_all，第一次自动注入（flag=True）、
+    第二次显式给 liunian——旧版 flag 残留 True 会误排显式流年出否决链；
+    __init__ 初始化 + _compute_yunshi 开头重置双保险后不残留。"""
+    bd = _bazi(PAN_LI, input={'year': 1988, 'gender': '男'})
+    eng = MangpaiEngine(bd)
+    assert eng._auto_liunian_injected is False  # __init__ 已初始化
+    eng.compute_all()
+    assert eng._auto_liunian_injected is True   # 第一次自动注入
+    eng._raw_bazi_data['liunian'] = list(LN)
+    eng.compute_all()                            # 第二次显式流年
+    assert eng._auto_liunian_injected is False   # 重置，不残留
+
+
 def test_phase5_subjective_domain_key_order_and_relations():
     eng = MangpaiEngine(LI_FULL)
     result, _, _ = run_phases(eng)

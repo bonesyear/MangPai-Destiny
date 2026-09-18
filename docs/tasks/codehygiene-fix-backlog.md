@@ -1589,3 +1589,36 @@ H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 t
 - **时机条件**：L1 等下个引擎判定批**前置位**（先换基线，引擎批从新基线起跑；拒绝同批合并）；或近期有 LLM 批跑/双 seed 可复现需求（B1 唯一活影响）/ 引擎批排期 >2~4 周时独立先做。
 - **A3 输出面死字段**（virtual_solid counts / soil wet·dry / 华盖 year_ref）：不关闭，降为条件项——随未来输出面/payload 精简批顺手，否则维持。
 - **D 真实凭证冒烟**：上线 checklist #3 执行项（事件触发非代码项），前置=真实飞书凭证+DeepSeek key，随首次上线冒烟窗口与 #4 群聊 @bot 同批执行。
+
+---
+
+## L1 遗留清理批（2026-09-18，执行登记 · 单批两阶段一次换基线——引擎精度批紧前批）
+
+> 依据：方案 `~/.claude/projects/-root-metaphysics/memory/kimi-leftover-fix-plan-20260918.md`。批前回滚点 tag `l1-pre`。
+> 阶段甲（B2/B3/B4/C2/C3）零输出逐项验证；阶段乙（B1/C1）输出变更一次换基线。
+
+### 阶段甲 · 零输出项（落地后 blind vs hfix7 零翻转零抖动 ✓）
+
+| 项 | 位置 | 落地 |
+|---|---|---|
+| B2 liunian 入口守卫 | `engine.py` `_compute_yunshi` | truthy 非 list/dict → 显式 `EngineInputError`（旧版 `.get` 裸穿 AttributeError）；注入测试 3 测入 `test_inject_faults.py`（str/int 红→绿 + list/dict 正常路径） |
+| B3 `_auto_liunian_injected` | `engine.py` `__init__` + `_compute_yunshi` | `__init__` 置 False + 方法开头重置双保险；读点 getattr 兜底改直读；复调哨兵入 `test_hfix5_compute_all.py`（同实例两次 compute_all 不残留，红→绿） |
+| B4 冗余/死块删除 | `objective/zuogong_detect.py` 内层 `if day_wx:`（外层 :348 承重守卫保留）+ `subjective/gongliang.py` `_prepare_inputs` `pass` 死块 | 已删，等价性由阶段甲 blind 零抖动坐实 |
+| C2 DISCLAIMER 单源化 | `feishu/formatter.py:17` | 文本逐字一致确认后改 `DISCLAIMER = '\n' + llm_channel._DISCLAIMER_LINE`（feishu→subjective 边已存在，check_layering 通过） |
+| C3 快照卫生测试 | 新建 `mangpai/tests/test_snapshot_hygiene.py` 2 测 | LATEST 可解/meta 完整/基线 rubric==当前/命名规范 + tmp 反向构造证红；**首战即立功**：抓出 `20260819_e3`/`20260820_gap2` 两快照 `_meta.note` 为空，已补录（meta 剥离不参与评分，零行为影响） |
+
+### 阶段乙 · 输出变更项（一次换基线 `snapshots/20260918_l1.json` + LATEST 推进 ✓）
+
+| 项 | 位置 | 落地 |
+|---|---|---|
+| B1 xiangfa_ops 排序化 | `xiangfa_ops.py:336`（共象域聚合）/`:677`（zhixiang controlled_cats）/`:813/:828`（jiexiang a_only/b_only）/`:1090`+`:1093`（juxiang 包局 set 迭代 + **`.pop()` 任意元素→sorted 取首**） | 消费点 sorted，同 M1 既有 11 处先例 |
+| B1 同族补漏（方案外同形态，实测抓出） | `gongmen_wuzhi.py:266` / `zhiye.py:552` `''.join(frozenset)` | frozenset join 排序化——B1 修后三 seed 对拍仍现 102 例序差，逐例定位为此两处（B6 关闭裁定仅覆盖 membership 消费方，join 消费系漏网） |
+| C1 zaihuo 官杀 label | `zaihuo.py:319-322` | 凡官杀皆误标「七杀」→ 按实际十神 sorted 收集（正官/七杀可并存）；**计数语义不动**（官杀在场即 +1，书锚 gaoji:~14843-14848）；哨兵 `test_f13_shensha.py::test_chehuo_guansha_label_l1` 红→绿 |
+
+### 验证（全绿）
+
+- **双 seed 复现（B1 核心价值）**：trainset+heldout 509 例 **payload 特征 JSON** `PYTHONHASHSEED=0/7/42` 三轮 sha256 全一致（修前 H-fix-7 实证 287 例 features 序差；B1 四点修后仍 102 例，补 frozenset join 两处后清零）；blind 快照双 seed 剥 _meta 逐字节一致。全量输出残留序差 68 例全部限 `relations/day_weak_zhis` 内部总线键（B6 关闭裁定域，不进 payload/selectors，维持不修）。
+- **blind vs hfix7（换基线前）**：heldout+trainset **评分字段零翻转零抖动**（快照不录 zaihuo desc/xiangfa_ops 文本域，评分面不动）。
+- **抖动逐条归因**（509 例全量输出 pre/post 对拍）：白名单外路径 **0**——xiangfa_ops 34290 路径（B1 序/域文本）/ zaihuo 129 例×2（`chehuo.xiong_shen`+`desc`，「七杀→正官」或「+正官」，score/risk 零触碰）/ zhiye 30 例（lawyer evidence「酉卯冲→卯酉冲」）/ gongmen_wuzhi 30 例×2（同族）/ narrative 167 例（digest 下游传导，全部有上游解释）。
+- **六件套**：verify 432+70+64+20 / pytest **1066 passed+1xf**（1059+新增 7：B2×3、B3×1、C1×1、C3×2）/ 67/famous 无变化 / calib 常驻 2 条零新增 / check_layering+check_typing_imports 通过 / 3.11+3.14 import 冒烟 ok。
+- **非目标维零翻转**：官 48✅/财 47✅/职 24✅ 保；引擎判定（score/层级）零改动。

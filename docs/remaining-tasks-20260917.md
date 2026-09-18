@@ -17,7 +17,7 @@
 | H-fix-7 | 评测框架统一：`output/_eval_common.py` 五节 + 11 脚本薄包装，口径对拍全绿 | hfix7 |
 | H-fix-8 | 文档/基线同步（本批）：README 数字、快照 LATEST 指针、归档、三件套 | —（引擎零改动，基线不推进） |
 
-- **当前基线**：`snapshots/LATEST` → `20260918_hfix7.json`（`blind_eval.py --baseline latest` 可解）。
+- **当前基线**：`snapshots/LATEST` → `20260918_l1.json`（L1 遗留清理批 2026-09-18 落地换基线；`blind_eval.py --baseline latest` 可解）。
 - **验证口径**：verify 432+70+64+20 / pytest 1059 passed+1xf / 双 seed 逐字节一致 / 67/famous/calib 零新增回归 / check_layering+check_typing_imports 通过。
 - **裸 except 残留 3 处（全合规）**：`feishu/bot.py:53,119`（边界兜底+防重试风暴，刻意）、`verify_heldout.py:51`（失败通道，异常即失败 exit 1）。
 - **模块数**：58 → 59（Foundation 2 / Objective 27 / Subjective 30）。
@@ -43,18 +43,14 @@
 - **A3 输出面死字段**（virtual_solid counts / soil wet·dry / 华盖 year_ref）——零消费方零误判风险；删除=正常路径字节变更须换基线，性价比为负。**随未来输出面/payload 精简批顺手**，否则维持。
 - **feishu 并发两 P1**（后台线程无界 / `_seen_mids` 非原子）——单聊影响低，**群聊上线前再修**（v2 ⏸️ 节维持）。
 
-### 待办 · L1 遗留清理批（单批两阶段，半天~1 天）
+### 已办 · L1 遗留清理批（2026-09-18 落地，单批两阶段一次换基线）
 
-- **阶段甲·零输出项**（落地后 blind 零翻转零抖动+双 seed 一致，不碰基线）：
-  - **B2** `engine.py:577-578` liunian_data truthy 非 dict/list 入口守卫（套 :542-551 既有 isinstance 形态，建议显式 `EngineInputError`）+注入测试；
-  - **B3** `_auto_liunian_injected` `__init__` 置 False + `_compute_yunshi` 开头重置双保险（潜伏 bug：生产三通道全为一实例一 compute_all，复调场景当前不存在）+复调哨兵；
-  - **B4** 美容删除：`_scan_shengyong` 内层冗余 `if day_wx:`（`objective/zuogong_detect.py:490`，**外层 :348 承重守卫保留**）+ `_prepare_inputs` 死代码块（**`subjective/gongliang.py:431-433`，函数 def :369——行号更正：旧记「engine.py」系误记**）；
-  - **C2** DISCLAIMER 单源化：`feishu/formatter.py:17` 改从 `llm_channel._DISCLAIMER_LINE` 导入（feishu→subjective 边已存在，不违分层，check_layering 验证）；
-  - **C3** 新建 `mangpai/tests/test_snapshot_hygiene.py`（LATEST 可解/meta 完整/rubric_version 一致/命名规范，纯测试新增）。
-- **阶段乙·输出变更项**（blind diff 抖动逐条归因后**一次**换基线）：
-  - **B1** xiangfa_ops set 迭代序排序化 4 处（`:336` / `:677` / `:811-813` / `:1090`+`:1096`——`.pop()` 取任意元素是真不确定性源；消费点 sorted，同 M1 既有 11 处先例）；
-  - **C1** zaihuo label 修正（`zaihuo.py:319-322`——行号已从 :388 漂移；按实际十神标「正官」/「七杀」可并存；**计数不动**——score/判定零触碰，书锚 gaoji:~14843-14848）。
-- **时机条件（居一即独立先做）**：① 近期要跑 LLM 批跑/双 seed 校验且要求 xiangfa_ops 全量输出可复现（B1 唯一活影响——H-fix-7 t3_dump 实证 287 例 features 序差）；② 引擎批排期 >2~4 周且希望清零待议列表。否则 L1 整体等**下个引擎判定批前置位**（L1 先换基线 `…_l1.json`，引擎批从新基线起跑；**拒绝同批合并**——混入文本抖动会让引擎批 diff 归因失焦）。
+> 详账=backlog 文末「L1 遗留清理批」节；快照链=`snapshots/README.md`；基线推进=`20260918_l1.json`。
+
+- **阶段甲·零输出项（5 项全落地，blind vs hfix7 零翻转零抖动）**：B2 liunian 入口守卫（truthy 非 list/dict → `EngineInputError`，注入测试 3 测）/ B3 `_auto_liunian_injected` `__init__` 初始化+方法开头重置（复调哨兵红→绿）/ B4 冗余+死块删除（外层承重守卫保留）/ C2 DISCLAIMER 单源化（文本逐字一致确认，纯代码统一零抖动）/ C3 `test_snapshot_hygiene.py`（首战抓出 e3/gap2 两快照 note 空，已补录）。
+- **阶段乙·输出变更项（抖动全归因后一次换基线）**：B1 xiangfa_ops 排序化 4 处 + **同族补漏 frozenset join 2 处**（`gongmen_wuzhi.py:266`/`zhiye.py:552`——三 seed 对拍实测抓出，B6 关闭裁定的 join 消费漏网）/ C1 zaihuo 官杀 label 修正（计数不动）。
+- **验收**：payload 特征 JSON 509 例 seed 0/7/42 全一致（B1 核心价值达成）；抖动归因白名单外 0 路径（xiangfa_ops/zaihuo-chehuo/zhiye-lawyer/gongmen/narrative 五域全设计内）；评分字段零翻转；六件套全绿（pytest 1066+1xf）。
+- **下批衔接**：L1 已换基线，下个引擎判定批（官命 A12-A18 残簇等）从 `20260918_l1.json` 起跑，「零翻转零抖动」门禁不受 L1 文本变更污染。
 
 ### 待办 · D 真实凭证冒烟（上线 checklist #3，事件触发）
 

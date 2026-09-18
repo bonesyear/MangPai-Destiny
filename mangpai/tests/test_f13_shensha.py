@@ -108,3 +108,15 @@ def test_chehuo_ma_count_in_pillars():
     旧 count=并集数=3 恒真白送 1 分；改消费在局马数后应为 0。"""
     r = detect_chehuo('甲', ['甲', '丙', '甲', '甲'], ['寅', '午', '戌', '寅'])
     assert r['ma_count'] == 0
+
+
+def test_chehuo_guansha_label_l1():
+    """L1 C1：凶神 label 按实际十神——旧版凡官杀皆误标「七杀」；
+    正官盘标「正官」、官杀混杂盘两者并标（计数语义不动）。"""
+    # 庚日：丁=正官（无丙七杀在场）→ 只标「正官」，不得误标「七杀」
+    r = detect_chehuo('庚', ['辛', '丁', '庚', '甲'], ['酉', '亥', '午', '寅'])
+    assert '正官' in r['xiong_shen']
+    assert '七杀' not in r['xiong_shen']
+    # 丙丁同透（官杀混杂）→ 「七杀」「正官」并标
+    r2 = detect_chehuo('庚', ['丙', '丁', '庚', '甲'], ['酉', '亥', '午', '寅'])
+    assert '七杀' in r2['xiong_shen'] and '正官' in r2['xiong_shen']

@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+from mangpai.subjective.llm_channel import _DISCLAIMER_LINE
 from mangpai.subjective.narrative import (
     _bazi_line, _caiming_line, _gongliang_line, _guanming_line, _hunyin_line,
     _yingqi_line, _zhiye_line, _zuogong_line,
 )
 
 # 免责声明（V4 P0-1）：引擎直出/LLM 叙述两路径尾部各带一行
-DISCLAIMER = '\n命理分析仅供参考，不构成人生决策依据。'
+# （L1 C2：文本单源化——与 llm_channel._DISCLAIMER_LINE 逐字一致，仅前导换行不同）
+DISCLAIMER = '\n' + _DISCLAIMER_LINE
 
 
 def one_liner(r: Dict[str, Any]) -> str:

@@ -118,6 +118,30 @@ def test_engine_accepts_valid_minimal():
     assert isinstance(res, dict) and 'summary' in res
 
 
+# ------------------------------------------------------- 2b. liunian 入口守卫（L1 B2）
+
+@pytest.mark.parametrize('liunian', [
+    '2026',   # truthy 字符串 → 旧版 .get AttributeError
+    2026,     # truthy 整数
+])
+def test_engine_rejects_truthy_non_dict_liunian(liunian):
+    """truthy 非 list/dict 的 liunian → EngineInputError，禁止 .get 裸穿 AttributeError。"""
+    bd = _valid_bazi_data()
+    bd['liunian'] = liunian
+    with pytest.raises(EngineInputError, match='liunian'):
+        MangpaiEngine(bd).compute_all()
+
+
+def test_engine_accepts_liunian_list_and_dict():
+    """合法 liunian（list / dict 形态）正常路径不受影响。"""
+    ln = [{'year': 2026, 'ganzhi': '丙午'}]
+    for liunian in (ln, {'liunian': ln}):
+        bd = _valid_bazi_data()
+        bd['liunian'] = liunian
+        res = MangpaiEngine(bd).compute_all()
+        assert isinstance(res, dict) and 'summary' in res
+
+
 # ---------------------------------------------------------------- 3. 空 actions 降级
 
 def test_compute_all_empty_work_actions_degrades(monkeypatch):

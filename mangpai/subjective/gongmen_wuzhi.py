@@ -263,7 +263,7 @@ def classify_gongjianfa(
                 pair = frozenset({zhis[fi], zhis[ti]})
                 if pair == frozenset({'卯', '酉'}) or pair == frozenset({'卯', '午'}):
                     jcy_score += 1
-                    ev.append(f'{"".join(pair)}{a.get("type")}（依律断案）')
+                    ev.append(f'{"".join(sorted(pair))}{a.get("type")}（依律断案）')  # L1 B1 同族：frozenset join 排序化
                     break
     if jcy_score >= 2:
         groups.append('检察法院')
