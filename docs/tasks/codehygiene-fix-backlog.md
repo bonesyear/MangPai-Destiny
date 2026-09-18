@@ -1427,3 +1427,57 @@ __init__       -> dayun, schools, zaihuo
 | `zinv` | 预留 | 勿删勿拆并；若未来接 LLM 叙述维，先移出 RESERVED_KEYS 再走七维扩展流程 |
 | `chang_sheng` / `narrative` | 特征直喂 | 保留透传；若加定点读者（prompt 锚/formatter 段），移出 LLM_FEATURE_ONLY_KEYS |
 | `gongmen_wuzhi` | 内部白名单 | 修批A③ 锁定决策：engine 键保留存档，不回 selectors |
+
+
+---
+
+## H-fix-5（2026-09-18，执行登记 · 大函数拆分批——H-fix 序列最后一批功能批，逐字等价第一红线）
+
+> 核销 H11 P1-①/②/③（三大函数拆分）。依赖前置：H-fix-4b（注册表化）+ H-fix-4c（依赖图）+ H-fix-6（契约哨兵）。回滚点 tag `hfix5-pre`。
+
+### 拆分后结构说明
+
+**① `objective/zuogong_detect.py` — `detect_relations`（772 行 → ~150 行编排器，13 子函数）**
+
+- `_scan_gan_relations`（日干五合/争合/合化+非日干合制）/ `_scan_shengyong`（天干食伤/地支食伤/内食神格）/ `_scan_shayin_huayong`（杀印相生，H11 遗漏段）/ `_scan_zhi_pairs`（4b 注册表扫描闭包提升模块级，仍按 `[:2]`/`[2:3]`/`[3:]` 三次调用保序）/ `_scan_sanhe_banhe` / `_scan_zhi_ke` / `_scan_gan_ke` / `_scan_shengfu` / `_scan_tomb` / `_calibrate_huayong`（化用前置校准，原地修订）/ `_apply_he_center_skip`（合中心 skip，原地修订）/ `_scan_fuyin_fanyin` / `_collect_raw_facts`（长生/弱支/空亡支/入墓干）。
+- 与 H11 偏差：天干克未并入 `_scan_gan_relations`（原排放位在六冲后，并入变序违序等价）；墓用/伏吟反吟按现状语句序分两段；克/生扶/三合半合不并入注册表（H11 既定）。
+
+**② `subjective/gongliang.py` — `analyze_gongliang`（949 行 → 154 行编排器，5 子函数按 H11 五阶段）**
+
+- `_prepare_inputs`（Pillars 签名/自调 analyze_zuogong/zb 上游信号/day_wx；Pillars 分支解析的 gans/zhis 经返回 dict 回传）→ `_compute_position_sets`（non_aux/involved/zhi_targets/cats×4/strong/destructive）→ `_apply_gong_point_rules`（14 条计分规则集中，caiming 消费保持函数内局部导入=4c 备案回边）→ `_apply_caps_and_direction`（制净/zb 净制增强/降档/层次映射+封顶/pocai R1/yongshen_xiong/fuhe 标注）→ `_build_gongliang_result`（score/boundary/装配/双轨对账/zb 信号录入）。
+- 偏差：各阶段返回 dict 而非 tuple（显式传递需要）；早退守卫留编排器；caps/build 函数体首各加 `reasons = list(reasons)` 别名防御（可观察输出经 1627 项 sha256 证明一致）。
+
+**③ `engine.py` — `compute_all`（489 行 → 38 行编排器，6 段）**
+
+- `_compute_objective_base(result, p)`（bazi/input..tiyong）→ `_compute_zuogong_and_derivatives → {'zg','zb_res'}` → `_compute_objective_extended(result, p, zg)`（muku..gongshen+kong_wang/di_zhi_relations）→ `_compute_yunshi → {'dy_list','liunian_data'}`（dayun/liunian/jiaoyun/shipaige，`_auto_liunian_injected` 条件赋值原样）→ `_compute_subjective_domain(result, p, zg, zb_res, yunshi_ctx)`（relations..narrative）→ `_build_summary` 挪用（H11 ⑤）。
+- 偏差：H11 ①原定含 muku..gongshen，但 zuogong 系实位于 tiyong 与 muku 之间（全链上游），故①拆为 base/extended 两段夹住②保调用/回写顺序逐字等价；`_current_dayun` 被调两次原样保留。
+
+### 哨兵（先红后绿）
+
+- `test_hfix5_detect_relations.py` 36 测（先红 ImportError 子函数不存在）；`test_hfix5_gongliang.py` 7 函数 60 例（9 书例盘×5 阶段中间态钉值+13 盘端到端+2 Pillars 签名）；`test_hfix5_compute_all.py` 12 测（先红 11 failed；含 48 键全序锁/条件键分支/手工逐阶段==compute_all）。合计 +108 collected。
+
+### 等价性验证
+
+- detect_relations：809 例（heldout 215+trainset 294+300 随机盘）canonical sha256 pre=post 逐字节一致，hashseed 0/7/42 三重稳定。
+- analyze_gongliang：1627 项（509 例×自调/显式双路径+300 随机盘+9 合成边界含正确构造 Pillars）sha256 一致；过程曾引入 Pillars 分支 gans/zhis 未回传真 bug（old L4 vs new L1），等价捕获+新增哨兵抓到并已修复。
+- compute_all：518 样本（509 例+9 注入分支盘：dayun/liunian list/dict/空、无 input、str-liunian 异常路径）sha256+键序+sidecar 逐字节一致，三 seed 各自对拍零失配；契约测试 test_key_contract 6/6（48=41+7 归类不变、payload 锁 41）。
+
+### 六件套（vs `snapshots/20260918_hfix6.json`）
+
+- verify 432+70+64+20 全绿；pytest **1059 passed**+1xf（951+108）；blind vs hfix6 heldout+trainset **零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）；双 seed（剥 _meta）逐字节一致 ✅；67/famous 无变化 ✅；calib 由 pytest 覆盖；`scripts/check_layering.py` 通过；import 冒烟 3.11+3.14 双绿
+- 引擎判定零改动：compute_all 正常路径输出逐字节不变（三路对拍+blind 零抖动坐实）
+- 快照=`snapshots/20260918_hfix5.json`；执行机口径注意：本机 PATH `python3`=3.11 venv 无 pytest，测试/盲测用 `/usr/bin/python3`（3.14）跑，等价捕获 pre/post 同一解释器
+
+### 发现的待议问题（只记录未修，分诊纪律：拆分与修复不混）
+
+1. **xiangfa_ops 全量 result 的 set 迭代序随 PYTHONHASHSEED 旋转**（jiexiang/all_findings/zhixiang 条目序；同 seed 逐字节一致；blind 评分字段不受影响零抖动）——拆分前已存在的存量不确定性，M1 既有 11 处排序化未覆盖此族，归属后续卫生批。
+2. `engine.py:578` liunian_data truthy 非 dict/list → `.get` AttributeError 穿透（2a 遗留 P2，pre/post 异常 repr 逐字一致）。
+3. `engine.__init__` 未初始化 `_auto_liunian_injected`（H8 P2），getattr 兜底行为原样保留。
+4. `_scan_shengyong` 内食神格嵌套冗余 `if day_wx:`（外层已判，内层恒真）；`_prepare_inputs` 内 `(not day_gan or not gans or not zhis) and wa_list: pass` 死代码块——均按逐字等价原样保留。
+5. gongliang 4 处自调吞异常（H11 已录）、13 书例 `hua_chengju` +1 高层加分无命中（与 F6 记录一致）——维持备案。
+6. detect_relations 返回 dict 内含 set（`day_weak_zhis` 等），消费方序列化须先排序（引擎自身输出确定性已由 blind 零抖动坐实）。
+
+### 残留（转后置批）
+
+- H-fix-7 评测框架统一 / H-fix-8 文档基线同步（v2 计划 🟢 后置）。
+- 上述待议问题 1-3 归后续卫生批裁定。

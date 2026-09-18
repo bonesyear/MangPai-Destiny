@@ -263,6 +263,125 @@ def analyze_gongliang(
           'confidence': '中',
         }
     """
+    # H-fix-5（H11 P1-①）：五阶段拆分——各阶段体为原函数顺序块逐字搬移
+    # （判定逻辑/阈值/分支序/输出字符串/键序不变），阶段间中间态以显式 dict
+    # 传递，无闭包依赖；数据完全缺失的早退留在本编排函数。
+    inp = _prepare_inputs(
+        zuogong_result, day_gan, gans, zhis,
+        work_actions=work_actions, work_types=work_types,
+        fei_shen=fei_shen, gong_shen=gong_shen,
+        zeishen_bushen_result=zeishen_bushen_result,
+    )
+    zg: Dict = inp['zg']
+    wa_list: List[Dict] = inp['wa_list']
+    wtypes: List[str] = inp['wtypes']
+    fei: List[str] = inp['fei']
+    gshen: List[str] = inp['gshen']
+    san_he_formed: bool = inp['san_he_formed']
+    has_severe_harm: bool = inp['has_severe_harm']
+    zb_bao = inp['zb_bao']
+    zb_clian = inp['zb_clian']
+    zb_jing: str = inp['zb_jing']
+    day_gan = inp['day_gan']
+    day_wx = inp['day_wx']
+    gans = inp['gans']
+    zhis = inp['zhis']
+
+    # 数据完全缺失 -> 无功
+    if not wa_list and not wtypes:
+        return _build_result(
+            level=1, points=0.0, score=0,
+            reasons=['命局无做功数据，功量微弱（半层/无功），普通百姓层次'],
+            zhi_jing='无制', controls=[], gong_cats=[], chain=0,
+            penalty='无功', day_wx_ok=bool(day_wx),
+        )
+
+    pos = _compute_position_sets(day_wx, gans, zhis, wa_list, fei, gshen,
+                                 inp['tomb_works'])
+    non_aux: List[Dict] = pos['non_aux']
+    involved_positions: Set[str] = pos['involved_positions']
+    zhi_targets: Set[str] = pos['zhi_targets']
+    control_action_count: int = pos['control_action_count']
+    active_tomb_works: List[Dict] = pos['active_tomb_works']
+    involved_cats: Set[str] = pos['involved_cats']
+    gong_cats: Set[str] = pos['gong_cats']
+    gan_cats: Dict[str, Set[str]] = pos['gan_cats']
+    fei_cats: Set[str] = pos['fei_cats']
+    strong_positions: Set[str] = pos['strong_positions']
+    destructive_positions: Set[str] = pos['destructive_positions']
+
+    rules = _apply_gong_point_rules(
+        day_gan, day_wx, gans, zhis,
+        gshen=gshen, san_he_formed=san_he_formed,
+        non_aux=non_aux, active_tomb_works=active_tomb_works,
+        involved_positions=involved_positions, zhi_targets=zhi_targets,
+        gan_cats=gan_cats, strong_positions=strong_positions,
+        destructive_positions=destructive_positions,
+        _zb_bao=zb_bao, _zb_clian=zb_clian, _zb_jing=zb_jing,
+    )
+    points: float = rules['points']
+    reasons: List[str] = rules['reasons']
+    yuanshen_hit: Optional[str] = rules['yuanshen_hit']
+    chain_len: int = rules['chain_len']
+    zb_bao_counted: bool = rules['_zb_bao_counted']
+    zb_pyramid: bool = rules['_zb_pyramid']
+    zb_boost: float = rules['_zb_boost']
+    hua_chengju: bool = rules['hua_chengju']
+
+    caps = _apply_caps_and_direction(
+        day_gan, day_wx, gans, zhis,
+        wa_list, wtypes, gshen, fei, control_action_count,
+        points=points, involved_cats=involved_cats, zhi_targets=zhi_targets,
+        gan_cats=gan_cats, fei_cats=fei_cats, non_aux=non_aux,
+        has_severe_harm=has_severe_harm,
+        _fang_ju_formed=rules['_fang_ju_formed'],
+        _zhiku_tombs=rules['_zhiku_tombs'], _zb_jing=zb_jing,
+        _zb_bao_counted=zb_bao_counted, _zb_pyramid=zb_pyramid,
+        yuanshen_hit=yuanshen_hit, hua_chengju=hua_chengju, reasons=reasons,
+    )
+    zhi_jing: str = caps['zhi_jing']
+    penalty: Optional[str] = caps['penalty']
+    raw_level: int = caps['raw_level']
+    level: int = caps['level']
+    pocai_signal: bool = caps['pocai_signal']
+    pocai_severity: Optional[str] = caps['pocai_severity']
+    pocai_reason: str = caps['pocai_reason']
+    yongshen_xiong: List[Dict] = caps['yongshen_xiong']
+    fuhe: Dict = caps['fuhe']
+    reasons = caps['reasons']
+
+    return _build_gongliang_result(
+        day_wx=day_wx, zg=zg, gshen=gshen, fei=fei, non_aux=non_aux,
+        points=points, reasons=reasons, level=level, raw_level=raw_level,
+        zhi_jing=zhi_jing, penalty=penalty,
+        involved_cats=involved_cats, gong_cats=gong_cats, chain_len=chain_len,
+        yuanshen_hit=yuanshen_hit,
+        _zb_bao_counted=zb_bao_counted, _zb_boost=zb_boost,
+        zb_jing_adopted=caps['zb_jing_adopted'],
+        yongshen_xiong=yongshen_xiong, fuhe=fuhe,
+        _strength_gl=caps['_strength_gl'],
+        _zb_bao=zb_bao, _zb_clian=zb_clian, _zb_jing=zb_jing,
+        pocai_signal=pocai_signal, pocai_severity=pocai_severity,
+        pocai_reason=pocai_reason,
+    )
+
+
+def _prepare_inputs(
+    zuogong_result: Optional[Dict],
+    day_gan: str,
+    gans: Optional[List[str]],
+    zhis: Optional[List[str]],
+    *,
+    work_actions: Optional[List[Dict]],
+    work_types: Optional[List[str]],
+    fei_shen: Optional[List[str]],
+    gong_shen: Optional[List[str]],
+    zeishen_bushen_result: Optional[Dict],
+) -> Dict:
+    """输入准备（H-fix-5 ①，H11 方案）：Pillars 对象签名、自调 analyze_zuogong、
+    上游贼神捕神信号解析、day_gan/day_wx 推导；Pillars 分支解析出的
+    gans/zhis 随返回 dict 回传（编排器后续阶段消费）。体为原 analyze_gongliang
+    输入块逐字搬移。"""
     # ── Pillars 对象签名支持（与全库统一）──
     if is_pillars(zuogong_result):
         p = zuogong_result
@@ -315,19 +434,28 @@ def analyze_gongliang(
     if gans and zhis and not day_gan:
         day_gan = gans[PILLAR_KEYS.index('day')]
     day_wx = GAN_WX.get(day_gan, '')
+    return {
+        'zg': zg, 'wa_list': wa_list, 'wtypes': wtypes, 'fei': fei,
+        'gshen': gshen, 'tomb_works': tomb_works,
+        'san_he_formed': san_he_formed,
+        'has_severe_harm': has_severe_harm,
+        'zb': _zb, 'zb_bao': _zb_bao, 'zb_clian': _zb_clian,
+        'zb_jing': _zb_jing, 'day_gan': day_gan, 'day_wx': day_wx,
+        'gans': gans, 'zhis': zhis,
+    }
 
-    reasons: List[str] = []
-    points: float = 0.0
 
-    # 数据完全缺失 -> 无功
-    if not wa_list and not wtypes:
-        return _build_result(
-            level=1, points=0.0, score=0,
-            reasons=['命局无做功数据，功量微弱（半层/无功），普通百姓层次'],
-            zhi_jing='无制', controls=[], gong_cats=[], chain=0,
-            penalty='无功', day_wx_ok=bool(day_wx),
-        )
-
+def _compute_position_sets(
+    day_wx: str,
+    gans: Optional[List[str]],
+    zhis: Optional[List[str]],
+    wa_list: List[Dict],
+    fei: List[str],
+    gshen: List[str],
+    tomb_works: List[Dict],
+) -> Dict:
+    """位置与十神集合（H-fix-5 ②，H11 方案）：非辅助动作、制局参与位/被制目标、
+    十神大类集合（含藏干/透干）、强制参与位、实制佐证位。体逐字搬移。"""
     # ── 非辅助做功动作 ──
     non_aux = [wa for wa in wa_list if not wa.get('auxiliary')]
 
@@ -424,7 +552,47 @@ def analyze_gongliang(
             destructive_positions.add(f)
         if t:
             destructive_positions.add(t)
+    return {
+        'non_aux': non_aux,
+        'involved_positions': involved_positions,
+        'zhi_targets': zhi_targets,
+        'control_action_count': control_action_count,
+        'active_tomb_works': active_tomb_works,
+        'involved_cats': involved_cats,
+        'gong_cats': gong_cats,
+        'gan_cats': gan_cats,
+        'fei_cats': fei_cats,
+        'strong_positions': strong_positions,
+        'destructive_positions': destructive_positions,
+    }
 
+
+def _apply_gong_point_rules(
+    day_gan: str,
+    day_wx: str,
+    gans: List[str],
+    zhis: List[str],
+    *,
+    gshen: List[str],
+    san_he_formed: bool,
+    non_aux: List[Dict],
+    active_tomb_works: List[Dict],
+    involved_positions: Set[str],
+    zhi_targets: Set[str],
+    gan_cats: Dict[str, Set[str]],
+    strong_positions: Set[str],
+    destructive_positions: Set[str],
+    _zb_bao: Optional[Dict],
+    _zb_clian: Optional[Dict],
+    _zb_jing: str,
+) -> Dict:
+    """14 条计分规则集中执行（H-fix-5 ③，H11 方案）：原神用神同制+2/制墓库+2/
+    七杀当财+1/入墓为功+1/库源连墓+1/包局+1/克链+1/zb 包制冲链有条件计入/
+    金字塔冲链/包局2.6/带象/官统财/月令做功+0.5/墓库属性/开库/化用成局+2——
+    顺序、阈值、去重口径全部保持（体逐字搬移）；对 caiming 的消费保持函数内
+    局部导入（H-fix-4c 循环依赖显式备案，gongliang⇢caiming 唯一回边）。"""
+    reasons: List[str] = []
+    points: float = 0.0
     # ── 1. 原神用神同制 -> +2（核心铁律）──
     # 判定：存在一个强制参与位（且有冲/克/穿实制佐证），其干支(含藏干)同时含
     # 「用神」与「原神」十神大类。
@@ -904,7 +1072,52 @@ def analyze_gongliang(
                     points += 1
                     reasons.append('化用成局高层功量：纯杀印相生化用、无制用做功竞争，'
                                    '化用路径效率高于制局（+1层，可达四层）')
+    return {
+        'points': points, 'reasons': reasons,
+        'yuanshen_hit': yuanshen_hit, 'yuanshen_pos': yuanshen_pos,
+        '_zhiku_tombs': _zhiku_tombs, '_fang_ju_formed': _fang_ju_formed,
+        'chain_len': chain_len,
+        '_zb_bao_counted': _zb_bao_counted, '_zb_pyramid': _zb_pyramid,
+        '_zb_boost': _zb_boost,
+        '_rumu_counted': _rumu_counted, '_zhiku_counted': _zhiku_counted,
+        'hua_chengju': hua_chengju,
+    }
 
+
+def _apply_caps_and_direction(
+    day_gan: str,
+    day_wx: str,
+    gans: List[str],
+    zhis: List[str],
+    wa_list: List[Dict],
+    wtypes: List[str],
+    gshen: List[str],
+    fei: List[str],
+    control_action_count: int,
+    *,
+    points: float,
+    involved_cats: Set[str],
+    zhi_targets: Set[str],
+    gan_cats: Dict[str, Set[str]],
+    fei_cats: Set[str],
+    non_aux: List[Dict],
+    has_severe_harm: bool,
+    _fang_ju_formed: bool,
+    _zhiku_tombs: List[str],
+    _zb_jing: str,
+    _zb_bao_counted: bool,
+    _zb_pyramid: bool,
+    yuanshen_hit: Optional[str],
+    hua_chengju: bool,
+    reasons: List[str],
+) -> Dict:
+    """封顶/降档/方向标注（H-fix-5 ④，H11 方案）：制净程度判定+贼神捕神净制
+    增强、普通四柱降档、层次映射+制不净/降档封顶、比劫夺财 R1 封顶/抑制、
+    用神方向标注（R2/R3/N1/N2/N3 标注级）、复合结构协同/矛盾标注、从格标注。
+    reasons 在本阶段追加于副本（与原序一致；H-fix-5 拆分为阶段返回
+    值定义良好边界，list(reasons) 防御别名，可观察输出与原函数一致）。
+    体逐字搬移。"""
+    reasons = list(reasons)  # H-fix-5：追加在副本上进行，不改动调用方列表
     # ── 8. 制净程度（调节封顶，不加点）──
     # 方局围制+制库双结构（奥纳西斯型）：书明断四层功量（理象学 6470-6474「制库
     # 两层功，杀库作功一层功，加包制一层功，有四层功量」）——方局成势围制下
@@ -1090,7 +1303,51 @@ def analyze_gongliang(
         except Exception as e:
             _logger.warning('强弱判定失败，从格标注跳过: %s', e, exc_info=True)
             _strength_gl = ''
+    return {
+        'zhi_jing': zhi_jing, 'zb_jing_adopted': zb_jing_adopted,
+        'penalty': penalty, 'raw_level': raw_level, 'level': level,
+        'pocai_signal': pocai_signal, 'pocai_severity': pocai_severity,
+        'pocai_reason': pocai_reason, 'yongshen_xiong': yongshen_xiong,
+        'fuhe': fuhe, '_strength_gl': _strength_gl, 'reasons': reasons,
+    }
 
+
+def _build_gongliang_result(
+    *,
+    day_wx: str,
+    zg: Dict,
+    gshen: List[str],
+    fei: List[str],
+    non_aux: List[Dict],
+    points: float,
+    reasons: List[str],
+    level: int,
+    raw_level: int,
+    zhi_jing: str,
+    penalty: Optional[str],
+    involved_cats: Set[str],
+    gong_cats: Set[str],
+    chain_len: int,
+    yuanshen_hit: Optional[str],
+    _zb_bao_counted: bool,
+    _zb_boost: float,
+    zb_jing_adopted: bool,
+    yongshen_xiong: List[Dict],
+    fuhe: Dict,
+    _strength_gl: str,
+    _zb_bao: Optional[Dict],
+    _zb_clian: Optional[Dict],
+    _zb_jing: str,
+    pocai_signal: bool,
+    pocai_severity: Optional[str],
+    pocai_reason: str,
+) -> Dict:
+    """装配输出（H-fix-5 ⑤，H11 方案）：层内分数、边界区标注、_build_result
+    装配、可选字段（yongshen_xiong/fuhe/strength/cong_ge）录入、双轨对账
+    （work_level vs gongliang）、pocai 方向信号、贼神捕神上游信号录入。
+    体逐字搬移；reasons 追加在副本上进行（同 _apply_caps_and_direction
+    的别名防御，可观察输出与原函数一致）。"""
+    reasons = list(reasons)  # H-fix-5：追加在副本上进行，不改动调用方列表
     # ── 分数（层内连续刻画强弱）──
     score = _compute_score(level, raw_level, points, zg, gshen, fei, non_aux,
                            zhi_jing, penalty)
@@ -1161,6 +1418,7 @@ def analyze_gongliang(
             f'贼神捕神上游信号（{"、".join(sig)}；包制/冲链不重复计入功量点，以本模块保守判为准）'
         )
     return result
+
 
 
 # ── 制净程度判定 ──

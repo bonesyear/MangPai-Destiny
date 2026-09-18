@@ -180,53 +180,22 @@ def _kong_wang_zhis(kong_wang) -> Set[str]:
     return set()
 
 
-def detect_relations(
-    day_gan: str, day_zhi: str,
-    year_gan: str = '', year_zhi: str = '',
-    month_gan: str = '', month_zhi: str = '',
-    hour_gan: str = '', hour_zhi: str = '',
-    kong_wang=None,
-) -> Dict:
-    """纯关系检测：扫描四柱间的冲合刑害穿破生克墓暗合等关系。
+# ──────────────────────────────────────────────────────────────────────
+# detect_relations 子函数（H-fix-5：原 ~850 行函数按语义聚类拆分为顶层
+# 子函数，函数体均为原代码原样搬家——判定/阈值/分支/排放顺序逐字不变；
+# detect_relations 本体退化为按原序编排装配）
+# ──────────────────────────────────────────────────────────────────────
 
-    不做做功成立判定、不做党势/层次/吉凶判断--仅产出原始关系动作与
-    原始事实数据（长生/空亡/天干入墓/墓库闭库），交由上层 confirm 解释。
+def _scan_gan_relations(day_gan: str, day_wx: str, gans: List[str],
+                        zhis: List[str], month_zhi: str) -> Dict:
+    """天干合扫描：日干五合（含争合/合财/合官/合化判断）+ 非日干合制做功。
 
-    Args:
-        day_gan: 日干
-        day_zhi: 日支
-        year_gan/year_zhi/month_gan/month_zhi/hour_gan/hour_zhi: 其余三柱干支
-        kong_wang: 空亡数据（可选，地支列表或含地支列表的 dict）
-
-    Returns:
-        原始检测结果字典：
-          work_actions: 所有检出关系动作（含 type/action/from/to/from_pos/
-                        to_pos/desc/severity；生扶/伏吟/反吟带 auxiliary=True）。
-                        未经去重/降级/折扣标注。
-          tomb_works: 墓用动作（独立列表，由 confirm 决定何时并入 work_actions）
-          sheng_yong_actions: 食伤泄秀动作引用（供 confirm 优先级链判定主做功）
-          day_he_type: 日干合类型（合财/合官/合）或 None
-          san_he_formed: 三合局是否成势
-          zheng_he: 是否争合（两干以上与日干合）
-          day_changsheng: 日干在各支的长生阶段（原始事实，回传最终结果）
-          day_weak_zhis: 日干处死/墓/绝的地支集合（供折扣标注）
-          kong_wang_zhis: 空亡地支集合（供折扣标注 + 回传）
-          entombed_gan_pillars: 天干入墓所在柱集合（供折扣标注）
+    原 detect_relations 第 2-3 段（天干五合/非日干天干合）原样抽取。
+    返回 {'work_actions', 'work_types', 'day_he_type', 'zheng_he'}。
     """
-    gans = [year_gan, month_gan, day_gan, hour_gan]
-    zhis = [year_zhi, month_zhi, day_zhi, hour_zhi]
-    pillar_keys = PILLAR_KEYS
-    day_wx = GAN_WX.get(day_gan, '')
-
     work_actions: List[Dict] = []
-    # work_types 此处为建阶段 provisional 集合，仅供循环内 .add 调用保持自洽；
-    # confirm 阶段会以 non_aux 重算最终 work_types（见 zuogong_confirm），
-    # 故本集合不回传、不被消费。
     work_types: Set[str] = set()
-    tomb_works: List[Dict] = []
-    sheng_yong_actions: List[Dict] = []
     day_he_type: Optional[str] = None
-    san_he_formed = False
 
     # ── 天干五合（日干合）──
     he_gan = TIAN_GAN_HE.get(day_gan, '')
@@ -235,7 +204,7 @@ def detect_relations(
     zheng_he = he_gan_count >= 2
 
     for i, gan in enumerate(gans):
-        pk = pillar_keys[i]
+        pk = PILLAR_KEYS[i]
         if pk == 'day' or not gan:
             continue
         if TIAN_GAN_HE.get(day_gan) == gan:
@@ -334,7 +303,7 @@ def detect_relations(
                     _is_hezhi = True
                 if not _is_hezhi:
                     continue
-                pk_i, pk_j = pillar_keys[i], pillar_keys[j]
+                pk_i, pk_j = PILLAR_KEYS[i], PILLAR_KEYS[j]
                 _bin_bin = (i != 3 and j != 3)  # M4：宾宾（年月）合制，不做主功
                 work_actions.append({
                     'type': '天干合',
@@ -349,6 +318,25 @@ def detect_relations(
                     **({'auxiliary': True, 'bin_bin_hezhi': True} if _bin_bin else {}),
                 })
                 work_types.add('合用')
+
+    return {
+        'work_actions': work_actions,
+        'work_types': work_types,
+        'day_he_type': day_he_type,
+        'zheng_he': zheng_he,
+    }
+
+
+def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
+                    zhis: List[str]) -> Dict:
+    """生用（食伤泄秀）扫描：天干食伤 / 地支食伤（月支·日支本气）/ 内食神格。
+
+    原 detect_relations 第 4-6 段原样抽取（整段以 day_wx 非空为前提）。
+    返回 {'work_actions', 'sheng_yong_actions', 'work_types'}。
+    """
+    work_actions: List[Dict] = []
+    work_types: Set[str] = set()
+    sheng_yong_actions: List[Dict] = []
 
     # ── 生用（食伤泄秀）──
     # 盲派生用 = 食伤泄秀：日干有食神/伤官贴近日干（天干月干/时干，或地支月支/日支
@@ -367,7 +355,7 @@ def detect_relations(
             ss = _shishang_of(day_gan, other_gan)
             if ss is None:
                 continue
-            pk = pillar_keys[idx]
+            pk = PILLAR_KEYS[idx]
             sheng_cai_targets: List[str] = []
             zhi_sha_targets: List[str] = []
             # 食伤生财：天干或地支中有财
@@ -441,7 +429,7 @@ def detect_relations(
                    for zk in zhis):
                 continue
             _ss = _shishang_of(day_gan, _ss_gan)
-            _pk = pillar_keys[idx]
+            _pk = PILLAR_KEYS[idx]
             # 做功须涉主宾交换：食伤在宾(月)则目标须在主(日/时)，食伤在主(日)则目标须在宾(年/月)。
             # 主主(日支食伤生时支财)/宾宾(月支食伤生年支财)为内部流转，非做功。
             _target_idx = {2, 3} if idx in (0, 1) else {0, 1}
@@ -519,12 +507,29 @@ def detect_relations(
                             'from': f'日干({day_gan})',
                             'to': f'{PILLAR_NAMES_CN[_nshi_idx]}支({_nshi_zhi}藏{_nshi_ben})',
                             'from_pos': 'day_gan',
-                            'to_pos': f'{pillar_keys[_nshi_idx]}_zhi',
+                            'to_pos': f'{PILLAR_KEYS[_nshi_idx]}_zhi',
                             'desc': f'{_nshi_zhi}藏{_nshi_ss}({_nshi_ben})泄秀，内食神生坐支藏财（食神藏财·才华）',
                         }
                         work_actions.append(_nshi_action)
                         sheng_yong_actions.append(_nshi_action)
                         work_types.add('生用')
+
+    return {
+        'work_actions': work_actions,
+        'sheng_yong_actions': sheng_yong_actions,
+        'work_types': work_types,
+    }
+
+
+def _scan_shayin_huayong(day_gan: str, day_wx: str, gans: List[str],
+                         zhis: List[str]) -> Dict:
+    """化用扫描：杀印相生（官杀->印->日主链，印透干/印居月令/坐下印）。
+
+    原 detect_relations 第 7 段原样抽取（以 day_wx 非空为前提）。
+    返回 {'work_actions', 'work_types'}。
+    """
+    work_actions: List[Dict] = []
+    work_types: Set[str] = set()
 
     # ── 化用（杀印相生：官杀->印->日主链）──
     # 段氏《段氏理象学》化用即杀印相生：官杀(克我)生印(生我)生日主，化杀为印、
@@ -549,11 +554,11 @@ def detect_relations(
                 if GAN_WX.get(g, '') == yin_wx:
                     yin_active = True  # 印透干
                     break
-            if not yin_active and ZHI_WX.get(month_zhi, '') == yin_wx:
+            if not yin_active and ZHI_WX.get(zhis[1], '') == yin_wx:
                 yin_active = True  # 印居月令（司令之印）
             # 坐下印（日支本气印）：日支为印即印星贴身化杀，如化例二 丙日坐寅木印化壬水杀。
             # 段氏"坐下印星化杀生身"即此象，与透干/月令印同为真化用做功之印。
-            if not yin_active and ZHI_WX.get(day_zhi, '') == yin_wx:
+            if not yin_active and ZHI_WX.get(zhis[2], '') == yin_wx:
                 yin_active = True  # 坐下印（日支本气印）
             if sha_gan_idx >= 0 and yin_active:
                 si = sha_gan_idx
@@ -564,41 +569,61 @@ def detect_relations(
                     'from': f'日干({day_gan})',
                     'to': f'{PILLAR_NAMES_CN[si]}干({sha_gan})',
                     'from_pos': 'day_gan',
-                    'to_pos': f'{pillar_keys[si]}_gan',
+                    'to_pos': f'{PILLAR_KEYS[si]}_gan',
                     'desc': f'官杀({sha_gan}{sha_wx})生印({yin_wx})生日主({day_gan}{day_wx})，杀印相生化用做功',
                 })
                 work_types.add('化用')
 
-    # ── 地支对关系扫描（六合/暗合/冲/刑/穿/破，H-fix-4b 注册表统一）──
-    # 原六段复制循环分散在三处位置：六合/暗合在此，冲在三合之后、克之前，
-    # 刑/穿/破在天干克之后——三次调用保 work_actions 排放顺序逐字节不变。
-    def _scan_zhi_pairs(specs) -> None:
-        for _spec in specs:
-            for i in range(4):
-                for j in range(i + 1, 4):
-                    z1, z2 = zhis[i], zhis[j]
-                    if not z1 or not z2:
-                        continue
-                    if not _spec['match'](z1, z2):
-                        continue
-                    is_day = (i == 2 or j == 2)
-                    if _spec['require_day'] and not is_day:
-                        continue
-                    _act = {
-                        'type': _spec['type'],
-                        'action': _spec['action'],
-                        'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                        'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                        'from_pos': f'{pillar_keys[i]}_zhi',
-                        'to_pos': f'{pillar_keys[j]}_zhi',
-                        'desc': _spec['desc'](z1, z2, is_day),
-                    }
-                    if _spec['severity'] is not None:
-                        _act['severity'] = _spec['severity']
-                    work_actions.append(_act)
-                    work_types.add(_spec['work_type'])
+    return {
+        'work_actions': work_actions,
+        'work_types': work_types,
+    }
 
-    _scan_zhi_pairs(_ZHI_PAIR_SPECS[:2])  # 六合 / 暗合
+
+def _scan_zhi_pairs(zhis: List[str], specs) -> Tuple[List[Dict], Set[str]]:
+    """地支对关系注册表统一扫描（H-fix-4b 闭环）。
+
+    原 detect_relations 内层闭包提升为模块级函数，扫描行为不变。⚠️ 排放顺序
+    契约：调用方须按 _ZHI_PAIR_SPECS[:2]（六合/暗合）/ [2:3]（冲）/ [3:]（刑穿破）
+    在原序列位置分段调用，work_actions 顺序才逐字节不变。返回 (work_actions, work_types)。
+    """
+    work_actions: List[Dict] = []
+    work_types: Set[str] = set()
+    for _spec in specs:
+        for i in range(4):
+            for j in range(i + 1, 4):
+                z1, z2 = zhis[i], zhis[j]
+                if not z1 or not z2:
+                    continue
+                if not _spec['match'](z1, z2):
+                    continue
+                is_day = (i == 2 or j == 2)
+                if _spec['require_day'] and not is_day:
+                    continue
+                _act = {
+                    'type': _spec['type'],
+                    'action': _spec['action'],
+                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
+                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
+                    'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+                    'to_pos': f'{PILLAR_KEYS[j]}_zhi',
+                    'desc': _spec['desc'](z1, z2, is_day),
+                }
+                if _spec['severity'] is not None:
+                    _act['severity'] = _spec['severity']
+                work_actions.append(_act)
+                work_types.add(_spec['work_type'])
+    return work_actions, work_types
+
+
+def _scan_sanhe_banhe(zhis: List[str]) -> Tuple[List[Dict], Set[str], bool]:
+    """三合局 / 半合扫描（成势做功）。
+
+    原 detect_relations 第 9 段原样抽取。返回 (work_actions, work_types, san_he_formed)。
+    """
+    work_actions: List[Dict] = []
+    work_types: Set[str] = set()
+    san_he_formed = False
 
     # ── 三合局 / 半合（成势做功）──
     # 三合三字齐现 -> 成局成势；半合（生旺/旺墓相邻二字）-> 半成势
@@ -614,7 +639,7 @@ def detect_relations(
             for m in members:
                 idx = zhis.index(m)
                 parts.append(f'{PILLAR_NAMES_CN[idx]}支({m})')
-                san_he_participants.append(f'{pillar_keys[idx]}_zhi')
+                san_he_participants.append(f'{PILLAR_KEYS[idx]}_zhi')
             work_actions.append({
                 'type': '三合局',
                 'action': '成势做功',
@@ -637,15 +662,23 @@ def detect_relations(
                     'action': '半成势',
                     'from': f'{PILLAR_NAMES_CN[ia]}支({a})',
                     'to': f'{PILLAR_NAMES_CN[ib]}支({b})',
-                    'from_pos': f'{pillar_keys[ia]}_zhi',
-                    'to_pos': f'{pillar_keys[ib]}_zhi',
-                    'participants': [f'{pillar_keys[ia]}_zhi', f'{pillar_keys[ib]}_zhi'],
+                    'from_pos': f'{PILLAR_KEYS[ia]}_zhi',
+                    'to_pos': f'{PILLAR_KEYS[ib]}_zhi',
+                    'participants': [f'{PILLAR_KEYS[ia]}_zhi', f'{PILLAR_KEYS[ib]}_zhi'],
                     'desc': f'{a}{b}半合{BAN_HE[pair_str]}局，气未全',
                 })
                 work_types.add('合用')
 
-    # ── 六冲（制用，H-fix-4b 注册表段）──
-    _scan_zhi_pairs(_ZHI_PAIR_SPECS[2:3])
+    return work_actions, work_types, san_he_formed
+
+
+def _scan_zhi_ke(zhis: List[str]) -> Tuple[List[Dict], Set[str]]:
+    """地支五行相克扫描（制用）。
+
+    原 detect_relations 第 11 段原样抽取。返回 (work_actions, work_types)。
+    """
+    work_actions: List[Dict] = []
+    work_types: Set[str] = set()
 
     # ── 克（制用）──
     for i in range(4):
@@ -662,8 +695,8 @@ def detect_relations(
                         'action': '克',
                         'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
                         'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                        'from_pos': f'{pillar_keys[i]}_zhi',
-                        'to_pos': f'{pillar_keys[j]}_zhi',
+                        'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+                        'to_pos': f'{PILLAR_KEYS[j]}_zhi',
                         'desc': f'{z1}{wx1}克{z2}{wx2}',
                         'severity': 'normal',
                     })
@@ -674,12 +707,23 @@ def detect_relations(
                         'action': '克',
                         'from': f'{PILLAR_NAMES_CN[j]}支({z2})',
                         'to': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                        'from_pos': f'{pillar_keys[j]}_zhi',
-                        'to_pos': f'{pillar_keys[i]}_zhi',
+                        'from_pos': f'{PILLAR_KEYS[j]}_zhi',
+                        'to_pos': f'{PILLAR_KEYS[i]}_zhi',
                         'desc': f'{z2}{wx2}克{z1}{wx1}',
                         'severity': 'normal',
                     })
                     work_types.add('制用')
+
+    return work_actions, work_types
+
+
+def _scan_gan_ke(gans: List[str]) -> Tuple[List[Dict], Set[str]]:
+    """天干五行相克扫描（制用；合对以合论不计克，非日柱参与标 auxiliary）。
+
+    原 detect_relations 第 12 段原样抽取。返回 (work_actions, work_types)。
+    """
+    work_actions: List[Dict] = []
+    work_types: Set[str] = set()
 
     # ── 天干克（制用）──
     # 遍历天干，用 GAN_WX 判两干生克；日干参与的克加 type=克（与支克共用同名 type）。
@@ -707,8 +751,8 @@ def detect_relations(
                 'action': '克',
                 'from': f'{PILLAR_NAMES_CN[f_idx]}干({fg})',
                 'to': f'{PILLAR_NAMES_CN[t_idx]}干({tg})',
-                'from_pos': f'{pillar_keys[f_idx]}_gan',
-                'to_pos': f'{pillar_keys[t_idx]}_gan',
+                'from_pos': f'{PILLAR_KEYS[f_idx]}_gan',
+                'to_pos': f'{PILLAR_KEYS[t_idx]}_gan',
                 'desc': f'{fg}{GAN_WX.get(fg, "")}克{tg}{GAN_WX.get(tg, "")}'
                         + ('（宾位干相克，不做主功）' if _non_day else ''),
                 'severity': 'normal',
@@ -718,8 +762,15 @@ def detect_relations(
             })
             work_types.add('制用')
 
-    # ── 刑 / 穿 / 破（制用，H-fix-4b 注册表段）──
-    _scan_zhi_pairs(_ZHI_PAIR_SPECS[3:])
+    return work_actions, work_types
+
+
+def _scan_shengfu(zhis: List[str]) -> List[Dict]:
+    """地支五行相生扫描（生扶，auxiliary；不计 work_types）。
+
+    原 detect_relations 第 14 段原样抽取。仅返回 work_actions。
+    """
+    work_actions: List[Dict] = []
 
     # ── 生（生扶，辅助标记）──
     # 注意：盲派"生用"专指食伤泄秀（见上文），地支五行相生仅为生扶帮扶，
@@ -739,8 +790,8 @@ def detect_relations(
                         'auxiliary': True,
                         'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
                         'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                        'from_pos': f'{pillar_keys[i]}_zhi',
-                        'to_pos': f'{pillar_keys[j]}_zhi',
+                        'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+                        'to_pos': f'{PILLAR_KEYS[j]}_zhi',
                         'desc': f'{z1}{wx1}生{z2}{wx2}（生扶，非做功）',
                     })
                 elif WX_SHENG.get(wx2) == wx1:
@@ -750,10 +801,21 @@ def detect_relations(
                         'auxiliary': True,
                         'from': f'{PILLAR_NAMES_CN[j]}支({z2})',
                         'to': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                        'from_pos': f'{pillar_keys[j]}_zhi',
-                        'to_pos': f'{pillar_keys[i]}_zhi',
+                        'from_pos': f'{PILLAR_KEYS[j]}_zhi',
+                        'to_pos': f'{PILLAR_KEYS[i]}_zhi',
                         'desc': f'{z2}{wx2}生{z1}{wx1}（生扶，非做功）',
                     })
+
+    return work_actions
+
+
+def _scan_tomb(zhis: List[str], gans: List[str]) -> Tuple[List[Dict], Set[str]]:
+    """墓用扫描：墓库收纳（闭库不收纳；非日柱入墓标 auxiliary）。
+
+    原 detect_relations 第 15 段原样抽取。返回 (tomb_works, work_types)。
+    """
+    tomb_works: List[Dict] = []
+    work_types: Set[str] = set()
 
     # ── 墓用 ──
     # 入墓遵循盲派规则：四生入墓、四库之土直接入辰墓、四正/四库见戌多而墓之
@@ -785,8 +847,8 @@ def detect_relations(
                     'action': '墓用',
                     'from': f'{PILLAR_NAMES_CN[i]}支({z})',
                     'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{pillar_keys[i]}_zhi',
-                    'to_pos': f'{pillar_keys[j]}_zhi',
+                    'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+                    'to_pos': f'{PILLAR_KEYS[j]}_zhi',
                     'desc': f'{z2}({ZHI_WX.get(z2, "")})入{z}墓'
                             + ('（宾位入墓，不做主功）' if _non_day_tomb else ''),
                     # M4：非日柱入墓检出但标 auxiliary（与 confirm S2 同口径提前）
@@ -794,7 +856,17 @@ def detect_relations(
                 })
                 work_types.add('墓用')
 
-    # ── 化用前置校准（P0 1：无真实制用目标 + 纯杀印链，与入墓去重）──
+    return tomb_works, work_types
+
+
+def _calibrate_huayong(day_gan: str, gans: List[str], zhis: List[str],
+                       work_actions: List[Dict], tomb_works: List[Dict],
+                       work_types: Set[str]) -> None:
+    """化用前置校准（P0 1：无真实制用目标 + 纯杀印链，与入墓去重）。
+
+    原 detect_relations 第 16 段原样抽取，原地改 work_actions / work_types
+    （杀印相生动作降 auxiliary、work_types 弃 '化用'），无返回值。
+    """
     # 段氏化用（杀印相生）为做功仅当命局为纯杀印链--无真实制用目标且无入墓做功时方为
     # 真化用；若命局已有真实制用/墓用做功，则杀印相生为附属之象（命局主功在制/墓，非
     # 化用路径），降为 auxiliary：保留于 work_actions 供 guanming/xiangfa/verify 消费，
@@ -837,7 +909,13 @@ def detect_relations(
                     _wa['auxiliary'] = True
             work_types.discard('化用')
 
-    # ── 日支合中心·食伤不作生用（复例二 副总：丑三种合）──
+
+def _apply_he_center_skip(work_actions: List[Dict], work_types: Set[str]) -> None:
+    """日支合中心·食伤不作生用（复例二 副总：丑三种合）。
+
+    原 detect_relations 第 17 段原样抽取，原地改 work_actions / work_types
+    （合中心日支之食伤动作降 auxiliary、无独立食伤时弃 '生用'），无返回值。
+    """
     # 段氏《段氏理象学》复例二："丑有三种合，这是三种不同的功……论功量只有一层"。
     # 日支若为合中心（涉≥3 合：地支合/暗合/半合），其力尽归于合，所藏食伤不再
     # 以泄秀制杀做生用--否则食伤生用叠加三种合致 type_count 虚高、层次浮夸（书
@@ -861,6 +939,14 @@ def detect_relations(
                    for _wa in work_actions):
             work_types.discard('生用')
 
+
+def _scan_fuyin_fanyin(gans: List[str], zhis: List[str]) -> List[Dict]:
+    """伏吟（同支异柱非自刑、日柱参与）/ 反吟（天克地冲、日柱参与）扫描。
+
+    原 detect_relations 第 18-19 段原样抽取。仅返回 work_actions（均 auxiliary）。
+    """
+    work_actions: List[Dict] = []
+
     # ── 伏吟（两柱地支相同，日柱参与）──
     # 段氏：伏吟为原地伏滞之象。自刑（辰辰/午午/酉酉/亥亥）已计 type=刑，
     # 此处只对非自刑的同支异柱加 type=伏吟，不与自刑重复。
@@ -879,8 +965,8 @@ def detect_relations(
                 'auxiliary': True,
                 'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
                 'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                'from_pos': f'{pillar_keys[i]}_zhi',
-                'to_pos': f'{pillar_keys[j]}_zhi',
+                'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+                'to_pos': f'{PILLAR_KEYS[j]}_zhi',
                 'desc': f'{z1}{z2}伏吟（日柱参与，原地伏滞）',
             })
 
@@ -907,13 +993,22 @@ def detect_relations(
                 'auxiliary': True,
                 'from': f'{PILLAR_NAMES_CN[i]}({g1}{z1})',
                 'to': f'{PILLAR_NAMES_CN[j]}({g2}{z2})',
-                'from_pos': f'{pillar_keys[i]}_zhi',
-                'to_pos': f'{pillar_keys[j]}_zhi',
+                'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+                'to_pos': f'{PILLAR_KEYS[j]}_zhi',
                 'desc': f'{g1}{z1}与{g2}{z2}天克地冲（反吟，动荡反复）',
             })
 
-    # ── 原始事实数据（长生 / 空亡 / 天干入墓），供 confirm 折扣标注 ──
-    # 这些是纯查表事实（与做功判定无关），在检测层一次算出，避免 confirm 重复推算。
+    return work_actions
+
+
+def _collect_raw_facts(day_gan: str, gans: List[str], zhis: List[str],
+                       kong_wang) -> Dict:
+    """原始事实收集：长生 / 弱支（死墓绝）/ 天干入墓柱 / 空亡地支。
+
+    原 detect_relations 末段原样抽取（纯查表事实，与做功判定无关，检测层一次
+    算出避免 confirm 重复推算）。返回 {'day_changsheng', 'day_weak_zhis',
+    'kong_wang_zhis', 'entombed_gan_pillars'}。
+    """
     # 日干在某地支上处死/墓/绝 -> 该地支参与做功效率打折（折扣标注由 confirm 完成）
     day_changsheng: Dict[str, str] = {}
     day_weak_zhis: Set[str] = set()
@@ -935,10 +1030,138 @@ def detect_relations(
         if not g or not z:
             continue
         if is_gan_entombed(g, z):
-            entombed_gan_pillars.add(pillar_keys[i])
+            entombed_gan_pillars.add(PILLAR_KEYS[i])
 
     # 空亡地支集合（段氏：空亡之地做事落空，做功减损；折扣标注由 confirm 完成）
     kong_wang_zhis = _kong_wang_zhis(kong_wang)
+
+    return {
+        'day_changsheng': day_changsheng,
+        'day_weak_zhis': day_weak_zhis,
+        'kong_wang_zhis': kong_wang_zhis,
+        'entombed_gan_pillars': entombed_gan_pillars,
+    }
+
+
+def detect_relations(
+    day_gan: str, day_zhi: str,
+    year_gan: str = '', year_zhi: str = '',
+    month_gan: str = '', month_zhi: str = '',
+    hour_gan: str = '', hour_zhi: str = '',
+    kong_wang=None,
+) -> Dict:
+    """纯关系检测：扫描四柱间的冲合刑害穿破生克墓暗合等关系。
+
+    不做做功成立判定、不做党势/层次/吉凶判断--仅产出原始关系动作与
+    原始事实数据（长生/空亡/天干入墓/墓库闭库），交由上层 confirm 解释。
+
+    H-fix-5：本体按语义聚类拆分为顶层子函数（_scan_gan_relations/
+    _scan_shengyong/_scan_shayin_huayong/_scan_zhi_pairs/_scan_sanhe_banhe/
+    _scan_zhi_ke/_scan_gan_ke/_scan_shengfu/_scan_tomb/_calibrate_huayong/
+    _apply_he_center_skip/_scan_fuyin_fanyin/_collect_raw_facts），本函数
+    只做按原序编排装配，各段判定/阈值/排放顺序与子函数内逐字一致。
+
+    Args:
+        day_gan: 日干
+        day_zhi: 日支
+        year_gan/year_zhi/month_gan/month_zhi/hour_gan/hour_zhi: 其余三柱干支
+        kong_wang: 空亡数据（可选，地支列表或含地支列表的 dict）
+
+    Returns:
+        原始检测结果字典：
+          work_actions: 所有检出关系动作（含 type/action/from/to/from_pos/
+                        to_pos/desc/severity；生扶/伏吟/反吟带 auxiliary=True）。
+                        未经去重/降级/折扣标注。
+          tomb_works: 墓用动作（独立列表，由 confirm 决定何时并入 work_actions）
+          sheng_yong_actions: 食伤泄秀动作引用（供 confirm 优先级链判定主做功）
+          day_he_type: 日干合类型（合财/合官/合）或 None
+          san_he_formed: 三合局是否成势
+          zheng_he: 是否争合（两干以上与日干合）
+          day_changsheng: 日干在各支的长生阶段（原始事实，回传最终结果）
+          day_weak_zhis: 日干处死/墓/绝的地支集合（供折扣标注）
+          kong_wang_zhis: 空亡地支集合（供折扣标注 + 回传）
+          entombed_gan_pillars: 天干入墓所在柱集合（供折扣标注）
+    """
+    gans = [year_gan, month_gan, day_gan, hour_gan]
+    zhis = [year_zhi, month_zhi, day_zhi, hour_zhi]
+    day_wx = GAN_WX.get(day_gan, '')
+
+    work_actions: List[Dict] = []
+    # work_types 此处为建阶段 provisional 集合，仅供各扫描子函数累加保持自洽；
+    # confirm 阶段会以 non_aux 重算最终 work_types（见 zuogong_confirm），
+    # 故本集合不回传、不被消费。
+    work_types: Set[str] = set()
+    tomb_works: List[Dict] = []
+    sheng_yong_actions: List[Dict] = []
+
+    # ── 天干合（日干合/争合/合化 + 非日干合制做功）──
+    r = _scan_gan_relations(day_gan, day_wx, gans, zhis, month_zhi)
+    work_actions += r['work_actions']
+    work_types |= r['work_types']
+    day_he_type: Optional[str] = r['day_he_type']
+    zheng_he: bool = r['zheng_he']
+
+    # ── 生用（食伤泄秀：天干食伤/地支食伤/内食神格）──
+    r = _scan_shengyong(day_gan, day_wx, gans, zhis)
+    work_actions += r['work_actions']
+    work_types |= r['work_types']
+    sheng_yong_actions += r['sheng_yong_actions']
+
+    # ── 化用（杀印相生）──
+    r = _scan_shayin_huayong(day_gan, day_wx, gans, zhis)
+    work_actions += r['work_actions']
+    work_types |= r['work_types']
+
+    # ── 地支对关系扫描（H-fix-4b 注册表；按 [:2]/[2:3]/[3:] 三次调用放回原
+    #    排放位置，work_actions 顺序逐字节不变）──
+    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[:2])  # 六合 / 暗合
+    work_actions += a
+    work_types |= t
+
+    # ── 三合局 / 半合（成势做功）──
+    a, t, san_he_formed = _scan_sanhe_banhe(zhis)
+    work_actions += a
+    work_types |= t
+
+    # ── 六冲（制用，H-fix-4b 注册表段）──
+    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[2:3])
+    work_actions += a
+    work_types |= t
+
+    # ── 克（制用）──
+    a, t = _scan_zhi_ke(zhis)
+    work_actions += a
+    work_types |= t
+
+    # ── 天干克（制用）──
+    a, t = _scan_gan_ke(gans)
+    work_actions += a
+    work_types |= t
+
+    # ── 刑 / 穿 / 破（制用，H-fix-4b 注册表段）──
+    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[3:])
+    work_actions += a
+    work_types |= t
+
+    # ── 生（生扶，辅助标记）──
+    work_actions += _scan_shengfu(zhis)
+
+    # ── 墓用 ──
+    a, t = _scan_tomb(zhis, gans)
+    tomb_works += a
+    work_types |= t
+
+    # ── 化用前置校准（P0 1）/ 日支合中心·食伤不作生用（复例二）──
+    # 两段均为原地修订（给既有动作标 auxiliary / 修订 provisional work_types），
+    # 须在全量扫描后、伏吟反吟前按原序执行。
+    _calibrate_huayong(day_gan, gans, zhis, work_actions, tomb_works, work_types)
+    _apply_he_center_skip(work_actions, work_types)
+
+    # ── 伏吟 / 反吟（日柱参与）──
+    work_actions += _scan_fuyin_fanyin(gans, zhis)
+
+    # ── 原始事实数据（长生 / 空亡 / 天干入墓），供 confirm 折扣标注 ──
+    facts = _collect_raw_facts(day_gan, gans, zhis, kong_wang)
 
     return {
         'work_actions': work_actions,
@@ -947,10 +1170,10 @@ def detect_relations(
         'day_he_type': day_he_type,
         'san_he_formed': san_he_formed,
         'zheng_he': zheng_he,
-        'day_changsheng': day_changsheng,
-        'day_weak_zhis': day_weak_zhis,
-        'kong_wang_zhis': kong_wang_zhis,
-        'entombed_gan_pillars': entombed_gan_pillars,
+        'day_changsheng': facts['day_changsheng'],
+        'day_weak_zhis': facts['day_weak_zhis'],
+        'kong_wang_zhis': facts['kong_wang_zhis'],
+        'entombed_gan_pillars': facts['entombed_gan_pillars'],
     }
 
 

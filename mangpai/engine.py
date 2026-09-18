@@ -311,12 +311,42 @@ class MangpaiEngine:
         EngineComputeError 传导；可选模块失败记 warning 并回写明确默认值，
         单个可选模块失败不影响其他模块。
 
+        编排器（H-fix-5，按 H11 施工图拆为五个阶段子函数；调用顺序、
+        回写顺序、条件分支与 _auto_liunian_injected 行为与拆分前逐字
+        一致，等价性由 /tmp/hfix5_ca_pre|post.json 全量 sha256 对拍锁定）：
+          ① _compute_objective_base           基础客观层（bazi..tiyong）
+          ② _compute_zuogong_and_derivatives  做功主线（zuogong→zeishen_bushen→gongliang）
+          ③ _compute_objective_extended       格局/象法客观层（muku..di_zhi_relations）
+          ④ _compute_yunshi                   大运/流年/交运/十排歌
+          ⑤ _compute_subjective_domain        领域专辑+高级技法+narrative
+        summary 装配沿用既有 _build_summary。
+
+        H11 偏差说明：H11 的 ① 原定覆盖 muku..gongshen，但实际代码中
+        zuogong 系（②）位于 tiyong 与 muku 之间——zuogong 是 gongliang/
+        zhengfan/yunfan 全链上游须先算，故 ① 拆为 base/extended 两段
+        夹住 ②，以保调用与回写顺序逐字等价。
+
         Returns:
             包含所有盲派分析模块结果的字典
         """
         result: Dict[str, Any] = {}
         p = self.pillars
 
+        self._compute_objective_base(result, p)
+        zg_zb = self._compute_zuogong_and_derivatives(result, p)
+        zg = zg_zb['zg']
+        zb_res = zg_zb['zb_res']
+        self._compute_objective_extended(result, p, zg)
+        yunshi_ctx = self._compute_yunshi(result, zg)
+        self._compute_subjective_domain(result, p, zg, zb_res, yunshi_ctx)
+        result['summary'] = self._build_summary(result)
+
+        return result
+
+    def _compute_objective_base(self, result: Dict[str, Any],
+                                p: Pillars) -> None:
+        """阶段①（H-fix-5）：基础客观层——四柱回显 + 藏干/长生/纳音/
+        神煞/宾主/体用。"""
         result['bazi'] = self.bazi
         result['input'] = self.input_data
 
@@ -345,7 +375,7 @@ class MangpaiEngine:
         ))
         # 神煞单源透传（R2 复核后口径）：hunyin/zhiye/gongmen_wuzhi/zaihuo/
         # laoyu 经 resolve_shensha 优先取本值、随 shensha_reference 联动
-        # （默认 'day'，F13）；xiangfa_ops 直接消费本值（engine.py:566）；
+        # （默认 'day'，F13）；xiangfa_ops 直接消费本值（engine.py:774）；
         # caiming/guanming 仅有预留形参、尚未消费（caiming.py:1803、
         # guanming.py:906）；liuqin.py:872 仍就地重算（配置断路备案，R2 P2）。
 
@@ -359,6 +389,14 @@ class MangpaiEngine:
             'tiyong', classify_tiyong, self.shishen, self.day_gan
         ))
 
+    def _compute_zuogong_and_derivatives(self, result: Dict[str, Any],
+                                         p: Pillars) -> Dict[str, Any]:
+        """阶段②（H-fix-5）：做功主线——zuogong → zeishen_bushen
+        （gongliang 上游信号源）→ gongliang 功量层。
+
+        返回 {'zg': 回写后 zuogong, 'zb_res': zeishen_bushen 结果}，
+        供阶段③（zhengfan）与阶段⑤（yunfan/xiangfa_ops）消费。
+        """
         zg = self._safe_compute(
             'zuogong', analyze_zuogong,
             p.day_gan, p.day_zhi,
@@ -389,6 +427,17 @@ class MangpaiEngine:
             zeishen_bushen_result=zb_res or None,
         ))
 
+        return {'zg': zg, 'zb_res': zb_res}
+
+    def _compute_objective_extended(self, result: Dict[str, Any],
+                                    p: Pillars,
+                                    zg: Dict[str, Any]) -> None:
+        """阶段③（H-fix-5）：格局/象法客观层——muku/anhe/biqi/wood/soil/
+        he/virtual/zhengfan/shenshu/xiangfa/gongshen + kong_wang/di_zhi_relations。
+
+        （H11 的 ① 后半段；因 zuogong 系须先于 muku 计算，见 compute_all
+        编排器的偏差说明。zhengfan 消费阶段②的 zg。）
+        """
         self._write(result, 'muku', self._safe_compute(
             'muku', analyze_muku, self.zhis, self.gans))
 
@@ -476,6 +525,18 @@ class MangpaiEngine:
         result['kong_wang'] = self.kong_wang
         result['di_zhi_relations'] = self.di_zhi_relations
 
+    def _compute_yunshi(self, result: Dict[str, Any],
+                        zg: Dict[str, Any]) -> Dict[str, Any]:
+        """阶段④（H-fix-5）：运岁层——大运/流年/交运/十排歌。
+
+        条件分支（与拆分前一致）：dy_list 非空才写 dayun_analysis；
+        无外部流年且 input 有出生年 → 自动构造三岁流年窗口并条件置
+        self._auto_liunian_injected（__init__ 未初始化、getattr 兜底，
+        R2 P3 备案行为原样保留）；liunian_data truthy 且 ln_list 非空才写
+        liunian_analysis；input 有年且月柱非空才写 jiaoyun_analysis。
+
+        返回 {'dy_list':.., 'liunian_data':..} 供阶段⑤定位当前运岁。
+        """
         # 大运数据键名适配：calc_bazi_full 返回 'da_yun'（dict，内含 'dayun' 列表）；
         # 兼容旧调用方直传 'dayun'（dict 或 list）。优先取 da_yun。
         dayun_data = (self._raw_bazi_data.get('da_yun')
@@ -510,7 +571,7 @@ class MangpaiEngine:
             if liunian_data:
                 self._auto_liunian_injected = True
                 # R2 P3 备案：本属性仅此处条件赋值、__init__ 未初始化（读点
-                # engine.py:497 getattr 兜底）；同实例复调 compute_all 会残留
+                # engine.py:689 getattr 兜底）；同实例复调 compute_all 会残留
                 # True，无风险路径，文档批不初始化引擎仅标注。
 
         if liunian_data:
@@ -549,6 +610,20 @@ class MangpaiEngine:
             self.month_gan, self.month_zhi,
             self.hour_gan, self.hour_zhi,
         ))
+
+        return {'dy_list': dy_list, 'liunian_data': liunian_data}
+
+    def _compute_subjective_domain(
+            self, result: Dict[str, Any], p: Pillars,
+            zg: Dict[str, Any], zb_res: Dict[str, Any],
+            yunshi_ctx: Dict[str, Any]) -> None:
+        """阶段⑤（H-fix-5）：领域专辑 + 高级技法模块（subjective 判断层）
+        + narrative。relations 总线于此一次性 detect 供各领域复用；
+        yunfan 前置于 caiming/guanming/zhiye（A1 岁运反局切片入否决链）；
+        laoyu 提前于 direction 总线（修批D）；laoyu/zeishen_bushen 于本阶段
+        原位置回写（键序不变）。"""
+        dy_list = yunshi_ctx['dy_list']
+        liunian_data = yunshi_ctx['liunian_data']
 
         # ──────────────────────────────────────────────────────────────
         # 领域专辑 + 高级技法模块（subjective 判断层）
@@ -789,10 +864,6 @@ class MangpaiEngine:
         self._write(result, 'narrative', self._safe_compute(
             'narrative', summarize_engine_result, result
         ))
-
-        result['summary'] = self._build_summary(result)
-
-        return result
 
     def _build_summary(self, result: Dict[str, Any]) -> str:
         """构建摘要字符串。"""
