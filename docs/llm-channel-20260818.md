@@ -27,7 +27,7 @@ LLM 不可用（无 key/网络失败）时降级返回 prompt 文本，不抛错
 > **配置项（S1 起）**：端点/密钥/模型/超时/thinking 开关等全部可经 `MANGPAI_LLM_*` 环境变量配置，可指向任意 OpenAI 兼容服务（OpenAI/Ollama/vLLM/其他厂商，严格兼容服务设 `MANGPAI_LLM_THINKING=0`）——总表与 provider 示例见根目录 README「配置你自己的 LLM」节 + `.env.example`。
 > **计价口径**：`cost_cny` 计价表**仅对 DeepSeek 定价有效**（峰/谷档亦 DeepSeek 专属机制）；其他 provider/未知模型显式返回 None，展示为「未计价」（不显示误导性 ¥0）。
 
-命令行单命示例：`python3 -m mangpai.subjective.llm_channel [case_id] [question]`（吃 trainset 案例，需在仓库根目录运行——案例路径为 cwd 相对路径，已知限制随 CLI 入口批修复）。
+命令行单命示例：`python3 -m mangpai.subjective.llm_channel [case_id] [question]`（吃 trainset 案例；案例路径已锚定 `__file__`，可在任意目录运行）。
 
 ### validate 三模式
 

@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1066 验证用例全绿（+1 xfail）。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1129 验证用例全绿（+1 xfail）。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,7 +47,7 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 432 | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试） | 1066 passed + 1 xfailed | ✅ |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1129 passed + 1 xfailed | ✅ |
 | blind_eval（heldout 215 + trainset 294 三维盲测） | 快照零翻转（基线 `snapshots/LATEST`） | ✅ |
 
 ## 三层审计
@@ -137,7 +137,7 @@ text = render_structured_reading(result, user_question='此造财运如何？')
 print(text)
 ```
 
-命令行 demo（吃 trainset 内置案例，需 `pip install pyyaml`，且**须在仓库根目录运行**——案例路径为 cwd 相对路径，已知限制将随 CLI 入口批修复）：
+命令行 demo（吃 trainset 内置案例，需 `pip install pyyaml`；案例路径已锚定 `__file__`，**可在任意目录运行**）：
 
 ```bash
 python3 -m mangpai.subjective.llm_channel b67-李嘉诚 "财运"

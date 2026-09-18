@@ -18,6 +18,8 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import json
 import re
 from typing import Any, Dict, Optional
@@ -476,7 +478,6 @@ def render_structured_reading(
 
 def _demo_cases_path():
     """demo 用 trainset 案例路径——锚定 __file__，与调用方 cwd 无关。"""
-    from pathlib import Path
     return Path(__file__).resolve().parents[1] / 'tests' / 'trainset' / 'cases.yaml'
 
 
