@@ -1,3 +1,32 @@
+# 收工记录 · 2026-09-18（P4 职业军警新面批落地 · P 系列收官）
+
+> 接续本文件 P3 节（其「下批衔接」已定 P4）。本批 = 引擎精度批 P 系列第四批=**收官批**（判定改动批，objective muku 纯增量检测+zhiye military 窄消费）。详账=`docs/tasks/codehygiene-fix-backlog.md` P4 节；预注册=`docs/kimi-p4-zhiye-muku-prereg-20260918.md`；快照链=`mangpai/tests/heldout/snapshots/README.md`。
+
+## 一、P4 落地终态
+
+| 项 | 内容 |
+|---|---|
+| 检测面（objective 纯增量） | `muku.detect_ku_zhi_ku(zhis)`：库制库=阳库（辰戌）收/刑 阴库（丑未），阳为制方（收式唯辰、刑=丑戌/戌未、阳冲阴十二支不存在）；**analyze_muku/is_entomb 既有输出零改动**（muku 13 消费方契约不变，F2 先例全量回归=六件套实证零回归） |
+| 消费条款（military 单桶，贵气门**外**） | 「库制库·阳制阴（墓用执法象）+6」=检测命中+阴库成双多见（丑≥2 或未≥2，gaoji:2190-2194+案例三双丑/例四双未明文）；墓用结构=格局级做功（:2177-2182）不走贵气门；军警 gating 照旧撤分。书锚 gaoji:2401-2417（警察）+:11747-11756（例四刑杀库）+:11630（丑=阴库公安象） |
+| 指标 | trainset 职 **40→41✅**（+1 全预注册=gj-警察墓库；⚠️ 预警带 +2~4 **未达=偏差备案**：书锚仅 2 例同构，铁律4 不为追指标放宽）；heldout 三维**零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）；trainset 官 102✅/财 61✅ 零翻转 |
+| 探针与锚 | 军警探针 3/10→**4/10**（军官例四戌未刑开杀库归位）；例二（margin 6）/例九（margin 1）条款结构性不命中逐字不动；yx-科级 collateral 不复现（阴库 0，哨兵锁定） |
+| 归因 | 快照字段级 diff 唯一变更=gj-警察墓库；**文本抖动 0**；命中面 12 例全归因（数亿坐牢/qi22 无职 verdict 快照不收、足球/建筑-2/8721/qi50 分升 primary 不变、li139/qi05/li141 gating 撤分——li141=blind 上下文喂运触发岁运反局 gating） |
+| 六件套 | verify 432+70+64+20 ✔；pytest **1107 passed+1xf**（+10 哨兵）✔；blind vs p3 上记 ✔；双 seed 剥 _meta 逐字节一致 ✔；67/famous 无变化 ✔；calib 常驻 2 条零新增 ✔；check_layering+check_typing_imports ✔；3.11.15/3.14.4 双版本 blind 冒烟逐字节一致 ✔ |
+| 基线 | `snapshots/LATEST` → **`20260918_p4.json`**（README 链总账已补录） |
+
+## 二、P 系列收官终态（四批全落地）
+
+- P1 官命检测簇（官 +4）→ P2 官命 fp 窄修（官 +2）→ P3 财命残簇（财 +2）→ P4 职业军警新面（职 +1）；trainset 官 96→102✅/财 59→61✅/职 40→41✅，**heldout 三维四批贯穿零回退**（官 48✅/财 47✅/职 24✅）。
+- 方案单列项=财命 G5 破从/A1 反局（触 classify_strength/zhengfan 总线，高风险单列专项或收档，方案四节已定，本周期不动）。
+- 残留：官 ❌13（§6.2）/财 ❌10（§6.3）/职 ❌32（§6.1，军警备案簇警察墓库已清、余收档=backlog P4 节清单，勿再立项）。
+
+## 三、剩余事项
+
+- 代码改动未提交（工作树，用户未要求 commit）。
+- 0917 文件所载其余事项（D 真实凭证冒烟待办、A3 条件项、feishu 并发两 P1 等）原样维持，见该文件 §二。
+
+---
+
 # 收工记录 · 2026-09-18（P3 财命残簇批落地）
 
 > 接续本文件 P2 节（其「下批衔接」已定 P3）。本批 = 引擎精度批 P 系列第三批（判定改动批，caiming 消费侧，objective 零改动）。详账=`docs/tasks/codehygiene-fix-backlog.md` P3 节；预注册=`docs/kimi-p3-caiming-prereg-20260918.md`；快照链=`mangpai/tests/heldout/snapshots/README.md`。

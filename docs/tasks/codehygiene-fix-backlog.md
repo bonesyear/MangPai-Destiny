@@ -1728,3 +1728,50 @@ H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 t
 - 凶向标注只写全量轨红线复查：本批不触 :1883-1897 强制标注段；diff 中静态轨（tier_static/level_static）零凶向词新增（入狱一年 tier_static 巨富→富为档位变化非凶向标注）。
 - check_layering+check_typing_imports 通过；3.11.15（verify 432+70）/3.14.4（pytest 全量+verify 64+20）双版本冒烟一致。
 - 残留：财命 ❌10 原位（条款目标为 ⚠️ 侧 overshoot/落位，❌ 侧全为非三簇机制或既有备案）；代码改动未提交（工作树）；P4（职业军警墓库做功）为下一批。
+
+## P4 职业军警新面批（2026-09-18，执行登记 · 引擎精度批 P 系列第四批=收官批——判定改动批，objective muku 纯增量检测+zhiye military 窄消费）
+
+> 依据：方案 `~/.claude/projects/-root-metaphysics/memory/kimi-engine-precision-plan-20260918.md` P4 节；预注册 `docs/kimi-p4-zhiye-muku-prereg-20260918.md`（动工前落盘：509 例候选命中面扫描+书锚逐字行号+双端锚+预期翻转清单+gating 吸收面）。基线推进 `snapshots/20260918_p3.json` → **`20260918_p4.json`**（LATEST 已推进）。
+
+### 落地项
+
+| 项 | 位置 | 落地 |
+|---|---|---|
+| 检测面（objective 纯增量） | `objective/muku.py` 新增 `detect_ku_zhi_ku(zhis)` | 库制库=阳库（辰戌，阳土）收/刑 阴库（丑未，阴土），阳库恒为制方（阳制阴）：收=is_entomb 四库之土入辰墓（理象学:3008 族；戌论冲开不入墓故土支入戌不成立，收式唯辰）；刑=丑戌/戌未。阳库冲阴库十二支不存在（辰戌=阳阳、丑未=阴阴），kind∈{收,刑} 两式完备。**analyze_muku/is_entomb/GAN_TOMB_ZHI/TOMB_MAP 既有输出零改动** |
+| 消费条款（窄消费桶=military 单桶） | `subjective/zhiye.py` `_score_military` F15 块后（贵气门**外**） | **库制库·阳制阴（墓用执法象）+6**，要件与门：① detect_ku_zhi_ku 命中；② 阴库成双多见（丑≥2 或未≥2——墓用结构条件2「有物可墓…成势、多见」gaoji:2190-2194，案例三双丑/例四双未明文；单库孤见不成墓用）。墓用结构=格局级做功（gaoji:2177-2182），不走贵气门（:11956 所管=8.2 字级组合）；8.2 六组组合与封顶+6 零改动；mingju_xiong 军警 gating（classify 层）照旧撤分 |
+| 哨兵 | `mangpai/tests/test_p4_zhiye_kuzhiku.py` 10 测 | 先红（ImportError→检测/警察墓库/例四红）后绿（10/10）：检测层 4 测（含复例四 检测层命中/消费层被成双要件挡住的分层验证）+目标书例 2+fp 守护（乔布斯/罗斯切尔德/yx-科级结构性不命中）+锚 margin（例二 mil==10/例九 mil==11 逐字不动）+例五 gating 保护链+探针 ≥4/10 |
+
+### 书锚（回书逐字核行号，mangpai-gaoji-ocr.txt）
+
+- 真阳锚① gaoji:2401-2417 第二章 2.5 墓用结构·案例三（=trainset gj-警察墓库）：「阳库（辰）收阴库（丑），有制阴得阳之象」「阳制阴，有执法、纠正之象」「墓用结构，阳库制阴库。实际为警察」。
+- 真阳锚② gaoji:11747-11756 8.2 军官例四：「戌未相刑，刑开官杀库。戌为火库，即火药库、刀枪库。刑杀库做功，乃入兵营掌权之象」+口诀二「比劫库冲杀库动，麾下兵众听号响」。
+- 要件锚 gaoji:2190-2194（墓用结构三条件之二「成势、多见」）；类象锚 gaoji:11630-11632（丑=阴库公安象）/:11665（口诀一）/:11785-11788（丑戌刑阳制阴扫黑破案）。
+- 假阳锚（结构性不命中实证）：罗斯切尔德（丑未各一+阴阴冲）/复例四经商（丑单见）/乔布斯（阴库 0）/yx-科级（阴库 0，F15 collateral 案例不复现）/朱元璋（丑未各一，heldout 官命锚不动）。
+
+### 翻转明细与逐条归因（全量 blind diff，vs p3）
+
+- **trainset 职 40→41✅（+1）**：gj-警察墓库 merchant(7)→military(7，tie_pri military>merchant)——全预注册唯一 scored 翻转。**官 102✅/财 61✅ 零翻转**（zhiye 单模块改动，官/财链零消费 zhiye，结构性保证+diff 实证）。
+- **heldout 三维零翻转零抖动**：官 48✅/财 47✅/职 24✅ 保；M2 财命七组双集逐字不动；M3 全维「噪声带内」。
+- **文本抖动 0 条**。快照字段级 diff 唯一变更=trainset gj-警察墓库（zhiye_primary/label+职 ❌→✅）。
+- **命中面 12 例的 gating/快照吸收归因**（预注册 §四命中面 vs 实测）：条款命中=train 5+heldout 6+探针例四。其中 zj-数亿坐牢/heldout-qi22 无职业 verdict 快照不收（unscorable，引擎侧 primary 有变但零评分面）；cj-足球（mil 8→14 primary 不变 unscorable）/yx-建筑-2（1→7）/yx-8721（2→8）/heldout-qi50（0→6）分数升而 primary 不变；heldout-li139/qi05 原局凶向 gating 撤分为 0 零变化；**heldout-li141  standalone 命中但 blind 上下文喂运（壬戌运/庚辰年）触发岁运反局军警 gating（流年反局·类型一破坏功神）撤分**，快照零变化——gating 保护链全数按设计工作，无白名单外路径。
+- **军警探针 3/10→4/10**：军官例四（mil 1→7 过阈，laborer fallback→military）归位；例一/二/九保（例二 margin 6、例九 margin 1 逐字不动——条款对两锚结构性不命中：未 1 单见）。
+
+### 验收对照（方案 P4 节 5 条+全系列红线）
+
+① heldout 职 24✅ 零回退 ✔；② 探针 4/10 ≥4 ✔；③ 例二/例九 margin 检验保（逐字不动）✔；④ yx-科级 collateral 类不复现（阴库 0 结构性不命中+哨兵锁定）✔；⑤ 哨兵先红后绿+六件套全绿 ✔。预警指标 trainset 职 +2~4 **未达（+1）——偏差备案**：库制库书锚仅 2 例同构（警察墓库+例四，例四不在两集），yx-公安/reg67-公安/cj-戴笠等军警残留分差 6-10 且无第二同构书锚（铁律4），不为追指标放宽条款（窄检测面纪律优先于预警带）。
+
+### 收档清单（本批复核后维持，勿再立项）
+
+- 8.2 例三（金水成势无库+凶向 gating，书机制=岁运火来炼金非原局面）/例五（凶向 gating 财坏印）/例六（lawyer 桶抢；书机制「官库戌被冲开」系大运辰运应期面）/例七（performer tie，伤官制官归 lawyer 桶界）/例八（羊刃合杀落 military=公检法/武职桶界张力，F15 备案）/例十（比劫库制印：政委例十 vs 复例四双锚同构不可分，F15 铁律16 已撤）。
+- 军警备案簇余：岳飞（官杀 0）/cj-戴笠（无官杀，贵气门所挡）/reg67-公安（merchant 10 分差不可及）/yx-公安（卧底，merchant 10 分差；日支丑入辰墓单见不成双）/reg67-财制印刑警=例九同盘已 ✅。
+- 「库藏何物」细分（杀库/印库分级加权）：两锚各执（例四杀库/案例三印库），无第三锚定级，不立。
+
+### 验证（全绿）
+
+- 哨兵 10 测先红后绿；pytest **1107 passed+1xf**（1097+新增 10）；verify 432+70+64+20 全绿。
+- 双 seed（PYTHONHASHSEED=0 vs 默认）blind 快照剥 _meta 逐字节一致。
+- regression67/famous 无变化；calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财）零新增。
+- **muku 消费方全量回归（F2 先例）**：供给契约零改动（纯增量新函数），13 调用点（verify_mangpai×9/zuogong_detect/dayun/zaihuo×3/caiming/gongliang/utils._ensure/liuqin×4/zhiye/gongmen_wuzhi/xiangfa_ops/guanming/engine）由 pytest 全量+blind 双集+67/famous/calib 实证零回归。
+- check_layering+check_typing_imports 通过；3.11.15/3.14.4 双版本 blind 冒烟剥 _meta 逐字节一致。
+- **P 系列收官终态**：P1（官+4）/P2（官+2）/P3（财+2）/P4（职+1）四批全落地，trainset 官 96→102✅/财 59→61✅/职 40→41✅，heldout 三维全程零回退（官 48✅/财 47✅/职 24✅ 四批贯穿）；方案单列项=财命 G5 破从/A1 反局（高风险单列或收档，方案四节已定）；残留=官 ❌13/财 ❌10/职 ❌32（§6.1 军警备案簇警察墓库已清，余收档）。
+- 代码改动未提交（工作树，用户未要求 commit）。

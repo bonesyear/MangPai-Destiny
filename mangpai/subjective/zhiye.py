@@ -56,7 +56,7 @@ from mangpai.objective.constants import (
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
-from mangpai.objective.muku import analyze_muku
+from mangpai.objective.muku import analyze_muku, detect_ku_zhi_ku
 from mangpai.objective.xiangfa import get_liushi_ganzhi_xiang
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _cat,
@@ -1002,6 +1002,26 @@ def _score_military(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
         score += min(_combo, 6)
         if _combo > 6:
             ev.append(f'8.2组合{_combo}分封顶+6（防堆叠虚高）')
+
+    # ── P4：库制库·阳制阴（墓用执法象）+6（贵气门**外**——墓用结构=格局级做功，
+    #    gaoji:2177-2182「乃八字做功格局中最为深沉、最具控制力与扩张性的范式」，
+    #    贵气门 :11956「先观格局有无贵气，再查组合特定字眼」所管=8.2 字级组合，
+    #    两者书内分层自明）──
+    #    书锚：gaoji:2401-2417 案例三「阳库（辰）收阴库（丑），有制阴得阳之象…
+    #    …阳制阴，有执法、纠正之象……实际为警察」（双丑入辰）；军官例四
+    #    :11747-11756「戌未相刑，刑开官杀库……乃入兵营掌权之象」（双未被刑）+
+    #    口诀二「比劫库冲杀库动，麾下兵众听号响」；类象 :11630 丑=阴库公安象。
+    #    要件（与门）：① detect_ku_zhi_ku 命中（阳库辰戌 收/刑 阴库丑未）；
+    #    ② 阴库成双多见（丑≥2 或 未≥2——墓用结构条件2「有物可墓……成势、多
+    #    见」:2190-2194，案例三「年月双丑」/例四日坐未+时未明文；单库孤见不成
+    #    墓用结构——复例四丑辰收单见=经商锚、罗斯切尔德丑未各一=merchant 锚，
+    #    结构性不命中）。分值对照戌武库做功+3/羊刃驾杀+3（单字/单关系级），
+    #    本条款=双要件复合独力通道（teacher 纯食伤文人+5/accountant 从强金财
+    #    +5 独力成象先例）。凶向盘由 classify 层军警 gating 照旧撤分。
+    if detect_ku_zhi_ku(zhis) and (zhis.count('丑') >= 2 or zhis.count('未') >= 2):
+        score += 6
+        ev.append('库制库·阳制阴（阳库辰戌收/刑阴库丑未且阴库成双多见，墓用结构'
+                  '执法象：制阴得阳，gaoji 案例三警察/军官例四刑杀库掌权）')
     return score, ev
 
 

@@ -208,6 +208,54 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
     return same_wx_count >= 2
 
 
+# ── 库制库（阳库制阴库）做功检测（P4，2026-09-18）──
+# 阳库=辰戌（阳土）、阴库=丑未（阴土）；阳库 收/刑 阴库=阳制阴（制阴得阳）。
+# 书锚：gaoji:2401-2417 墓用结构案例三「阳库（辰）收阴库（丑），有制阴得阳之
+#   象……阳制阴，有执法、纠正之象……实际为警察」；gaoji:11747-11756 军官例四
+#   「戌未相刑，刑开官杀库……刑杀库做功，乃入兵营掌权之象」；gaoji:11785-11788
+#   丑戌刑「丑为阴库（犯罪、隐蔽），戌为火库（正义、光明），刑之有扫黑、破案
+#   象」。
+# 收=is_entomb（四库之土直接入辰墓，理象学:3008；戌论冲开不入墓故土支入戌不
+#   成立，收式唯辰）；刑=丑戌/戌未。阳库冲阴库十二支不存在（辰戌冲=阳阳、丑未
+#   冲=阴阴），kind∈{收,刑} 两式完备。
+# 纯增量函数：analyze_muku/is_entomb 等既有输出零改动（muku 消费方契约不变）。
+_KU_YANG = ('辰', '戌')  # 阳土库
+_KU_YIN = ('丑', '未')   # 阴土库
+
+
+def detect_ku_zhi_ku(zhis: List[str]) -> List[Dict]:
+    """库制库（阳库制阴库）做功检测（墓用结构，gaoji 2.5 + 8.2）。
+
+    阳库（辰戌，阳土）对阴库（丑未，阴土）发生 收（入墓）/刑 关系即阳制阴，
+    阳库恒为制方（收式辰为收方；刑式互向但戌=火库正义、丑未=阴库，书口径
+    阳制阴）。本函数只检测关系存在与方向，「阴库成双多见」（墓用结构条件2
+    「有物可墓…成势、多见」gaoji:2190-2194）等成象要件由消费方判定。
+
+    Args:
+        zhis: 四柱地支列表 [year_zhi, month_zhi, day_zhi, hour_zhi]
+
+    Returns:
+        命中关系列表，每项 {yang, yin, kind('收'/'刑'), yang_pos, yin_pos}；
+        无命中返回空列表
+    """
+    pairs: List[Dict] = []
+    for i, a in enumerate(zhis):
+        if a not in _KU_YANG:
+            continue
+        for j, b in enumerate(zhis):
+            if i == j or not b or b not in _KU_YIN:
+                continue
+            if is_entomb(b, a, zhis):
+                kind = '收'
+            elif _is_xing(a, b):
+                kind = '刑'
+            else:
+                continue
+            pairs.append({'yang': a, 'yin': b, 'kind': kind,
+                          'yang_pos': _PILLAR_NAMES[i], 'yin_pos': _PILLAR_NAMES[j]})
+    return pairs
+
+
 def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
     """分析四柱中的墓库关系。
 
