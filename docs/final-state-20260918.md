@@ -40,7 +40,8 @@
 ## 三、测试终态
 
 - pytest **1107 passed + 1xf**；verify 432+70+64+20 全项绿；双 seed（PYTHONHASHSEED=0/7/42）509 例 payload 特征 JSON 逐字节一致；67/famous 零新增回归；calib 常驻 2 条（zhenbao-01 官/zhenbao-14a 财）零新增。
-- `scripts/check_layering.py`（分层铁律：foundation/objective/subjective 无反向依赖、顶层图无环）+ `scripts/check_typing_imports.py` 通过；3.11.15/3.14.4 双版本冒烟逐字节一致。
+- `scripts/check_layering.py`（分层铁律：foundation/objective/subjective 无反向依赖、顶层图无环）+ `scripts/check_typing_imports.py` 通过。
+- **双版本全量验证（2026-09-18 补）**：3.11.15（uv 独立 venv）与 3.14.4（引擎标准环境）**全量 pytest 均 1113 passed + 1 xfailed**；verify 四件套 432/70/64/20 双版本全绿；**3.11 下 blind vs LATEST 零翻转**（heldout 0 条/各维 Δ=+0.0%）——引擎输出跨版本逐字节一致，**跨版本部署无隐患**。
 
 ## 四、本周期工作总览（2026-09-17~18）
 
