@@ -1,9 +1,18 @@
-"""郝金阳风格叙事层。
+"""郝金阳风格叙事层（**遗留通道**——S1 标注）。
 
 把 mangpai 引擎的结构化结论（dict）转成郝金阳口吻的自然语言推演。
 不靠规则硬编码拼装断语——而是把【引擎结论】+ few-shot 范例 + 系统提示词
 组装成 prompt，交给 LLM 习得郝金阳"第二人称直击、先断后理、敢下数字"的口吻
 与"取象→锁定→判条件→应期→结论"五步因果链，生成当面断语。
+
+**通道地位（S1 评估裁定）**：正式通道 = `llm_channel.render_structured_reading`
+（七维结构化 + 三层校验，走 `llm_backend` 的 MANGPAI_LLM_* 配置体系，可指向任意
+OpenAI 兼容服务）。本模块的 `render_hao_narrative` 为旧散文通道，保留并存——
+其 LLM 实调路径（`_call_llm`）**硬绑 Anthropic SDK**，需自配 `anthropic` 包 +
+`ANTHROPIC_API_KEY`（模型可用 `ANTHROPIC_MODEL` 覆盖，端点可用 SDK 原生
+`ANTHROPIC_BASE_URL` 覆盖）才能使用；未配置时按既有契约降级返回 prompt 文本，
+可手工喂任意 LLM。`summarize_engine_result` / `_bazi_line` /
+`validate_narrative_numbers` 等工具函数仍被 llm_channel/feishu 复用，非遗留。
 
 依赖（均软依赖，缺失则降级返回组装好的 prompt 文本，不抛错）：
   - mangpai.subjective.prompts.hao_style_fewshot（FEWSHOT_EXAMPLES / HAO_STYLE_SYSTEM_PROMPT）
@@ -364,7 +373,13 @@ def bundle_case_result(res, cm, gm, hy, zy, yq, dayun=None, liunian=None) -> Dic
 # LLM 调用（软依赖）
 # ---------------------------------------------------------------------------
 def _call_llm(system_prompt: str, user_prompt: str, model: str | None = None) -> str:
-    """调 anthropic Claude 生成郝金阳风格断语。失败抛异常由调用方降级。"""
+    """调 anthropic Claude 生成郝金阳风格断语。失败抛异常由调用方降级。
+
+    **遗留通道（S1 标注）**：仓库内第二家硬绑 provider——需自配 anthropic SDK
+    + ANTHROPIC_API_KEY；模型 ANTHROPIC_MODEL 可覆盖，端点走 SDK 原生
+    ANTHROPIC_BASE_URL。正式通道=llm_channel（MANGPAI_LLM_* 体系，任意
+    OpenAI 兼容服务）；本路径无生产调用点，仅旧散文通道保留并存。
+    """
     import anthropic  # 软依赖
     client = anthropic.Anthropic()
     model = model or os.environ.get('ANTHROPIC_MODEL') or 'claude-sonnet-5'

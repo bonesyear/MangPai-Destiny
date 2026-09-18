@@ -406,11 +406,14 @@ def format_reading(reading: dict, validation: dict, backend: dict) -> str:
             lines.append(f"  · [{x['layer']}] {x['detail']}")
     if backend:
         u = backend.get('usage') or {}
+        # S1：定价表仅 DeepSeek 有效，其他 provider cost_cny=None → 显式「未计价」
+        cost = backend.get('cost_cny')
+        cost_txt = f'¥{cost:.4f}' if cost is not None else '未计价'
         lines.append('')
         lines.append(f"[model={backend.get('model')} "
                      f"in={u.get('prompt_tokens', '?')} out={u.get('completion_tokens', '?')} "
                      f"elapsed={backend.get('elapsed_s', 0):.1f}s "
-                     f"cost≈¥{backend.get('cost_cny', 0):.4f}]")
+                     f"cost≈{cost_txt}]")
     # 免责声明（V4 P0-1）：LLM 叙述路径尾部固定一行
     lines.append(_DISCLAIMER_LINE)
     return '\n'.join(lines)

@@ -1,3 +1,27 @@
+# 收工记录 · 2026-09-18（S1 LLM 通道配置化批落地 · 分享目标前提批——叙事旁路层，引擎零触）
+
+> 接续本文件 T-教授节。本批 = 分享可用性修批 S1（评估报告 `~/.claude/projects/-root-metaphysics/memory/kimi-shareability-assessment-20260918.md` S1 方案节；任务书 `docs/tasks/kimi-s1-llm-config.md`）。详账=`docs/tasks/codehygiene-fix-backlog.md` S1 节。**无基线推进**（引擎判定零改动、DeepSeek 默认路径零变化，快照链不动）。
+
+## 一、S1 落地终态
+
+| 项 | 内容 |
+|---|---|
+| 配置项 | `MANGPAI_LLM_BASE_URL/API_KEY/MODEL/THINKING/REASONING_EFFORT/TIMEOUT/RETRIES/ENV_FILE` 八项 + `MANGPAI_USE_LLM` 开关别名（feishu service）；回退链全保现状——未设新变量时 DeepSeek 路径**逐字节一致**（哨兵锁键序级请求体比对） |
+| thinking 开关 | `MANGPAI_LLM_THINKING=0` 剔 `thinking`+`reasoning_effort` 两字段（严格 OpenAI 兼容服务 400 对策）；自定义端点 400 报错附设置提示（DeepSeek 错误文本逐字不变） |
+| 清私有路径 | `_load_api_key` 改 env 链：两变量 → `MANGPAI_LLM_ENV_FILE`/`~/.env` → legacy `/root/.hermes/.env`（链尾兜底守红线，标注后续主版本移除） |
+| 成本估算 | 未知 provider `_estimate_cost`→**None（未计价）**替代误导性 ¥0；format_reading 显示「未计价」；output 批跑工具四处汇总 None 兜底 |
+| narrative 处置 | **方案 b 标注遗留通道**（正式通道=llm_channel，`render_hao_narrative` 无生产调用点）：docstring 标注需自配 anthropic SDK+`ANTHROPIC_API_KEY`，哨兵锁定 |
+| 六件套 | verify 432+70+64+20 ✔；pytest **1128 passed+1xf**（+15 哨兵全 mock 零外部 API）✔；blind vs `snapshots/20260918_t1.json` heldout/trainset **零翻转零抖动** ✔；双 seed 剥 _meta 逐字节一致 ✔；67/famous 无变化 ✔；calib 常驻 2 条零新增（pytest 覆盖）✔；分层两件套 ✔ |
+| 文档待修清单 | **6 项留 S2**（README:89/privacy-policy:78-79,123/feishu README/快速开始+`.env.example`+安装清单/llm-channel 文档链接+计价口径声明/llm_channel.py:480 cwd 相对路径随 S3）——详=backlog S1 节 |
+
+## 二、剩余事项
+
+- **下批=S2 文档批**（必须）：`.env.example` + README 安装/配置 LLM 两节 + privacy-policy 措辞同步 + feishu README 变量表；S3 CLI 入口批（可选可缓）。
+- 代码改动未提交（工作树，用户未要求 commit）。
+- 本文件此前各节所载事项（D 真实凭证冒烟待办、A3 条件项等）原样维持。
+
+---
+
 # 收工记录 · 2026-09-18（T-教授 财命窄条款微批落地）
 
 > 接续本文件终判批节（其 cj-教授=可立窄条款候选、两道必答题，本批立项落地）。本批 = 引擎精度批·窄条款微批（判定改动批，caiming 消费侧单点，objective/总线零改动）。详账=`docs/tasks/codehygiene-fix-backlog.md` T-教授节；预注册=`docs/kimi-t-jiaoshou-caiming-prereg-20260918.md`；快照链=`mangpai/tests/heldout/snapshots/README.md`。

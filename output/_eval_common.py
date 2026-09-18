@@ -82,7 +82,8 @@ def run_llm_eval(mode, ids, dump, out_dir, *,
             f.flush()
     recs = [json.loads(l) for l in open(out_path, encoding='utf-8')]
     n_err = sum(1 for r in recs if 'api_error' in r or 'parse_error' in r)
-    cost = sum(r.get('cost_cny', r.get('cost_usd', 0)) for r in recs)  # cost_usd=历史批兼容键
+    # S1：未知 provider cost_cny=None（未计价），不计入汇总；cost_usd=历史批兼容键
+    cost = sum(r.get('cost_cny') or r.get('cost_usd') or 0 for r in recs)
     tiers = {r.get('price_tier') for r in recs}
     print(f'{mode}: 完成 {len(recs)}，异常 {n_err}，成本 ¥{cost:.2f}，档位={tiers}')
 

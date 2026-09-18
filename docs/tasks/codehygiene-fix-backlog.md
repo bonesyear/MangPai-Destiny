@@ -1845,3 +1845,46 @@ H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 t
 - 3.11.15/3.14.4 双版本 blind 冒烟剥 _meta 逐字节一致（blind_eval 直喂干支不触 sxtwl，venv 3.11 无 pytest/sxtwl 不影响盲测链路；父会话复核实跑补拍，撤销子代理「仅 3.14 可用」的偏差备案）。
 - 换基线 **`snapshots/20260918_t1.json`** + LATEST 推进（README 链总账已补录）；快照 _meta git_sha=4059250、rubric v8-20260808。
 - 代码改动未提交（工作树，用户未要求 commit）。
+
+---
+
+## S1 LLM 通道配置化批（2026-09-18，分享目标前提批——叙事旁路层，引擎判定零改动、DeepSeek 默认路径零变化）
+
+> 依据：分享可用性评估 `~/.claude/projects/-root-metaphysics/memory/kimi-shareability-assessment-20260918.md` S1 方案节（P1 阻塞 B1/B2）；任务书 `docs/tasks/kimi-s1-llm-config.md`。范围=llm_backend/llm_channel/feishu service/narrative 标注/output 批跑工具兜底+哨兵，**无基线推进**（引擎零触，同 N/D4 批先例）。
+
+### 配置项落地（全部 env，回退链保 DeepSeek 现状逐字不动）
+
+| 新变量 | 回退链 | 语义 |
+|---|---|---|
+| `MANGPAI_LLM_BASE_URL` | → `_API_URL`（DeepSeek 端点） | 任意 OpenAI 兼容端点（Ollama/vLLM/其他厂商） |
+| `MANGPAI_LLM_API_KEY` | → `DEEPSEEK_API_KEY` → env 文件 | 密钥（新名优先，旧名保持有效） |
+| `MANGPAI_LLM_MODEL` | → `DEEPSEEK_MODEL` → `deepseek-flash` | 模型（与现行两级回退同构扩一级） |
+| `MANGPAI_LLM_THINKING` | 缺省 `1`（=现状） | `0`=请求体剔除 `thinking`+`reasoning_effort` 两字段（严格兼容服务 400 对策） |
+| `MANGPAI_LLM_REASONING_EFFORT` | → `low`（=现状） | 仅 thinking 开启时发出 |
+| `MANGPAI_LLM_TIMEOUT` / `MANGPAI_LLM_RETRIES` | → `120` / `2`（=现状） | 本地模型可调大超时；形参仍最优先 |
+| `MANGPAI_LLM_ENV_FILE` | → `~/.env` → legacy `/root/.hermes/.env` | env 文件回退链；legacy 为私有部署残留默认，**保留兜底守红线**（本机生产行为不变），标注后续主版本移除 |
+| `MANGPAI_USE_LLM` | → `FEISHU_USE_LLM` → 开 | LLM 段通用开关别名（feishu service；非飞书使用者不被迫用飞书命名，原名保兼容） |
+
+### 关键实现点
+
+- **回退链验证（红线）**：哨兵 `test_default_path_byte_identical`——未设新变量时请求 URL/请求体（键序敏感逐字节比对）/Authorization 头/timeout=120/cost float 与旧版完全一致；`DEEPSEEK_MODEL` 旧回退仍有效。
+- **provider 特有参数**：显式开关为主（`MANGPAI_LLM_THINKING=0` 剔字段），不做 400 自动降级重试（与 4xx 不重试设计哲学一致）；自定义端点遇 HTTP 400 时报错信息附「请设 MANGPAI_LLM_THINKING=0」提示（hint 仅 `base_url != _API_URL` 时追加，DeepSeek 错误文本逐字不变）。
+- **清私有路径**：`_load_api_key` 改三级链（两 env 变量 → env 文件），env 文件解析兼容两种键名；`/root/.hermes/.env` 降为链尾 legacy 兜底（本机 `~/.env` 不存在→生产零变化实测）。
+- **成本估算降级（B6）**：`_estimate_cost` 未知模型/provider 返回 **None**（未计价）替代误导性 ¥0.0；`format_reading` 显示「未计价」；output 批跑工具四处成本汇总改 `or 0` 兜底（None 不计入汇总）；存量锁旧值测试 `test_llm_backend.py::test_estimate_cost_pro_and_unknown` 按新契约改 `is None`。
+- **narrative Anthropic 处置（任务 B，裁定=方案 b 标注遗留通道）**：评估结论——正式通道=llm_channel（feishu service 走 `render_structured_reading`；`render_hao_narrative` 全仓无生产调用点，仅测试与工具函数被复用），故不引第二套配置体系，docstring 三处（模块/`_call_llm`）标注「遗留通道·需自配 anthropic SDK+ANTHROPIC_API_KEY（ANTHROPIC_MODEL/ANTHROPIC_BASE_URL 可覆盖）·正式通道=llm_channel」。哨兵 `test_narrative_marked_legacy` 锁定标注在位。
+
+### 验证（六件套全绿）
+
+- 哨兵 `mangpai/tests/test_s1_llm_config.py` **15 测**（先红 1=test_estimate_cost 存量锁旧值，改契约后绿）：默认路径逐字节/base_url/key 优先级/model 链/THINKING=0 剔字段/reasoning_effort/timeout+retries/env 文件（自定义+~/.env+legacy 兜底）/缺 key 报错信息/未知模型 cost None/format_reading 未计价/MANGPAI_USE_LLM 别名/narrative 标注——全 mock（urlopen 拦截+tmp env 文件），**零外部 API**。
+- pytest **1128 passed+1xf**（1113+新增 15）；verify 432+70+64+20 全绿；check_layering+check_typing_imports 通过。
+- blind vs `snapshots/20260918_t1.json` heldout/trainset 零翻转零抖动（引擎零触）；双 seed 剥 _meta 逐字节一致；regression67/famous 无变化；calib 由 pytest 覆盖常驻 2 条零新增。
+- `_self_check` 离线自检同步更新（unknown-model → None）；基线**不推进**（引擎零触，快照链不动）。
+
+### 文档待修清单（留 S2 文档批，本批不修文档）
+
+1. `README.md:89`：「可替换为本地模型/私有部署」S1 后实现已成立，但开关名应改 `MANGPAI_USE_LLM`（别名已落地）+补 `MANGPAI_LLM_*` 配置表与三示例（DeepSeek/OpenAI/Ollama）。
+2. `docs/privacy-policy.md:78/79/123`：开关名同步 +「通道兼容 OpenAI 风格协议」S1 后成真可保留 +「指向本地模型」补具体操作（`MANGPAI_LLM_BASE_URL`）。
+3. `mangpai/feishu/README.md:12/14/39`：`FEISHU_USE_LLM`/`DEEPSEEK_API_KEY` 行改指新变量表。
+4. `README.md` 快速开始（B3/B4）：LLM 叙述配置零提及、无 `.env.example`、无安装清单（yaml 测试/demo 需要、sxtwl 可选）、「纯标准库」表述需限定引擎核心。
+5. `docs/llm-channel-20260818.md`：内部交付文档 README 未链接；补「成本估算仅 DeepSeek 定价有效，其他 provider 显示未计价」声明（B6）。
+6. `llm_channel.py:480` cwd 相对路径 `mangpai/tests/trainset/cases.yaml`（B5）——S3 CLI 批一并修（`Path(__file__)` 锚定）。

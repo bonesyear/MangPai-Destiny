@@ -55,7 +55,8 @@ for L in ('L0', 'L1', 'L2', 'N1'):
     print(f'{L}: 违规例={c} ({c / max(nv, 1) * 100:.2f}%) 违规条数={by_layer[L]}')
 print('\n违规维度分布:', by_dim.most_common(15))
 print('\nL1 无出处路径 top 键:', by_path.most_common(15))
-cost = sum(r.get('cost_cny', r.get('cost_usd', 0)) for r in recs)  # cost_cny 为现行键；cost_usd=历史批兼容（值已是人民币口径）
+# S1：未知 provider cost_cny=None（未计价），不计入汇总；cost_cny 为现行键；cost_usd=历史批兼容（值已是人民币口径）
+cost = sum(r.get('cost_cny') or r.get('cost_usd') or 0 for r in recs)
 pin = sum((r.get('usage') or {}).get('prompt_tokens', 0) for r in recs)
 pout = sum((r.get('usage') or {}).get('completion_tokens', 0) for r in recs)
 el = [r.get('elapsed_s', 0) for r in recs if r.get('elapsed_s')]

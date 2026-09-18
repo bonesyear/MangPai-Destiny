@@ -38,5 +38,6 @@ with open(out, 'a', encoding='utf-8') as f:
     for r in recs:
         f.write(json.dumps(r, ensure_ascii=False) + '\n')
 n_err = sum(1 for r in recs if 'api_error' in r or 'engine_error' in r)
-cost = sum(r.get('cost_cny', r.get('cost_usd', 0)) for r in recs)  # cost_usd=历史批兼容键
+# S1：未知 provider cost_cny=None（未计价），不计入汇总；cost_usd=历史批兼容键
+cost = sum(r.get('cost_cny') or r.get('cost_usd') or 0 for r in recs)
 print(f'done -> {out} | still_error={n_err} cost=¥{cost:.2f}')

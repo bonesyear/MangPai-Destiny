@@ -48,7 +48,10 @@ def engine_result_pillars(pillars, gender, year: Optional[int] = None) -> Dict[s
 
 
 def use_llm_default() -> bool:
-    return os.environ.get('FEISHU_USE_LLM', '1').strip() != '0'
+    # MANGPAI_USE_LLM 通用别名优先（S1：非飞书使用者不被迫用飞书命名的开关）；
+    # FEISHU_USE_LLM 保兼容，飞书组件原名仍可用。
+    v = os.environ.get('MANGPAI_USE_LLM') or os.environ.get('FEISHU_USE_LLM') or '1'
+    return v.strip() != '0'
 
 
 def paipan(spec: Dict[str, Any], use_llm: Optional[bool] = None) -> str:

@@ -37,4 +37,5 @@ def test_estimate_cost_flash_tiers():
 def test_estimate_cost_pro_and_unknown():
     off = _estimate_cost('deepseek-v4-pro', _U, at=_at(20))
     assert abs(off - (10_000 * 4.5 + 5_000 * 13.5) / 1e6) < 1e-12
-    assert _estimate_cost('unknown-model', _U) == 0.0
+    # S1：未知模型/其他 provider 显式 None（未计价），不再误导性 ¥0
+    assert _estimate_cost('unknown-model', _U) is None

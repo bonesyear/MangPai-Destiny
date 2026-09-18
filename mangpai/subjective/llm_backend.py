@@ -1,14 +1,26 @@
-"""DeepSeek LLM 后端（urllib 直连，不引 SDK）。
+"""OpenAI 兼容 LLM 后端（urllib 直连，不引 SDK；默认 DeepSeek）。
 
 供 narrative/llm_channel 等叙事层调用。纯旁路：输出永不回写 compute_all dict。
 
-- key 来源：环境变量 DEEPSEEK_API_KEY，缺省回退解析 /root/.hermes/.env
-- 端点：POST https://api.deepseek.com/chat/completions（OpenAI 兼容）
-- 默认 model=deepseek-flash（V4.1 正式 ID；旧名 deepseek-v4-flash），thinking 开启 + JSON mode
-  （response_format={"type": "json_object"}，thinking 计入 output tokens）
+配置（S1 配置化批，全部 env，回退链保 DeepSeek 现状逐字不动——未设任何
+MANGPAI_LLM_* 新变量时请求与旧版逐字节一致）：
+- MANGPAI_LLM_BASE_URL → 缺省 https://api.deepseek.com/chat/completions
+  （可指向任意 OpenAI 兼容端点：Ollama http://localhost:11434/v1/chat/completions、
+  vLLM、其他厂商）
+- MANGPAI_LLM_API_KEY → DEEPSEEK_API_KEY → env 文件
+  （MANGPAI_LLM_ENV_FILE 指定；缺省 ~/.env，再回退 legacy /root/.hermes/.env——
+  私有部署残留默认，为守「未设新变量行为零变化」红线保留，后续主版本移除）
+- MANGPAI_LLM_MODEL → DEEPSEEK_MODEL → deepseek-flash（V4.1 正式 ID；旧名 deepseek-v4-flash）
+- MANGPAI_LLM_THINKING=0 → 请求体剔除 thinking 与 reasoning_effort 两字段
+  （DeepSeek V4 思考模式/OpenAI o 系参数，严格 OpenAI 兼容服务可能 400；
+  缺省=1 即现状：thinking 开启 + reasoning_effort + JSON mode
+  response_format={"type": "json_object"}，thinking 计入 output tokens）
+- MANGPAI_LLM_REASONING_EFFORT → 缺省 low（仅 thinking 开启时发出）
+- MANGPAI_LLM_TIMEOUT / MANGPAI_LLM_RETRIES → 缺省 120 / 2（本地模型可调大超时）
 - 重试：超时/5xx/网络错误重试，指数退避；4xx 不重试直接抛
 - 成本：按官方定价表折算人民币（¥/1M tokens），按请求时间（北京时间）自动选峰/谷档，
-  随返回 dict 带出 usage/cost/price_tier/elapsed
+  随返回 dict 带出 usage/cost/price_tier/elapsed；定价表仅 DeepSeek 有效——
+  未知模型/其他 provider 的 cost_cny 显式返回 None（未计价），不显示误导性 ¥0
 
 定价（¥/1M tokens，api-docs.deepseek.com/zh-cn/quick_start/pricing 2026-08-28 复核；
 deepseek-flash = V4.1，价格沿用 V4 口径待官网逐项复核；cache miss 口径，含 thinking）：
@@ -29,6 +41,8 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 
 _API_URL = 'https://api.deepseek.com/chat/completions'
+# legacy 私有部署残留默认路径（S1：保留以守红线——本机生产回退未变；
+# 外部使用者请用 MANGPAI_LLM_API_KEY 环境变量或 MANGPAI_LLM_ENV_FILE 指定 env 文件）。
 _ENV_FILE = '/root/.hermes/.env'
 
 # ¥/1M tokens: {'peak': (input, output), 'offpeak': (input, output)}。
@@ -49,20 +63,54 @@ class LLMBackendError(Exception):
     """后端调用失败（key 缺失/网络/非 200/返回体异常）——调用方负责降级。"""
 
 
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name, '').strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name, '').strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def _env_files() -> list:
+    """env 文件回退链：MANGPAI_LLM_ENV_FILE 指定则只用它；否则 ~/.env → legacy 私有路径。"""
+    custom = os.environ.get('MANGPAI_LLM_ENV_FILE', '').strip()
+    if custom:
+        return [custom]
+    return [os.path.expanduser('~/.env'), _ENV_FILE]
+
+
 def _load_api_key() -> str:
+    key = os.environ.get('MANGPAI_LLM_API_KEY', '').strip()
+    if key:
+        return key
     key = os.environ.get('DEEPSEEK_API_KEY', '').strip()
     if key:
         return key
-    try:
-        with open(_ENV_FILE, encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith('DEEPSEEK_API_KEY='):
-                    return line.split('=', 1)[1].strip().strip('"').strip("'")
-    except OSError:
-        pass
+    for path in _env_files():
+        try:
+            with open(path, encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    for name in ('MANGPAI_LLM_API_KEY', 'DEEPSEEK_API_KEY'):
+                        if line.startswith(name + '='):
+                            return line.split('=', 1)[1].strip().strip('"').strip("'")
+        except OSError:
+            continue
     raise LLMBackendError(
-        f'DEEPSEEK_API_KEY 未设置且 {_ENV_FILE} 不可读/无此键')
+        f'MANGPAI_LLM_API_KEY/DEEPSEEK_API_KEY 未设置且 env 文件 '
+        f'({"、".join(_env_files())}) 不可读/无此键')
 
 
 def _price_tier(at: float | None = None) -> str:
@@ -71,12 +119,14 @@ def _price_tier(at: float | None = None) -> str:
     return 'peak' if any(h0 <= dt.hour < h1 for h0, h1 in _PEAK_HOURS) else 'offpeak'
 
 
-def _estimate_cost(model: str, usage: dict, at: float | None = None) -> float:
+def _estimate_cost(model: str, usage: dict, at: float | None = None) -> float | None:
     """按定价表折算单次调用成本（人民币 ¥），按请求时间自动选峰/谷档。
-    未知模型返回 0 并照常放行。"""
+
+    定价表仅 DeepSeek 有效：未知模型/其他 provider 显式返回 None（未计价），
+    展示层标「未计价」，不显示误导性 ¥0（S1）。"""
     rates = _PRICE.get(model)
     if not rates:
-        return 0.0
+        return None
     rin, rout = rates[_price_tier(at)]
     pin = usage.get('prompt_tokens', 0) or 0
     pout = usage.get('completion_tokens', 0) or 0
@@ -90,17 +140,27 @@ def call_deepseek(
     model: str | None = None,
     json_mode: bool = True,
     thinking: bool = True,
-    reasoning_effort: str = 'low',
+    reasoning_effort: str | None = None,
     max_tokens: int = 8192,
-    timeout: float = 120.0,
-    retries: int = 2,
+    timeout: float | None = None,
+    retries: int | None = None,
 ) -> dict:
-    """调 DeepSeek chat completion，返回 {'text','usage','cost_cny','price_tier','elapsed_s','model'}。
+    """调 OpenAI 兼容 chat completion（默认 DeepSeek），返回
+    {'text','usage','cost_cny','price_tier','elapsed_s','model'}。
 
     thinking 模式下 temperature 等采样参数无效（API 忽略），不传。
     失败抛 LLMBackendError，由调用方降级（同 narrative._call_llm 契约）。
+    env 配置链见模块 docstring（未设 MANGPAI_LLM_* 时与旧版逐字节一致）。
     """
-    model = model or os.environ.get('DEEPSEEK_MODEL') or _DEFAULT_MODEL
+    model = (model or os.environ.get('MANGPAI_LLM_MODEL')
+             or os.environ.get('DEEPSEEK_MODEL') or _DEFAULT_MODEL)
+    base_url = os.environ.get('MANGPAI_LLM_BASE_URL', '').strip() or _API_URL
+    if reasoning_effort is None:
+        reasoning_effort = os.environ.get('MANGPAI_LLM_REASONING_EFFORT', '').strip() or 'low'
+    if timeout is None:
+        timeout = _env_float('MANGPAI_LLM_TIMEOUT', 120.0)
+    if retries is None:
+        retries = _env_int('MANGPAI_LLM_RETRIES', 2)
     key = _load_api_key()
     body = {
         'model': model,
@@ -109,9 +169,12 @@ def call_deepseek(
             {'role': 'user', 'content': user_prompt},
         ],
         'max_tokens': max_tokens,
-        'reasoning_effort': reasoning_effort,
-        'thinking': {'type': 'enabled' if thinking else 'disabled'},
     }
+    # provider 特有参数（DeepSeek V4 thinking/OpenAI o 系 reasoning_effort）：
+    # MANGPAI_LLM_THINKING=0 时两字段整体剔除（严格兼容服务可能 400 unknown field）
+    if os.environ.get('MANGPAI_LLM_THINKING', '1').strip() != '0':
+        body['reasoning_effort'] = reasoning_effort
+        body['thinking'] = {'type': 'enabled' if thinking else 'disabled'}
     if json_mode:
         body['response_format'] = {'type': 'json_object'}
     data = json.dumps(body).encode('utf-8')
@@ -121,7 +184,7 @@ def call_deepseek(
         if attempt:
             time.sleep(2 ** attempt)  # 2s, 4s
         req = urllib.request.Request(
-            _API_URL, data=data,
+            base_url, data=data,
             headers={'Content-Type': 'application/json',
                      'Authorization': f'Bearer {key}'},
             method='POST')
@@ -133,8 +196,12 @@ def call_deepseek(
         except urllib.error.HTTPError as e:
             # 4xx（鉴权/参数错）重试无意义，直接抛
             if 400 <= e.code < 500:
+                hint = ''
+                if e.code == 400 and base_url != _API_URL:
+                    hint = ('（若报错为 unknown field/不支持的参数：该服务不接受 '
+                            'thinking/reasoning_effort，请设 MANGPAI_LLM_THINKING=0）')
                 raise LLMBackendError(
-                    f'HTTP {e.code}: {e.read().decode("utf-8", "replace")[:300]}'
+                    f'HTTP {e.code}: {e.read().decode("utf-8", "replace")[:300]}{hint}'
                 ) from e
             last_err = LLMBackendError(f'HTTP {e.code}')
             continue
@@ -181,7 +248,8 @@ def _self_check():
                - (10_000 * 1.5 + 5_000 * 4.5) / 1e6) < 1e-12
     # 旧 ID 别名仍可计价（兼容历史配置）
     assert _estimate_cost('deepseek-v4-flash', usage, at=peak) == _estimate_cost('deepseek-flash', usage, at=peak)
-    assert _estimate_cost('unknown-model', {'prompt_tokens': 1}) == 0.0
+    # 未知模型/其他 provider 显式 None（未计价），不显示误导性 ¥0（S1）
+    assert _estimate_cost('unknown-model', {'prompt_tokens': 1}) is None
     print('llm_backend self-check OK')
 
 

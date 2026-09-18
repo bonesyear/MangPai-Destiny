@@ -82,7 +82,8 @@ def main():
     n_err = sum(1 for r in recs if 'api_error' in r or 'engine_error' in r)
     n_parse = sum(1 for r in recs if 'parse_error' in r)
     n_bad = sum(1 for r in recs if not r.get('ok', True) and 'violations' in r)
-    cost = sum(r.get('cost_cny', r.get('cost_usd', 0)) for r in recs)  # cost_usd=历史批兼容键
+    # S1：未知 provider cost_cny=None（未计价），不计入汇总；cost_usd=历史批兼容键
+    cost = sum(r.get('cost_cny') or r.get('cost_usd') or 0 for r in recs)
     print(f'done {len(recs)} cases -> {out_path}')
     print(f'api/engine errors={n_err} parse_errors={n_parse} '
           f'violating={n_bad} cost=¥{cost:.2f}')
