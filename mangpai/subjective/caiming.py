@@ -53,8 +53,9 @@ from typing import Dict, List, Optional, Set
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME, TIAN_GAN_HE,
     LU, CANG_GAN_MANGPAI, TOMB_MAP, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
-    SAN_HE, BAN_HE, LIU_CHONG, XING_PAIRS,
+    SAN_HE, BAN_HE, LIU_CHONG, LIU_HAI, XING_PAIRS,
 )
+from mangpai.objective._relation_utils import pair_in
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.binzhu import analyze_binzhu
 from mangpai.objective.shishen import (
@@ -1728,6 +1729,26 @@ def assess_caiming_level(
         # 阶位被压者自不待言，本在低位者（乞丐/清家荡产）亦不标百万级；
         # 岁运反局（全量轨）同口径。
         wealth_grade = ''
+    # T-教授条款（日支穿月令财 → 封顶小康）：穿了月令财=日主与财星无缘，纵有
+    # 制财结构/官统财上浮亦发不了大财。书锚：chuji:2379-2384「为月令的财被坐支穿
+    # …此造是制财结构，财还是可以的，教授，收入还可以」+chuji:3678-3681「穿了
+    # 月令财主日主与财星无缘…不是没钱（因甲己合，甲下坐财库）」+chuji:5995「挣
+    # 工资的，也不是发大财的」+zhongji:2322-2323「穿了财，故发不了大财，只能发点
+    # 小财」。月令取本气口径（ZHI_WX）——藏干口径会误中马云（戌中气辛金=丁财）；
+    # 书自反例 zhongji:2323「如是丁酉日主见了戌则是得财之命」即丁酉+戌月令结构，
+    # 本气土非财不命中。仅 cap 实际起作用（tier_idx>2）时改档并追加文本，tier_idx
+    # ≤2 完全 no-op（零文本抖动）；凶向 severe 已压贫(1) 者不被抬升。文案不含
+    # 「下浮封顶」字样（_XIONG_MARKERS 凶向直杀链豁免——本条款是量级上限非凶向）。
+    if tier_idx > 2 and len(zhis or []) == 4 and zhis[1] and zhis[2]:
+        _cai_wx_t = WX_KE.get(GAN_WX.get(day_gan, ''), '')
+        if (_cai_wx_t and pair_in(zhis[2], zhis[1], LIU_HAI)
+                and ZHI_WX.get(zhis[1]) == _cai_wx_t):
+            tier_idx = 2
+            if tier_idx < base_level:
+                wealth_grade = ''
+            adjust = (adjust + '；' if adjust != '持平' else '') + \
+                '封顶小康（日支穿月令财，日主与财星无缘——穿了月令财发不了大财，' \
+                'chuji:2379/3678、zhongji:2322）'
     tier_map = {1: '贫', 2: '小康', 3: '富', 4: '巨富'}
     tier = tier_map.get(tier_idx, '小康')
     parts = [f'财命层级：{tier}']
