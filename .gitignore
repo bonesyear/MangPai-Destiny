@@ -22,6 +22,8 @@ __pycache__/
 
 # 环境
 .env
+.env.local
+.env.*.local
 .hermes/
 
 # 知识库（版权：原著全文不入库；仅索引元数据入库）

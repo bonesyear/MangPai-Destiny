@@ -186,22 +186,22 @@ def test_env_file_custom_path(clean_env, tmp_path):
     assert lb._load_api_key() == 'sk-legacy-name'
 
 
-def test_env_file_legacy_fallback(clean_env, tmp_path, monkeypatch):
-    """缺省链=~/.env → legacy 私有路径（legacy 保留兜底）。"""
+def test_env_file_project_root_fallback(clean_env, tmp_path, monkeypatch):
+    """缺省链=项目根 .env → ~/.env。"""
+    proj_env = tmp_path / 'proj.env'
     home_env = tmp_path / 'home.env'
-    legacy = tmp_path / 'legacy.env'
-    legacy.write_text('DEEPSEEK_API_KEY=sk-legacy\n', encoding='utf-8')
-    monkeypatch.setattr(lb, '_ENV_FILE', str(legacy))
+    home_env.write_text('DEEPSEEK_API_KEY=sk-home\n', encoding='utf-8')
+    monkeypatch.setattr(lb, '_PROJECT_ENV_FILE', proj_env)
     monkeypatch.setattr(os.path, 'expanduser', lambda p: str(home_env) if p == '~/.env' else p)
-    # ~/.env 不存在 → 落 legacy
-    assert lb._load_api_key() == 'sk-legacy'
-    # ~/.env 存在 → 优先
-    home_env.write_text('MANGPAI_LLM_API_KEY=sk-home\n', encoding='utf-8')
+    # 项目根 .env 不存在 → 落 ~/.env
     assert lb._load_api_key() == 'sk-home'
+    # 项目根 .env 存在 → 优先
+    proj_env.write_text('MANGPAI_LLM_API_KEY=sk-proj\n', encoding='utf-8')
+    assert lb._load_api_key() == 'sk-proj'
 
 
 def test_key_missing_error_names_vars(clean_env, tmp_path, monkeypatch):
-    monkeypatch.setattr(lb, '_ENV_FILE', str(tmp_path / 'none.env'))
+    monkeypatch.setattr(lb, '_PROJECT_ENV_FILE', tmp_path / 'none.env')
     monkeypatch.setattr(os.path, 'expanduser',
                         lambda p: str(tmp_path / 'no-home.env') if p == '~/.env' else p)
     with pytest.raises(LLMBackendError, match='MANGPAI_LLM_API_KEY'):

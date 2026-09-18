@@ -92,8 +92,10 @@ LLM 叙事层是**可选组件**：不配置即纯引擎模式，零外发。配
 | `MANGPAI_LLM_THINKING` | `1` | `0`=请求体剔除 `thinking`/`reasoning_effort` 两字段——**接 OpenAI/Ollama/vLLM 等严格兼容服务时设 0**（否则可能 HTTP 400 unknown field） |
 | `MANGPAI_LLM_REASONING_EFFORT` | `low` | 仅 thinking 开启时发出 |
 | `MANGPAI_LLM_TIMEOUT` / `MANGPAI_LLM_RETRIES` | `120` / `2` | 本地模型首载慢可调大超时 |
-| `MANGPAI_LLM_ENV_FILE` | `~/.env` | env 文件回退路径 |
+| `MANGPAI_LLM_ENV_FILE` | 项目根 `.env`；可选 | env 文件回退路径（缺省链：项目根 `.env` → `~/.env`） |
 | `MANGPAI_USE_LLM` | `1` | `0`=关闭 LLM 叙述，纯引擎直出（旧名 `FEISHU_USE_LLM` 仍兼容） |
+
+最省事的配法：`cp .env.example .env`（放项目根）后按需填写即可——项目根 `.env` 会被自动读取（回退链：`MANGPAI_LLM_ENV_FILE` 指定 → 项目根 `.env` → `~/.env`）。
 
 provider 示例：
 

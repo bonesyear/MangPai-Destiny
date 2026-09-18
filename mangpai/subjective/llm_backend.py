@@ -2,14 +2,12 @@
 
 供 narrative/llm_channel 等叙事层调用。纯旁路：输出永不回写 compute_all dict。
 
-配置（S1 配置化批，全部 env，回退链保 DeepSeek 现状逐字不动——未设任何
-MANGPAI_LLM_* 新变量时请求与旧版逐字节一致）：
+配置（全部环境变量；未设任何 MANGPAI_LLM_* 变量时请求字段与 DeepSeek 旧版默认一致）：
 - MANGPAI_LLM_BASE_URL → 缺省 https://api.deepseek.com/chat/completions
   （可指向任意 OpenAI 兼容端点：Ollama http://localhost:11434/v1/chat/completions、
   vLLM、其他厂商）
 - MANGPAI_LLM_API_KEY → DEEPSEEK_API_KEY → env 文件
-  （MANGPAI_LLM_ENV_FILE 指定；缺省 ~/.env，再回退 legacy /root/.hermes/.env——
-  私有部署残留默认，为守「未设新变量行为零变化」红线保留，后续主版本移除）
+  （MANGPAI_LLM_ENV_FILE 指定；缺省回退链 = 项目根 .env → ~/.env）
 - MANGPAI_LLM_MODEL → DEEPSEEK_MODEL → deepseek-flash（V4.1 正式 ID；旧名 deepseek-v4-flash）
 - MANGPAI_LLM_THINKING=0 → 请求体剔除 thinking 与 reasoning_effort 两字段
   （DeepSeek V4 思考模式/OpenAI o 系参数，严格 OpenAI 兼容服务可能 400；
@@ -39,11 +37,11 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 _API_URL = 'https://api.deepseek.com/chat/completions'
-# legacy 私有部署残留默认路径（S1：保留以守红线——本机生产回退未变；
-# 外部使用者请用 MANGPAI_LLM_API_KEY 环境变量或 MANGPAI_LLM_ENV_FILE 指定 env 文件）。
-_ENV_FILE = '/root/.hermes/.env'
+# 项目根 .env（mangpai/subjective/llm_backend.py 上三级 = 仓库根）
+_PROJECT_ENV_FILE = Path(__file__).resolve().parents[2] / '.env'
 
 # ¥/1M tokens: {'peak': (input, output), 'offpeak': (input, output)}。
 # cache hit 更便宜，按 miss 保守估。2026-08-21 人民币口径（官方国内站报价）。
@@ -84,11 +82,11 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _env_files() -> list:
-    """env 文件回退链：MANGPAI_LLM_ENV_FILE 指定则只用它；否则 ~/.env → legacy 私有路径。"""
+    """env 文件回退链：MANGPAI_LLM_ENV_FILE 指定则只用它；否则 项目根 .env → ~/.env。"""
     custom = os.environ.get('MANGPAI_LLM_ENV_FILE', '').strip()
     if custom:
         return [custom]
-    return [os.path.expanduser('~/.env'), _ENV_FILE]
+    return [str(_PROJECT_ENV_FILE), os.path.expanduser('~/.env')]
 
 
 def _load_api_key() -> str:
@@ -109,8 +107,8 @@ def _load_api_key() -> str:
         except OSError:
             continue
     raise LLMBackendError(
-        f'MANGPAI_LLM_API_KEY/DEEPSEEK_API_KEY 未设置且 env 文件 '
-        f'({"、".join(_env_files())}) 不可读/无此键')
+        'MANGPAI_LLM_API_KEY/DEEPSEEK_API_KEY 未设置，且 env 文件回退链'
+        '（MANGPAI_LLM_ENV_FILE 指定 → 项目根 .env → ~/.env）不可读/无此键')
 
 
 def _price_tier(at: float | None = None) -> str:
@@ -150,7 +148,7 @@ def call_deepseek(
 
     thinking 模式下 temperature 等采样参数无效（API 忽略），不传。
     失败抛 LLMBackendError，由调用方降级（同 narrative._call_llm 契约）。
-    env 配置链见模块 docstring（未设 MANGPAI_LLM_* 时与旧版逐字节一致）。
+    env 配置链见模块 docstring。
     """
     model = (model or os.environ.get('MANGPAI_LLM_MODEL')
              or os.environ.get('DEEPSEEK_MODEL') or _DEFAULT_MODEL)
