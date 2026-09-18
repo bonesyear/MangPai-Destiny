@@ -1234,6 +1234,8 @@ verify 432+70+64+20 / pytest **934 passed**+1xf+19xp（925+9 哨兵）/ blind vs
 | `mangpai/__init__.py` `analyze_juefa` 导出 | H8 P1 列为候选但 juefa 为活模块，导出非死 → 宁留 |
 | `mangpai/objective/MODULE_ATTRS.md` 中 advanced/chuangong 记述 | 文档记述待 H-fix-8 文档批统一清 |
 
+> **L0 关闭标记（2026-09-18 评估裁定，docs-only）**：本表 SHIPAI 两表（A1）/ gongmen_wuzhi 整模块（A2）/ jiaoyun `if not span`（A4）三项**已关闭（明示不修，勿再立项）**；输出面死字段（A3）不关闭、降为**条件项**（随未来输出面/payload 精简批顺手，否则维持）。理由见文末「L0 遗留关闭标记」节。
+
 ### 六件套（vs `snapshots/20260918_hfix3.json`）
 
 - verify 432 + 70 + 64 + 20 全绿（layer1 须 sxtwl 环境=/usr/bin/python3.14；本机 3.11 无 sxtwl 为环境既有事实，非本批引入）
@@ -1477,6 +1479,8 @@ __init__       -> dayun, schools, zaihuo
 5. gongliang 4 处自调吞异常（H11 已录）、13 书例 `hua_chengju` +1 高层加分无命中（与 F6 记录一致）——维持备案。
 6. detect_relations 返回 dict 内含 set（`day_weak_zhis` 等），消费方序列化须先排序（引擎自身输出确定性已由 blind 零抖动坐实）。
 
+> **L0 处置（2026-09-18 评估裁定，docs-only）**：#5（B5）/#6（B6）**已关闭（明示不修，勿再立项）**——B5 吞异常 H-fix-2b 已实质处置（安全降级 18 显式化）、13 书例=F6 既有备案；B6 内部总线键不进 payload/selectors 无泄漏面（实测三键消费方全安全）。#1-#4（B1/B2/B3/B4）转入 **L1 遗留清理批**（阶段甲零输出项 B2/B3/B4+C2/C3 → 阶段乙输出项 B1/C1，一次换基线；时机=下个引擎批前置位或 LLM 批跑需求独立先做）。**行号更正**：#4 `_prepare_inputs` 死块实在 **`subjective/gongliang.py:431-433`**（函数 def :369），非 engine.py；#2 行号已漂至 `engine.py:577-578`。详见文末「L0 遗留关闭标记」节。
+
 ### 残留（转后置批）
 
 - H-fix-7 评测框架统一 / H-fix-8 文档基线同步（v2 计划 🟢 后置）。
@@ -1561,3 +1565,27 @@ verify 432+70+64+20 / pytest **1059 passed+1xf** / blind vs `snapshots/20260918_
 ### H-fix 序列收官声明
 
 H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 tag 回滚点。剩余待议项（backlog「未删待议」/「待议问题」+v2 计划⏸️节）汇总入 `docs/remaining-tasks-20260917.md`，勿再立重复项。
+
+---
+
+## L0 遗留关闭标记（2026-09-18，docs-only 批——零代码改动）
+
+> 依据：评估 `~/.claude/projects/-root-metaphysics/memory/kimi-leftover-assessment-20260918.md` + 方案 `kimi-leftover-fix-plan-20260918.md`。以下 6 项裁定**明示关闭（附理由，勿再立项）**；同步落档 `docs/remaining-tasks-20260917.md` §二。
+
+| # | 项（backlog 出处） | 关闭理由 |
+|---|----|---------|
+| A1 | SHIPAI_DOMAINS/METHODOLOGY（H-fix-4a 未删待议） | 修批C「留作碎片原文档案」决议在先，待删动议属重复立项（非待删项） |
+| A2 | gongmen_wuzhi 整模块（H-fix-4a 未删待议） | 修批A③/F18 锁定 + `test_a_llm_redline` 哨兵 + `test_key_contract` 契约白名单三层防护，删除违输出红线零收益（非待删项） |
+| A4 | jiaoyun `if not span`（H-fix-4a 未删待议；H1 P1 :189） | 公开 API `_normalize_dayun_entries` 边缘语义承载非死码，改则变行为无收益 |
+| B5 | gongliang 4 处自调吞异常 / 13 书例 hua_chengju 无命中（H-fix-5 待议 #5） | H-fix-2b 已实质处置（安全降级 18 显式化，改传导零收益）；13 书例=F6 既有备案非缺陷 |
+| B6 | detect_relations 返回含 set（H-fix-5 待议 #6） | 内部总线键不进 payload/selectors，无序列化泄漏面（2026-09-18 实测三键消费方全安全）；消费方排序纪律已够 |
+| C4 | magic numbers ~45 处（H2/H3 P2；v2 计划 ⏸️ 节） | v2 ⏸️ 裁定维持；~45 处判定代码换纯可读性，风险收益倒挂 |
+
+### 转出待办（非关闭）
+
+- **L1 遗留清理批**（单批两阶段，半天~1 天，一次换基线；明细与修法见方案 §二）：
+  - 阶段甲·零输出项=**B2**（`engine.py:577-578` liunian_data 入口守卫，旧记 :407 已漂移）/ **B3**（`_auto_liunian_injected` `__init__` 初始化+`_compute_yunshi` 开头重置）/ **B4**（删 `zuogong_detect.py:490` 内层冗余 `if day_wx:`——外层 :348 承重守卫保留 + 删 `_prepare_inputs` 死块 **`subjective/gongliang.py:431-433`**——**行号更正：旧记「engine.py」系误记**）/ **C2**（formatter.DISCLAIMER 单源化，H5 P1）/ **C3**（新建 `test_snapshot_hygiene.py`，H6/H9 P2）；
+  - 阶段乙·输出变更项=**B1**（xiangfa_ops 排序化 4 处：`:336`/`:677`/`:811-813`/`:1090`+`:1096`，H-fix-5 待议 #1）/ **C1**（zaihuo label 修正 `zaihuo.py:319-322`——已从 :388 漂移；计数不动只改展示 label）。
+- **时机条件**：L1 等下个引擎判定批**前置位**（先换基线，引擎批从新基线起跑；拒绝同批合并）；或近期有 LLM 批跑/双 seed 可复现需求（B1 唯一活影响）/ 引擎批排期 >2~4 周时独立先做。
+- **A3 输出面死字段**（virtual_solid counts / soil wet·dry / 华盖 year_ref）：不关闭，降为条件项——随未来输出面/payload 精简批顺手，否则维持。
+- **D 真实凭证冒烟**：上线 checklist #3 执行项（事件触发非代码项），前置=真实飞书凭证+DeepSeek key，随首次上线冒烟窗口与 #4 群聊 @bot 同批执行。
