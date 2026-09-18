@@ -1,5 +1,15 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 P3 · 财命残簇批（引擎精度批 P 系列第三批·判定改动批；预注册先行；caiming 消费侧，objective 零改动）
+
+| 项目 | 内容 |
+|------|------|
+| A4/A12 收档（前提复核，方案现场核实过时） | **A4 土金伤官怕见官**：传导已通——juefa 分向 verdict 由 yongshen N1「成势怕见官」severe 条款消费（yongshen.py:879-921，K3-294批5 立，gj-低保伤官 gaoji:19657），经 mingju_xiong→caiming 封顶贫；509 例探针 scored 残余目标=零，b67-过河拆桥富锚具怕见官 facet 为反向锚，再立宽条款只有误伤面。**A12 体坏**：N5 `detect_zhuwei_ti_chonghuai`（独眼乞食 zhongji:5049 族）已接入 mingju_xiong（yongshen.py:1682-1684），命中面仅 zj-独眼乞食且已 ✅ |
+| A13 条款一（制库基阶落位·上限） | `_detect_zhiku_decai` 增输出 `ku_han_guansha`（库藏干同含官杀=「财库加官杀」）；制库独力上浮触巨富时库无官杀同藏→封顶富（`_liangji_cap` sticky）。保端=yx-煤矿（yanjiu:7689-7691「丑为财库加官杀，做功能量很大…十几亿」）/奥纳西斯（lixiangxue:6470-6474 四层功量 L4 直达不经上浮链）；杀端=cj-富火运（chuji:5526-5530「戌中辛偏弱…财不大」）/制例二（lixiangxue:6478-6484「虽也是富命，但远不如前者」） |
+| A13 条款二（制库基阶落位·下限 sticky） | 浮财/合绊/入墓阻断降档分支：`has_zhiku` 在档→落富不落小康（库财通道独立于明财，收束 floor 与阻断降档「升后复降」矛盾，同 F6 禄/伤食下浮制库豁免形态）。杀端=制例二（明财壬坐壬戌自合柱被合绊仍书判富命数千万） |
+| 翻转明细（全预注册） | trainset 财 **59→61✅**（+2，方案带 +2~4 下沿；M3 噪声带内，CI 下界 43.1%→44.8%）：cj-富火运发财数百（巨富→富）/reg67-制例二（小康→富）；**官 102✅/职 40✅ 零翻转**；heldout 三维**零翻转**（官 48✅/财 47✅/职 24✅ 保）；文本抖动 7 条全归因（条款一 adjust×5+条款二 li240+入狱一年 tier_static 巨富→富，财维全 unscored 或全量轨终值不变） |
+| 验证 | 哨兵 `test_p3_caiming_zhiku.py` 10 测先红（5 红）后绿；pytest **1097 passed+1xf**；verify 432+70+64+20；双 seed 逐字节一致；67/famous 无变化；calib 常驻 2 条零新增；M2 七组无失衡恶化（trainset 富组 13✅→15✅ 改善，余六组逐字不动；heldout 七组不动）；富命锚复验全保（李嘉诚/保尔森 zhiku=False 结构性不动、煤矿豁免保巨富）；凶向标注全量轨红线复查通过；check_layering+check_typing_imports 通过；3.11/3.14 冒烟一致。换基线 **`snapshots/20260918_p3.json`** + LATEST 推进；预注册=`docs/kimi-p3-caiming-prereg-20260918.md`，详账=backlog P3 节 |
+
 ## 2026-09-18 P2 · 官命 fp 窄修簇批（引擎精度批 P 系列第二批·判定改动批；预注册先行；objective 零改动）
 
 | 项目 | 内容 |

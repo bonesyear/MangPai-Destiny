@@ -246,7 +246,7 @@ def _detect_zhiku_decai(
     Returns:
         {'found': bool, 'tomb': str, 'detail': str}
     """
-    out = {'found': False, 'tomb': '', 'detail': ''}
+    out = {'found': False, 'tomb': '', 'detail': '', 'ku_han_guansha': False}
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return out
     day_wx = GAN_WX.get(day_gan, '')
@@ -298,6 +298,14 @@ def _detect_zhiku_decai(
         return out
     out['found'] = True
     out['tomb'] = month_zhi
+    # P3 条款一量级证：库藏干同含官杀（「财库加官杀，做功能量很大」——
+    # yx-煤矿 yanjiu:7689-7691「丑为财库加官杀…搞煤矿发财十几亿」）者量级
+    # 可达巨富；库无官杀同藏者独力上浮封顶富（制例二 lixiangxue:6478-6484
+    # 「虽也是富命，但远不如前者…数千万」、富火运 chuji:5526-5530「戌中辛
+    # 偏弱…财不大…数百万」）。
+    guan_wx_k = WX_KE_ME.get(day_wx, '')  # 官杀五行=克我
+    out['ku_han_guansha'] = bool(guan_wx_k) and any(
+        GAN_WX.get(cg, '') == guan_wx_k for cg in ku_gans)
     out['detail'] = (f'月令{month_zhi}库藏财（{cai_wx}）与原神食伤（{yuan_wx}），'
                      f'主位{opener}冲/刑开库，开库同制财与原神俱制——'
                      f'制库得财，量级同制尽（理象学制例一奥纳西斯「月令之财与财的'
@@ -1334,8 +1342,8 @@ def assess_caiming_level(
     guohe_pocai = caifu_view.get('guohe_chaiqiao_type') == '破财'
     # 制库得财（理象学制例一）：月令墓库被主位冲/刑开，库中财与原神同制
     # ——制尽级财命定式，量级同制尽（书锚=奥纳西斯船王巨富）。
-    has_zhiku = _detect_zhiku_decai(day_gan, gans or [], zhis or [],
-                                    muku_result).get('found', False)
+    _zhiku = _detect_zhiku_decai(day_gan, gans or [], zhis or [], muku_result)
+    has_zhiku = _zhiku.get('found', False)
     # 财库开闭（已由 classify_caifu_view 据传入 muku_result 检出，亦可直接读 caiku）
     has_open_caiku = bool(caifu_view.get('has_open_caiku'))
     # 财星源头/路径（M2：贫富三要素——原神/主位定浮实，合绊/入墓定阻通）
@@ -1555,8 +1563,20 @@ def assess_caiming_level(
                 _liangji_cap = True
                 adjust = '上浮（官杀当财量级高；过河拆桥富格制官得财，非净制量级不及巨富，封顶富）'
         elif has_zhiku and not (has_guancai or _zbj_ok):
-            adjust = (adjust + '；' if adjust != '持平' else '') + \
-                '上浮（制库得财，开库同制财与原神，量级同制尽）'
+            # P3 条款一（A13 制库基阶落位·上限）：制库独力上浮封顶「富」——
+            # 巨富须库同藏官杀（「财库加官杀，做功能量很大」yx-煤矿书锚
+            # yanjiu:7689-7691）佐证；库无官杀同藏者独力上浮量级不及巨富
+            # （制例二「虽也是富命，但远不如前者」lixiangxue:6478-6484、
+            # 富火运「戌中辛偏弱…财不大」chuji:5526-5530 双杀端锚）。
+            if tier_idx > 3 and not _zhiku.get('ku_han_guansha'):
+                tier_idx = 3
+                _liangji_cap = True
+                adjust = (adjust + '；' if adjust != '持平' else '') + \
+                    '上浮（制库得财，开库同制财与原神；库无官杀同藏，' \
+                    '独力上浮量级不及巨富，封顶富）'
+            else:
+                adjust = (adjust + '；' if adjust != '持平' else '') + \
+                    '上浮（制库得财，开库同制财与原神，量级同制尽）'
         else:
             adjust = '上浮（官杀当财量级高）'
     # F6：制库得财（has_zhiku）为制尽级财命定式，「非禄/食伤当财之量级有限路径」
@@ -1673,12 +1693,18 @@ def assess_caiming_level(
             adjust = (adjust + '；' if adjust != '持平' else '') + \
                 '上浮（财有原神且为我所及，源头畅通）'
         elif blocked and tier_idx > 2:
-            tier_idx = 2
+            # P3 条款二（A13 制库基阶落位·下限 sticky）：制库得财在档者财出自
+            # 在库（月令财与原神同库俱制），明财之浮/绊/墓阻断不断库财通道——
+            # 落富不落小康，与上方 floor「基阶不落下富」同口径收束「升后复降」
+            # 矛盾（制例二书判「虽也是富命…数千万」，明财壬坐壬戌自合柱被合绊
+            # 仍富，lixiangxue:6478-6484；同 F6 禄/伤食下浮制库豁免形态）。
+            tier_idx = 3 if has_zhiku else 2
             fucai_capped = True
             why = ('财星无原神且不在主位，浮财无源' if cxp.get('fucai')
                    else '财星被合绊，生财路径阻断' if cxp.get('heban')
                    else '财星入墓未开，财被收藏难取')
-            adjust = (adjust + '；' if adjust != '持平' else '') + f'下浮（{why}，封顶小康）'
+            cap_txt = '制库在档，库财自足，落富' if has_zhiku else '封顶小康'
+            adjust = (adjust + '；' if adjust != '持平' else '') + f'下浮（{why}，{cap_txt}）'
     # 浮财/阻通降档后富档跟随（同凶向下浮口径：降档仍标高富档则自相矛盾）
     if fucai_capped and tier_idx < base_level:
         wealth_grade = ''
