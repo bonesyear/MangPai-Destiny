@@ -1,5 +1,11 @@
-# 个人信息
-output/
+# 个人信息（隐私红线：真实人物数据/案例分析永不入库）
+output/*
+!output/*.py
+!output/*.sh
+!output/*.md
+output/_kang*
+output/*.jsonl
+output/*.json
 _kang*
 *.json
 !mangpai/tests/backtest/baseline67.json
@@ -18,8 +24,11 @@ __pycache__/
 .env
 .hermes/
 
-# 知识库（版权）
-mangpai/docs/
+# 知识库（版权：原著全文不入库；仅索引元数据入库）
+mangpai/docs/*
+!mangpai/docs/book-index*
+mangpai/docs/book-index/*
+!mangpai/docs/book-index/*.md
 
 # 临时文件
 /tmp/
