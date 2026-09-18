@@ -33,11 +33,15 @@ from mangpai.objective.constants import (
     LU, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.objective.shensha import resolve_shensha
+from mangpai.objective.shishen import (
+    shishen_of as _compute_shishen, shishen_cat as _cat,
+)
+from mangpai.subjective.utils import ensure_relations as _ensure_relations
 from mangpai.subjective.zhengfan import analyze_zhengfan
 
-_YANG_GANS = set('甲丙戊庚壬')
+# _YANG_GANS 随 _compute_shishen 下沉删除（H-fix-4b，与既有 _YANG_GAN_SET 重复）；
+# _compute_shishen/_cat/_ensure_relations 别名于顶部导入，本地副本删除。
 
 # 牢狱字（阴地支）
 _LAOYU_ZI: Set[str] = {'亥', '丑', '辰'}
@@ -50,39 +54,6 @@ _YANG_ZHI_SET = {'子', '寅', '辰', '午', '申', '戌'}  # 顺序阳支
 
 # 魁罡四日（庚辰、壬辰、庚戌、戊戌）——段氏魁罡主性刚毅、好斗，逢刑冲官杀主官非牢狱
 _KUIGANG_DAYS: Set[Tuple[str, str]] = {('庚', '辰'), ('壬', '辰'), ('庚', '戌'), ('戊', '戌')}
-
-
-def _compute_shishen(day_gan: str, gan: str) -> str:
-    day_wx = GAN_WX.get(day_gan, '')
-    gan_wx = GAN_WX.get(gan, '')
-    if not day_wx or not gan_wx:
-        return ''
-    same_polarity = (day_gan in _YANG_GANS) == (gan in _YANG_GANS)
-    if gan_wx == day_wx:
-        return '比肩' if same_polarity else '劫财'
-    if WX_SHENG.get(day_wx) == gan_wx:
-        return '食神' if same_polarity else '伤官'
-    if WX_SHENG.get(gan_wx) == day_wx:
-        return '偏印' if same_polarity else '正印'
-    if WX_KE.get(day_wx) == gan_wx:
-        return '偏财' if same_polarity else '正财'
-    if WX_KE.get(gan_wx) == day_wx:
-        return '七杀' if same_polarity else '正官'
-    return ''
-
-
-def _cat(ss: str) -> str:
-    if ss in ('正官', '七杀'):
-        return '官杀'
-    if ss in ('正财', '偏财'):
-        return '财'
-    if ss in ('正印', '偏印'):
-        return '印'
-    if ss in ('食神', '伤官'):
-        return '食伤'
-    if ss in ('比肩', '劫财'):
-        return '比劫'
-    return ''
 
 
 def _mingxian_cats(day_gan: str, gans: List[str], zhis: List[str]) -> List[Set[str]]:
@@ -123,17 +94,6 @@ def _has_shen_in_mingxian(day_gan: str, gans: List[str], zhis: List[str],
                 if _compute_shishen(day_gan, cg) in target_ss:
                     return True
     return False
-
-
-def _ensure_relations(day_gan, gans, zhis, relations):
-    if relations is not None:
-        return relations
-    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
-        return {}
-    return detect_relations(
-        day_gan, zhis[PILLAR_KEYS.index('day')],
-        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-    )
 
 
 # ───────────────────── 1. 牢狱字 ─────────────────────

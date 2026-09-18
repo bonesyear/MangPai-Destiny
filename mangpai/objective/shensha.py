@@ -26,10 +26,11 @@ F13（2026-08-17）：
 from typing import Dict, List, Optional
 
 from mangpai.objective.constants import (
-    BAN_HE, CANG_GAN_MANGPAI, DI_ZHI, GAN_WX, LIU_HE, LU, WX_KE, WX_SHENG,
+    BAN_HE, CANG_GAN_MANGPAI, DI_ZHI, LIU_HE, LU,
 )
+from mangpai.objective.shishen import shishen_cat, shishen_of
 
-_YANG_GANS = {'甲', '丙', '戊', '庚', '壬'}
+# _YANG_GANS 死常量（全仓零引用，H-fix-4b 删除）。
 
 _YANG_REN: Dict[str, str] = {
     '甲': '卯', '丙': '午', '戊': '午',
@@ -174,22 +175,8 @@ def _find_any_in_pillars(target_zhis: List[str], zhis: List[str]) -> List[str]:
 
 
 def _shishen_cat(day_gan: str, gan: str) -> str:
-    """十神归类（财/官杀/食伤/印/比劫）。"""
-    day_wx = GAN_WX.get(day_gan, '')
-    gan_wx = GAN_WX.get(gan, '')
-    if not day_wx or not gan_wx:
-        return ''
-    if gan_wx == day_wx:
-        return '比劫'
-    if WX_SHENG.get(day_wx) == gan_wx:
-        return '食伤'
-    if WX_SHENG.get(gan_wx) == day_wx:
-        return '印'
-    if WX_KE.get(day_wx) == gan_wx:
-        return '财'
-    if WX_KE.get(gan_wx) == day_wx:
-        return '官杀'
-    return ''
+    """十神归类（财/官杀/食伤/印/比劫）。H-fix-4b 下沉 objective.shishen。"""
+    return shishen_cat(shishen_of(day_gan, gan))
 
 
 # 书桃花（禄绊桃花）：合到伤官、官杀、财为桃花；合印/比劫不为桃花

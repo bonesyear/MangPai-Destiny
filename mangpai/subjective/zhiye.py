@@ -58,12 +58,17 @@ from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.xiangfa import get_liushi_ganzhi_xiang
-from mangpai.objective.zuogong_detect import detect_relations
+from mangpai.objective.shishen import (
+    shishen_of as _compute_shishen, shishen_cat as _cat,
+    gan_wx_cat as _wx_cat,
+)
+from mangpai.subjective.utils import ensure_relations as _ensure_relations
 from mangpai.subjective.yongshen import assess_direction_signals
 
 _logger = logging.getLogger(__name__)
 
-_YANG_GANS = set('甲丙戊庚壬')
+# _YANG_GANS 随 _compute_shishen 下沉删除（H-fix-4b，本文件无其它引用）；
+# _compute_shishen/_cat/_wx_cat/_ensure_relations 别名于顶部导入，本地副本删除。
 
 # ── 最低分阈值：多象定一象的成象门槛 ──
 #   五桶（医生/教师/律师/商人/军政，外加会计/演艺）取最高分定位职业，但最高分低于
@@ -80,58 +85,6 @@ _MIN_SCORE_THRESHOLD = 6
 
 # ───────────────────── 共用小工具 ─────────────────────
 
-def _compute_shishen(day_gan: str, gan: str) -> str:
-    day_wx = GAN_WX.get(day_gan, '')
-    gan_wx = GAN_WX.get(gan, '')
-    if not day_wx or not gan_wx:
-        return ''
-    same_polarity = (day_gan in _YANG_GANS) == (gan in _YANG_GANS)
-    if gan_wx == day_wx:
-        return '比肩' if same_polarity else '劫财'
-    if WX_SHENG.get(day_wx) == gan_wx:
-        return '食神' if same_polarity else '伤官'
-    if WX_SHENG.get(gan_wx) == day_wx:
-        return '偏印' if same_polarity else '正印'
-    if WX_KE.get(day_wx) == gan_wx:
-        return '偏财' if same_polarity else '正财'
-    if WX_KE.get(gan_wx) == day_wx:
-        return '七杀' if same_polarity else '正官'
-    return ''
-
-
-def _cat(ss: str) -> str:
-    if not ss:
-        return ''
-    if ss in ('正官', '七杀'):
-        return '官杀'
-    if ss in ('正财', '偏财'):
-        return '财'
-    if ss in ('正印', '偏印'):
-        return '印'
-    if ss in ('食神', '伤官'):
-        return '食伤'
-    if ss in ('比肩', '劫财'):
-        return '比劫'
-    return ''
-
-
-def _wx_cat(day_gan: str, wx: str) -> str:
-    day_wx = GAN_WX.get(day_gan, '')
-    if not day_wx or not wx:
-        return ''
-    if wx == day_wx:
-        return '比劫'
-    if WX_SHENG.get(day_wx) == wx:
-        return '食伤'
-    if WX_SHENG.get(wx) == day_wx:
-        return '印'
-    if WX_KE.get(day_wx) == wx:
-        return '财'
-    if WX_KE.get(wx) == day_wx:
-        return '官杀'
-    return ''
-
-
 def _pillar_cats(day_gan: str, gan: str, zhi: str) -> Set[str]:
     cats: Set[str] = set()
     c = _cat(_compute_shishen(day_gan, gan))
@@ -145,17 +98,6 @@ def _pillar_cats(day_gan: str, gan: str, zhi: str) -> Set[str]:
             cats.add(_cat(_compute_shishen(day_gan, cg)))
     cats.discard('')
     return cats
-
-
-def _ensure_relations(day_gan, gans, zhis, relations):
-    if relations is not None:
-        return relations
-    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
-        return {}
-    return detect_relations(
-        day_gan, zhis[PILLAR_KEYS.index('day')],
-        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-    )
 
 
 def _main_qi_cats(day_gan: str, gans: List[str], zhis: List[str], i: int) -> Set[str]:

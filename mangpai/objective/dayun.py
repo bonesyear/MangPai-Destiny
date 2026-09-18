@@ -33,6 +33,8 @@ from mangpai.objective.bazi_calc import GAN, ZHI  # 天干/地支序列表（唯
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.muku import TOMB_MAP as _TOMB_MAP
 from mangpai.objective.shensha import _YANG_REN_FULL
+from mangpai.objective._relation_utils import pair_in
+from mangpai.objective.shishen import shishen_of as _compute_shishen
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -44,28 +46,9 @@ _YANG_REN: Dict[str, List[str]] = _YANG_REN_FULL
 _PILLAR_LABELS = ['年柱', '月柱', '日柱', '时柱']
 
 
-def _compute_shishen(day_gan: str, gan: str) -> str:
-    """计算 gan 相对 day_gan 的十神。"""
-    day_wx = GAN_WX.get(day_gan, '')
-    gan_wx = GAN_WX.get(gan, '')
-    if not day_wx or not gan_wx:
-        return ''
-    same_polarity = (day_gan in _YANG_GANS) == (gan in _YANG_GANS)
-    if gan_wx == day_wx:
-        return '比肩' if same_polarity else '劫财'
-    if WX_SHENG.get(day_wx) == gan_wx:
-        return '食神' if same_polarity else '伤官'
-    if WX_SHENG.get(gan_wx) == day_wx:
-        return '偏印' if same_polarity else '正印'
-    if WX_KE.get(day_wx) == gan_wx:
-        return '偏财' if same_polarity else '正财'
-    if WX_KE.get(gan_wx) == day_wx:
-        return '七杀' if same_polarity else '正官'
-    return ''
-
-
-def _check_pair(a: str, b: str, pairs) -> bool:
-    return (a, b) in pairs or (b, a) in pairs
+# H-fix-4b：十神/双向对判定下沉 objective.shishen / _relation_utils（14+5 处
+# 复制逐字等价），此处别名保调用点不变。
+_check_pair = pair_in
 
 
 def _analyze_gan_relations(

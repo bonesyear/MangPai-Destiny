@@ -11,11 +11,9 @@ shenshu — 盲派十神数量歌诀（郑民生十排歌）
 from typing import Dict, List, Optional
 
 from mangpai.objective.constants import (
-    GAN_WX, WX_KE, WX_SHENG,
     CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
-
-_YANG_GANS = set('甲丙戊庚壬')
+from mangpai.objective.shishen import shishen_of as _compute_shishen
 
 # ── 郑民生十排歌：十神数量歌诀 ──
 # 1清纯好 / 7成势吉 / 2-6混杂病 / 0不见
@@ -122,30 +120,6 @@ _SHISHEN_ORDER = [
     '正财', '偏财', '正官', '七杀', '正印',
     '偏印', '食神', '伤官', '比肩', '劫财',
 ]
-
-
-def _compute_shishen(day_gan: str, gan: str) -> str:
-    """计算 gan 相对 day_gan 的十神。
-
-    同阴阳 → 比肩/食神/偏印/偏财/七杀
-    异阴阳 → 劫财/伤官/正印/正财/正官
-    """
-    day_wx = GAN_WX.get(day_gan, '')
-    gan_wx = GAN_WX.get(gan, '')
-    if not day_wx or not gan_wx:
-        return ''
-    same_polarity = (day_gan in _YANG_GANS) == (gan in _YANG_GANS)
-    if gan_wx == day_wx:
-        return '比肩' if same_polarity else '劫财'
-    if WX_SHENG.get(day_wx) == gan_wx:
-        return '食神' if same_polarity else '伤官'
-    if WX_SHENG.get(gan_wx) == day_wx:
-        return '偏印' if same_polarity else '正印'
-    if WX_KE.get(day_wx) == gan_wx:
-        return '偏财' if same_polarity else '正财'
-    if WX_KE.get(gan_wx) == day_wx:
-        return '七杀' if same_polarity else '正官'
-    return ''
 
 
 def _grade(count: int) -> str:

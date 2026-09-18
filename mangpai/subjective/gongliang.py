@@ -82,6 +82,7 @@ from mangpai.objective.constants import (
     is_pillars,
 )
 from mangpai.objective.muku import is_entomb
+from mangpai.objective.shishen import wx_cat as _shishen_cat
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.caiming import classify_caifu_view
 from mangpai.subjective.yongshen import (
@@ -173,26 +174,10 @@ def _wx_of(elem: str) -> str:
     return GAN_WX.get(elem, '') or ZHI_WX.get(elem, '')
 
 
-def _shishen_cat(day_wx: str, wx: str) -> str:
-    """五行 -> 相对日主的十神大类（比劫/印/食伤/财/官杀）。
-
-    与 zuogong_confirm._tiyong_of 同口径（纯五行生克，不用十神表）：
-      体 = 比劫(同我) + 印(生我) + 食伤(我生)；
-      用 = 财(我克) + 官杀(克我)。
-    """
-    if not day_wx or not wx:
-        return ''
-    if wx == day_wx:
-        return '比劫'
-    if WX_SHENG.get(wx) == day_wx:
-        return '印'        # 生我
-    if WX_SHENG.get(day_wx) == wx:
-        return '食伤'      # 我生
-    if WX_KE.get(day_wx) == wx:
-        return '财'        # 我克
-    if WX_KE.get(wx) == day_wx:
-        return '官杀'      # 克我
-    return ''
+# H-fix-4b：_shishen_cat(day_wx, wx) 与 _wx_cat 五处副本同逻辑（条件互斥、
+# 等价），下沉 objective.shishen.wx_cat，顶部别名保调用点不变。
+# 口径备注：体 = 比劫(同我) + 印(生我) + 食伤(我生)；用 = 财(我克) + 官杀(克我)
+# （与 zuogong_confirm._tiyong_of 同口径，纯五行生克不用十神表）。
 
 
 def _elem_cats(day_wx: str, elem: str, include_canggan: bool = True) -> Set[str]:

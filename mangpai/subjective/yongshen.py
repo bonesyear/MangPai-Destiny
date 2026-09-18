@@ -47,22 +47,13 @@ from typing import Dict, List, Optional, Set
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE, HUA_YONG_MAP,
 )
+from mangpai.objective.shishen import wx_cat as _wx_cat
 
 _logger = logging.getLogger(__name__)
 
-# 十神大类 <-> 日干五行
-def _wx_cat(day_wx: str, wx: str) -> str:
-    if wx == day_wx:
-        return '比劫'
-    if WX_SHENG.get(wx) == day_wx:
-        return '印'
-    if WX_SHENG.get(day_wx) == wx:
-        return '食伤'
-    if WX_KE.get(day_wx) == wx:
-        return '财'
-    if WX_KE.get(wx) == day_wx:
-        return '官杀'
-    return ''
+# H-fix-4b：_wx_cat(day_wx, wx) 与其它五处 (day_gan, wx) 副本同逻辑
+# （判定顺序不同但条件互斥、等价；空守卫差异仅 ('','') 不可达输入），
+# 下沉 objective.shishen.wx_cat，此处别名保调用点不变。
 
 
 def _yin_wx(day_wx: str) -> str:

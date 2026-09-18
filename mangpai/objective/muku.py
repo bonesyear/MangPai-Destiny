@@ -24,21 +24,23 @@ from mangpai.objective.constants import (
     DI_ZHI, WU_XING_DZ, TOMB_MAP, LIU_CHONG, LIU_HE, XING_PAIRS,
     ZHI_WX, GAN_WX, SI_SHENG, SI_ZHENG, is_pillars,
 )
+from mangpai.objective._relation_utils import pair_in
 
 _PILLAR_NAMES = ['年柱', '月柱', '日柱', '时柱']
 
 
+# H-fix-4b：三特化判定与 _check_pair/pair_in 复制等价，下沉 _relation_utils。
 def _is_chong(a: str, b: str) -> bool:
-    return (a, b) in LIU_CHONG or (b, a) in LIU_CHONG
+    return pair_in(a, b, LIU_CHONG)
 
 
 def _is_he(a: str, b: str) -> bool:
-    return (a, b) in LIU_HE or (b, a) in LIU_HE
+    return pair_in(a, b, LIU_HE)
 
 
 def _is_xing(a: str, b: str) -> bool:
     # XING_PAIRS 三刑已含寅巳申/丑戌未环向三组，唯子卯单列单向，故双向判定。
-    return (a, b) in XING_PAIRS or (b, a) in XING_PAIRS
+    return pair_in(a, b, XING_PAIRS)
 
 
 def _is_tomb_opened(tomb_zhi: str, all_zhis: List[str]) -> bool:

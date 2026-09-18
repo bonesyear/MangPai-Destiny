@@ -254,6 +254,8 @@ def _injected_bug(*a, **k):
 
 
 # 7a. _ensure_relations 传导（10 模块参数化）
+# H-fix-4b：_ensure_* 下沉 subjective.utils 单一实现，patch 目标随之改为
+# utils.detect_relations（各模块本地 detect_relations 导入已随副本删除移除）。
 _ENSURE_REL_MODS = ['caiming', 'zhiye', 'guanming', 'liuqin', 'hunyin',
                     'zaihuo', 'xiangfa_ops', 'gongmen_wuzhi', 'laoyu', 'xueli']
 
@@ -262,8 +264,9 @@ _ENSURE_REL_MODS = ['caiming', 'zhiye', 'guanming', 'liuqin', 'hunyin',
 def test_ensure_relations_propagates(modname, monkeypatch):
     """基础数据自调 detect_relations 失败 → 上抛，不得静默 {}。"""
     import importlib
+    import mangpai.subjective.utils as sub_utils
     mod = importlib.import_module(f'mangpai.subjective.{modname}')
-    monkeypatch.setattr(mod, 'detect_relations', _injected_bug)
+    monkeypatch.setattr(sub_utils, 'detect_relations', _injected_bug)
     with pytest.raises(RuntimeError, match='injected bug'):
         mod._ensure_relations('庚', _G4, _Z4, None)
 
@@ -279,12 +282,13 @@ def test_ensure_relations_guard_unchanged(modname):
     assert mod._ensure_relations('庚', _G4, _Z4, sentinel) is sentinel
 
 
-# 7b. _ensure_muku 传导
+# 7b. _ensure_muku 传导（H-fix-4b：patch 目标=subjective.utils.analyze_muku）
 @pytest.mark.parametrize('modname', ['caiming', 'xiangfa_ops'])
 def test_ensure_muku_propagates(modname, monkeypatch):
     import importlib
+    import mangpai.subjective.utils as sub_utils
     mod = importlib.import_module(f'mangpai.subjective.{modname}')
-    monkeypatch.setattr(mod, 'analyze_muku', _injected_bug)
+    monkeypatch.setattr(sub_utils, 'analyze_muku', _injected_bug)
     with pytest.raises(RuntimeError, match='injected bug'):
         mod._ensure_muku(_G4, _Z4, None)
 

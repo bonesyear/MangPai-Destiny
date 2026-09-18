@@ -11,6 +11,8 @@
 """
 from __future__ import annotations
 
+from mangpai.subjective.xiangmao import marker_descriptions
+
 # 七维 schema 说明（嵌进 system prompt）。basis 路径格式是 L1 校验契约：
 # 点分隔键，逐字照抄；数组只引数组名本身，禁止下标（llm_channel._l1_basis 同口径）。
 SCHEMA_SPEC = """\
@@ -244,14 +246,9 @@ def _xiangmao_anchor(features: dict) -> str:
     xm = features.get('xiangmao')
     if not isinstance(xm, dict):
         return ''
-    parts = []
-    for k in ('xiuqi', 'jinshui', 'muhuo', 'meili', 'shencai'):
-        node = xm.get(k) or {}
-        if node.get('hit') and node.get('desc'):
-            parts.append(str(node['desc']))
-    yan = xm.get('yanxiang') or {}
-    if (yan.get('bing') or yan.get('ding') or yan.get('gui')) and yan.get('desc'):
-        parts.append(str(yan['desc']))
+    # H-fix-4b：命中判定下沉 xiangmao.marker_descriptions（与 _n2_analyze
+    # ._has_xiangmao_marker 同判据单一化）。
+    parts = marker_descriptions(xm)
     ban = ('相貌维只许引用上述 marker 描述；叙述正文任何位置不得出现'
            '「漂亮/美/丑/帅」字样，含「美/丑」的复合评价词'
            '（如曲线优美/体态柔美/秀美/俊美）同禁，不含美丑字的相貌结论词'

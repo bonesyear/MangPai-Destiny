@@ -224,4 +224,25 @@ def analyze_xiangmao(
     }
 
 
-__all__ = ['analyze_xiangmao']
+def marker_descriptions(xm) -> List[str]:
+    """命中线的 marker 描述列表（5 主线 hit 且 desc 非空 + 眼象丙/丁/癸在场
+    且 desc 非空）。
+
+    H-fix-4b 下沉：llm_prompt._xiangmao_anchor 与 output/_n2_analyze
+    ._has_xiangmao_marker 两副本判定逐条件等价（后者 = bool(本函数返回)），
+    统一为本模块单一判据。非 dict / 缺键输入返回 []。
+    """
+    if not isinstance(xm, dict):
+        return []
+    parts = []
+    for k in ('xiuqi', 'jinshui', 'muhuo', 'meili', 'shencai'):
+        node = xm.get(k) or {}
+        if node.get('hit') and node.get('desc'):
+            parts.append(str(node['desc']))
+    yan = xm.get('yanxiang') or {}
+    if (yan.get('bing') or yan.get('ding') or yan.get('gui')) and yan.get('desc'):
+        parts.append(str(yan['desc']))
+    return parts
+
+
+__all__ = ['analyze_xiangmao', 'marker_descriptions']

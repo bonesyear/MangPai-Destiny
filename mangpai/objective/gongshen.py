@@ -27,6 +27,7 @@ from mangpai.objective.constants import (
     PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
     LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS,
 )
+from mangpai.objective._relation_utils import pair_in
 from mangpai.objective.xiangfa import (
     get_gan_xiang, get_zhi_xiang, get_gongwei_xiang,
 )
@@ -98,9 +99,8 @@ _SPOUSE_IMPACT: Dict[str, tuple] = {
 }
 
 
-def _check_pair(a: str, b: str, pairs) -> bool:
-    """双向判定 (a,b) 是否属于 pairs（与 zuogong 同名 helper 一致）。"""
-    return (a, b) in pairs or (b, a) in pairs
+# H-fix-4b：双向对判定下沉 _relation_utils.pair_in（六处复制逐字等价）。
+_check_pair = pair_in
 
 
 def _detect_zhi_relations(zhis: List[str]) -> List[Dict]:

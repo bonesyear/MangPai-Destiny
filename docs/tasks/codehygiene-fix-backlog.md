@@ -1245,3 +1245,56 @@ verify 432+70+64+20 / pytest **934 passed**+1xf+19xp（925+9 哨兵）/ blind vs
 - import 冒烟：3.11 + 3.14 双绿（advanced/chuangong 删除后 `import mangpai`/`import foundation` 正常）
 - 引擎判定零改动：compute_all 正常路径输出逐字节不变（blind 零抖动坐实）
 - 回滚点：tag `hfix4a-pre`；快照=`snapshots/20260918_hfix4a.json`
+
+---
+
+## H-fix-4b（2026-09-18，执行登记 · 重复逻辑下沉/统一批——重构类，等价性第一红线）
+
+### 差异分析记录（每项：差异点 + 判定 + 处置）
+
+| 家族 | 副本 | 差异点 | 判定 | 处置 |
+|---|---|---|---|---|
+| `_check_pair` | zuogong_detect / dayun / gongshen 逐字同；muku `_is_chong/_is_he/_is_xing` 为其特化；liunian 两处函数内局部复制；zuogong `_chong_pair/_he_pair` 冗余封装（H-fix-1 抽查 P2） | 仅 muku 三分写死表名 | **真等价**（改前真值表 12 支×12 支×5 表全等断言） | 下沉 `objective/_relation_utils.pair_in`；四文件别名、muku 三函数改薄包装、liunian 两局部副本删除、`_chong_pair/_he_pair` 改委托（该 P2 项清零） |
+| `_compute_shishen` ×14 + `bazi_calc.ten_god` | objective 3 + subjective 12 | 唯一差异=边界：ten_god 非法干抛 KeyError，其余 `.get` 守卫返 ''；藏干权重/主中余气/阴阳判定**全部一致**（100 干对+空边界真值表改动前互断言全等） | **真等价**（正常路径非法干不可达） | 下沉 `objective/shishen.py`（`god_from_wx`/`shishen_of`）；14 处别名；`ten_god` 保留 KeyError 严格契约改薄壳委托 `god_from_wx`；`shensha._shishen_cat(day_gan,gan)`=`shishen_cat(shishen_of(...))` 包装 |
+| `_cat`/`_shishen_cat` ×10 | caiming/guanming/xiangfa_ops（fallback `return ss`）vs hunyin/gongmen/zhiye/liuqin/laoyu/xueli/zaihuo（fallback `return ''`） | 仅未知串 fallback 不同；全部调用点 grep 核实只喂 `_compute_shishen` 输出（10 标准名/''），'日主' 等不可达 | **真等价（可达输入）** | 统一 `shishen.shishen_cat`（'' fallback）；10 处别名。复捕真值表仅 3 处白名单差异='日主'/None 不可达输入 |
+| `_wx_cat` ×6 | (day_gan,wx) 四份（gongmen/zhiye/liuqin/zaihuo + xiangfa_ops `_wx_to_shishen_cat`）全同；yongshen/gongliang 为 (day_wx,wx) 同逻辑 | yongshen 版无空守卫（`('','')→'比劫'` vs 守卫 ''），day_wx='' 不可达；判定顺序不同但条件互斥 | **真等价（可达输入）** | `shishen.wx_cat(day_wx,wx)` + `gan_wx_cat(day_gan,wx)` 包装；六处别名（yongshen/gongliang 直别 wx_cat，余别 gan_wx_cat） |
+| `_ensure_relations` ×10 / `_ensure_muku` ×2 | caiming/guanming/hunyin/xiangfa_ops/zhiye/liuqin/laoyu/zaihuo/xueli/gongmen_wuzhi；caiming/xiangfa_ops | 逐字全同（H-fix-2b 已同步去 try/except） | **真等价** | 下沉 `subjective/utils.py`（仅依赖 objective，单向分层不破）；10+2 处别名；10 文件 detect_relations 局部导入、caiming/xiangfa_ops analyze_muku 导入随之清理 |
+| 相貌判定（H10） | `output/_n2_analyze._has_xiangmao_marker` vs `llm_prompt._xiangmao_anchor` 内联判据 | 逐条件等价（5 主线 hit&desc + 眼象 bing/ding/gui&desc）；anchor 多一层「非 dict 早返 ''」分支 | **真等价**（bool( parts) 同判） | 下沉 `xiangmao.marker_descriptions`（公开 API，防 _t3_anchor_scan 式私有导入脆弱）；`_has_xiangmao_marker` 改薄包装；`_xiangmao_anchor` 复用且**保留非 dict 早返 '' 分支**（塌缩会改 prompt 行为，等价性复核抓出） |
+| detect_relations 6 组 O(n²) 循环（H11） | 六合/暗合/冲/刑/穿/破六段 `for i: for j>i` 复制 | 差异=匹配表/日支要求/type/action/desc 模板/severity 键有无/work_types 类；**排放位置散在三位**（六合暗合→三合半合→冲→克→天干克→刑穿破） | **真等价但须保序** | `_ZHI_PAIR_SPECS` 注册表 + 统一扫描闭包 `_scan_zhi_pairs`，按 `[:2]`/`[2:3]`/`[3:]` 三次调用放回原位（初版单次扫描改变 work_actions 顺序被黄金 sha256 锁抓到，已修正）；克/天干克/生/墓用/三合半合不并入（H11 既定：结构差异大） |
+
+### 判定不等价不合并清单（分诊纪律：宁留重复勿改行为）
+
+| 项 | 理由 |
+|---|---|
+| `bazi_calc.ten_god` KeyError 严格边界 | 与守卫版边界语义不同，保留为薄壳（契约不并入） |
+| yongshen `_ensure_work_actions/_ensure_zhengfan/_ensure_laoyu` | 单份非重复，搬动无去重收益且含局部 import 循环风险，不动 |
+| `_pillar_cats` 族（zaihuo/zhiye/gongmen 单柱版 vs xueli 全柱版） | 签名/粒度不同（H3 P1「仅深度阈值不同」实还有签名差），留后续批裁定 |
+| 克/天干克/生/墓用/三合半合循环 | H11 既定不并入注册表 |
+| `_xiangmao_anchor` 非 dict 早返 '' | 与「无 marker 模板行」语义不同，不可塌缩（已保） |
+
+### 重构暴露/顺清
+
+- 本批**未发现存量行为 bug**（全部等价性差异均落在不可达输入，白名单逐条列出）。
+- 过程内发现：注册表初版排放顺序改变 work_actions 顺序（黄金 sha256 锁抓到），修正为三次保序调用；300 随机盘新旧 detect_relations 对拍逐字节一致。
+- H-fix-1 抽查 P2 `_chong_pair/_he_pair` 冗余封装 → 本批清零。
+- H-fix-2b 哨兵适配：test_inject_faults 7a/7b patch 目标由模块本地 `detect_relations`/`analyze_muku`（已随副本删除移除）改 `subjective.utils` 单一源（12 测语义不变）。
+- 死物顺清：shensha `_YANG_GANS`（全仓零引用）、bazi_calc `_WX_SHENG/_WX_KE` 本地副本（ten_god 下沉后零引用）、8 文件 `_YANG_GANS` 随副本删除。
+
+### 代码量
+
+生产代码 23 文件 +243/−861（净 −618）；新增 `objective/shishen.py` + `_relation_utils.py` + `subjective/utils.py`（约 150 行含注释）+ 哨兵 `test_hfix4b_unify.py` 11 测。
+
+### 六件套（vs `snapshots/20260918_hfix4a.json`）
+
+- verify 432+70+64+20 全绿；pytest **945 passed**+1xf（934+11 哨兵）
+- blind vs hfix4a：heldout+trainset **零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）
+- 双 seed（剥 _meta）逐字节一致 ✅；67/famous 无变化；calib 由 pytest 覆盖
+- 十神/_cat/_wx_cat/pair_in 真值表 53 键改动前后复捕：仅 3 处白名单差异（'日主'/None 不可达输入）；detect_relations 300 随机盘对拍 hfix4b-pre 逐字节一致
+- import 冒烟：3.11 + 3.14 双绿
+- 引擎判定零改动：compute_all 正常路径输出逐字节不变（blind 零抖动 + 随机对拍双坐实）
+- 回滚点：tag `hfix4b-pre`；快照=`snapshots/20260918_hfix4b.json`
+
+### 残留（转后续批）
+
+- `engine.py:407` liunian_data truthy 非 dict（2a 遗留 P2，守卫批）。
+- `_pillar_cats` 族签名统一、H-fix-5 大函数拆分（detect_relations 850→~760 行，主体拆分留 H-fix-5）、selectors 契约（H-fix-6）。

@@ -1,5 +1,19 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 H-fix-4b · 重复逻辑下沉/统一批（重构类，引擎正常路径输出逐字节不变）
+
+| 项目 | 内容 |
+|------|------|
+| 新公共模块 | `objective/shishen.py`（十神单一权威：god_from_wx/shishen_of/shishen_cat/wx_cat/gan_wx_cat）；`objective/_relation_utils.py`（pair_in）；`subjective/utils.py`（ensure_relations/ensure_muku，仅依赖 objective 不破分层） |
+| `_check_pair` 统一 | zuogong_detect/dayun/gongshen 别名 pair_in；muku `_is_chong/_is_he/_is_xing` 薄包装；liunian 两函数内局部副本删除；zuogong `_chong_pair/_he_pair` 冗余封装改委托（H-fix-1 抽查 P2 清零） |
+| 十神统一 | `_compute_shishen` 14 处（objective dayun/shenshu + subjective×12）别名 `shishen_of`；`bazi_calc.ten_god` 保 KeyError 严格契约改薄壳委托；`_cat/_shishen_cat`×10 别名 `shishen_cat`（'' fallback，'日主' passthrough 变体不可达已证）；`_wx_cat`×6 别名 `wx_cat`/`gan_wx_cat`；`shensha._shishen_cat` 改组合包装 |
+| `_ensure_*` 统一 | `_ensure_relations`×10 + `_ensure_muku`×2 逐字全同 → subjective/utils 单一实现，各模块别名；10 文件 detect_relations 局部导入 + 2 文件 analyze_muku 导入顺清 |
+| 相貌判定（H10） | `xiangmao.marker_descriptions` 公开下沉；`llm_prompt._xiangmao_anchor` 复用（保非 dict 早返 '' 分支）+ `_n2_analyze._has_xiangmao_marker` 改薄包装 |
+| detect_relations 注册表（H11 方案本批部分） | 六合/暗合/冲/刑/穿/破 6 组 O(n²) 复制循环 → `_ZHI_PAIR_SPECS` 注册表 + `_scan_zhi_pairs` 统一扫描，按 [:2]/[2:3]/[3:] 三次调用保排放顺序逐字节不变（初版单扫描改序被黄金 sha256 锁抓到已修正）；函数 850→~760 行，主体拆分留 H-fix-5 |
+| 不合并清单 | ten_god 严格边界 / yongshen 三 `_ensure_*`（单份非重复）/ `_pillar_cats` 族（签名粒度不同）/ 克·生·墓用·三合循环（H11 既定）——详见 backlog H-fix-4b 节 |
+| 哨兵 | `test_hfix4b_unify.py` 11 测先红后绿（结构同一性 + 真值表 + 黄金摘要）；test_inject_faults 7a/7b patch 目标适配下沉（12 测语义不变） |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest 945 passed+1xf、blind vs `snapshots/20260918_hfix4a.json` heldout+trainset 零翻转零抖动、双 seed 逐字节一致、67/famous 无变化、真值表 53 键复捕仅 3 处不可达白名单差异、detect_relations 300 随机盘新旧对拍逐字节一致、3.11+3.14 import 双绿；快照=`snapshots/20260918_hfix4b.json`；回滚点=tag `hfix4b-pre`；代码量净 −618 行（23 文件 +243/−861，新模块/测试另计） |
+
 ## 2026-09-18 H-fix-4a · 死代码/死数据清理批（纯删除类，引擎正常路径输出逐字节不变）
 
 | 项目 | 内容 |

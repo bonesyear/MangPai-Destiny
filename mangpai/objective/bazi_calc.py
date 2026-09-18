@@ -37,6 +37,8 @@ import bisect
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any
 
+from mangpai.objective.shishen import god_from_wx
+
 __all__ = [
     'calc_bazi_full',
     'compute_four_pillars',
@@ -539,27 +541,21 @@ _GAN_WX: Dict[str, str] = {
     '戊': '土', '己': '土', '庚': '金', '辛': '金',
     '壬': '水', '癸': '水',
 }
-_WX_SHENG: Dict[str, str] = {'木': '火', '火': '土', '土': '金', '金': '水', '水': '木'}
-_WX_KE: Dict[str, str] = {'木': '土', '土': '水', '水': '火', '火': '金', '金': '木'}
 _YANG_GAN: set = {'甲', '丙', '戊', '庚', '壬'}
+# _WX_SHENG/_WX_KE 本地副本 H-fix-4b 删除（ten_god 判定下沉 shishen.god_from_wx
+# 后零引用；constants 表为唯一事实源）。
 
 
 def ten_god(day_gan: str, other_gan: str) -> str:
-    """other_gan 相对日主 day_gan 的十神。"""
+    """other_gan 相对日主 day_gan 的十神。
+
+    非法干支抛 KeyError（严格契约保留）；判定逻辑 H-fix-4b 下沉
+    objective.shishen.god_from_wx（与 14 处 _compute_shishen 副本同口径）。
+    """
     day_wx = _GAN_WX[day_gan]
     other_wx = _GAN_WX[other_gan]
     same = (day_gan in _YANG_GAN) == (other_gan in _YANG_GAN)
-    if day_wx == other_wx:
-        return '比肩' if same else '劫财'
-    if _WX_SHENG[day_wx] == other_wx:
-        return '食神' if same else '伤官'
-    if _WX_SHENG[other_wx] == day_wx:
-        return '偏印' if same else '正印'
-    if _WX_KE[day_wx] == other_wx:
-        return '偏财' if same else '正财'
-    if _WX_KE[other_wx] == day_wx:
-        return '七杀' if same else '正官'
-    return ''
+    return god_from_wx(day_wx, other_wx, same)
 
 
 def compute_shishen(day_gan: str, year_gz: str, month_gz: str,

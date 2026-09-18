@@ -57,52 +57,25 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.binzhu import analyze_binzhu
-from mangpai.objective.zuogong_detect import detect_relations
-from mangpai.objective.muku import analyze_muku
+from mangpai.objective.shishen import (
+    shishen_of as _compute_shishen, shishen_cat as _shishen_cat,
+)
+from mangpai.subjective.utils import (
+    ensure_relations as _ensure_relations, ensure_muku as _ensure_muku,
+)
 from mangpai.subjective.yongshen import assess_direction_signals, _LIUHE_VICTIMS
 
 _logger = logging.getLogger(__name__)
 
-_YANG_GANS = set('甲丙戊庚壬')
+# _YANG_GANS 随 _compute_shishen 下沉删除（H-fix-4b，本文件无其它引用）。
 _PILLAR_NAME: Dict[str, str] = {k: v for k, v in zip(PILLAR_KEYS, ['年柱', '月柱', '日柱', '时柱'])}
 _ZHI_CONTROL: Set[str] = {'冲', '克', '穿', '刑', '破'}
 _HE_CONTROL: Set[str] = {'天干合', '地支合', '暗合', '半合'}
 
 
-def _compute_shishen(day_gan: str, gan: str) -> str:
-    """计算 gan 相对 day_gan 的十神。"""
-    day_wx = GAN_WX.get(day_gan, '')
-    gan_wx = GAN_WX.get(gan, '')
-    if not day_wx or not gan_wx:
-        return ''
-    same_polarity = (day_gan in _YANG_GANS) == (gan in _YANG_GANS)
-    if gan_wx == day_wx:
-        return '比肩' if same_polarity else '劫财'
-    if WX_SHENG.get(day_wx) == gan_wx:
-        return '食神' if same_polarity else '伤官'
-    if WX_SHENG.get(gan_wx) == day_wx:
-        return '偏印' if same_polarity else '正印'
-    if WX_KE.get(day_wx) == gan_wx:
-        return '偏财' if same_polarity else '正财'
-    if WX_KE.get(gan_wx) == day_wx:
-        return '七杀' if same_polarity else '正官'
-    return ''
+# H-fix-4b：_compute_shishen/_shishen_cat/_ensure_relations/_ensure_muku 下沉
+# objective.shishen / subjective.utils（别名于顶部导入），本地副本删除。
 
-
-def _shishen_cat(ss: str) -> str:
-    if not ss:
-        return ''
-    if ss in ('正官', '七杀'):
-        return '官杀'
-    if ss in ('正财', '偏财'):
-        return '财'
-    if ss in ('正印', '偏印'):
-        return '印'
-    if ss in ('食神', '伤官'):
-        return '食伤'
-    if ss in ('比肩', '劫财'):
-        return '比劫'
-    return ss
 
 
 def _wx_to_cat(day_gan: str, wx: str) -> str:
@@ -227,26 +200,6 @@ def _cai_sheng_guan_connected(day_gan: str, gans: List[str], zhis: List[str]) ->
     guan_pos += [f'{pk}_zhi' for i, pk in enumerate(PILLAR_KEYS)
                  if i < len(zhis) and zhis[i] and ZHI_WX.get(zhis[i]) == guan_wx]
     return any(_pos_connected(cp, gp) for cp in cai_pos for gp in guan_pos)
-
-
-def _ensure_relations(day_gan, gans, zhis, relations):
-    if relations is not None:
-        return relations
-    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
-        return {}
-    return detect_relations(
-        day_gan, zhis[PILLAR_KEYS.index('day')],
-        gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
-    )
-
-
-def _ensure_muku(gans: List[str], zhis: List[str], muku_result: Optional[Dict]) -> Dict:
-    """缺 muku 结果时自调 analyze_muku（需 gans 判透干引拔）。"""
-    if muku_result is not None:
-        return muku_result
-    if len(zhis) != 4:
-        return {}
-    return analyze_muku(zhis, gans)
 
 
 def _tomb_chong_xing_open(zhi: str, zhis: List[str]) -> bool:

@@ -32,43 +32,24 @@ yingqi_subj - 盲派应期主观推断·主观层（subjective）
 from typing import Dict, List, Optional, Tuple, Union
 
 from mangpai.objective.constants import (
-    GAN_WX, WX_KE, WX_SHENG,
+    WX_KE,
     LU, PILLAR_KEYS, is_pillars, ZHI_WX,
     LIU_CHONG, LIU_HAI, XING_PAIRS,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.changsheng import get_changsheng_mangpai
+from mangpai.objective.shishen import shishen_of as _compute_shishen
 from mangpai.objective.yingqi import (
     DAXIAN_MAP, detect_daxian, daxian_of_age,
     detect_lu_yuanshen, detect_duncang_tougan, detect_yingqi,
 )
 
-_YANG_GANS = set('甲丙戊庚壬')
+# _YANG_GANS 随 _compute_shishen 下沉删除（H-fix-4b，本文件无其它引用）。
 
 # 禄反查表：地支 -> 以其为禄的天干（原神）；与 objective.yingqi._ZHI_LU_OF 同构
 _ZHI_LU_OF: Dict[str, List[str]] = {}
 for _g, _z in LU.items():
     _ZHI_LU_OF.setdefault(_z, []).append(_g)
-
-
-def _compute_shishen(day_gan: str, gan: str) -> str:
-    """计算 gan 相对 day_gan 的十神（与 dayun._compute_shishen 同口径）。"""
-    day_wx = GAN_WX.get(day_gan, '')
-    gan_wx = GAN_WX.get(gan, '')
-    if not day_wx or not gan_wx:
-        return ''
-    same_polarity = (day_gan in _YANG_GANS) == (gan in _YANG_GANS)
-    if gan_wx == day_wx:
-        return '比肩' if same_polarity else '劫财'
-    if WX_SHENG.get(day_wx) == gan_wx:
-        return '食神' if same_polarity else '伤官'
-    if WX_SHENG.get(gan_wx) == day_wx:
-        return '偏印' if same_polarity else '正印'
-    if WX_KE.get(day_wx) == gan_wx:
-        return '偏财' if same_polarity else '正财'
-    if WX_KE.get(gan_wx) == day_wx:
-        return '七杀' if same_polarity else '正官'
-    return ''
 
 
 # ───────────────────── 1. 禄与原身优先性 ─────────────────────

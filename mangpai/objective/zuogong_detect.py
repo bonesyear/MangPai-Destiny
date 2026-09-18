@@ -21,12 +21,76 @@ from mangpai.objective.constants import (
 from mangpai.objective.muku import is_entomb, analyze_muku, is_gan_entombed
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.shensha import _YANG_REN as _YANG_REN_MAP
+from mangpai.objective._relation_utils import pair_in
 
 _YANG_GANS = set('甲丙戊庚壬')
 
+# H-fix-4b：原本地 _check_pair 与 dayun/gongshen/muku/liunian 五处复制逐字等价，
+# 下沉为 _relation_utils.pair_in 单一实现，此处别名保调用点不变。
+_check_pair = pair_in
 
-def _check_pair(a: str, b: str, pairs) -> bool:
-    return (a, b) in pairs or (b, a) in pairs
+
+# ── 地支对关系注册表（H-fix-4b：6 组 O(n²) 复制循环统一扫描）──
+# 原六合/暗合/冲/刑/穿/破六段 `for i: for j>i` 复制循环，差异仅在匹配表/
+# 日支要求/type/action/desc/severity/work_types 类，注册表吸收差异、统一扫描。
+# ⚠️ 排放顺序契约：原六段散在三位（六合/暗合→三合半合→冲→克→天干克→刑穿破），
+# 须按 [:2]/[2:3]/[3:] 三次调用放回原位，work_actions 顺序才逐字节不变。
+# 克/天干克/生/墓用结构差异大，不并入（H11 口径）。
+_ZHI_PAIR_SPECS = (
+    {
+        # 地支六合（做功）
+        'match': lambda z1, z2: _check_pair(z1, z2, LIU_HE),
+        'require_day': False,
+        'type': '地支合', 'action': '合用', 'work_type': '合用',
+        'desc': lambda z1, z2, is_day: f'{z1}{z2}合' + ('（日支参与）' if is_day else ''),
+        'severity': None,
+    },
+    {
+        # 暗合（合用）：盲派独有，日支通过暗合获取远方之物。组合：寅丑、午亥、
+        # 卯申（共3组，AN_HE 表已双向映射；初级:3218「只有三个」排他）；
+        # 做功要求日支参与——日支暗合远方柱支为隐秘做功。
+        'match': lambda z1, z2: AN_HE.get(z1) == z2,
+        'require_day': True,
+        'type': '暗合', 'action': '合用', 'work_type': '合用',
+        'desc': lambda z1, z2, is_day: f'{z1}{z2}暗合（日支参与），主隐秘做功、暗中获取',
+        'severity': None,
+    },
+    {
+        # 六冲（制用）
+        'match': lambda z1, z2: _check_pair(z1, z2, LIU_CHONG),
+        'require_day': False,
+        'type': '冲', 'action': '冲', 'work_type': '制用',
+        'desc': lambda z1, z2, is_day: f'{z1}{z2}冲',
+        'severity': 'normal',
+    },
+    {
+        # 刑（制用，含自刑）：自刑（辰辰/午午/酉酉/亥亥）只在同一地支出现在
+        # 不同柱时触发（i<j 天然要求两柱）。
+        'match': lambda z1, z2: _check_pair(z1, z2, XING_PAIRS),
+        'require_day': False,
+        'type': '刑', 'action': '刑', 'work_type': '制用',
+        'desc': lambda z1, z2, is_day: f'{z1}{z2}刑' + ('（自刑）' if z1 == z2 else ''),
+        'severity': 'normal',
+    },
+    {
+        # 穿/害（制用）：盲派最重视的破坏性关系之一——"穿坏即灾"；
+        # 穿比冲更凶：冲是正面对抗，穿是暗中破坏。
+        'match': lambda z1, z2: _check_pair(z1, z2, LIU_HAI),
+        'require_day': False,
+        'type': '穿', 'action': '穿', 'work_type': '制用',
+        'desc': lambda z1, z2, is_day: f'{z1}{z2}穿',
+        'severity': 'high',
+    },
+    {
+        # 六破（制用）：破与穿同为暗中破坏，severity='high'。盲派原典六破应事
+        # 较轻，但既落地则与穿同级标记。
+        'match': lambda z1, z2: _check_pair(z1, z2, LIU_PO),
+        'require_day': False,
+        'type': '破', 'action': '破', 'work_type': '制用',
+        'desc': lambda z1, z2, is_day: f'{z1}{z2}破',
+        'severity': 'high',
+    },
+)
 
 
 def _shishang_of(day_gan: str, other_gan: str) -> Optional[str]:
@@ -505,45 +569,36 @@ def detect_relations(
                 })
                 work_types.add('化用')
 
-    # ── 地支六合（做功）──
-    for i in range(4):
-        for j in range(i + 1, 4):
-            z1, z2 = zhis[i], zhis[j]
-            if not z1 or not z2:
-                continue
-            if _check_pair(z1, z2, LIU_HE):
-                is_day = (i == 2 or j == 2)
-                work_actions.append({
-                    'type': '地支合',
-                    'action': '合用',
-                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{pillar_keys[i]}_zhi',
-                    'to_pos': f'{pillar_keys[j]}_zhi',
-                    'desc': f'{z1}{z2}合' + ('（日支参与）' if is_day else ''),
-                })
-                work_types.add('合用')
+    # ── 地支对关系扫描（六合/暗合/冲/刑/穿/破，H-fix-4b 注册表统一）──
+    # 原六段复制循环分散在三处位置：六合/暗合在此，冲在三合之后、克之前，
+    # 刑/穿/破在天干克之后——三次调用保 work_actions 排放顺序逐字节不变。
+    def _scan_zhi_pairs(specs) -> None:
+        for _spec in specs:
+            for i in range(4):
+                for j in range(i + 1, 4):
+                    z1, z2 = zhis[i], zhis[j]
+                    if not z1 or not z2:
+                        continue
+                    if not _spec['match'](z1, z2):
+                        continue
+                    is_day = (i == 2 or j == 2)
+                    if _spec['require_day'] and not is_day:
+                        continue
+                    _act = {
+                        'type': _spec['type'],
+                        'action': _spec['action'],
+                        'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
+                        'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
+                        'from_pos': f'{pillar_keys[i]}_zhi',
+                        'to_pos': f'{pillar_keys[j]}_zhi',
+                        'desc': _spec['desc'](z1, z2, is_day),
+                    }
+                    if _spec['severity'] is not None:
+                        _act['severity'] = _spec['severity']
+                    work_actions.append(_act)
+                    work_types.add(_spec['work_type'])
 
-    # ── 暗合（合用）──
-    # 盲派独有：日支通过暗合获取远方之物，段建业《段氏理象学》做功篇将暗合列为合用。
-    # 暗合组合：寅丑、午亥、卯申（共3组，AN_HE 表已双向映射；初级:3218「只有三个」排他）
-    # 做功要求日支参与--日支暗合远方柱支为隐秘做功
-    for i in range(4):
-        for j in range(i + 1, 4):
-            z1, z2 = zhis[i], zhis[j]
-            if not z1 or not z2:
-                continue
-            if AN_HE.get(z1) == z2 and (i == 2 or j == 2):
-                work_actions.append({
-                    'type': '暗合',
-                    'action': '合用',
-                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{pillar_keys[i]}_zhi',
-                    'to_pos': f'{pillar_keys[j]}_zhi',
-                    'desc': f'{z1}{z2}暗合（日支参与），主隐秘做功、暗中获取',
-                })
-                work_types.add('合用')
+    _scan_zhi_pairs(_ZHI_PAIR_SPECS[:2])  # 六合 / 暗合
 
     # ── 三合局 / 半合（成势做功）──
     # 三合三字齐现 -> 成局成势；半合（生旺/旺墓相邻二字）-> 半成势
@@ -589,24 +644,8 @@ def detect_relations(
                 })
                 work_types.add('合用')
 
-    # ── 六冲（制用）──
-    for i in range(4):
-        for j in range(i + 1, 4):
-            z1, z2 = zhis[i], zhis[j]
-            if not z1 or not z2:
-                continue
-            if _check_pair(z1, z2, LIU_CHONG):
-                work_actions.append({
-                    'type': '冲',
-                    'action': '冲',
-                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{pillar_keys[i]}_zhi',
-                    'to_pos': f'{pillar_keys[j]}_zhi',
-                    'desc': f'{z1}{z2}冲',
-                    'severity': 'normal',
-                })
-                work_types.add('制用')
+    # ── 六冲（制用，H-fix-4b 注册表段）──
+    _scan_zhi_pairs(_ZHI_PAIR_SPECS[2:3])
 
     # ── 克（制用）──
     for i in range(4):
@@ -679,67 +718,8 @@ def detect_relations(
             })
             work_types.add('制用')
 
-    # ── 刑（制用，含自刑）──
-    # 自刑（辰辰/午午/酉酉/亥亥）只在同一地支出现在不同柱时触发（i<j 天然要求两柱）
-    for i in range(4):
-        for j in range(i + 1, 4):
-            z1, z2 = zhis[i], zhis[j]
-            if not z1 or not z2:
-                continue
-            if _check_pair(z1, z2, XING_PAIRS):
-                is_zi_xing = (z1 == z2)
-                work_actions.append({
-                    'type': '刑',
-                    'action': '刑',
-                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{pillar_keys[i]}_zhi',
-                    'to_pos': f'{pillar_keys[j]}_zhi',
-                    'desc': f'{z1}{z2}刑' + ('（自刑）' if is_zi_xing else ''),
-                    'severity': 'normal',
-                })
-                work_types.add('制用')
-
-    # ── 穿/害（制用）──
-    # 盲派最重视的破坏性关系之一--"穿坏即灾"。
-    # 穿比冲更凶：冲是正面对抗，穿是暗中破坏。段建业《段氏理象学》用大量篇幅讲穿。
-    for i in range(4):
-        for j in range(i + 1, 4):
-            z1, z2 = zhis[i], zhis[j]
-            if not z1 or not z2:
-                continue
-            if _check_pair(z1, z2, LIU_HAI):
-                work_actions.append({
-                    'type': '穿',
-                    'action': '穿',
-                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{pillar_keys[i]}_zhi',
-                    'to_pos': f'{pillar_keys[j]}_zhi',
-                    'desc': f'{z1}{z2}穿',
-                    'severity': 'high',
-                })
-                work_types.add('制用')
-
-    # ── 六破（制用）──
-    # 破与穿同为暗中破坏，severity='high'。盲派原典六破应事较轻，但既落地则与穿同级标记。
-    for i in range(4):
-        for j in range(i + 1, 4):
-            z1, z2 = zhis[i], zhis[j]
-            if not z1 or not z2:
-                continue
-            if _check_pair(z1, z2, LIU_PO):
-                work_actions.append({
-                    'type': '破',
-                    'action': '破',
-                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{pillar_keys[i]}_zhi',
-                    'to_pos': f'{pillar_keys[j]}_zhi',
-                    'desc': f'{z1}{z2}破',
-                    'severity': 'high',
-                })
-                work_types.add('制用')
+    # ── 刑 / 穿 / 破（制用，H-fix-4b 注册表段）──
+    _scan_zhi_pairs(_ZHI_PAIR_SPECS[3:])
 
     # ── 生（生扶，辅助标记）──
     # 注意：盲派"生用"专指食伤泄秀（见上文），地支五行相生仅为生扶帮扶，
@@ -1002,11 +982,11 @@ _JIA_PAIRS: List[Tuple[int, int, Tuple[int, ...]]] = [
 
 
 def _chong_pair(a: str, b: str) -> bool:
-    return (a, b) in LIU_CHONG or (b, a) in LIU_CHONG
+    return _check_pair(a, b, LIU_CHONG)
 
 
 def _he_pair(a: str, b: str) -> bool:
-    return (a, b) in LIU_HE or (b, a) in LIU_HE
+    return _check_pair(a, b, LIU_HE)
 
 
 def detect_jia_ju(

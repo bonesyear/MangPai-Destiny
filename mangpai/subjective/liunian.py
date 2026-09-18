@@ -38,6 +38,7 @@ from mangpai.objective.constants import (
     XING_PAIRS, AN_HE, LU, PILLAR_KEYS, SAN_HE,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective._relation_utils import pair_in as _check_pair
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
 
 # 刃位单一事实源在 objective.shensha（_YANG_REN 主刃位 / _YANG_REN_FULL 段氏
@@ -82,9 +83,6 @@ def _analyze_liunian_dayun_interaction(
                 'type': '天干被克',
                 'desc': f'大运{dy_gan}克流年{ln_gan}--运压流年',
             })
-
-    def _check_pair(a, b, pairs):
-        return (a, b) in pairs or (b, a) in pairs
 
     if _check_pair(ln_zhi, dy_zhi, LIU_CHONG):
         interactions.append({
@@ -581,9 +579,6 @@ def determine_dayun_phase(
         if gz and len(gz) >= 2:
             return gz
         return f"{entry.get('gan', '')}{entry.get('zhi', '')}"
-
-    def _check_pair(a, b, pairs):
-        return (a, b) in pairs or (b, a) in pairs
 
     reason = ''
     phase = '分看'
