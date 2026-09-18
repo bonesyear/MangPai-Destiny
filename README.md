@@ -50,6 +50,23 @@
 | pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1129 passed + 1 xfailed | ✅ |
 | blind_eval（heldout 215 + trainset 294 三维盲测） | 快照零翻转（基线 `snapshots/LATEST`） | ✅ |
 
+## 入仓前的脱敏闸门
+
+仓库入库守护脚本三件套：`scripts/check_layering.py`（分层单向）、`scripts/check_typing_imports.py`（typing/import 面）、`scripts/check_credentials.py`（脱敏脱密闸门）。
+
+`check_credentials.py` 在 commit 前自动扫描**暂存区新增行**（存量不干扰）：
+
+- **P0 真凭证**（阻止）：ark-/sk-/GitHub/AWS/Slack token、私钥块、Bearer、邻近 key/secret/token 的高熵串
+- **P1 隐私**（阻止）：手机号、身份证、非 example 域名邮箱
+- **P2 本机路径**（默认仅警告，`--strict` 可升级为阻止）
+- 输出一律打码（前 4 + 后 2），白名单占位符（`your-`/`<REDACTED>`/`sk-fake*` 等）放行
+
+```bash
+bash scripts/install_git_hooks.sh   # 安装 pre-commit hook（.git/hooks/ 不入库，克隆后需执行一次）
+python3 scripts/check_credentials.py          # 手动扫暂存区（默认 --staged）
+python3 scripts/check_credentials.py --all    # 全量审计（存量 P2 路径命中属预期）
+```
+
 ## 三层审计
 
 | 层 | 内容 | 通过率 |

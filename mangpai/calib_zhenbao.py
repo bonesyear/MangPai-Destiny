@@ -2,7 +2,8 @@
 命理珍宝50期 — 郝金阳断语案例引擎校准（只读诊断，不修改引擎）
 """
 import sys, json
-sys.path.insert(0, '/root/metaphysics')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from mangpai import MangpaiEngine
 from mangpai.subjective.caiming import analyze_caiming
 from mangpai.subjective.guanming import analyze_guanming
