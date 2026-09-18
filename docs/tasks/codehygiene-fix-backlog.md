@@ -1481,3 +1481,45 @@ __init__       -> dayun, schools, zaihuo
 
 - H-fix-7 评测框架统一 / H-fix-8 文档基线同步（v2 计划 🟢 后置）。
 - 上述待议问题 1-3 归后续卫生批裁定。
+
+---
+
+## H-fix-7（2026-09-18，执行登记 · 评测框架统一批——防口径漂移，🟢 可选批）
+
+> 核销 H10 P1 四组重复（runner/校准/抽样/检查）。回滚点 tag `hfix7-pre`。零 API（对拍全用历史数据）。执行机：`/usr/bin/python3`（3.14，venv python3 无 pytest/sxtwl）。
+
+### 公共模块（新建 `output/_eval_common.py`，五节）
+
+1. **runner** `run_llm_eval`：评审/judge 双实例批跑（ThreadPoolExecutor 8 并发 + jsonl 断点续跑 + 成本累加 + 异常计数汇总）。2c 纪律继承：LLMBackendError/JSONDecodeError 记 `api_error`/`parse_error` 不吞；其它异常不捕获；llm_backend 惰性 import（检查脚本不依赖 LLM 后端）。
+2. **材料组装** `build_engine_materials` / `reading_text`：脚本间差异以显式形保——`truncate_hunyin_signals`（_t3 旧口径）/`include_newdims`（_n2 七维）/`dims`，禁止静默统一。
+3. **校准** `load_jsonl`/`review_stats`/`agreement_stats`/`judge_stats`/`judge_acceptance`：一致率/翻转召回/达标判定（≥85% 且召回 100%）单份实现；divergences 详略、judge flips 带不带 ref、new_dims 红线——三处历史差异全走形参；cal schema/打印留各脚本。
+4. **抽样** `stratified_fill`：tier_static × is_guanming 分层轮转补足，seed 调用方持有。
+5. **检查** `engine_fe`/`QIANYI_FORBID`/`XM_FORBID`/`xm_forbidden_scan`/`qianyi_info`/`xiangmao_info`/`qianyi_honest_nosignal`：引擎重算入口 + 迁移/相貌禁词扫描 + 无信号如实判定（原 _w4/_w5/_n2_analyze/_t3_dump 跨脚本重复）。
+
+### 改造脚本（11 个全改薄包装，命令行接口/输出 schema 不变）
+
+`_n2_eval` `_t3_eval`（runner+材料）｜`_n2_calibrate` `_t3_calibrate` `_v3_calibrate`（校准）｜`_n2_sample` `_v3_sample`（抽样）｜`_w4_sample` `_w5_crosscheck`（检查）｜`_n2_analyze` `_t3_dump`（engine_fe/禁词表/无信号判定顺带下沉）。`_v3_judge_sample` 不动（`_t3_eval.run` 签名保）；`_t3_anchor_scan` 无共享逻辑不动。
+**顺带修 H10 P0**：`_w5_crosscheck` 导入已删的 `_xm_sanitize` 运行即 ImportError——按 H10 处方改锚定行直传（G3 起 desc 不含「漂亮」，sanitize 本为恒等）。
+
+### 口径对拍（新老实现同跑历史数据，逐项比对——本批核心验证）
+
+| 对拍项 | 数据 | 结果 |
+|---|---|---|
+| prompt 组装 | t3_s1（281 例）+ t3_s1_n2（294 例）×（_materials/_reading_text/_review_user/_judge_user）+ 2×2 system prompt | **全量逐字节一致，0 失配** |
+| 校准 | t3_s1 / t3_s1_d4 / t3_s1_v3 / t3_s1_n2 四批 calibration.json + stdout | **4/4 逐字节一致**（一致率/翻转数/召回/达标判定全同） |
+| 抽样 | t3_s1_n2 / t3_s1_v3 sample30.json + stdout | **2/2 逐字节一致**（seed 复现，forced/fill 全同） |
+| w4 样张 | llm_batch_20260821_n2_r4 全量 294 例 stdout | **逐字节一致** |
+| w5 对照 | 旧实现已坏（H10 P0），仅证新实现可跑 | 10 例跑通，❌ 检查标记 3 处=存量发现非回归 |
+| n2_analyze | n2_r1 批 294 例：stdout（路径回显行归一化后）+ l2_ids/newdim_ids.json | **逐字节一致**（锚定引用率 264/264 等命中数全同） |
+| t3_dump | v5 批 293 例：dump.json + payload_fidelity.json + stdout | 随机 seed 下 287 例 features 序差=**存量** xiangfa_ops set 迭代序随 PYTHONHASHSEED 旋转（H-fix-5 待议 1，非本批引入）；**PYTHONHASHSEED=0 复跑三者逐字节一致** |
+
+分诊纪律执行：对拍不一致项 0；唯一差异源=引擎存量不确定性，归既有备案，不改历史数字。
+
+### 六件套（全绿）
+
+verify 432+70+64+20 / pytest **1059 passed**+1xf（无新增测试——本批哨兵=对拍 harness）/ blind vs `snapshots/20260918_hfix5.json` heldout+trainset **零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）/ 双 seed（剥 _meta）逐字节一致 / 67/famous 无变化 / calib 由 pytest 覆盖 / `scripts/check_layering.py` 通过。引擎/主观层零改动（只动 output/ 工具脚本）。快照=`snapshots/20260918_hfix7.json`。
+
+### 残留
+
+- xiangfa_ops set 迭代序不确定性（本批对拍再次实证）——归 H-fix-5 待议 1，后续卫生批裁定。
+- H-fix-8 文档/基线同步（v2 计划 🟢 后置最后一批）。

@@ -1,5 +1,14 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 H-fix-7 · 评测框架统一批（output/ 工具脚本，引擎/主观层零改动）
+
+| 项目 | 内容 |
+|------|------|
+| 公共模块 | 新建 `output/_eval_common.py` 五节：runner（`run_llm_eval` 双实例批跑+断点续跑+成本累加+异常记账不吞，2c 纪律）/ 材料组装（`build_engine_materials`/`reading_text`，脚本差异走显式形参）/ 校准（一致率+翻转召回+达标判定单份实现）/ 抽样（`stratified_fill` 分层 seed 可复现）/ 检查（`engine_fe`+禁词扫描+无信号判定） |
+| 改造 | 11 脚本薄包装（`_n2_*`×3/`_t3_*`×3/`_v3_*`×2/`_w4`/`_w5`/`_n2_analyze`/`_t3_dump`），命令行接口与输出 schema 不变；顺带修 H10 P0：`_w5_crosscheck` 导已删 `_xm_sanitize` 的 ImportError（改锚定行直传） |
+| 口径对拍 | 历史数据新老实现对拍全绿：prompt 组装 575 例×4 函数+4 system prompt 零失配；校准 4 批（t3/d4/v3/n2）calibration.json+stdout 逐字节一致；抽样 2 批逐字节一致；w4 294 例 stdout 一致；n2_analyze/t3_dump 固定 seed 逐字节一致（随机 seed 序差=xiangfa_ops set 迭代序存量备案，H-fix-5 待议 1） |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest 1059 passed+1xf、blind vs `snapshots/20260918_hfix5.json` 零翻转零抖动、双 seed（剥 _meta）逐字节一致、67/famous 无变化、check_layering 通过；快照=`snapshots/20260918_hfix7.json`；详表=backlog H-fix-7 节 |
+
 ## 2026-09-18 H-fix-6 · selectors/engine-keys 契约测试批（纯新增测试，引擎/payload 零改动）
 
 | 项目 | 内容 |
