@@ -42,8 +42,8 @@
 
 ### 条件项（不悬置，触发条件随批）
 
-- **A3 输出面死字段**（virtual_solid counts / soil wet·dry / 华盖 year_ref）——零消费方零误判风险；删除=正常路径字节变更须换基线，性价比为负。**随未来输出面/payload 精简批顺手**，否则维持。
-- **feishu 并发两 P1**（后台线程无界 / `_seen_mids` 非原子）——单聊影响低，**群聊上线前再修**（v2 ⏸️ 节维持）。
+- **A3 输出面死字段**（virtual_solid counts / soil wet·dry / 华盖 year_ref）——零消费方零误判风险；删除=正常路径字节变更须换基线，性价比为负。**随未来输出面/payload 精简批顺手**，否则维持。（终判批 2026-09-18 复核维持条件项）
+- ~~**feishu 并发两 P1**（后台线程无界 / `_seen_mids` 非原子）——单聊影响低，群聊上线前再修~~ **已关闭（终判批 2026-09-18）**：唯一触发条件=群聊上线，已被用户决策（群聊 bot 不做）撤销；单聊场景实际风险低于阈值。若未来重启群聊 bot，随重启一并激活修复。
 
 ### 已办 · L1 遗留清理批（2026-09-18 落地，单批两阶段一次换基线）
 
@@ -56,7 +56,7 @@
 
 ### 待办 · D 真实凭证冒烟（上线 checklist #3，事件触发）
 
-执行项非代码项（review7 已定性：仅存盲区=真实凭证冒烟/群聊 @bot，执行项非审查缺口）。前置：真实飞书企业自建应用凭证（`FEISHU_APP_ID`/`FEISHU_APP_SECRET`/`FEISHU_VERIFICATION_TOKEN`，**不配 Encrypt Key**=README 红线）+测试群+@bot 权限+可收回调网络环境+DeepSeek API key（LLM 链路冒烟）。随首次上线冒烟窗口与 #4 群聊 @bot 同批执行（小时级），结果回写上线 checklist 8/8 闭环（当前 6/8）。
+执行项非代码项（review7 已定性：仅存盲区=真实凭证冒烟/群聊 @bot，执行项非审查缺口）。前置：真实飞书企业自建应用凭证（`FEISHU_APP_ID`/`FEISHU_APP_SECRET`/`FEISHU_VERIFICATION_TOKEN`，**不配 Encrypt Key**=README 红线）+可收回调网络环境+DeepSeek API key（LLM 链路冒烟）。**终判批 2026-09-18 更新**：#4 群聊 @bot 已随用户决策（群聊 bot 不做）**关闭**，冒烟范围=**单聊**；拿到凭证后按方案 `kimi-remaining-plan-20260918.md` §C1 九步清单执行（小时级），结果回写上线 checklist 8/8 闭环（当前 6/8 + #4 关闭=7/7 待 #3）。
 
 ### 其他备案（维持）
 
