@@ -54,7 +54,9 @@
 - **验收**：payload 特征 JSON 509 例 seed 0/7/42 全一致（B1 核心价值达成）；抖动归因白名单外 0 路径（xiangfa_ops/zaihuo-chehuo/zhiye-lawyer/gongmen/narrative 五域全设计内）；评分字段零翻转；六件套全绿（pytest 1066+1xf）。
 - **下批衔接**：L1 已换基线，**P1 官命检测簇批已于 2026-09-18 落地**（从 `20260918_l1.json` 起跑，基线推进 `20260918_p1.json`——新检测面×2（A8 支杀化印/A19 食合官支）+新消费边×2（A11 贼捕制印/G9 扩展），trainset 官 96→100✅ 全预注册、heldout 三维零翻转零抖动、财/职零翻转、六件套全绿；预注册=`docs/kimi-p1-guanming-prereg-20260918.md`，详账=backlog P1 节）。**P2 官命 fp 窄修簇批亦于 2026-09-18 落地收官**（基线推进 `20260918_p2.json`，trainset 官 100→102✅，收工=`docs/remaining-tasks-20260918.md`）。**下批=P3**（财命残簇批 A4/A12/A13，方案 `kimi-engine-precision-plan-20260918.md` P3 节，从 `20260918_p2.json` 起跑）。
 
-### 待办 · D 真实凭证冒烟（上线 checklist #3，事件触发）
+### 待办 · D 真实凭证冒烟（**暂缓——随 webhook 独立部署启用时一并做**）
+**用户决策（2026-09-18）**：webhook 独立部署**以后会做**（非永久放弃）+ **接飞书冒烟当前不必要**——故本项**转暂缓**，重启条件=**启用 webhook 独立部署时**（届时按 `kimi-remaining-plan-20260918.md` §C1 九步清单执行；前置=FEISHU_APP_ID/SECRET/VERIFICATION_TOKEN、**不配 Encrypt Key**（README 红线）、公网回调 URL、DEEPSEEK_API_KEY）。
+说明：本项性质=**独立 webhook 服务（`mangpai/feishu/`）的验证**（该服务仅 mock 验证过）；**当前在用的 Hermes 飞书通道已在持续真实校验中**（用户每次发消息即真实链路）。#4 群聊 @bot 已随决策关闭（群聊不做）。
 
 执行项非代码项（review7 已定性：仅存盲区=真实凭证冒烟/群聊 @bot，执行项非审查缺口）。前置：真实飞书企业自建应用凭证（`FEISHU_APP_ID`/`FEISHU_APP_SECRET`/`FEISHU_VERIFICATION_TOKEN`，**不配 Encrypt Key**=README 红线）+可收回调网络环境+DeepSeek API key（LLM 链路冒烟）。**终判批 2026-09-18 更新**：#4 群聊 @bot 已随用户决策（群聊 bot 不做）**关闭**，冒烟范围=**单聊**；拿到凭证后按方案 `kimi-remaining-plan-20260918.md` §C1 九步清单执行（小时级），结果回写上线 checklist 8/8 闭环（当前 6/8 + #4 关闭=7/7 待 #3）。
 
