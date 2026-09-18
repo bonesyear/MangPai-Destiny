@@ -1377,3 +1377,53 @@ __init__       -> dayun, schools, zaihuo
 - `engine.py:407` liunian_data truthy 非 dict（2a 遗留 P2，守卫批）。
 - output/ 脚本 sys.path.insert 安装化、tests 18 文件 sys.path.insert（H-fix-7/8）。
 - H-fix-5 大函数拆分（依赖图见上）、selectors 契约（H-fix-6）。
+- H-fix-5 大函数拆分（依赖图见上）、selectors 契约（H-fix-6）。
+
+---
+
+## H-fix-6（2026-09-18，执行登记 · selectors/engine-keys 契约测试批——纯新增测试，引擎/payload 零改动）
+
+> 核销 H8 P1（`schools.py:24-44` selectors 无同步保护）+ H11 P1-④（selectors/engine-key 自动契约测试）+ H4 P1（zinv selector 无消费方）的显式化处置。定位=H-fix-5 compute_all 拆分的前置哨兵。
+
+### 阶段 0 三方实测（注入 dayun 全量供给样本盘 戊辰己未庚午丁亥）
+
+| 方 | 键数 | 口径 |
+|----|------|------|
+| engine `compute_all` | **48** | 注入 dayun 后含条件键 `dayun_analysis`（engine.py:492 仅 dy_list 非空才计算）；不注入=47 |
+| `schools.py` selectors | **41** | 静态元组 |
+| `build_payload` | **41** | 与 selectors 全等（engine 产出 dayun_analysis 走 `_trim_dayun`；缺供时 `_synthesize_dayun` 合成补供，同键） |
+
+### 三方对照差异处置（全部显式化入 `mangpai/tests/test_key_contract.py`）
+
+- **engine 有而 selectors 无（7）→ `INTERNAL_ENGINE_KEYS` 白名单（集合相等断言，双向防腐）**：`input`（输入回显）/ `summary`（规则摘要串，verify_dayun 消费）/ `relations`（模块间总线）/ `direction`（F1 标注仅透传）/ `gongshen`（预消化，批10 A1 防护）/ `gongmen_wuzhi`（修批A③ 摘除，engine 键保留存档）/ `jiaoyun_analysis`（批10 A1 刻意排除，F14 红线）。
+- **selectors 有而 engine 无（0）**：`dayun_analysis` 为条件产出键，注入 dayun 即产出；条件性在测试样本盘注释固化。
+- **payload 无静态消费方（3）**：`chang_sheng`/`narrative` → `LLM_FEATURE_ONLY_KEYS` 备案（特征 JSON 全量嵌入 user prompt 直喂 LLM，代码/prompt 无定点读者）；`zinv` → `RESERVED_KEYS` 预留备案（H4 结案：engine 写入+payload 透传，prompt/formatter/narrative 零读者，D6a 设计纯数据——**显式标注「预留（供未来扩展）」**，H-fix-5 拆分时勿当死键误删）。
+
+### 阶段 1 契约测试（`mangpai/tests/test_key_contract.py`，6 测）
+
+1. `test_engine_keys_covered_by_selectors`：engine 键 = selectors ∪ 内部白名单（集合相等；漏登记/白名单腐化/归类矛盾三向皆红）。
+2. `test_selectors_exist_in_engine`：selectors ⊆ engine 全量产出 + 无重复登记（防死键）。
+3. `test_payload_mirrors_selectors`：payload 键集 = selectors 键集，键数锁 41。
+4. `test_payload_keys_have_consumer`：payload 每键至少在 narrative/formatter/llm_prompt/llm_channel/prompts 模板一处静态引用，否则须入两个备案集之一。
+5. `test_reserved_keys_still_unconsumed`：预留键防腐——zinv 一旦有静态读者须移出预留。
+6. `test_feature_only_keys_in_payload`：特征直喂备案防腐。
+
+**红验证（非恒真实证）**：临时删 selectors `shipaige` → 断言 1+3 红（2 failed）；临时加幽灵键 `ghost_key` → 断言 2+3 红（2 failed）；恢复后 6/6 绿。
+
+### 阶段 2 登记机制评估（结论：不引入自动派生）
+
+断言 1 的集合相等已构成「新增键强制显式归类」的自动契约；selectors 机械派生会抹掉 gongmen_wuzhi 式「刻意摘除」语义。测试作哨兵、登记仍手工但受闸，机制不再改。
+
+### 六件套（vs `snapshots/20260918_hfix4c.json`）
+
+- verify 432+70+64+20 全绿；pytest **951 passed**+1xf（945+6 新测）；blind vs hfix4c heldout+trainset **零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）；双 seed（剥 _meta）逐字节一致 ✅；67/famous 无变化 ✅；calib 由 pytest 覆盖；`scripts/check_layering.py` 通过（66 文件无反向依赖无环）
+- 引擎判定与 payload 结构零改动：本批仅新增 1 测试文件 + 文档，生产代码零触；payload 键数 41 不变
+- 快照=`snapshots/20260918_hfix6.json`
+
+### 预留键清单（供 H-fix-5 参照）
+
+| 键 | 归类 | 处置 |
+|----|------|------|
+| `zinv` | 预留 | 勿删勿拆并；若未来接 LLM 叙述维，先移出 RESERVED_KEYS 再走七维扩展流程 |
+| `chang_sheng` / `narrative` | 特征直喂 | 保留透传；若加定点读者（prompt 锚/formatter 段），移出 LLM_FEATURE_ONLY_KEYS |
+| `gongmen_wuzhi` | 内部白名单 | 修批A③ 锁定决策：engine 键保留存档，不回 selectors |

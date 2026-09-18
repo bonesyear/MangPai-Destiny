@@ -1,5 +1,14 @@
 # 盲派客观层 变更记录
 
+## 2026-09-18 H-fix-6 · selectors/engine-keys 契约测试批（纯新增测试，引擎/payload 零改动）
+
+| 项目 | 内容 |
+|------|------|
+| 契约测试 | `tests/test_key_contract.py` 6 测：①engine 键=selectors∪内部白名单（集合相等，防漏登记）②selectors⊆engine 全量产出+无重复（防死键）③payload 键集=selectors、键数锁 41④payload 每键有静态消费方或显式备案⑤预留键防腐⑥特征直喂备案防腐——红验证：删 shipaige→①③红、加 ghost_key→②③红，恢复 6/6 绿（H8 P1/H11 P1-④/H4 zinv 核销） |
+| 三方实测 | engine 48（注入 dayun 含条件键 dayun_analysis）/ selectors 41 / payload 41；差异全显式处置：内部白名单 7（input/summary/relations/direction/gongshen/gongmen_wuzhi/jiaoyun_analysis）、特征直喂备案 2（chang_sheng/narrative）、**预留键 1（zinv，H4 结案——显式标注「预留（供未来扩展）」，供 H-fix-5 参照勿误删）** |
+| 阶段 2 结论 | 不引入 selectors 自动派生——集合相等断言已是强制归类契约，机械派生会抹掉 gongmen_wuzhi 式刻意摘除语义 |
+| 验证 | 六件套全绿：verify 432+70+64+20、pytest 951 passed+1xf（945+6）、blind vs `snapshots/20260918_hfix4c.json` heldout+trainset 零翻转零抖动、双 seed（剥 _meta）逐字节一致、67/famous 无变化、check_layering 通过；payload 键数 41 不变、生产代码零触；快照=`snapshots/20260918_hfix6.json`；差异处置详表=backlog H-fix-6 节 |
+
 ## 2026-09-18 H-fix-4b · 重复逻辑下沉/统一批（重构类，引擎正常路径输出逐字节不变）
 
 | 项目 | 内容 |
