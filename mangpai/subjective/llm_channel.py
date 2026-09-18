@@ -474,14 +474,19 @@ def render_structured_reading(
     return format_reading(data, report, resp)
 
 
+def _demo_cases_path():
+    """demo 用 trainset 案例路径——锚定 __file__，与调用方 cwd 无关。"""
+    from pathlib import Path
+    return Path(__file__).resolve().parents[1] / 'tests' / 'trainset' / 'cases.yaml'
+
+
 def demo(case_id: str = 'b67-李嘉诚', question: str = ''):
     """单命示例：trainset 案例 → 引擎特征 → LLM 叙述 → 三层校验 → 展示。"""
     # CLI 入口专用局部导入（H-fix-4c 保留）：demo/main 仅命令行调试调用，
     # 延迟加载 engine 避免库调用方（feishu service 等）重复承担编排层导入。
     import yaml
     from mangpai.engine import MangpaiEngine
-    cases_path = 'mangpai/tests/trainset/cases.yaml'
-    with open(cases_path, encoding='utf-8') as f:
+    with open(_demo_cases_path(), encoding='utf-8') as f:
         cases = {c['id']: c for c in yaml.safe_load(f)}
     c = cases[case_id]
     bazi_data = {

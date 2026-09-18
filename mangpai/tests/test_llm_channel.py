@@ -756,3 +756,17 @@ def test_render_bazi_line_carries_gender(monkeypatch):
            'input': {'gender': '女'}}
     render_structured_reading(eng)
     assert '坤造' in seen['user']
+
+
+def test_demo_cases_path_cwd_independent():
+    """demo 的 train set 案例路径锚定 __file__——与调用方 cwd 无关（S3 关联项修复）。"""
+    import os
+    from mangpai.subjective.llm_channel import _demo_cases_path
+    p = _demo_cases_path()
+    assert p.exists() and p.name == 'cases.yaml' and 'trainset' in str(p)
+    cwd = os.getcwd()
+    try:
+        os.chdir('/tmp')
+        assert _demo_cases_path().exists()  # 换 cwd 仍可解析
+    finally:
+        os.chdir(cwd)
