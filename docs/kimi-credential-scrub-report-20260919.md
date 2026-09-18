@@ -13,7 +13,7 @@
 
 | 命中 | 判定 | 打码片段 |
 |---|---|---|
-| （已删文件）docs/cc-volcengine-config-backup.md:9 | **真凭证（已删除）** | `export ANTHROPIC_API_KEY=ark-1ad8<REDACTED>` |
+| （已删文件）docs/cc-volcengine-config-backup.md:9 | **真凭证（已删除）** | `export ANTHROPIC_API_KEY=ark-xxxx<REDACTED>` |
 | .env.example:13/64/65 | 占位符 | `MANGPAI_LLM_API_KEY=your-a<REDACTED>` 等 `your-*` 模板 |
 | mangpai/feishu/README.md:40 | 占位符 | `FEISHU_VERIFICATION_TOKEN=xxx`、`your-*` |
 | mangpai/tests/test_s1_llm_config.py:182/185 | 测试假值 | `"sk-file"` / `'sk-legacy-name'`（构造 fixture，非真 key） |

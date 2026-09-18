@@ -7,7 +7,7 @@
 4. 汇报 400 字内
 
 ## 背景（主会话已核实）
-`docs/cc-volcengine-config-backup.md:9` 含**真实火山引擎 ARK API key**（`export ANTHROPIC_API_KEY=ark-1ad8...`），已入库且位于**仓库初始提交 `878f3ce`**（2026-07-15）→ 推至公开 GitHub 已两个月。全仓扫描确认**真凭证仅此一处**（其余命中 `.env.example`/`feishu/README` 均为占位符）。
+`docs/cc-volcengine-config-backup.md:9` 含**真实火山引擎 ARK API key**（`export ANTHROPIC_API_KEY=ark-xxxx<REDACTED>`），已入库且位于**仓库初始提交 `878f3ce`**（2026-07-15）→ 推至公开 GitHub 已两个月。全仓扫描确认**真凭证仅此一处**（其余命中 `.env.example`/`feishu/README` 均为占位符）。
 
 用户已决定：**删除该文件**（它是 CC/火山配置备份 = 本机工具环境内容，按仓库卫生约定「工具环境内容不进仓库」本就不该入库）。用户将自行轮换该 key（轮换后历史中的旧 key 失效，故本批**不做历史重写**）。
 
