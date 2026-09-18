@@ -10,7 +10,8 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import yaml  # noqa: E402
@@ -56,7 +57,8 @@ def main():
         if r.get('ok') and 'reading' in r:
             recs[r['id']] = r
     cases = {c['id']: c for c in yaml.safe_load(
-        open('mangpai/tests/trainset/cases.yaml', encoding='utf-8'))}
+        open(os.path.join(ROOT, 'mangpai/tests/trainset/cases.yaml'),
+             encoding='utf-8'))}
 
     rows = {}
     for cid, r in sorted(recs.items()):

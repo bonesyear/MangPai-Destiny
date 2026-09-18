@@ -17,7 +17,8 @@ import os
 import sys
 from collections import Counter
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import yaml  # noqa: E402
@@ -84,7 +85,8 @@ def main():
         for line in open(p, encoding='utf-8'):
             r = json.loads(line)
             recs[r['id']] = r
-    with open('mangpai/tests/trainset/cases.yaml', encoding='utf-8') as f:
+    with open(os.path.join(ROOT, 'mangpai/tests/trainset/cases.yaml'),
+              encoding='utf-8') as f:
         cases = {c['id']: c for c in yaml.safe_load(f)}
 
     selectors = MANGPAI_SCHOOL.selectors

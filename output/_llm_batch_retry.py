@@ -8,6 +8,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import _llm_batch_trainset as bt  # noqa: E402  内部已把项目根插入 sys.path
 
@@ -24,7 +25,8 @@ for p in sorted(glob.glob(os.path.join(bt.OUT_DIR, 'batch_*.jsonl'))):
         done[r['id']] = r
 todo = {rid for rid, r in done.items()
         if 'api_error' in r or 'engine_error' in r or 'parse_error' in r}
-with open('mangpai/tests/trainset/cases.yaml', encoding='utf-8') as f:
+with open(os.path.join(ROOT, 'mangpai/tests/trainset/cases.yaml'),
+          encoding='utf-8') as f:
     cases = [c for c in yaml.safe_load(f) if c['id'] in todo]
 print(f'retry {len(cases)} cases in {bt.OUT_DIR}')
 if not cases:

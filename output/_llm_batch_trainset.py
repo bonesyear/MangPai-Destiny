@@ -10,7 +10,8 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 
 import yaml  # noqa: E402
 
@@ -68,7 +69,8 @@ def run_case(case, system):
 def main():
     start = int(sys.argv[1]) if len(sys.argv) > 1 else 0
     end = int(sys.argv[2]) if len(sys.argv) > 2 else 10**9
-    with open('mangpai/tests/trainset/cases.yaml', encoding='utf-8') as f:
+    with open(os.path.join(ROOT, 'mangpai/tests/trainset/cases.yaml'),
+              encoding='utf-8') as f:
         cases = yaml.safe_load(f)[start:end]
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, f'batch_{start}_{start + len(cases)}.jsonl')

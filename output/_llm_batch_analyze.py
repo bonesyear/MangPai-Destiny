@@ -7,7 +7,9 @@ import re
 import sys
 from collections import Counter
 
-batch_dir = sys.argv[1] if len(sys.argv) > 1 else 'output/llm_batch_20260818'
+batch_dir = (sys.argv[1] if len(sys.argv) > 1 else
+             os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          'llm_batch_20260818'))
 recs = []
 for p in sorted(glob.glob(os.path.join(batch_dir, 'batch_*.jsonl'))):
     for line in open(p, encoding='utf-8'):

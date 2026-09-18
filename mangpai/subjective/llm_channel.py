@@ -476,7 +476,7 @@ def render_structured_reading(
     return format_reading(data, report, resp)
 
 
-def _demo_cases_path():
+def _demo_cases_path() -> Path:
     """demo 用 trainset 案例路径——锚定 __file__，与调用方 cwd 无关。"""
     return Path(__file__).resolve().parents[1] / 'tests' / 'trainset' / 'cases.yaml'
 

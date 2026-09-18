@@ -2,7 +2,8 @@
 用法: python3 output/_llm_batch_rescore.py output/llm_batch_20260818_v3"""
 import glob, json, os, sys
 from collections import Counter
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
 import yaml
 from mangpai.engine import MangpaiEngine
 from mangpai.subjective import build_payload
@@ -13,7 +14,7 @@ recs = {}
 for p in sorted(glob.glob(os.path.join(batch_dir, 'batch_*.jsonl'))):
     for line in open(p, encoding='utf-8'):
         r = json.loads(line); recs[r['id']] = r
-cases = {c['id']: c for c in yaml.safe_load(open('mangpai/tests/trainset/cases.yaml', encoding='utf-8'))}
+cases = {c['id']: c for c in yaml.safe_load(open(os.path.join(ROOT, 'mangpai/tests/trainset/cases.yaml'), encoding='utf-8'))}
 
 case_layer = Counter(); by_layer = Counter(); l2_details = []
 nv = 0

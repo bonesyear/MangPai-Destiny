@@ -77,7 +77,7 @@
 - **默认不启用**：未配置 API Key 时，系统仅输出引擎的结构化结论
 - **可关闭**：设置 `MANGPAI_USE_LLM=0`（飞书接入层旧名 `FEISHU_USE_LLM` 仍兼容）后完全走引擎直出，零外发
 - **可替换**：通道兼容 OpenAI 风格协议，通过 `MANGPAI_LLM_BASE_URL` / `MANGPAI_LLM_MODEL` / `MANGPAI_LLM_API_KEY` 可指向任意自建或自选服务（本地模型、私有部署、其他厂商；严格兼容服务另设 `MANGPAI_LLM_THINKING=0`），具体配置见 README「配置你自己的 LLM」节与 `.env.example`
-- **可审计**：源码完全可见（`subjective/llm_backend.py`、`llm_channel.py`），提交内容的边界透明
+- **可审计**：源码完全可见（`mangpai/subjective/llm_backend.py`、`llm_channel.py`），提交内容的边界透明
 
 **开启时提交的内容**：八字干支、性别、出生地经度、系统提示词（命理规则与输出格式要求）。
 
@@ -122,7 +122,7 @@
 | 完全零外发 | 只使用引擎层（不配置 LLM），或显式关闭叙事层 |
 | 数据不经第三方 | 将叙事层指向本地模型或私有部署（设 `MANGPAI_LLM_BASE_URL`/`MANGPAI_LLM_MODEL` 指向本地端点，如 Ollama，另设 `MANGPAI_LLM_THINKING=0`；操作见 README「配置你自己的 LLM」节） |
 | 不提供出生地 | 出生地为选填；省略时按标准时排盘（真太阳时校正精度略降） |
-| 自行审计外发内容 | 阅读 `subjective/llm_prompt.py`（payload 组装）与 `llm_backend.py`（请求发送） |
+| 自行审计外发内容 | 阅读 `mangpai/subjective/llm_prompt.py`（payload 组装）与 `mangpai/subjective/llm_backend.py`（请求发送） |
 | 要求删除数据 | 无需操作——系统本就不存储 |
 
 ---

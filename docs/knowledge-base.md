@@ -10,7 +10,7 @@
 
 - **项目**：段建业盲派命理引擎（Python3，无重型依赖；`yaml` 必备，`sxtwl` 用于节气，`anthropic` 软依赖仅叙事层）。
 - **分层铁律**：`foundation/`（学派中性）← `mangpai/objective/`（纯检测）← `mangpai/subjective/`（解释判断）← `mangpai/engine.py`（编排），**单向依赖不可破坏**。
-- **原著索引**（2026-08-25 建，机械生成零 LLM）：`docs/book-index.md` 总表 + `docs/book-index/index-*.md` 分文件（十书：理象学×2/初级/高级/中级/授课/渊海子平/子平真诠×2/滴天髓——章节标题+行号，导航用粗定位，精确核对仍以读原文行号为准）。探索型找锚（不知行号只知主题）先查索引再跳原文。
+- **原著索引**（2026-08-25 建，机械生成零 LLM）：`mangpai/docs/book-index.md` 总表 + `mangpai/docs/book-index/index-*.md` 分文件（十书：理象学×2/初级/高级/中级/授课/渊海子平/子平真诠×2/滴天髓——章节标题+行号，导航用粗定位，精确核对仍以读原文行号为准）。探索型找锚（不知行号只知主题）先查索引再跳原文。
 - **受保护勿改**：`subjective/schools.py`、`subjective/prompts/`、`objective/constants.py` 的数据表。
 - **同音陷阱**：`gongfei.py`（功神/废神，`classify_gongshen`）与 `gongshen.py`（宫身，`analyze_gongshen`）同音异义**刻意共存**，勿合并勿改名；第三条（批8 增补）：`gongmen_wuzhi.py`=**公门武职**（gaoji 8.2），非「宫门五物」（五书 grep 零命中，批8 任务书曾误写）。
 - **数据**：heldout 215 例（`mangpai/tests/heldout/cases.yaml`，⚠️ 只评估不反推）/ trainset 294 例（`mangpai/tests/trainset/cases.yaml`）。
@@ -23,7 +23,7 @@
 | 职业 | 41✅/12⚠️/32❌ = **48.24%** (n=85) | 24✅ = **46.15%** (n=52) |
 
 （T-教授 财 +2 全预注册（教授/邢铭芬，贫穷命 ❌→⚠️ 改善非✅），M3 噪声带内，CI 下界 44.8%→46.6%。P4 职 +1 全预注册（gj-警察墓库），M3 噪声带内。P3 财 +2 全预注册，M3 噪声带内、CI 下界 43.1%→44.8%）
-- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 1114 collected（**1113 passed+1 xfailed，T-教授实测**；P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）（旧 853 口径 2026-07-17 起作废）。
+- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 1130 collected（**1129 passed+1 xfailed，审查修复批实测**；S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）（旧 853 口径 2026-07-17 起作废）。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
 - **十批全模块审计已收官**（2026-08-17）：P0=96/P1=245/P2=259，修复批次 F0-F19 已批准（见 `docs/audit-progress-20260816.md`）；审计勘误本文件记录见 §10。
 
@@ -60,7 +60,7 @@ mangpai/
     heldout/   cases.yaml(215) blind_eval.py snapshots/(LATEST 基线指针+README 链总账+archive/ 14 份无引用归档,H-fix-8) diag_case.py _*_diag/_*_sim(诊断考古) archive/(H-fix-4a 归档的历史模拟 8 脚本)
     trainset/  cases.yaml(294)
     backtest/  regression67.py famous_cases.py famous_baseline.json regression_famous.py
-    calib_assertions.py/.yaml  test_*.py(1066 测,含 test_feishu 34/test_d6b_zinv 12/test_llm_channel 27/test_qianyi 11/test_xiangmao 7/test_key_contract 6/test_inject_faults 82/test_hfix5_* 109/test_snapshot_hygiene 2)
+    calib_assertions.py/.yaml  test_*.py(1129 测,含 test_feishu 34/test_d6b_zinv 12/test_llm_channel 27/test_qianyi 11/test_xiangmao 7/test_key_contract 6/test_inject_faults 82/test_hfix5_* 109/test_snapshot_hygiene 2)
   docs/        duan-books/(段氏五书+珍宝50期+授课教程原文txt) 各分析文档
   CHANGELOG.md           批次变更记录（第七批起有书写惯例）
 docs/                    任务书(tasks/)、remaining-tasks 系列、本知识库
@@ -510,7 +510,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 |---|---|
 | `mangpai/verify_mangpai.py` | 432 项自洽检查（唯一版） |
 | `mangpai/verify_dayun.py` / `verify_layer1.py` / `verify_layer3_checkpoint.py` | 70 大运 / 64 基础 / 20 方向检查点 |
-| `python3 -m pytest mangpai/tests/ -q` | 1114 collected（**1113 passed+1 xfailed，T-教授实测**；旧记 P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
+| `python3 -m pytest mangpai/tests/ -q` | 1130 collected（**1129 passed+1 xfailed，审查修复批实测**；旧记 T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
 | `scripts/check_layering.py` / `scripts/check_typing_imports.py` | 分层单向依赖守护（H-fix-4c 入库，`--graph` 出依赖图）/ typing-import 崩溃面守护（H-fix-1 配套） |
 | `mangpai/tests/heldout/blind_eval.py` | 三维盲测评估器：`--out 快照 --note 备注 --baseline 基线` 一条龙（**H-fix-8 起 `--baseline latest` 解 `snapshots/LATEST` 指针**，链总账见 `snapshots/README.md`）；`--diff A B` 对比；`--rescore` rubric 重评；输出含 M2 分组/M3 CI/显著性/文本抖动 |
 | `mangpai/tests/heldout/diag_case.py` | 单盘诊断（原 _p2_diag 转正）：`python3 diag_case.py 乙己己庚 巳丑未午 [--gender 女 --dayun X --liunian Y]`，dump gongliang/caiming/guanming/zhiye 内部状态 |
