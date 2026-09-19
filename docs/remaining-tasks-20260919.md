@@ -14,6 +14,8 @@
 | 6 | **脱敏脱密自动闸门** | `589b0f4` | 新建 `scripts/check_credentials.py`（P0 凭证/P1 隐私→阻止，P2 本机路径→警告；默认扫暂存区**新增行**，`--all` 全量审计；输出打码+内置断言）+ `install_git_hooks.sh`（pre-commit 已装，**实测拦假凭证**）+ 哨兵 20 测 + `calib_zhenbao.py` 硬编码路径修复（代码文件本机路径**清零**）+ README 小节 | 零改动 |
 | 7 | **Hermes 环境维护** | —（本机配置，不入库） | `hermes doctor` 全绿后处理 2 项：**config v44→v45 迁移**（diff 仅版本号一行，5 gateway 无影响）+ **GITHUB_TOKEN 入 profile `.env`**（Skills Hub 转认证模式） | 零改动 |
 | 8 | 收工记录补记 | `c13ac20` | `_kang_*` 保留本地勿删 / 存量路径保留 | — |
+| 9 | **文档数字闸门** | `257b717` | 新建 `scripts/check_doc_numbers.py`（校验 10 处**权威声明位**：README 首行/验证表/架构表 + KB §1/§8；实测自算 `--collect-only` ~0.5s；历史口径「旧记…作废」前置窗跳过不误报；全一致退 0、任一漂移退 1）+ 哨兵 9 测 + 常驻闸门升**六件套** + README/KB 数字同步 1158/1159 | 零改动 |
+| 10 | **README/KB 数字对齐核查** | `0e3f1f7` | 用户问「README 是否检查过/版本号对齐」→ 实测发现用例数**第三次漂移**（1129→1149）；模块数 59 复核无误（foundation 2 在仓库根 + objective 27 + subjective 30 顶层）；项目无 `__version__`（无数值版本号） | 零改动 |
 
 ### 关键实证（本轮最有价值的三条）
 
@@ -27,15 +29,16 @@
 ## 二、闸门（收工实测，2026-09-19）
 
 ```
-pytest 1149 passed + 1 xfailed ✅          ← 脱敏闸门批 +20 测
+pytest 1158 passed + 1 xfailed ✅          ← 文档数字闸门批 +9 测
 verify  432 / 70 / 64 / 20 全绿 ✅
 分层检查 66 文件无反向依赖 ✅   typing/import 183 文件 0 处 ✅
-常驻闸门 5 件套：分层 / typing / 键契约 / 防假-green / **脱敏（新增）** ✅
+常驻闸门 **6 件套**：分层 / typing / 键契约 / 防假-green / 脱敏 / **文档数字（新增）** ✅
 双版本 import 冒烟：3.14.4 / 3.11.15 ✅
 LATEST = 20260918_t1.json（有效）✅
-git 工作区干净 · 本地 = 远程 = c13ac20 ✅
+git 工作区干净 · 本地 = 远程 = 257b717 ✅
 凭证终扫 + `check_credentials --all`：P0=0 / P1=0 ✅（P2=287 存量仅警告）
-blind 独立复跑：零翻转 ✅
+blind 独立复跑：零翻转（逐字段核对 True）✅
+`check_doc_numbers`：全一致退 0；**篡改 README 数字实测退 1 并精确报差异** ✅
 Hermes doctor：配置 v45 / Skills Hub 认证 / 5 gateway 健康 / 日志无 ERROR ✅
 ```
 
@@ -63,7 +66,8 @@ Hermes doctor：配置 v45 / Skills Hub 认证 / 5 gateway 健康 / 日志无 ER
 ## 五、下一棒接续指引
 
 - **基线**：`snapshots/LATEST` → `20260918_t1.json`；本会话所有改动**引擎零触**，heldout 三维（官 48✅/财 47✅/职 24✅）与 trainset（官 102✅/财 63✅/职 41✅）未动
-- **闸门六件套**：pytest **1149**+1xf / verify 432+70+64+20 / blind 零翻转 / 双 seed / **常驻 5 件套（分层·typing·键契约·防假-green·脱敏）** / 双版本 import
+- **闸门六件套**：pytest **1158**+1xf / verify 432+70+64+20 / blind 零翻转 / 双 seed / **常驻 6 件套（分层·typing·键契约·防假-green·脱敏·文档数字）** / 双版本 import
+- **文档数字闸门（新增）**：`python3 scripts/check_doc_numbers.py`——**改了测试数/模块数后跑一次**（校验 README 首行/验证表/架构表 + KB §1/§8 共 10 处），不一致退 1；此前该数字**漂移过三次**（794→1066→1129→1149），故机制化
 - **脱敏闸门（重要，新增）**：`.git/hooks/pre-commit` 已装（**不入库**）——换机器/clone 后须跑一次 `scripts/install_git_hooks.sh`；全量审计 = `python3 scripts/check_credentials.py --all`；P2 本机路径存量仅警告（`--strict` 可升级为阻止）
 - **Hermes 侧**：config 已 v45；`GITHUB_TOKEN` 已入 profile `.env`（Skills Hub 认证模式）；本机配置回滚锚 = `config.yaml.bak-20260919-083851`
 - **纪律**：code 工作交 Kimi（§7b）；一批一发等通知；验收不采信自报（自己 `git grep` / 自己跑闸门）；push 走 gh-proxy + **`git fetch` 后查 `FETCH_HEAD`** 验证远程真实状态
