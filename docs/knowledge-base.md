@@ -23,7 +23,7 @@
 | 职业 | 41✅/12⚠️/32❌ = **48.24%** (n=85) | 24✅ = **46.15%** (n=52) |
 
 （T-教授 财 +2 全预注册（教授/邢铭芬，贫穷命 ❌→⚠️ 改善非✅），M3 噪声带内，CI 下界 44.8%→46.6%。P4 职 +1 全预注册（gj-警察墓库），M3 噪声带内。P3 财 +2 全预注册，M3 噪声带内、CI 下界 43.1%→44.8%）
-- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 1130 collected（**1129 passed+1 xfailed，审查修复批实测**；S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）（旧 853 口径 2026-07-17 起作废）。
+- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 1150 collected（**1149 passed+1 xfailed，脱敏闸门批实测**；脱敏闸门批 +20 测后 1149、审查修复批 1129+1xf、S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）+ `scripts/check_credentials.py`（脱敏脱密：凭证/隐私/本机路径，pre-commit 同源）（旧 853 口径 2026-07-17 起作废）。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
 - **十批全模块审计已收官**（2026-08-17）：P0=96/P1=245/P2=259，修复批次 F0-F19 已批准（见 `docs/audit-progress-20260816.md`）；审计勘误本文件记录见 §10。
 
@@ -60,7 +60,7 @@ mangpai/
     heldout/   cases.yaml(215) blind_eval.py snapshots/(LATEST 基线指针+README 链总账+archive/ 14 份无引用归档,H-fix-8) diag_case.py _*_diag/_*_sim(诊断考古) archive/(H-fix-4a 归档的历史模拟 8 脚本)
     trainset/  cases.yaml(294)
     backtest/  regression67.py famous_cases.py famous_baseline.json regression_famous.py
-    calib_assertions.py/.yaml  test_*.py(1129 测,含 test_feishu 34/test_d6b_zinv 12/test_llm_channel 27/test_qianyi 11/test_xiangmao 7/test_key_contract 6/test_inject_faults 82/test_hfix5_* 109/test_snapshot_hygiene 2)
+    calib_assertions.py/.yaml  test_*.py(1149 测,含 test_feishu 34/test_d6b_zinv 12/test_llm_channel 27/test_qianyi 11/test_xiangmao 7/test_key_contract 6/test_inject_faults 82/test_hfix5_* 109/test_credential_gate 20/test_snapshot_hygiene 2)
   docs/        duan-books/(段氏五书+珍宝50期+授课教程原文txt) 各分析文档
   CHANGELOG.md           批次变更记录（第七批起有书写惯例）
 docs/                    任务书(tasks/)、remaining-tasks 系列、本知识库
@@ -510,8 +510,9 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 |---|---|
 | `mangpai/verify_mangpai.py` | 432 项自洽检查（唯一版） |
 | `mangpai/verify_dayun.py` / `verify_layer1.py` / `verify_layer3_checkpoint.py` | 70 大运 / 64 基础 / 20 方向检查点 |
-| `python3 -m pytest mangpai/tests/ -q` | 1130 collected（**1129 passed+1 xfailed，审查修复批实测**；旧记 T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
+| `python3 -m pytest mangpai/tests/ -q` | 1150 collected（**1149 passed+1 xfailed，脱敏闸门批实测**；旧记 审查修复批 1129、T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
 | `scripts/check_layering.py` / `scripts/check_typing_imports.py` | 分层单向依赖守护（H-fix-4c 入库，`--graph` 出依赖图）/ typing-import 崩溃面守护（H-fix-1 配套） |
+| `scripts/check_credentials.py` | **脱敏脱密闸门**（2026-09-19 入库）：P0 凭证 / P1 隐私 → 阻止，P2 本机路径 → 警告；默认扫暂存区**新增行**（存量不干扰），`--all` 全量审计，输出打码含断言；与 `.git/hooks/pre-commit` 同源（`scripts/install_git_hooks.sh` 安装，clone 后须跑一次） |
 | `mangpai/tests/heldout/blind_eval.py` | 三维盲测评估器：`--out 快照 --note 备注 --baseline 基线` 一条龙（**H-fix-8 起 `--baseline latest` 解 `snapshots/LATEST` 指针**，链总账见 `snapshots/README.md`）；`--diff A B` 对比；`--rescore` rubric 重评；输出含 M2 分组/M3 CI/显著性/文本抖动 |
 | `mangpai/tests/heldout/diag_case.py` | 单盘诊断（原 _p2_diag 转正）：`python3 diag_case.py 乙己己庚 巳丑未午 [--gender 女 --dayun X --liunian Y]`，dump gongliang/caiming/guanming/zhiye 内部状态 |
 | `mangpai/tests/heldout/_zy55_dump/_zy_all_dump/_zy_master/_zy2_*/_zy3_dump` + `archive/`（_zy55_sim/_zy55_feat/_zy_margin/_zy2_sim2/_zy2_sim3/_zy3_sim/_zy4_sim/_a1_exp，H-fix-4a 归档） | 职业批诊断考古（dump+条款网格模拟器，特征预计算模式可复用；已收敛的历史模拟在 archive/） |
