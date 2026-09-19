@@ -11,6 +11,9 @@
 | 3 | 快照链总账补登 | `a2a8457` | `20260918_r1fix.json` 登记（审查修复批·P2，零翻转非基线） | — |
 | 4 | narrative 遗留通道分析 | `90b4b99` | Kimi 独立分析 A/B/C 三选 → **推荐 A（保留，零改动）**；理由：S1 批已裁定（backlog + 哨兵锁定）+ B 收益观感而代价是真实对外契约静默变化 + C 与单通道收敛逆行 | — |
 | 5 | **凭证安全整改（两批）** | `7e8811f` + `3d76d0c` | `docs/cc-volcengine-config-backup.md`（真实火山 ARK key，**自初始提交 `878f3ce` 起在公开仓库 2 个月**）删除 + 全仓凭证复扫 + 报告打码；随后补齐残留的 key 前缀打码 | 零改动 |
+| 6 | **脱敏脱密自动闸门** | `589b0f4` | 新建 `scripts/check_credentials.py`（P0 凭证/P1 隐私→阻止，P2 本机路径→警告；默认扫暂存区**新增行**，`--all` 全量审计；输出打码+内置断言）+ `install_git_hooks.sh`（pre-commit 已装，**实测拦假凭证**）+ 哨兵 20 测 + `calib_zhenbao.py` 硬编码路径修复（代码文件本机路径**清零**）+ README 小节 | 零改动 |
+| 7 | **Hermes 环境维护** | —（本机配置，不入库） | `hermes doctor` 全绿后处理 2 项：**config v44→v45 迁移**（diff 仅版本号一行，5 gateway 无影响）+ **GITHUB_TOKEN 入 profile `.env`**（Skills Hub 转认证模式） | 零改动 |
+| 8 | 收工记录补记 | `c13ac20` | `_kang_*` 保留本地勿删 / 存量路径保留 | — |
 
 ### 关键实证（本轮最有价值的三条）
 
@@ -24,13 +27,16 @@
 ## 二、闸门（收工实测，2026-09-19）
 
 ```
-pytest 1129 passed + 1 xfailed ✅
+pytest 1149 passed + 1 xfailed ✅          ← 脱敏闸门批 +20 测
 verify  432 / 70 / 64 / 20 全绿 ✅
-分层检查 66 文件无反向依赖 ✅   typing/import 181 文件 0 处 ✅
+分层检查 66 文件无反向依赖 ✅   typing/import 183 文件 0 处 ✅
+常驻闸门 5 件套：分层 / typing / 键契约 / 防假-green / **脱敏（新增）** ✅
 双版本 import 冒烟：3.14.4 / 3.11.15 ✅
 LATEST = 20260918_t1.json（有效）✅
-git 工作区干净 · 本地 = 远程 = 3d76d0c ✅
-凭证终扫（ark-/sk-/ghp_/AKIA 模式）：零真凭证 ✅
+git 工作区干净 · 本地 = 远程 = c13ac20 ✅
+凭证终扫 + `check_credentials --all`：P0=0 / P1=0 ✅（P2=287 存量仅警告）
+blind 独立复跑：零翻转 ✅
+Hermes doctor：配置 v45 / Skills Hub 认证 / 5 gateway 健康 / 日志无 ERROR ✅
 ```
 
 ## 三、新固化的规则（技能 `mangpai-workflow` + 记忆）
@@ -57,6 +63,8 @@ git 工作区干净 · 本地 = 远程 = 3d76d0c ✅
 ## 五、下一棒接续指引
 
 - **基线**：`snapshots/LATEST` → `20260918_t1.json`；本会话所有改动**引擎零触**，heldout 三维（官 48✅/财 47✅/职 24✅）与 trainset（官 102✅/财 63✅/职 41✅）未动
-- **闸门六件套**：pytest 1129+1xf / verify 432+70+64+20 / blind 零翻转 / 双 seed / 分层两件套 / 双版本 import
+- **闸门六件套**：pytest **1149**+1xf / verify 432+70+64+20 / blind 零翻转 / 双 seed / **常驻 5 件套（分层·typing·键契约·防假-green·脱敏）** / 双版本 import
+- **脱敏闸门（重要，新增）**：`.git/hooks/pre-commit` 已装（**不入库**）——换机器/clone 后须跑一次 `scripts/install_git_hooks.sh`；全量审计 = `python3 scripts/check_credentials.py --all`；P2 本机路径存量仅警告（`--strict` 可升级为阻止）
+- **Hermes 侧**：config 已 v45；`GITHUB_TOKEN` 已入 profile `.env`（Skills Hub 认证模式）；本机配置回滚锚 = `config.yaml.bak-20260919-083851`
 - **纪律**：code 工作交 Kimi（§7b）；一批一发等通知；验收不采信自报（自己 `git grep` / 自己跑闸门）；push 走 gh-proxy + **`git fetch` 后查 `FETCH_HEAD`** 验证远程真实状态
 - **凭证纪律**：新增文件前扫明文；报告/任务书一律用位置描述而非字符复述
