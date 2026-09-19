@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1149 验证用例全绿（+1 xfail）。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1158 验证用例全绿（+1 xfail）。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,12 +47,18 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 432 | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1149 passed + 1 xfailed | ✅ |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1158 passed + 1 xfailed | ✅ |
 | blind_eval（heldout 215 + trainset 294 三维盲测） | 快照零翻转（基线 `snapshots/LATEST`） | ✅ |
 
 ## 入仓前的脱敏闸门
 
-仓库入库守护脚本三件套：`scripts/check_layering.py`（分层单向）、`scripts/check_typing_imports.py`（typing/import 面）、`scripts/check_credentials.py`（脱敏脱密闸门）。
+仓库常驻闸门六件套：分层单向（`scripts/check_layering.py`）、typing/import 面（`scripts/check_typing_imports.py`）、键契约（`mangpai/tests/test_key_contract.py`）、防假-green（`mangpai/tests/test_verify_integrity.py`）、脱敏脱密（`scripts/check_credentials.py`）、**文档数字**（`scripts/check_doc_numbers.py`，2026-09-19 入库）。
+
+文档数字闸门校验本 README 与 `docs/knowledge-base.md` 权威声明位（首行/验证表/架构表/验证口径行/§8 工具表）的模块数与 pytest 数字是否等于实测（`pytest --collect-only` ~0.5s + 分层口径计数，不真跑全量、不跑 verify），漂移即退出码 1。**不算 pre-commit 默认项**——改了测试数量（新增/删除用例）或模块数后手动跑一次即可：
+
+```bash
+python3 scripts/check_doc_numbers.py          # 全量报告；--quiet 只报不一致；退出码 0=全一致
+```
 
 `check_credentials.py` 在 commit 前自动扫描**暂存区新增行**（存量不干扰）：
 
