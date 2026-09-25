@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1158 验证用例全绿（+1 xfail）。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1172 验证用例全绿（+1 xfail）。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,7 +47,7 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 432 | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1158 passed + 1 xfailed | ✅ |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1172 passed + 1 xfailed | ✅ |
 | blind_eval（heldout 215 + trainset 294 三维盲测） | 快照零翻转（基线 `snapshots/LATEST`） | ✅ |
 
 ## 入仓前的脱敏闸门
@@ -58,7 +58,10 @@
 
 ```bash
 python3 scripts/check_doc_numbers.py          # 全量报告；--quiet 只报不一致；退出码 0=全一致
+python3 scripts/check_doc_numbers.py --github  # 追加核对 GitHub 仓库 description 数字声明（联网 opt-in）
 ```
+
+`--github` 为 **opt-in 联网项**（默认关闭，不带它时行为与纯离线版完全一致）：拉取仓库 GitHub `description` 里的 `N modules` / `N test cases` 声明与实测比对。**需自备网络**；public 仓库匿名即可读，`GITHUB_TOKEN` 可选（有 token 提高限速），`MANGPAI_GITHUB_REPO` 可换目标仓库。网络失败 / 非 200 / 提取不到数字同样退 1 并报明原因——显式开启却无法完成校验绝不报绿。
 
 `check_credentials.py` 在 commit 前自动扫描**暂存区新增行**（存量不干扰）：
 
