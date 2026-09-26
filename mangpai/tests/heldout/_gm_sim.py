@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
 """官命候选修法双侧翻转模拟（纯文本解析 dump，不改引擎）。"""
 import json
+import os
 import re
+import sys
+import tempfile
 from collections import Counter
 
-d = json.load(open('/tmp/gm_all.json'))
+DIAG_DIR = os.environ.get('MANGPAI_DIAG_DIR') or tempfile.gettempdir()
+_GM_ALL = os.path.join(DIAG_DIR, 'gm_all.json')
+if not os.path.exists(_GM_ALL):
+    print(f'[提示] 缺少诊断数据文件: {_GM_ALL}\n'
+          f'  该文件由 mangpai/tests/heldout/_gm_all_dump.py 生成，请先运行它产出数据。\n'
+          f'  可用环境变量 MANGPAI_DIAG_DIR 指定诊断目录（缺省为系统临时目录）。')
+    sys.exit(0)
+d = json.load(open(_GM_ALL))
 
 COMBO_KEYS = ['合制·伤食制官杀', '伤食制官杀', '合制·劫刃制官杀', '劫刃制官杀',
               '合制·官杀制比劫', '官杀制比劫', '合制·印制伤食', '印制伤食',

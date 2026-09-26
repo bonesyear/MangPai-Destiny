@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import tempfile
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -14,6 +15,8 @@ import yaml
 from _atomic_io import atomic_write_json
 from blind_eval import _bazi_data, score_guanming
 from mangpai import MangpaiEngine
+
+DIAG_DIR = os.environ.get('MANGPAI_DIAG_DIR') or tempfile.gettempdir()
 
 snap = json.load(open(os.path.join(_HERE, 'snapshots', '20260808_p.json')))
 bad_ids = [k for k, v in snap['trainset'].items()
@@ -63,7 +66,7 @@ for cid in bad_ids:
         'other_scores': snap['trainset'][cid].get('scores', {}),
     }
 
-atomic_write_json('/tmp/gm40.json', out)
+atomic_write_json(os.path.join(DIAG_DIR, 'gm40.json'), out)
 for cid, e in out.items():
     print(f"\n=== {cid} [{e['fpfn']}] {e['bazi']} {e['gender']} 运:{e['dayun'] or '-'} 年:{e['liunian'] or '-'}")
     print(f"  verdict: {e['verdict']}  | engine is_guanming={e['is_guanming']} vetoed={e['vetoed']}")

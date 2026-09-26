@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import tempfile
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -15,7 +16,14 @@ from mangpai.subjective.zhiye import (_compute_shishen, _cat, _pillar_cats,
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.shensha import compute_shensha_ext
 
-d = json.load(open('/tmp/zy_all.json'))
+DIAG_DIR = os.environ.get('MANGPAI_DIAG_DIR') or tempfile.gettempdir()
+_ZY_ALL = os.path.join(DIAG_DIR, 'zy_all.json')
+if not os.path.exists(_ZY_ALL):
+    print(f'[提示] 缺少诊断数据文件: {_ZY_ALL}\n'
+          f'  该文件由 mangpai/tests/heldout/_zy_all_dump.py 生成，请先运行它产出数据。\n'
+          f'  可用环境变量 MANGPAI_DIAG_DIR 指定诊断目录（缺省为系统临时目录）。')
+    sys.exit(0)
+d = json.load(open(_ZY_ALL))
 
 TARGETS = sys.argv[1:] or [
     'cj-中医', 'cj-中医李阳波', 'yx-中医',

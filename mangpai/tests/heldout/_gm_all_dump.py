@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import tempfile
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -14,6 +15,8 @@ import yaml
 from _atomic_io import atomic_write_json
 from blind_eval import _bazi_data
 from mangpai import MangpaiEngine
+
+DIAG_DIR = os.environ.get('MANGPAI_DIAG_DIR') or tempfile.gettempdir()
 
 cases = yaml.safe_load(open(os.path.join(_HERE, '..', 'trainset', 'cases.yaml'), encoding='utf-8'))
 out = {}
@@ -38,6 +41,6 @@ for c in cases:
         'has_guansha': combo.get('has_guansha'),
         'details': combo.get('details') or [],
     }
-atomic_write_json('/tmp/gm_all.json', out)
+atomic_write_json(os.path.join(DIAG_DIR, 'gm_all.json'), out)
 n_ok = sum(1 for e in out.values() if e['is_guanming'] == e['expect'])
 print(f'total={len(out)} acc={n_ok}/{len(out)} = {n_ok/len(out):.2%}')
