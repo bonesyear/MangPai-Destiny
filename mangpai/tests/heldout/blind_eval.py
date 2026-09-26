@@ -15,9 +15,9 @@
         记 unscorable 不入准确率，但入翻转明细。
 
 用法:
-  python3 blind_eval.py --out /tmp/after.json            # 评估当前引擎
-  python3 blind_eval.py --out /tmp/after.json --trainset-only
-  python3 blind_eval.py --diff /tmp/before.json /tmp/after.json   # 前后对比报告
+  python3 blind_eval.py --out <DIAG_DIR>/after.json            # 评估当前引擎
+  python3 blind_eval.py --out <DIAG_DIR>/after.json --trainset-only
+  python3 blind_eval.py --diff <DIAG_DIR>/before.json <DIAG_DIR>/after.json   # 前后对比报告
   python3 blind_eval.py --out snapshots/YYYYMMDD_x.json --baseline latest
   #   ↑ M5：评估+存快照（附 _meta: git sha/rubric 版本）并与基线快照 diff 一条龙；
   #   latest = snapshots/LATEST 指针指向的当前基线（见 snapshots/README.md）

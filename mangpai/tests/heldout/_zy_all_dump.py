@@ -4,6 +4,7 @@
 import json
 import os
 import sys
+import tempfile
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -17,6 +18,8 @@ from blind_eval import _bazi_data, _ZY_RULES, _ZY_EXCLUDE
 from mangpai import MangpaiEngine
 from mangpai.subjective.zhiye import _pillar_cats
 from mangpai.objective.shensha import compute_shensha_ext
+
+DIAG_DIR = os.environ.get('MANGPAI_DIAG_DIR') or tempfile.gettempdir()
 
 PILLAR_KEYS = ('year', 'month', 'day', 'hour')
 
@@ -67,8 +70,8 @@ for split, path in (('trainset', os.path.join(_HERE, '..', 'trainset', 'cases.ya
             'caiming_tier': res.get('caiming', {}).get('tier_static', ''),
         }
 
-atomic_write_json('/tmp/zy_all.json', out)
-print(f'dumped {len(out)} cases -> /tmp/zy_all.json')
+atomic_write_json(os.path.join(DIAG_DIR, 'zy_all.json'), out)
+print(f"dumped {len(out)} cases -> {os.path.join(DIAG_DIR, 'zy_all.json')}")
 
 # heldout 商人三例专项
 for k in ('heldout:ans10', 'heldout:li002', 'heldout:li131'):

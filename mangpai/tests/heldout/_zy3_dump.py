@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import tempfile
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -19,6 +20,8 @@ from mangpai.subjective.zhiye import (
     _HE_TYPES, _ZHI_TYPES)
 from mangpai.subjective.yongshen import assess_direction_signals, classify_strength
 from mangpai.objective.shensha import compute_shensha_ext
+
+DIAG_DIR = os.environ.get('MANGPAI_DIAG_DIR') or tempfile.gettempdir()
 
 PILLAR_KEYS = ('year', 'month', 'day', 'hour')
 
@@ -122,8 +125,8 @@ for split, path in (('trainset', os.path.join(_HERE, '..', 'trainset', 'cases.ya
             'base_career': (zy.get('base_career') or {}).get('bucket', ''),
         }
 
-atomic_write_json('/tmp/zy3_all.json', out)
-print(f'dumped {len(out)} cases -> /tmp/zy3_all.json')
+atomic_write_json(os.path.join(DIAG_DIR, 'zy3_all.json'), out)
+print(f"dumped {len(out)} cases -> {os.path.join(DIAG_DIR, 'zy3_all.json')}")
 n_err = sum(1 for e in out.values()
             if e['primary'] and e['primary'] not in e['gold'])
 n_ok = sum(1 for e in out.values() if e['primary'] in e['gold'])

@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import tempfile
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -16,6 +17,8 @@ from blind_eval import _bazi_data, score_zhiye, _ZY_RULES, _ZY_EXCLUDE
 from mangpai import MangpaiEngine
 from mangpai.subjective.yongshen import assess_direction_signals
 from mangpai.objective.zuogong_detect import detect_relations
+
+DIAG_DIR = os.environ.get('MANGPAI_DIAG_DIR') or tempfile.gettempdir()
 
 snap = json.load(open(os.path.join(_HERE, 'snapshots', '20260808_q.json'), encoding='utf-8'))
 ts = snap['trainset']
@@ -82,7 +85,7 @@ for cid in bad_ids:
                          + ('(aux)' if a.get('auxiliary') else '') for a in wa],
     }
 
-atomic_write_json('/tmp/zy55.json', out)
+atomic_write_json(os.path.join(DIAG_DIR, 'zy55.json'), out)
 
 # 汇总：confusion 矩阵（gold -> engine primary）
 from collections import Counter
