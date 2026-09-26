@@ -24,6 +24,7 @@ from foundation.objective.ganqing import (
 
 passed = 0
 failed = 0
+skipped = 0
 def check(name, cond, detail=''):
     global passed, failed
     if cond: passed += 1; print(f'  [PASS] {name}')
@@ -72,7 +73,10 @@ check('get_nayin_wuxing 接口', get_nayin_wuxing('甲子')=='金', '接口异�
 
 # ══════════════════════════════════════════════════════════════
 print('── 2. 节气抽样 ──')
-import sxtwl
+try:
+    import sxtwl
+except ImportError:
+    sxtwl = None
 # sxtwl 24节气全名索引（与 jiaoyun.JIEQI_INDEX 注释一致）
 _JQ24 = ['冬至','小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨',
          '立夏','小满','芒种','夏至','小暑','大暑','立秋','处暑',
@@ -82,33 +86,37 @@ def _jq_jd(year, name):
     idx = _NAME2IDX[name]
     cands = [j for j in sxtwl.getJieQiByYear(year) if j.jqIndex==idx]
     return min(cands, key=lambda j:j.jd).jd if cands else None
-# 2a. JIEQI_INDEX 含5交运节气且索引正确（与24节气全表一致）
-jq5_ok = all(JIEQI_INDEX.get(n)==_NAME2IDX[n] for n in ['冬至','大寒','清明','芒种','处暑'])
-check('JIEQI_INDEX 5交运节气索引正确', jq5_ok and len(JIEQI_INDEX)==5, f'实际{JIEQI_INDEX}')
-# 2b. sxtwl 每年返回24节气(jqIndex 0-23齐全)
-sample_years = [1949, 1976, 2000, 2024, 1887]
-jq24_ok = all(len(set(j.jqIndex for j in sxtwl.getJieQiByYear(y)))==24 for y in sample_years)
-check('sxtwl 每年24节气齐全(0-23)', jq24_ok, '24节气不全')
-# 2c. 抽样5年×7节气 儒略日+datetime（覆盖交运5节气+立春夏至）
-sample_jq = ['立春','冬至','夏至','清明','大寒','芒种','处暑']
-jq_ok = True
-for y in sample_years:
-    for jq in sample_jq:
-        jd = _jq_jd(y, jq)
-        if jd is None: jq_ok=False; print(f'    缺 {y}年{jq}'); continue
-        dt = _jd_to_datetime(jd)
-        if dt is None: jq_ok=False; print(f'    转换失败 {y}年{jq}')
-        elif dt.year not in (y, y-1, y+1): jq_ok=False; print(f'    年份越界 {y}年{jq}->{dt.year}')
-check('抽样5年×7节气 儒略日+datetime', jq_ok, '见上方明细')
-# 2d. 立春在2月（北半球），冬至在12月
-lichun_ok = all(_jd_to_datetime(_jq_jd(y,'立春')).month==2 for y in sample_years)
-check('立春恒在2月', lichun_ok, '立春月份异常')
-dongzhi_ok = all(_jd_to_datetime(_jq_jd(y,'冬至')).month==12 for y in sample_years)
-check('冬至恒在12月', dongzhi_ok, '冬至月份异常')
-# 2e. 命五行->交运节气规则完整（5行）
-check('JIAOYUN_RULES 覆盖5五行', set(JIAOYUN_RULES.keys())=={'木','火','土','金','水'}, '命五行规则不全')
-for wx,(jq,off,zhi) in JIAOYUN_RULES.items():
-    check(f'交运节气 {wx}->{jq}{off:+d}天{zhi}时', jq in _NAME2IDX, f'{jq}不在24节气')
+if sxtwl is None:
+    skipped += 11
+    print('  [SKIP] 节气抽样节 11 项跳过：未安装 sxtwl；安装 sxtwl 或用 fate-venv 解释器后才会运行本节')
+else:
+    # 2a. JIEQI_INDEX 含5交运节气且索引正确（与24节气全表一致）
+    jq5_ok = all(JIEQI_INDEX.get(n)==_NAME2IDX[n] for n in ['冬至','大寒','清明','芒种','处暑'])
+    check('JIEQI_INDEX 5交运节气索引正确', jq5_ok and len(JIEQI_INDEX)==5, f'实际{JIEQI_INDEX}')
+    # 2b. sxtwl 每年返回24节气(jqIndex 0-23齐全)
+    sample_years = [1949, 1976, 2000, 2024, 1887]
+    jq24_ok = all(len(set(j.jqIndex for j in sxtwl.getJieQiByYear(y)))==24 for y in sample_years)
+    check('sxtwl 每年24节气齐全(0-23)', jq24_ok, '24节气不全')
+    # 2c. 抽样5年×7节气 儒略日+datetime（覆盖交运5节气+立春夏至）
+    sample_jq = ['立春','冬至','夏至','清明','大寒','芒种','处暑']
+    jq_ok = True
+    for y in sample_years:
+        for jq in sample_jq:
+            jd = _jq_jd(y, jq)
+            if jd is None: jq_ok=False; print(f'    缺 {y}年{jq}'); continue
+            dt = _jd_to_datetime(jd)
+            if dt is None: jq_ok=False; print(f'    转换失败 {y}年{jq}')
+            elif dt.year not in (y, y-1, y+1): jq_ok=False; print(f'    年份越界 {y}年{jq}->{dt.year}')
+    check('抽样5年×7节气 儒略日+datetime', jq_ok, '见上方明细')
+    # 2d. 立春在2月（北半球），冬至在12月
+    lichun_ok = all(_jd_to_datetime(_jq_jd(y,'立春')).month==2 for y in sample_years)
+    check('立春恒在2月', lichun_ok, '立春月份异常')
+    dongzhi_ok = all(_jd_to_datetime(_jq_jd(y,'冬至')).month==12 for y in sample_years)
+    check('冬至恒在12月', dongzhi_ok, '冬至月份异常')
+    # 2e. 命五行->交运节气规则完整（5行）
+    check('JIAOYUN_RULES 覆盖5五行', set(JIAOYUN_RULES.keys())=={'木','火','土','金','水'}, '命五行规则不全')
+    for wx,(jq,off,zhi) in JIAOYUN_RULES.items():
+        check(f'交运节气 {wx}->{jq}{off:+d}天{zhi}时', jq in _NAME2IDX, f'{jq}不在24节气')
 
 # ══════════════════════════════════════════════════════════════
 print('── 3. 藏干12 ──')
@@ -197,6 +205,7 @@ jia_chun = [r for r in match_ganqing('甲', month_zhi='寅') if '金' in (r.beha
 check('甲春月匹配到涉金规则', len(jia_chun)>0, '甲春不容金规则未命中')
 
 print('='*60)
-print(f'验证结果: {passed} passed, {failed} failed, total {passed+failed}')
+skipped_note = f', skipped {skipped}' if skipped else ''
+print(f'验证结果: {passed} passed, {failed} failed, total {passed+failed}{skipped_note}')
 print('='*60)
 sys.exit(0 if failed==0 else 1)
