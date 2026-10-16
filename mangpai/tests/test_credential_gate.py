@@ -118,7 +118,8 @@ class TestStagedMode:
     def _run_gate(self, repo, *args):
         return subprocess.run(
             [sys.executable, str(SCRIPT), "--staged", *args],
-            cwd=repo, capture_output=True, text=True)
+            cwd=repo, capture_output=True, text=True,
+            encoding="utf-8", errors="replace")  # Windows 管道里混入 UTF-8 字节时 locale 解码会炸
 
     def test_staged_clean_passes(self, tmp_path):
         repo = self._repo(tmp_path)
