@@ -144,7 +144,7 @@ def main():
         top, local = _imports_of(path)
         for mod in top + local:
             tgt = _layer_of_module(mod)
-            rel_path = os.path.relpath(path, ROOT)
+            rel_path = os.path.relpath(path, ROOT).replace(os.sep, '/')
             if tgt and tgt in FORBIDDEN[layer] \
                     and (rel_path, mod) not in WHITELIST:
                 violations.append(
