@@ -208,6 +208,43 @@ class TestBoundaryAnnotation:
         assert any('边界区' in x and 'L3/L4边界' in x for x in r['reasons'])
 
 
+class TestG2Sanli:
+    """G2 批三条书证规则哨兵（2026-10-17）：闭合 G1 三个不合书备案案例
+    （docs/kimi-g2-sanli-prereg-20261017.md）。"""
+
+    FUZONG = (['甲', '癸', '丁', '庚'], ['寅', '酉', '丑', '子'])   # 复例二副总
+    CHALI3 = (['甲', '乙', '己', '辛'], ['午', '亥', '巳', '未'])   # 差例三
+    CIXI   = (['乙', '丁', '乙', '己'], ['未', '亥', '丑', '卯'])   # 慈禧
+
+    def test_fuzong_he_center_one_layer(self):
+        # 规则1「三种功≠三层功」：理象学:6898-6912——日主丁火无功弃之不看，
+        # 日支丑涉寅丑暗合/酉丑半合/子丑合三种合，「虽然看起来有三种不同的功，
+        # 但论功量只有一层，不是三层功」→ L1（G1 备案 L3→G2 闭合 L1）。
+        g, z = self.FUZONG
+        r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
+        assert r['level'] == 1
+        assert any('合中心' in x and '一层' in x for x in r['reasons'])
+
+    def test_chali3_tiangan_huai_veto(self):
+        # 规则2「天干坏之」否决：理象学:6354-6358——地支冲制亥水财星似乎功量很大，
+        # 然亥中甲乙并透来制日主，「地支之制财官之局，全被天干坏了。一生没有富贵」
+        # → 无功 L0（G1 备案 L3→G2 闭合 L0）。
+        g, z = self.CHALI3
+        r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
+        assert r['level'] == 0
+        assert r['tier_name'] == '无功'
+        assert any('天干坏' in x for x in r['reasons'])
+
+    def test_cixi_yueling_jianyin_four_layers(self):
+        # 规则3 月令见印整层 + 三合制库制之彻底：理象学:10595-10611——
+        # 制去杀与杀的原神双层 + 禄星禄库包围又加一层 + 「本身月令见印，
+        # 是一个强有力的印」共四层功 → L4（G1 备案 L3→G2 闭合 L4）。
+        g, z = self.CIXI
+        r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
+        assert r['level'] == 4
+        assert any('月令见印' in x for x in r['reasons'])
+
+
 class TestYongshenXiongAnnotation:
     """根因A（用神方向入层功）：锚案已由 R1 比劫夺财封顶缓解（第9期 L1+贫），
     R2/R3 扶抑层凶向与做功层口径冲突（岳飞印制伤食=贵格仍命中 R2 severe），

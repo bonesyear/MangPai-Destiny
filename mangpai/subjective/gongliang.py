@@ -41,6 +41,24 @@ gongliang - 段氏做功等级量化（四层功量）·主观层
      （蒋介石伤官制之不净，达不到四层）。
   层次映射：点数≥4->四层，≥3->三层，≥2->二层，否则一层；再依制净/普通降档封顶。
 
+G2 三条书证规则（2026-10-17，闭合 G1 三个不合书备案案例；预注册
+  docs/kimi-g2-sanli-prereg-20261017.md）：
+  G2-1 三种功≠三层功（理象学:6898-6912 副总案）：日主无功弃之不看（书「日主
+    丁火没有功，弃之不看」——日主所出/所受之克不入克链）；日支为合中心
+    （涉≥3 合，同 zuogong_detect._apply_he_center_skip 口径）且为同制位时，
+    同制族（同制+七杀当财）同出一字并计一层、不重复计层
+    （书「虽然看起来有三种不同的功，但论功量只有一层，不是三层功」）。
+  G2-2 「天干坏之」否决（理象学:6354-6358 差例三）：制局目标支所藏官杀透出、
+    官杀并透混杂（正官与七杀同透，书「甲乙并透」）、日主无印透干化杀——结构
+    候选；经制净闸确认（制不净方成立；制净者根尽透干为虚，乾隆官杀并透而帝王
+    不在此列）则地支之制财官之局全被天干坏：同制族计分整族撤销、层功判 0
+    （无功，书「全被天干坏了。一生没有富贵」）。
+  G2-3 月令见印整层 + 三合制库制之彻底（理象学:10595-10611 慈禧案）：月令本气
+    为日主之印且入三合局成势（「强有力的印」）者月令做功计 +1 整层（书「共
+    四层功」处把月令计整层）；其余月令做功维持 +0.5（gaoji:866-870 法则7，
+    今人重编本权重低，理象学正文案例为准）。三合成势围制+制库书判制之彻底
+    （「全部制死…共四层功」），不净封顶不适用（同奥纳西斯方局+制库豁免例）。
+
 普通四柱（小功，源文 6282-6376 行）：
   - 形不成气势但主位有功 -> 功不大
   - 有气势但气势浪费(做功少) -> 功小（须贼神捕神/净制判党势，本模块暂不判，见局限）
@@ -116,6 +134,10 @@ _HE_ZHI_TYPES: Set[str] = {'天干合', '地支合', '暗合', '半合'}
 # ── 计入「被制方」的动作 type（制用 + 合制 + 墓用）──
 _CONTROL_TYPES: Set[str] = _ZHI_TYPES | _HE_ZHI_TYPES | {'墓用'}
 
+# ── 阳干集合（阴阳判正官/七杀：与日干同阴阳=七杀、异阴阳=正官；
+#    G2「天干坏之」官杀并透混杂判定用，理象学:6354-6358「甲乙并透」）──
+_YANG_GANS: Set[str] = {'甲', '丙', '戊', '庚', '壬'}
+
 # ── 原神-用神 十神配对（原神 = 生用神者）──
 #   财的原神=食伤(食伤生财)；官的原神=财(财生官)；
 #   印的原神=官杀(官杀生印)；食伤的原神=比劫(比劫生食伤)
@@ -134,7 +156,7 @@ _SCORE_BAND: Dict[int, Tuple[int, int]] = {
     3: (68, 89),
     4: (90, 100),
 }
-_SCORE_BASE: Dict[int, int] = {1: 12, 2: 50, 3: 74, 4: 92}
+_SCORE_BASE: Dict[int, int] = {0: 0, 1: 12, 2: 50, 3: 74, 4: 92}  # 0=无功（band(0,0) 恒钳 0 分；G2「天干坏之」否决首个中管道 0 态，理象学:6354-6358）
 
 # ── 高级篇1.4 补齐：带象所承之象限为 财/官杀/印（源文「其承载的象（财、官、印）」）──
 _DAIXIANG_XIANG: Set[str] = {'财', '官杀', '印'}
@@ -344,7 +366,12 @@ def analyze_gongliang(
         _zhiku_tombs=rules['_zhiku_tombs'], _zb_jing=zb_jing,
         _zb_bao_counted=zb_bao_counted, _zb_pyramid=zb_pyramid,
         yuanshen_hit=yuanshen_hit, hua_chengju=hua_chengju, reasons=reasons,
+        san_he_formed=san_he_formed,
+        _tg_huai_struct=rules['_tg_huai_struct'],
+        _tg_huai_note=rules['_tg_huai_note'],
+        _yuanshen_family_pts=rules['_yuanshen_family_pts'],
     )
+    points = caps['points']  # G2：「天干坏之」否决成立后为撤销同制族之功量点
     zhi_jing: str = caps['zhi_jing']
     penalty: Optional[str] = caps['penalty']
     raw_level: int = caps['raw_level']
@@ -589,13 +616,18 @@ def _apply_gong_point_rules(
     _zb_clian: Optional[Dict],
     _zb_jing: str,
 ) -> Dict:
-    """14 条计分规则集中执行（H-fix-5 ③，H11 方案）：原神用神同制+2/制墓库+2/
+    """计分规则集中执行（H-fix-5 ③，H11 方案）：原神用神同制+2/制墓库+2/
     七杀当财+1/入墓为功+1/库源连墓+1/包局+1/克链+1/zb 包制冲链有条件计入/
     金字塔冲链/包局2.6/带象/官统财/月令做功+0.5/墓库属性/开库/化用成局+2——
-    顺序、阈值、去重口径全部保持（体逐字搬移）；对 caiming 的消费保持函数内
+    顺序、阈值、去重口径全部保持（体逐字搬移）；G2 增三条书证规则（合中心
+    并计/日主边剔链/天干坏之候选/月令见印整层，见模块 docstring G2 段）；
+    对 caiming 的消费保持函数内
     局部导入（H-fix-4c 循环依赖显式备案，gongliang⇢caiming 唯一回边）。"""
     reasons: List[str] = []
     points: float = 0.0
+    # G2：同制族计分累计（同制/制墓库/七杀当财/库源连墓——「天干坏之」否决成立时
+    #    整族撤销，见 caps 段；理象学:6354-6358）
+    _yuanshen_family_pts: float = 0.0
     # ── 1. 原神用神同制 -> +2（核心铁律）──
     # 判定：存在一个强制参与位（且有冲/克/穿实制佐证），其干支(含藏干)同时含
     # 「用神」与「原神」十神大类。
@@ -608,6 +640,7 @@ def _apply_gong_point_rules(
     # 同现时取申，方可叠加七杀当财达三层。
     yuanshen_hit: Optional[str] = None
     yuanshen_pos: Optional[str] = None
+    _he_center_merged = False  # G2 规则1：日支合中心同制族并计一层（理象学:6898-6912）
     if day_wx and gans and zhis and strong_positions:
         candidates: List[Tuple[str, str, str]] = []  # (pos, yong, yuan)
         for pos in sorted(strong_positions):  # sorted：稳定 sort 平局序，复跑确定
@@ -630,15 +663,37 @@ def _apply_gong_point_rules(
             candidates.sort(key=_rank)
             pos, yong, yuan = candidates[0]
             elem = _elem_of(pos, gans, zhis)
-            points += 2
+            # ── G2 规则1：日支合中心「三种功≠三层功」（理象学:6898-6912 副总案）──
+            # 书：「日主丁火没有功，弃之不看，看丑土。寅丑暗合，酉丑半合，子丑又合，
+            # 丑有三种合，这是三种不同的功……虽然看起来有三种不同的功，但论功量只有
+            # 一层，不是三层功」——日支为合中心（涉≥3 合：地支合/暗合/半合，同
+            # zuogong_detect._apply_he_center_skip 既有口径）时，其力尽归于合，
+            # 同制族（同制+七杀当财）同出一字，并计一层、不重复计层。
+            _he_cnt = sum(
+                1 for wa in non_aux
+                if wa.get('type') in ('地支合', '暗合', '半合')
+                and ('day_zhi' in wa.get('from_pos', '')
+                     or 'day_zhi' in wa.get('to_pos', '')))
+            _he_center_merged = bool(pos == 'day_zhi' and _he_cnt >= 3)
             yuanshen_hit = f'{yong}+{yuan}'
             yuanshen_pos = pos
-            tier_hint = ('千万-亿级富命' if yong == '财'
-                         else '厅级以上贵命' if yong == '官杀' else '两层功量')
-            reasons.append(
-                f'原神用神同制：{pos}({elem})含用神「{yong}」与原神「{yuan}」'
-                f'同制（+2层，{tier_hint}）'
-            )
+            if _he_center_merged:
+                points += 1
+                _yuanshen_family_pts += 1
+                reasons.append(
+                    f'原神用神同制：{pos}({elem})含用神「{yong}」与原神「{yuan}」同制，'
+                    f'惟日支合中心（涉{_he_cnt}合）三种功论功量只有一层、不是三层功'
+                    f'（理象学:6898-6912），同制族并计（+1层）'
+                )
+            else:
+                points += 2
+                _yuanshen_family_pts += 2
+                tier_hint = ('千万-亿级富命' if yong == '财'
+                             else '厅级以上贵命' if yong == '官杀' else '两层功量')
+                reasons.append(
+                    f'原神用神同制：{pos}({elem})含用神「{yong}」与原神「{yuan}」'
+                    f'同制（+2层，{tier_hint}）'
+                )
 
     # ── 2. 制墓库 -> +2（制局中制墓库地支为两层功）──
     #   书（理象学 6037）「制局中制墓库为功量也是两层」——无三合条件；书内两制库
@@ -663,6 +718,7 @@ def _apply_gong_point_rules(
             elem = _elem_of(pos, gans, zhis) if pos else ''
             if elem and _is_tomb(elem) and elem != _ys_elem_zk:
                 points += 2
+                _yuanshen_family_pts += 2
                 _zhiku_tombs.append(elem)
                 reasons.append(f'制墓库：制局冲/刑制墓库「{elem}」（+2层）')
                 break
@@ -679,11 +735,20 @@ def _apply_gong_point_rules(
         if guansha_gan:
             ys_elem = _elem_of(yuanshen_pos, gans, zhis)
             if ys_elem and '官杀' in _elem_cats(day_wx, ys_elem):
-                points += 1
-                reasons.append(
-                    f'七杀当财：官杀透干({guansha_gan})与制局目标({yuanshen_pos}/{ys_elem})'
-                    f'同根，七杀当财（+1层）'
-                )
+                if _he_center_merged:
+                    # G2 规则1：七杀当财与日支合中心同制同出一字（同族合），
+                    # 并入一层不重复计层（理象学:6912「论功量只有一层，不是三层功」）
+                    reasons.append(
+                        f'七杀当财：官杀透干({guansha_gan})与制局目标({yuanshen_pos}/{ys_elem})'
+                        f'同根，惟日支合中心同族功量已并计一层，不重复计层（理象学:6912）'
+                    )
+                else:
+                    points += 1
+                    _yuanshen_family_pts += 1
+                    reasons.append(
+                        f'七杀当财：官杀透干({guansha_gan})与制局目标({yuanshen_pos}/{ys_elem})'
+                        f'同根，七杀当财（+1层）'
+                    )
 
     # ── 4. 入墓为功 -> +1（局中有入墓(墓用)做功者算一层功）──
     #   只认 confirm 判定之真墓用（非 auxiliary，M4 放开后宾位入墓不计）。
@@ -721,6 +786,7 @@ def _apply_gong_point_rules(
                         and z != ys_elem
                         and (ys_elem, z) not in _entombed_pairs):
                     points += 1
+                    _yuanshen_family_pts += 1
                     reasons.append(
                         f'库源/连墓：制局目标「{ys_elem}({ys_wx})」之墓库「{z}」在局，'
                         f'源头得库（+1层）'
@@ -736,6 +802,7 @@ def _apply_gong_point_rules(
                             and is_entomb(_mz, z, zhis, gans)
                             and (_mz, z) not in _entombed_pairs):
                         points += 1
+                        _yuanshen_family_pts += 1
                         reasons.append(
                             f'连墓加层：月令「{_mz}」入墓于源头之库「{z}」，'
                             f'提纲入库加大库之功量（+1层）'
@@ -780,7 +847,13 @@ def _apply_gong_point_rules(
     #   则失去作用」）——已入墓元素不能再主动克他字充当中继，其出边不入链
     #   （qi15-伤官当财造：亥入辰墓在案，亥克午之边惰性，辰→亥→午链不成立）。
     _entombed_pos: Set[str] = {tw.get('to_pos', '') for tw in active_tomb_works}
-    chain_len = _chain_length(non_aux, inert=_entombed_pos)
+    #   日主无功弃之不看（理象学:6898 副总案「日主丁火没有功，弃之不看」；
+    #   :1490 既有先例——日主自克非制）：日主所出之克（我去取财之意向）与所受之克
+    #   （七杀攻身）皆日主之事而非命局做功，其边不入克链。
+    _non_aux_chain = [wa for wa in non_aux
+                      if wa.get('from_pos') != 'day_gan'
+                      and wa.get('to_pos') != 'day_gan']
+    chain_len = _chain_length(_non_aux_chain, inert=_entombed_pos)
     if chain_len >= 2:
         points += 1
         reasons.append(f'层层相制：克链长{chain_len}级，逐级相制（+1层）')
@@ -935,13 +1008,31 @@ def _apply_gong_point_rules(
     #   若月令直接参与核心做功（为主要功神），则其做功效率因其得时得令而更高」）。
     #   判定：月令支出现在核心做功动作双方（involved_positions，非辅助制/合/墓）。
     #   +0.5 为半层加权，不单独跨档（须与他项累加方显），故不设同制门。
+    #   G2 规则3：月令见印计整层（理象学:10600-10611 慈禧案「再加之本身月令见印，
+    #   是一个强有力的印，共四层功」——书于该处把月令计为整层）——条件取书的特定
+    #   情形（最小波及）：月令本气五行为日主之印，且月令入三合局成势（「强有力」
+    #   之据：既当令又入局成势）方计 +1 整层；其余月令做功维持 +0.5
+    #   （gaoji:866-870 法则7，gaoji 为今人重编本权重低，理象学正文案例为准）。
     if day_wx and gans and zhis and len(zhis) > 1:
         _yue_pos = {'month_zhi', 'month_gan'}
         if _yue_pos & involved_positions:
-            points += 0.5
-            reasons.append(
-                f'月令做功：月令{zhis[1]}直接参与核心做功，提纲得时得令（+0.5层）'
-            )
+            _yue_wx = ZHI_WX.get(zhis[1], '')
+            _yin_wx_7e = next((w for w, gen in WX_SHENG.items() if gen == day_wx), '')
+            _yue_in_sanhe = any(
+                _trio <= set(zhis) and zhis[1] in _trio
+                for _trio in ({'申', '子', '辰'}, {'寅', '午', '戌'},
+                              {'巳', '酉', '丑'}, {'亥', '卯', '未'}))
+            if _yue_wx and _yue_wx == _yin_wx_7e and _yue_in_sanhe:
+                points += 1
+                reasons.append(
+                    f'月令见印：月令{zhis[1]}本气为日主之印、入三合局成势，'
+                    f'强有力的印，计整层（+1层，理象学:10600-10611）'
+                )
+            else:
+                points += 0.5
+                reasons.append(
+                    f'月令做功：月令{zhis[1]}直接参与核心做功，提纲得时得令（+0.5层）'
+                )
 
     # 7f. 墓库属性 -> +1（法则5「墓库本身，加一层功：墓库参与做功，无论作为体之库
     #   （比劫库、食伤库）还是用之库（财库、官杀库），其库之属性本身就增加一层功
@@ -1075,6 +1166,42 @@ def _apply_gong_point_rules(
                     points += 1
                     reasons.append('化用成局高层功量：纯杀印相生化用、无制用做功竞争，'
                                    '化用路径效率高于制局（+1层，可达四层）')
+    # ── G2 规则2候选：「天干坏之」结构检出（理象学:6354-6358 差例三）──
+    # 书：「此造看地支有火与燥土成比禄之势，冲制亥水财星，似乎功量很大；然再看
+    # 天干亥中甲乙并透，来制日主，所以地支之制财官之局，全被天干坏了。一生没有
+    # 富贵，农村打工为生」。机制（书怎么说的就怎么实现）：
+    #   (1) 制局目标支所藏「克日主者（官杀）」透出天干（书「亥中甲乙…透」）；
+    #   (2) 官杀并透混杂——正官与七杀同透（书「并透」之「并」；单一杀透如例八
+    #       壬水双透为纯杀，非并透，书判三层数十亿，不在此列）；
+    #   (3) 日主天干无印化杀（有印则官杀生印、印生日主，化杀为权，非「制日主」）。
+    # 结构候选成立不即否决——经 caps 段制净闸确认：制不净（被制方残存反扑）方
+    # 成立；制净者被制方根尽、透干官杀为虚不能为害（乾隆官杀并透而帝王四层）。
+    _tg_huai_struct = False
+    _tg_huai_note = ''
+    if yuanshen_hit and yuanshen_pos and day_wx and gans and zhis:
+        _sha_wx_tg = WX_KE_ME.get(day_wx, '')
+        _ys_elem_tg = _elem_of(yuanshen_pos, gans, zhis)
+        if _sha_wx_tg and _ys_elem_tg:
+            _cang_has_sha = any(
+                GAN_WX.get(cg, '') == _sha_wx_tg
+                for cg, _ in CANG_GAN_MANGPAI.get(_ys_elem_tg, []))
+            _tou_sha = [g for i, g in enumerate(gans)
+                        if i != 2 and g and GAN_WX.get(g, '') == _sha_wx_tg]
+            if _cang_has_sha and _tou_sha:
+                _day_yang = day_gan in _YANG_GANS
+                _has_zheng = any((g in _YANG_GANS) != _day_yang for g in _tou_sha)
+                _has_qisha = any((g in _YANG_GANS) == _day_yang for g in _tou_sha)
+                _yin_wx_tg = next((w for w, gen in WX_SHENG.items()
+                                   if gen == day_wx), '')
+                _tou_yin = any(g and GAN_WX.get(g, '') == _yin_wx_tg
+                               for i, g in enumerate(gans) if i != 2)
+                if _has_zheng and _has_qisha and not _tou_yin:
+                    _tg_huai_struct = True
+                    _tg_huai_note = (
+                        f'制局目标「{_ys_elem_tg}」藏官杀透出，'
+                        f'天干{"".join(_tou_sha)}并透（官杀混杂）来制日主、'
+                        f'日主无印透干化杀'
+                    )
     return {
         'points': points, 'reasons': reasons,
         'yuanshen_hit': yuanshen_hit, 'yuanshen_pos': yuanshen_pos,
@@ -1084,6 +1211,8 @@ def _apply_gong_point_rules(
         '_zb_boost': _zb_boost,
         '_rumu_counted': _rumu_counted, '_zhiku_counted': _zhiku_counted,
         'hua_chengju': hua_chengju,
+        '_yuanshen_family_pts': _yuanshen_family_pts,
+        '_tg_huai_struct': _tg_huai_struct, '_tg_huai_note': _tg_huai_note,
     }
 
 
@@ -1113,6 +1242,10 @@ def _apply_caps_and_direction(
     yuanshen_hit: Optional[str],
     hua_chengju: bool,
     reasons: List[str],
+    san_he_formed: bool,
+    _tg_huai_struct: bool,
+    _tg_huai_note: str,
+    _yuanshen_family_pts: float,
 ) -> Dict:
     """封顶/降档/方向标注（H-fix-5 ④，H11 方案）：制净程度判定+贼神捕神净制
     增强、普通四柱降档、层次映射+制不净/降档封顶、比劫夺财 R1 封顶/抑制、
@@ -1126,6 +1259,11 @@ def _apply_caps_and_direction(
     # 两层功，杀库作功一层功，加包制一层功，有四层功量」）——方局成势围制下
     # 透干泄秀书未视为不净，不净封顶不适用（同 hua_chengju 豁免例）。
     _fangju_zhiku = _fang_ju_formed and bool(_zhiku_tombs)
+    # G2：三合成势围制+制库同例豁免（理象学:10595-10611 慈禧「亥卯未三合一个
+    # 强大的木局，将丑土连其丑中的杀星全部制死……共四层功」）——三合成势制
+    # 杀库，书判制之彻底，透干泄秀（食伤透干）书未视为不净，同奥纳西斯型
+    # 不净封顶不适用。
+    _sanhe_zhiku = san_he_formed and bool(_zhiku_tombs)
     zhi_jing, jing_note = _assess_zhi_jing(
         day_wx, involved_cats, zhi_targets, gan_cats, fei_cats, non_aux, has_severe_harm,
     )
@@ -1157,8 +1295,27 @@ def _apply_caps_and_direction(
             reasons.append('制不净：' + jing_note + '（化用成局/从杀格为化用路径，制净框架不适用，不封顶）')
         elif _fangju_zhiku:
             reasons.append('制不净：' + jing_note + '（方局围制+制库双结构，书判四层功量（理象学6470-6474），不净封顶不适用）')
+        elif _sanhe_zhiku:
+            reasons.append('制不净：' + jing_note + '（三合成势围制+制库，书判制之彻底共四层功（理象学:10595-10611），不净封顶不适用）')
         else:
             reasons.append('制不净：' + jing_note + '，封顶于三层（达不到四层）')
+
+    # ── G2 规则2：「天干坏之」否决确认（理象学:6354-6358 差例三）──
+    # 结构候选（rules 段检出：制局目标支藏官杀透出+官杀并透混杂+日主无印透干）
+    # 经制净闸确认：制不净（被制方残存反扑）方成立——制净者被制方根尽、透干
+    # 官杀为虚不能为害（乾隆官杀并透而帝王四层，不在此列）。确认则地支之制
+    # 财官之局全被天干坏：同制族计分（同制/制墓库/七杀当财/库源连墓）整族撤销，
+    # 层功判 0（无功——书「全被天干坏了。一生没有富贵」，理象学:6022-6024 无功
+    # 零态）。与「虚透/空亡」打折不重复计：打折为制不净之降层调节（上文），
+    # 本条为结构否决——否决成立后层功直判 0，打折路径不再作用。
+    _tg_huai = False
+    if _tg_huai_struct and zhi_jing == '不净':
+        _tg_huai = True
+        points -= _yuanshen_family_pts
+        reasons.append(
+            f'天干坏之否决：{_tg_huai_note}，且制不净——地支之制财官之局全被'
+            f'天干坏，同制族计分撤销，一生没有富贵（无功，理象学:6354-6358）'
+        )
 
     # ── 普通四柱降档（压低分数、封顶低层）──
     penalty, penalty_note = _assess_penalty(
@@ -1173,8 +1330,10 @@ def _apply_caps_and_direction(
     level = raw_level
     # 制不净 -> 封顶三层（段氏：制之不净达不到四层，如蒋介石）；
     #   化用成局/从杀格为化用路径非制局，制净框架不适用，不受此封顶；
-    #   方局围制+制库双结构书明断四层（理象学 6470-6474），同不适用。
-    if zhi_jing == '不净' and level > 3 and not hua_chengju and not _fangju_zhiku:
+    #   方局围制+制库双结构书明断四层（理象学 6470-6474），同不适用；
+    #   三合成势围制+制库书判制之彻底共四层（理象学:10595-10611 慈禧），同不适用。
+    if zhi_jing == '不净' and level > 3 and not hua_chengju \
+            and not _fangju_zhiku and not _sanhe_zhiku:
         level = 3
     # 普通四柱降档封顶（源文 6282-6376 三种小功情形）：
     #   相生之功 -> 封顶一层（相生效率低，源文普通例二「相生之功，功不算大」=普通）；
@@ -1183,6 +1342,10 @@ def _apply_caps_and_direction(
         level = 1
     elif penalty and level > 2:
         level = 2
+    # G2 规则2：「天干坏之」否决成立 -> 层功判 0（无功，理象学:6354-6358
+    #   「地支之制财官之局，全被天干坏了。一生没有富贵」；:6022-6024 无功零态）。
+    if _tg_huai:
+        level = 0
 
     # ── 吉凶方向：比劫夺财封顶（R1，见 yongshen.detect_bijiao_duocai）──
     # 段氏「制财得财」以功神非比劫为前提；功神=比劫制财（身强财为用神、财弱孤）
@@ -1309,6 +1472,7 @@ def _apply_caps_and_direction(
     return {
         'zhi_jing': zhi_jing, 'zb_jing_adopted': zb_jing_adopted,
         'penalty': penalty, 'raw_level': raw_level, 'level': level,
+        'points': points,
         'pocai_signal': pocai_signal, 'pocai_severity': pocai_severity,
         'pocai_reason': pocai_reason, 'yongshen_xiong': yongshen_xiong,
         'fuhe': fuhe, '_strength_gl': _strength_gl, 'reasons': reasons,
