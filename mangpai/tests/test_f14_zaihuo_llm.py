@@ -17,7 +17,7 @@ from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective import MANGPAI_SCHOOL, assemble, build_payload, load_template
 from mangpai.subjective.narrative import summarize_engine_result
 from mangpai.subjective.zaihuo import (
-    analyze_zaihuo, detect_chehuo, detect_siwang,
+    analyze_zaihuo, classify_jibing, detect_chehuo, detect_siwang,
 )
 
 
@@ -144,3 +144,48 @@ def test_prompt_death_ban():
     assert '死亡' in system and '寿' in system
     tpl = load_template(MANGPAI_SCHOOL)
     assert '死亡' in tpl and '寿' in tpl
+
+
+# ───────────────── 批D：_PO_DISEASE 收窄 + 羊刃逢冲必见血 ─────────────────
+
+def test_po_disease_traditional_pairs_removed():
+    """批D：子酉/丑辰/寅亥/巳申/未戌 5 对传统六破系书外移入（段氏全书零命中，
+    理象学:2930 盲派破仅子卯/卯午两对）——子酉破不再报病。"""
+    jb = classify_jibing('甲', ['甲', '癸', '甲', '庚'], ['子', '酉', '午', '申'])
+    assert jb['po'] == []
+
+
+def test_po_disease_maowu_kept():
+    """卯午破保留（gaoji:15468-15471「卯午破：木不生火，主血管破裂、心脏出血、
+    心梗脑溢」）；子卯破主病已由 _XING_DISEASE 子卯刑覆盖（gaoji:15521
+    「子卯刑（亦作破）」）。"""
+    jb = classify_jibing('甲', ['甲', '丁', '甲', '庚'], ['卯', '午', '子', '申'])
+    assert jb['po'] == ['血管/心出血/脑溢']
+
+
+def test_yangren_fengchong_marker():
+    """批D：羊刃逢冲必见血（gaoji:16223/16548/16562 三处重申；detect_siwang
+    docstring 早承诺未实现）——原局刃支逢冲录死亡风险 marker（中性措辞）。"""
+    gans, zhis = ['甲', '辛', '甲', '庚'], ['卯', '酉', '子', '午']
+    sw = detect_siwang('甲', gans, zhis)
+    assert any('羊刃' in m and '逢冲' in m for m in sw['markers'])
+
+
+def test_yangren_fenghe_marker():
+    """刃逄冲合命难全（gaoji:16548）——原局刃支逢合（卯戌合）亦录。"""
+    gans, zhis = ['甲', '丙', '甲', '戊'], ['卯', '戌', '寅', '子']
+    sw = detect_siwang('甲', gans, zhis)
+    assert any('羊刃' in m and '逢合' in m for m in sw['markers'])
+
+
+def test_yangren_yunsui_marker():
+    """运岁羊刃被冲（消费 yunfan 禄刃倒戈链）录 marker；原局无冲合者不双报。"""
+    yf = {'dayun_fan': [{'gz': '辛酉', 'fans': [
+        {'fan_type': '大运反局·类型一(禄刃倒戈)', 'severity': '重',
+         'reason': '羊刃(卯)被冲——本护身之禄刃反戈攻身（阴阳逆转）'}]}],
+        'liunian_fan': [], 'sui_yun_liandong': []}
+    gans, zhis = ['甲', '丙', '甲', '戊'], ['卯', '寅', '子', '丑']
+    sw = detect_siwang('甲', gans, zhis, yunfan_result=yf)
+    assert any('羊刃' in m and '运岁' in m for m in sw['markers'])
+    # 原局无刃冲/合 → 原局 marker 不出（仅运岁一条）
+    assert not any('羊刃' in m and '运岁' not in m for m in sw['markers'])

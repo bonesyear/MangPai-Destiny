@@ -46,6 +46,8 @@ from mangpai.objective.tiyong import classify_tiyong
 from mangpai.objective.wood_type import analyze_wood_type
 from mangpai.objective.soil_type import analyze_soil
 from mangpai.objective.virtual_solid import analyze_virtual_solid
+from mangpai.objective.shishen import shishen_of as _shishen_of
+from mangpai.objective.canggan import get_canggan_mangpai
 
 _logger = logging.getLogger(__name__)
 
@@ -237,6 +239,22 @@ _WORK_TYPE_LABEL = {
 # 党羽数不足（孤身无党）者，其日柱制用做功无力，降为辅助。
 _DANGSHI_MIN_SUPPORTERS = 1
 
+# ── 制法效率标签（批D，书据定性排序；键=无序支对，作用于地支合/暗合/半合）──
+# 理象学:7462-7489：巳申合效率最高（金水有势申制巳、木火有势巳制申，原神
+# 用神全能制死）；卯戌合/卯申合/午亥合次之（效率也很高），巳酉半合（局中
+# 木火旺时制去酉金）亦高；子丑合/寅丑合略差；寅亥合/辰酉合/午戌合较低，
+# 卯未/亥未半合制未土相对要低；午未合两字相生，不制。
+_HEZHI_EFFICIENCY: Dict[frozenset, str] = {
+    frozenset(('巳', '申')): '最高',
+    frozenset(('卯', '戌')): '高', frozenset(('卯', '申')): '高',
+    frozenset(('午', '亥')): '高', frozenset(('巳', '酉')): '高',
+    frozenset(('子', '丑')): '中', frozenset(('寅', '丑')): '中',
+    frozenset(('寅', '亥')): '低', frozenset(('辰', '酉')): '低',
+    frozenset(('午', '戌')): '低', frozenset(('卯', '未')): '低',
+    frozenset(('亥', '未')): '低',
+    frozenset(('午', '未')): '不制',
+}
+
 
 def _pillar_of(pos: str) -> str:
     """from_pos/to_pos -> 柱位键，如 'day_gan' -> 'day'。"""
@@ -283,12 +301,27 @@ def _hua_is_chengju(day_gan: str, gans: List[str],
     return False
 
 
+def _shishen_elem(day_gan: str, elem: str) -> str:
+    """elem（天干或地支）对 day_gan 的十神全名；地支取本气藏干（本气在先取首）。"""
+    if elem in GAN_WX:
+        return _shishen_of(day_gan, elem)
+    for cg, _qi in get_canggan_mangpai(elem):
+        return _shishen_of(day_gan, cg)
+    return ''
+
+
 def _tiyong_of(day_gan: str, elem: str) -> str:
     """根据五行判定 elem 相对 day_gan 属体属用。
 
-    体 = 同我(比劫) + 生我(印) + 我生(食伤) + 日主
-    用 = 我克(财) + 克我(官杀)
-    地支无十神，以五行生克关系等同判定。
+    体 = 同我(比劫) + 生我(印) + 食神 + 日主
+    用 = 我克(财) + 克我(官杀) + 伤官
+    地支无十神，以五行生克关系等同判定；食伤分流时地支取本气藏干定食神/伤官
+    （地支本气五行恒同支五行，故食伤分支内本气必为食神或伤官）。
+
+    食伤双口径（批D）：理象学:5288-5296「如一定区分它们，则食神更近于体，
+    伤官则接近于用」——与 objective/tiyong.py（_NEUTRAL_BIAS 食神偏体/
+    伤官偏用）合书口径对齐。旧实现食伤全归体，丢失「伤官接近于用」；
+    十神不明（缺判）时保守归体（旧口径）。
     """
     day_wx = GAN_WX.get(day_gan, '')
     wx = GAN_WX.get(elem, '') or ZHI_WX.get(elem, '')
@@ -299,7 +332,8 @@ def _tiyong_of(day_gan: str, elem: str) -> str:
     if WX_SHENG.get(wx) == day_wx:
         return '体'  # 印（生我）
     if WX_SHENG.get(day_wx) == wx:
-        return '体'  # 食伤（我生）
+        # 食伤（我生）：伤官归用、食神归体（书据见 docstring）
+        return '用' if _shishen_elem(day_gan, elem) == '伤官' else '体'
     if WX_KE.get(day_wx) == wx:
         return '用'  # 财（我克）
     if WX_KE.get(wx) == day_wx:
@@ -1009,6 +1043,37 @@ def analyze_zuogong(
                 _parts.append(f"伤官偏用({','.join(_bs['伤官偏用'])})")
             signal_notes.append('体用偏性：' + '、'.join(_parts))
 
+    # ── 制法效率分级打标（批D，书据定性排序）──
+    # 合制动作（地支合/暗合/半合）按 _HEZHI_EFFICIENCY 表打 zhifa_efficiency
+    # 标签（最高/高/中/低/不制）；子午冲且双方势力相当（水火字数相等，
+    # 工程近似）标「湮灭」（初级:322-324「子午是力量相当的对冲，是能量的
+    # 湮灭，效率不高」）。打标含辅助动作（信息保留），聚合只计非辅助。
+    _wx_cnt_zf = {w: 0 for w in ('木', '火', '土', '金', '水')}
+    for _e in gans:
+        _w = GAN_WX.get(_e, '')
+        if _w:
+            _wx_cnt_zf[_w] += 1
+    for _e in zhis:
+        _w = ZHI_WX.get(_e, '')
+        if _w:
+            _wx_cnt_zf[_w] += 1
+    for wa in work_actions:
+        _zf_type = wa.get('type', '')
+        if _zf_type not in ('地支合', '暗合', '半合', '冲'):
+            continue
+        _zf_f = _elem_of(wa.get('from_pos', ''), gans, zhis)
+        _zf_t = _elem_of(wa.get('to_pos', ''), gans, zhis)
+        if _zf_f not in ZHI_WX or _zf_t not in ZHI_WX:
+            continue
+        _zf_pair = frozenset((_zf_f, _zf_t))
+        if _zf_type in ('地支合', '暗合', '半合'):
+            _zf_tag = _HEZHI_EFFICIENCY.get(_zf_pair)
+            if _zf_tag:
+                wa['zhifa_efficiency'] = _zf_tag
+        elif _zf_pair == frozenset(('子', '午')) \
+                and _wx_cnt_zf['水'] == _wx_cnt_zf['火']:
+            wa['zhifa_efficiency'] = '湮灭'
+
     # ── 做功效率（仅计非辅助做功）──
     non_aux = [wa for wa in work_actions if not wa.get('auxiliary')]
     # work_types 以 non_aux 为准重算：S1 去重/S2 降级动作的 type 不计入，
@@ -1023,6 +1088,18 @@ def analyze_zuogong(
         efficiency = '中'
     else:
         efficiency = '低'
+    # 制法效率占比纳入判定（批D；原动作数/类型数阈值保留兜底，未推翻）：
+    # 非辅助已分级制法中高效率（最高/高）占比 ≥1/2 -> 低升中；
+    # 已分级制法全部低效（低/不制/湮灭）-> 高让位中（书据定性压过纯计数阈值，
+    # 理象学:7462-7489 / 初级:322-324）。
+    _zhifa = [wa['zhifa_efficiency'] for wa in non_aux if wa.get('zhifa_efficiency')]
+    if _zhifa:
+        _n_high = sum(1 for _t in _zhifa if _t in ('最高', '高'))
+        _n_low = sum(1 for _t in _zhifa if _t in ('低', '不制', '湮灭'))
+        if _n_high * 2 >= len(_zhifa) and efficiency == '低':
+            efficiency = '中'
+        elif _n_low == len(_zhifa) and efficiency == '高':
+            efficiency = '中'
     # 长生/天干入墓折扣动作过多 -> 效率降一级（高->中、中->低、低不变）
     efficiency_discount_count = sum(1 for wa in non_aux if wa.get('efficiency_discount'))
     if action_count > 0 and efficiency_discount_count * 2 >= action_count:

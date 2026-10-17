@@ -765,6 +765,7 @@ def classify_hangye_xiang(
     gans: List[str],
     zhis: List[str],
     combo_result: Optional[Dict] = None,
+    relations: Optional[Dict] = None,
 ) -> Dict:
     """行业取象：依官命做功组合 + 干支象定行业。
 
@@ -774,9 +775,15 @@ def classify_hangye_xiang(
       - 印制伤食/印化官杀/印带官帽 -> 文职/教育/行政/文书
       - 官禄格 -> 正统官职/公务员
       - 官带财帽（管财的官）-> 财政/金融/税务/企业管理
+    批E 补地支支象通道（中级:3685-3687）：「官命组合中，如出现申、酉两字
+      做功，一般是检察、法院、法律有关的官职；如出现申、酉、丑、寅字的
+      组合做功，一般与公安部门的官」——以官命为前提（is_guanming），字
+      须实际参与做功（非辅助动作两端），存在不计；四字组合（公安）优先
+      于申酉两字（检察/法院/法律）。
 
     Returns:
-        {'primary': str, 'by_combo': [str], 'by_ganxiang': str, 'details': [str]}
+        {'primary': str, 'by_combo': [str], 'by_ganxiang': str,
+         'by_zhixiang': str, 'details': [str]}
     """
     if is_pillars(day_gan):
         p = day_gan
@@ -809,6 +816,39 @@ def classify_hangye_xiang(
         if guancai['industry'] not in by_combo:
             by_combo.append(guancai['industry'])
 
+    # ── 地支支象通道（中级:3685-3687，批E 补——旧仅 combo/天干象两路）──
+    # 「官命组合中，如出现申、酉两字做功，一般是检察、法院、法律有关的官职；
+    #   如出现申、酉、丑、寅字的组合做功，一般与公安部门的官。」
+    # 字须实际参与做功（非辅助动作两端之支），存在不计；申酉丑寅四字组合
+    # （≥3字在局且四字之间有做功往来=交织，同 zhiye 8.2 ⑤判据）优先于
+    # 申酉两字（更具体组合）。
+    by_zhixiang = ''
+    if combo_result.get('is_guanming') and len(gans or []) == 4 and len(zhis or []) == 4:
+        rel = _ensure_relations(day_gan, gans, zhis, relations)
+        wa_zx = [a for a in (rel.get('work_actions') or []) if not a.get('auxiliary')]
+
+        def _zhi_at(pos: str) -> str:
+            pk = (pos or '').split('_')[0]
+            if (pos or '').endswith('_zhi') and pk in PILLAR_KEYS:
+                return zhis[PILLAR_KEYS.index(pk)]
+            return ''
+
+        acted: Set[str] = set()
+        sgcy_pair = False
+        _SGCY = {'申', '酉', '丑', '寅'}
+        for a in wa_zx:
+            fz, tz = _zhi_at(a.get('from_pos', '')), _zhi_at(a.get('to_pos', ''))
+            for z in (fz, tz):
+                if z:
+                    acted.add(z)
+            if fz in _SGCY and tz in _SGCY:
+                sgcy_pair = True
+        in_ju = _SGCY & set(zhis)
+        if len(in_ju) >= 3 and sgcy_pair:
+            by_zhixiang = '公安部门（申酉丑寅组合做功）'
+        elif {'申', '酉'} <= (acted & in_ju):
+            by_zhixiang = '检察/法院/法律（申酉两字做功）'
+
     # 官杀所在柱天干象细化
     day_wx = GAN_WX.get(day_gan, '')
     guan_wx = WX_KE_ME.get(day_wx, '')
@@ -818,10 +858,14 @@ def classify_hangye_xiang(
             by_ganxiang = _GAN_HANGYE.get(gans[i], '')
             break
 
-    primary = by_combo[0] if by_combo else (by_ganxiang or '未明')
+    primary = by_combo[0] if by_combo else (by_zhixiang or by_ganxiang or '未明')
+    if by_combo and by_zhixiang:
+        primary += f'（支象：{by_zhixiang}）'
     details = []
     if by_combo:
         details.append('做功组合定行业：' + '、'.join(by_combo))
+    if by_zhixiang:
+        details.append(f'支象定行业：{by_zhixiang}（中级:3685-3687）')
     if by_ganxiang:
         details.append(f'官杀干{gans[i]}象主{_GAN_HANGYE.get(gans[i],"")}')
     if not details:
@@ -831,6 +875,7 @@ def classify_hangye_xiang(
         'primary': primary,
         'by_combo': by_combo,
         'by_ganxiang': by_ganxiang,
+        'by_zhixiang': by_zhixiang,
         'details': details,
     }
 
@@ -1027,7 +1072,8 @@ def analyze_guanming(
     combo = classify_guanming_combo(day_gan, gans or [], zhis or [], relations,
                                     kong_wang=kong_wang, gender=gender)
     guancai = detect_guancai_daimao(day_gan, gans or [], zhis or [])
-    hangye = classify_hangye_xiang(day_gan, gans or [], zhis or [], combo)
+    hangye = classify_hangye_xiang(day_gan, gans or [], zhis or [], combo,
+                                   relations=relations)
 
     # gongliang 缺省自调（只读消费，不改功量层）
     gl = gongliang_result

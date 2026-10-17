@@ -62,10 +62,14 @@ from mangpai.subjective.zeishen_bushen import (
 # 其所述五行（相对日主之十神）映射为主体域，作为共象之一层参与锁定。
 # 软依赖：foundation 缺失则该层降级为空，不影响其余象层。
 try:
-    from foundation.objective import match_ganqing, season_of as _ganqing_season_of
+    from foundation.objective import (
+        match_ganqing, season_of as _ganqing_season_of,
+        derive_states as _ganqing_derive_states,
+    )
 except ImportError:  # pragma: no cover - foundation 不可用时降级
     match_ganqing = None
     _ganqing_season_of = None
+    _ganqing_derive_states = None
 
 _logger = logging.getLogger(__name__)
 
@@ -144,10 +148,22 @@ def _ganqing_layer_domains(
     month_zhi = zhis[PILLAR_KEYS.index('month')]
     day_gz = gans[PILLAR_KEYS.index('day')] + zhis[PILLAR_KEYS.index('day')]
     season = _ganqing_season_of(month_zhi) if (_ganqing_season_of and month_zhi) else None
+    # 批D 接线：tougian=四柱天干（赋文「透干」即天干明现，如「得丙丁透出天干」），
+    # states=derive_states 由 8 字五行计数推导可得旺衰/多寡态。
+    # 修复前两者不传——tougian_any/state 之约 15 条规则永不命中，且 no_tougian
+    # 空集恒真反向误命中（柱有丙仍命中乙「虚湿之地，骑马亦忧」）。
+    # gans/zhis 任一柱缺字（空串）时上下文不完整：tougian/branches 传 None，
+    # 含 no_tougian/no_branches 之规则保守不命中（ganqing 侧 None 语义）。
+    tougian = [g for g in gans if g]
+    branches = [z for z in zhis if z]
+    ctx_complete = len(tougian) == 4 and len(branches) == 4
+    states = _ganqing_derive_states(gans, zhis) if _ganqing_derive_states else []
     try:
         rules = match_ganqing(
             gan, season=season, month_zhi=month_zhi,
-            stems=gans, branches=zhis, day_gz=day_gz,
+            stems=gans, branches=zhis if ctx_complete else None,
+            tougian=tougian if ctx_complete else None,
+            day_gz=day_gz, states=states,
         )
     except Exception as e:
         _logger.warning(f"干支性情象层匹配失败: {e}", exc_info=True)

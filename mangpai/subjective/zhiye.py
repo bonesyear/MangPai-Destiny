@@ -554,6 +554,47 @@ def _score_lawyer(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     # （F15 试案撤回注：8.2「伤官合杀/食神制杀」lawyer 条款曾落地又撤——
     #  与既有「伤官制官」同动作复计，误伤 li154 摇滚歌星/董竹君门户锚，红线
     #  回退勿重试，详见 CHANGELOG F15）
+    # ── 批E 真落地（gaoji:11661「伤官合杀、食神制杀：多为检察院、纪委等执
+    #    法监督部门」，公检法司归 lawyer 桶），规避 F15 复计：──
+    #    - 伤官合杀只认「天干合」型动作（两端恰为伤官×七杀）——伤官制官条款
+    #      只认克型，型不相交，无同动作复计。日主不参与之干合必为宾位合
+    #      （auxiliary），书以组合论象，本条款不以做功非 aux 为门。
+    #    - 食神制杀之克型动作与伤官制官条款同形同动作（非 aux 主气粒度下为
+    #      其子集），仅在该条款未计分时补位、且只认非 aux 之克——实务上不
+    #      新增得分，书义由伤官制官承载，防复计闸明示于此（F15 教训；
+    #      aux 宾位远克曾泛触误伤 cj-老板/reg67-化例二，见下方闸注）。
+    def _exact_ss_end(pos: str) -> str:
+        i = _pos_idx(pos)
+        if i < 0:
+            return ''
+        if pos.endswith('_gan'):
+            return _compute_shishen(day_gan, gans[i])
+        cg = get_canggan_mangpai(zhis[i])
+        return _compute_shishen(day_gan, cg[0][0]) if cg else ''
+
+    def _has_exact_pair(types: Set[str], x: str, y: str) -> bool:
+        for a in wa:
+            if a.get('type') not in types:
+                continue
+            if {_exact_ss_end(a.get('from_pos', '')),
+                    _exact_ss_end(a.get('to_pos', ''))} == {x, y}:
+                return True
+        return False
+
+    if _has_exact_pair({'天干合'}, '伤官', '七杀'):
+        score += 2
+        ev.append('伤官合杀（8.2：多为检察院/纪委等执法监督部门）')
+    elif not any('伤官制官' in ln for ln in ev) and any(
+            not a.get('auxiliary')
+            and {_exact_ss_end(a.get('from_pos', '')),
+                 _exact_ss_end(a.get('to_pos', ''))} == {'食神', '七杀'}
+            for a in wa if a.get('type') == '克'):
+        # 食神制杀（克型）：仅取做功（非 aux）动作——非 aux 之克在主气粒度下
+        # 必已被伤官制官条款计分（elif 闸不可达，实务不新增得分）；aux 宾位
+        # 远克不计（cj-老板/reg67-化例二 己克癸/戊克壬泛触误伤实证，同 F15
+        # 复计族，红线不回退本闸）。
+        score += 2
+        ev.append('食神制杀（8.2：多为检察院/纪委等执法监督部门）')
     return score, ev
 
 
@@ -974,8 +1015,9 @@ def _score_military(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
         if len(_sgcy & set(zhis)) >= 3 and _has_pair_action(_sgcy, _sgcy, _ALL_ACT):
             _combo_add(2, '申酉丑寅交织做功（8.2：公安/武警之象）')
         # ⑥ 伤官合杀/食神制杀：书明文组合（gaoji:11661「多为检察院、纪委等执
-        #    法监督部门」），公检法司归 lawyer 桶（律师/法务/公检法）；F15 撤回
-        #    后当前无实现，缺口备案（见 _score_lawyer F15 撤回注）。
+        #    法监督部门」），公检法司归 lawyer 桶（律师/法务/公检法）——批E 已
+        #    真落地于 _score_lawyer（伤官合杀认天干合型、食神制杀克型与伤官制官
+        #    同动作不复计，规避 F15 复计误伤，见该处注）。
         # ⑦ 丑戌刑 / 阳制阴 +2（gaoji:11785-11788：丑戌相刑扫黑破案；阳气丙丁
         #    巳午戊戌 制 阴气辛酉癸子丑=正义制邪恶，公安之职——书口径含天干、
         #    子归阴；制类动作须阳为制方（from 端=阳——复例四 癸克丁=阴制阳，

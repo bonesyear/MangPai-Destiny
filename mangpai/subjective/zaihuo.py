@@ -6,8 +6,9 @@ zaihuo - 盲派灾祸专辑·主观层（subjective）
 
 三类判定（高级篇第十一章，11.1 牢狱归 laoyu 模块，本模块论 11.2-11.4）：
   1. 疾病（11.2）：穿害破刑 → 五行病机。六穿各主其脏（子未穿脾胃/丑午穿心/
-     寅巳穿胆神经/卯辰穿肝腹/申亥穿胫足肾/酉戌穿肺眼）；六破（卯午破血管、
-     子酉破精血）；三刑（寅巳申神经肝胆筋骨、丑未戌脾胃皮肤、子卯肝肾泌尿）。
+     寅巳穿胆神经/卯辰穿肝腹/申亥穿胫足肾/酉戌穿肺眼）；破仅卯午破血管
+     （批D 收窄：盲派破全书仅子卯/卯午两对，理象学:2930；子卯破并入子卯刑）；
+     三刑（寅巳申神经肝胆筋骨、丑未戌脾胃皮肤、子卯肝肾泌尿）。
      五行病机：金=肺呼吸、木=肝胆、水=肾泌尿血、火=心血、土=脾胃。特殊病：
      糖尿=土浊水、白血=火克金（金主骨髓）、尿毒=亥子绝寅、精神=酉戌穿/双丁、
      癌=阴阳战+穿破带墓。
@@ -40,7 +41,7 @@ from mangpai.objective.constants import (
     CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, DI_ZHI, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
+from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha, _YANG_REN_FULL
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.shishen import (
@@ -72,17 +73,17 @@ _HAI_DISEASE = {
     frozenset({'酉', '戌'}): '肺/眼/心包/神经',
 }
 
-# 六破 → 主病（源文 15468-15471）
+# 破 → 主病（批D 收窄，书证核实）：盲派地支相破全书仅子卯/卯午两对
+# （理象学:2930「其为：子破卯，卯破午；也可以反过来破」）；旧表所列
+# 子酉/丑辰/寅亥/巳申/未戌 5 对系传统六破书外移入、段氏 7 本书零命中，
+# 删除（批9 勘误5 已录其伪引）。子卯破主病由 _XING_DISEASE 子卯刑覆盖
+# （gaoji:15521「子卯刑（亦作破）」），此处仅存卯午破
+# （gaoji:15468-15471「卯午破：木不生火，主血管破裂、心脏出血、心梗脑溢」）。
 _PO_DISEASE = {
-    frozenset({'子', '酉'}): '精血/肺/泌尿',
-    frozenset({'丑', '辰'}): '脾/皮肤/湿',
-    frozenset({'寅', '亥'}): '肝/风湿',
     frozenset({'卯', '午'}): '血管/心出血/脑溢',
-    frozenset({'巳', '申'}): '神经/筋骨',
-    frozenset({'未', '戌'}): '胃/命门/燥',
 }
 
-# 三刑 → 主病（源文 15221-15223）
+# 三刑 → 主病（源文 15521-15523）
 _XING_DISEASE = {
     frozenset({'寅', '巳', '申'}): '神经/肝胆/筋骨',
     frozenset({'丑', '未', '戌'}): '脾胃/皮肤/肌肉顽疾',
@@ -508,6 +509,39 @@ def detect_siwang(
         for z in _tomb_zhis_of_wx(lu_wx):
             if z in {t.get('zhi') for t in (muku2.get('open_tombs') or [])} and lu_zhi in zhis:
                 markers.append(f'禄神入{z}墓被冲开')
+
+    # ── 羊刃逢冲/逢合（批D 补实现——模块 docstring 死亡三项已承诺「羊刃逢冲」）──
+    # gaoji:16223「羊刃逢冲必见血」、:16548「刃逄冲合命难全」、:16562「羊刃冲合
+    # 必见血」三处重申。刃取段氏全刃表（_YANG_REN_FULL，戊午未双刃，与 shensha/
+    # yunfan 同口径）。原局：冲/合（地支合/暗合/半合）落于刃支即录；冲优先于合
+    # （书诀以冲为显）。marker 级中性措辞；siwang 经 zaihuo_llm_view 物理屏蔽
+    # 出 LLM 通道（批10 寿元红线），此处录入不影响红线。
+    for _yr in _YANG_REN_FULL.get(day_gan, []):
+        if not _yr or _yr not in zhis:
+            continue
+        _ypos = f'{PILLAR_KEYS[zhis.index(_yr)]}_zhi'
+        _hit = ''
+        for a in wa:
+            if a.get('from_pos') != _ypos and a.get('to_pos') != _ypos:
+                continue
+            _t = a.get('type', '')
+            if _t == '冲':
+                _hit = '冲'
+                break
+            if _t in ('地支合', '暗合', '半合') and not _hit:
+                _hit = '合'
+        if _hit:
+            markers.append(f'羊刃（{_yr}）逢{_hit}（见血风险标志）')
+    # 运岁侧：消费 yunfan 禄刃倒戈链（羊刃被冲，_detect_lu_ren_fangg 产出）
+    if yunfan_result:
+        for _lst in ('dayun_fan', 'liunian_fan'):
+            for _ent in (yunfan_result.get(_lst) or []):
+                for _fan in (_ent.get('fans') or []):
+                    if '禄刃倒戈' in _fan.get('fan_type', '') \
+                            and '羊刃' in _fan.get('reason', ''):
+                        _msg = f"运岁{_ent.get('gz', '')}羊刃逢冲（见血风险标志）"
+                        if _msg not in markers:
+                            markers.append(_msg)
 
     # 凶性三煞（亡神/劫煞/灾煞）并空亡
     # （灾煞系传统神煞移入，段氏书无载——段氏全部 7 本书零命中，全书 grep 证实）

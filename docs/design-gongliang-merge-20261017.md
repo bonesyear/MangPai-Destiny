@@ -1,0 +1,176 @@
+# 做功层次体系重写设计稿（只读，未改任何文件）
+
+> 对应审计台账 `docs/audit-vs-originals-20261017.md` 遗留项③「结构深水区：zuogong_confirm 层次体系重写——需专项设计」。所有书证行号已亲自逐行 sed 验证；代码行号对当前工作树实测。（本稿由审计代理产出，主代理存档；实施另立批次）
+
+---
+
+## 0. 结论（TL;DR）
+
+- **收编进 `gongliang`，废除 `zuogong_confirm` 的 L0-L5 类型计数体系**。gongliang 的加法功量模型就是书口径（理象学:6026-6045），且已被 test_gongliang.py 钉在 16 个书例上全绿；zuogong_confirm 的体系被书明文否定（:6912、:6018），「连珠成势」七书零命中（全库复扫确认）。
+- **实证错位**：现有钉扎值中，乾隆 work_level=1、克林顿=2、蒋介石=2、岳飞=2、例八=1（书分别为 4/4/3/3/3 层），而普例二 work_level=3（书判「功不算大」）——方向性错误双向都有。
+- **迁移破坏面比预想小**：领域层（caiming/guanming/gongmen_wuzhi/yongshen）早已只消费 gongliang，无人消费 work_level 做判定；heldout 快照 engine 字段不含 zuogong.work_level（blind_eval.py:239-261），预期**三维零翻转零抖动**，换基线走 F6 先例流程即可。
+
+## 1. 现状梳理
+
+### 1.1 zuogong_confirm 体系（L0-L5，类型计数 + 主被动加减）
+
+- `assess_work_level()`（:73-215）：san_he_formed+占比>70%+成势为主功 → L5「连珠成势」（:150-152）；hua_success+type_count>=3 → L4（:153-155）；type_count>=3 → L3（:156-158）；type_count>=2 and active>=3 → L3；type_count>=2 → L2；主被动/折扣 ±1（:186-201）
+- `analyze_zuogong()` 返回键：`work_level`(0-5)、`work_tier`、`work_level_desc`、`has_severe_harm`、`has_active_harm` 等
+
+### 1.2 gongliang 体系（L1-L4，书加法功量）
+
+- 14 条计分规则：原神用神同制+2 / 制墓库+2 / 七杀当财+1 / 入墓为功+1 / 库源连墓+1 / 包局包制+1 / 克链+1 / zb 翻转 / 金字塔冲链 / 包局2.6 / 带象+1 / 统+1 / 月令+0.5 / 墓库属性+1 / 开库+1 / 化用成局+2
+- 映射封顶（:1166-1179）：points≥4→L4、≥3→L3、≥2→L2；制不净封顶 L3；相生之功封顶 L1；相克之制封顶 L2
+- 空数据早退（:291-297）：level=1 + penalty='无功'（书 :6022-6024 的「无功/半层」目前无独立 0 态——目标态要补）
+
+### 1.3 消费方全表（grep 全库穷举）
+
+| 消费方 | 位置 | 读什么 | 性质 |
+|---|---|---|---|
+| narrative._zuogong_line | narrative.py:62-65 | work_level/work_tier/work_efficiency | LLM 摘要行 |
+| narrative._gongliang_line | narrative.py:69-78 | level/tier_name/zhi_jing/boundary | 层功行（已就位） |
+| narrative 数字白名单 | narrative.py:465 | regex work_level/level/score | LLM 数字回对 |
+| engine._build_summary | engine.py:887 | work_tier+work_level | summary 文本行 |
+| xiangfa_ops | xiangfa_ops.py:1404-1405 | work_level==0 → fallback_active | 冗余：⟺ not work_types |
+| gongliang 双轨对账 | gongliang.py:1371-1390 | work_level_duizhang | 标注级，diff≥2 写 reasons |
+| caiming / guanming / gongmen_wuzhi / yongshen | 各处 | gl.level/wealth_grade 等 | **只读 gongliang** |
+| calib_zhenbao / harness | 调试脚本 | 双套打印 | — |
+| regression67 | :51-62 cat1 cap、:64-87 cat2 | work_level cap + gl.level 判分 | 67 例回归闸 |
+| verify_mangpai | :599-660、749-757、917-936 | **单测 assess_work_level 十余处** | verify 432 闸 |
+| test_property / test_gongliang / test_hfix5_gongliang / test_narrative / test_llm_channel / test_subjective | 各 mock fixture | work_level 钉值/假数据 | pytest |
+| prompts/mangpai.md | :11、:34、:42、:67 | L0-L5 阶梯写进 prompt | LLM 提示词 |
+| `__init__.py` | :31-32、:54 | 导出 assess_work_level | 公共 API |
+| 文档 | PACKAGE.md:31/83、objective/README.md:25/90-91 | work_level.py 引用——**已腐** | 文档债 |
+| blind_eval | :239-261 | 快照字段不含 work_level/gl.level | 仅经领域层间接传导 |
+
+## 2. 书口径目标态（每条附亲验行号）
+
+**权重纪律**：理象学正文 > 理象学附录（博客文粹） > gaoji（今人重编本）。gaoji 条目一律在 reasons/注释中标注「高级篇法则 N」。
+
+| # | 规则 | 书证（亲验） |
+|---|---|---|
+| G0 | 上限四层；存在半层功与无功 | :6018「最多也只有四层功罢了」；:6022-6024「有的命只有半层功或根本无功」（yanjiu:6101 互证） |
+| G1 | **通则：功的种数 ≠ 层数** | :6912「虽然看起来有三种不同的功，但论功量只有一层，不是三层功」（:6898-6910 丑三合=三种功语境） |
+| G2 | 原神用神同制 = 两层 | :6026-6030 |
+| G3 | 制墓库 = 两层 | :6037 |
+| G4 | 七杀当财 比财高一层 | :6038-6041 |
+| G5 | 入墓为功 = 一层 | :6041 |
+| G6 | 年时包局/包制 +一层 | :6041-6043 |
+| G7 | 层层相制逐级一层（金字塔） | :6081-6085 乾隆例 |
+| G8 | 制净调节：制之不净达不到四层 | :6120-6126 蒋介石例 |
+| G9 | 普通四柱三情形降档 | :6203-6213 |
+| G10 | 量级-层数对照表 | :6014-6022 |
+| gaoji-1~7 | 制去用神两层（814-823）/制去库两层（825-835）/带象一层（838-844）/统一层（845-852）/墓库属性+1、开库功上加功（853-859）/包局+1（860-865）/月令+半层（866-870） | gaoji:814-870，权重注明 |
+
+**书内张力备案**：附录博客文粹 :12309-12315「四层或五层功」与正文 :6018「最多四层」冲突。裁定：正文优先，锁四层上限；五层说不实现。
+
+**目标判定算法 = 现行 gongliang 算法本体不动**，只补零态：
+
+- `level ∈ {0,1,2,3,4}`；0=无功（早退分支 level=1 改 level=0，tier_name='无功'，score=0）
+- 半层不立独立档：gong_points 小数+boundary 已能表达「三层强一点」
+- work_types 种数从此与层次无关（G1 落地）
+
+## 3. 20 个书锚案例对照表
+
+「钉」=现有测试钉扎值；「回填」=迁移时用 diag_case.py 实测后补全，不得凭推算填写。
+
+| # | 命例 | 书断语（行号） | 书层 | 现行 work_level | 现行 gongliang | 目标 |
+|---|---|---|---|---|---|---|
+| 1 | 李嘉诚 戊己庚丁/辰未午亥 | 「共有四层功，千亿级别」:6051-6063 | 4 | 4（钉）✓ | 4 ✓ | 4 |
+| 2 | 乾隆 辛丁庚丙/卯酉午子 | 「一层功…又一层功…帝王」:6081-6085 | 4 | **1（钉）✗** | 4 ✓ | 4 |
+| 3 | 克林顿 丙丙乙戊/戌申丑寅 | 「包制一层+申入丑墓一层+戌刑丑制墓」:6100-6106 | 4 | **2（钉）✗** | 4 ✓ | 4 |
+| 4 | 蒋介石 丁庚己庚/亥戌巳午 | 「两层功…墓加一层…制之不净达不到四层」:6120-6124 | 3 | **2（钉）✗** | 3 ✓ | 3 |
+| 5 | 岳飞 癸乙甲己/未卯子巳 | 「两层…包局再加一层，共三层，省部级」:6134-6138 | 3 | **2（钉）✗** | 3 ✓ | 3 |
+| 6 | 例六 乙丙甲甲/未戌子戌 | 「比岳飞少一层。两层，厅级」:6150 | 2 | 回填 | 2 ✓ | 2 |
+| 7 | 例七 丙戊戊甲/申戌寅寅 | 「申金及申中之水被制，两层，厅级」:6173 | 2 | 回填 | 2 ✓ | 2 |
+| 8 | 例八 壬戊丙壬/寅申申辰 | 「制寅两层…杀星当财…三层，数十亿」:6181-6183 | 3 | **1（钉）✗** | 3 ✓ | 3 |
+| 9 | 例九 壬戊癸庚/寅申巳申 | 「再加两层，共三层…数十亿」:6197 | 3 | 回填 | 3 ✓ | 3 |
+| 10 | 普例一 丙戊辛癸/戌戌巳巳 | 「巳入戌墓之功…只是普通人」:6232-6236 | ~1 | 回填 | 1 ✓ | 1 |
+| 11 | 普例二 壬己乙丁/子酉丑丑 | 「相生之功，功不算大，小职权」:6244-6249 | ≤1 | **3（钉）✗反向虚高** | 1 ✓ | 1 |
+| 12 | 普例三 庚庚癸丁/戌辰未巳 | 「相生效率低，普通人」:6257-6263 | ≤1 | 回填 | 1 ✓ | 1 |
+| 13 | 普例四 壬甲庚辛/子辰午巳 | 「两层功量，行至水运富有千万」:6271-6274 | 2 | 回填 | 2 ✓ | 2 |
+| 14 | 普例五 壬甲庚己/子辰寅卯 | 「虽有两层功…高工资」:6293-6297 | 2 | 回填 | 2 ✓ | 2 |
+| 15 | 奥纳西斯 乙己己庚/巳丑未午 | 「制库两层+杀库一层+包制一层，四层」:6470-6474 | 4 | **3（钉，双证）✗** | 4 ✓ | 4 |
+| 16 | 三种合副总 甲癸丁庚/寅酉丑子 | 「三种功…只有一层，不是三层功」:6900-6912 | **1（通则锚）** | **2（钉）✗** | 回填（未钉） | 1 |
+| 17 | 总理例 戊壬乙己/辰戌未卯 | 「墓库做功功量很大…近四层功…总理」:7332-7336 | 近4 | 回填 | 未钉（新增锚） | L3/L4 边界 |
+| 18 | 阎锡山 癸辛乙丁/未酉酉丑 | 「功量有三层强一点」:7182-7188 | 3.5→3 | **2（钉）✗** | 3 ✓ | 3 |
+| 19 | 慈禧 乙丁乙己/未亥丑卯 | 「双层…又加一层…共四层」:10595-10611 | 4 | 回填 | 未钉（新增锚，落地验证，不达则预注册备案） | 4 |
+| 20 | 差例三 甲乙己辛/午亥巳未 | 「似乎功量很大…全被天干坏了。一生没有富贵」:6354-6358 | 无功 | 回填 | 未钉（新增锚） | 0/1 |
+
+**对照结论**：已钉 11 例次中，现行 work_level 仅李嘉诚 1 例合书；现行 gongliang 16/16 合书。目标体系=书 20/20。
+
+## 4. 迁移方案
+
+### 4.1 路线裁定：统一收编进 gongliang（单一事实源）
+
+理由：书只有一个功量体系；gongliang 已是其工程化实现且 16 锚全绿；双轨对账的存在本身就是「两套并存」的创可贴。
+
+**不选**「改 zuogong_confirm 保留 work_level 键、改算法」：engine 编排 zuogong 先于 gongliang，zuogong 无法自算书口径层数；standalone 调用拿到无层次版，键行为不一致是新坑。
+
+### 4.2 改动点清单（函数级）
+
+**A. gongliang.py（小改）**
+1. :291-297 空数据早退：`_build_result(level=0, score=0, penalty='无功', tier_name='无功')`；`_TIER_NAMES` 增 `0: '无功'`；`_SCORE_BAND` 增 0 分支
+2. 删双轨对账段（:1371-1390）与输出键 `work_level_duizhang`
+3. docstring「两套体系并行」段改写为「本模块为做功层次唯一事实源」
+
+**B. zuogong_confirm.py（删层次，保 harm 信号）**
+1. 删 `_TIER_MAP` 与 `assess_work_level()` 整函数
+2. analyze_zuogong：删层次计算段与返回 dict 的 `work_level`/`work_tier`/`work_level_desc` 三键
+3. **保留** `has_severe_harm`/`has_active_harm`（gongliang:414、xiangfa 等有消费）——:128-139 的两个 any() 内联到 analyze_zuogong 尾部或抽 `_harm_signals()`，行为逐字等价
+4. docstring 同步改写
+
+**C. 消费方逐一过渡**
+
+| 消费方 | 改法 |
+|---|---|
+| narrative.py:62-66 `_zuogong_line` | 删 `L{lv} {tier}` 段，行改「做功：类型+效率」；层功由 `_gongliang_line` 承担 |
+| narrative.py:465 数字白名单 | regex 删 work_level，补 gong_points（小数 `(\d+(?:\.\d+)?)`）——否则「0.5 层」被幻影数字误杀 |
+| engine.py:887 `_build_summary` | 改读 gongliang：`功量层次：{tier_name}（{level} 层功）` |
+| xiangfa_ops.py:1404-1405 | 删 work_level==0 支路（not work_types 已等价） |
+| calib_zhenbao/harness 打印行 | 删或改读 gl |
+| prompts/mangpai.md | :11 阶梯改四层功量级表（G10）；:34 删「连珠成势」；:42 改「层功几层？依据哪几条功量规则」；:67 basis 示例改 gongliang.level |
+| `__init__.py` | 删 assess_work_level 导出（公共 API 变更，CHANGELOG 注明） |
+| regression67.py | cat1 删 cap（书无「类型数→层次」映射）；**复例二副总补进 CAT2**（gl 判 1 预期，实测不符则预注册）；baseline67 走 --write-baseline 重钉 |
+
+### 4.3 会红的测试与处置（逐一）
+
+| 测试 | 红因 | 处置 |
+|---|---|---|
+| verify_mangpai :599-660、749-757、917-936（十余处） | assess_work_level 消失 | 整段删除，替换为 4 个新增锚例（总理例/慈禧/差例三/副总）经 analyze_gongliang 的层数断言；verify 总数变化写 CHANGELOG |
+| test_gongliang `test_empty_input_is_level1` | 无功态 1→0 | 改断言 level==0，注释引 :6022-6024 |
+| test_hfix5_gongliang | 钉值含 work_level_duizhang | 按文件头部既定流程重钉（exec 捕获实况），禁手改数字；层数/score 钉值预期不动 |
+| test_property :68-71、:129 | work_level 键消失 | 改钉 gongliang.level ∈ [0,4] |
+| test_narrative/test_llm_channel/test_subjective mock fixture | 含旧键/旧行格式 | fixture 同步删键；_zuogong_line 文本断言按新格式改 |
+| regression67 baseline67.json | detail 串含 lv= | --write-baseline 重钉（修批C 先例） |
+| test_snapshot_hygiene / test_key_contract / test_hfix5_compute_all | — | **不红** |
+
+### 4.4 blind_eval 基线更换（照 F6/P 系列先例）
+
+1. rubric 只读领域层字段（领域层本就读 gongliang）——口径不变，不需 --rescore，RUBRIC_VERSION 不动
+2. 流程：预注册文档（仿 docs/kimi-p1-~t1-prereg-*.md）→ 哨兵先红后绿 → 六件套 → `blind_eval.py --out snapshots/<批>.json --baseline 20261017_a1.json` → 预期**三维零翻转零抖动**（若有翻转必是意外传导，逐条归因）→ 人工改 LATEST 一行 → _meta 三字段齐全（test_snapshot_hygiene 闸）
+3. CHANGELOG 批次条目 + KB §4.2「比 zuogong.work_level 准」句改写为收编终态 + 审计台账 ③ 关闭 + PACKAGE.md/objective/README.md 腐引用顺手修正
+
+## 5. 风险与不做清单
+
+**风险**
+- R1（中）：standalone analyze_zuogong 调用方失去层次键——4.2C 表已穷举仓内调用点；仓外属公共 API 变更，CHANGELOG 明示
+- R2（低）：慈禧新锚可能落 L3 而非书 4（:10607 月令见印当整层 vs gaoji 法则7 +0.5 张力）——预案：落地验证，不达则按「附录口径让位法则7」预注册备案
+- R3（低）：LLM 数字白名单漏 gong_points 小数 → 幻影数字误报，4.2C 已列改法
+- R4（低）：hfix5 钉值重钉须按文件头部原流程（exec 捕获），禁手改数字
+
+**不做清单**
+- 不动 gongliang 分值带工程化（_SCORE_BAND/_compute_score/_compute_boundary 全保留）
+- 不动 14 条计分规则的阈值与守门（F6 批校准成果）
+- 不动 caiming/guanming/gongmen_wuzhi/yongshen 消费侧条款
+- 不立「五层功」（:12313 附录孤证）
+- 不复活「连珠」词、不引入任何形式的新类型计数
+- 不动 work_efficiency 高/中/低三档（书的「效率」与「功量层数」是两件事，保留）
+- 不顺手做台账其他遗留项
+
+### 附：核实记录
+
+- 书证 21 段全部亲验：理象学 :6014-6045、:6051-6297、:6305-6313、:6350-6358、:6470-6474、:6894-6912、:7178-7188、:7326-7336、:10121、:10534-10611、:12309-12346、:12487-12521；gaoji:814-870；yanjiu:6101 互证
+- 「连珠」docs/duan-books/ 全库 grep 零命中（复扫确认）
+- 现行 work_level 钉扎值出处：test_hfix5_gongliang.py:44-134 ph5 钉值 9 例 + baseline67.json 18 例 lv= 记录
+- 未钉扎的 10 例标「回填」，迁移时实测补全，不得凭推算填写

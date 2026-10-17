@@ -135,3 +135,35 @@ class TestCaimingTierTriplet:
         for b in r['blockers']:
             for marker in ('破财', '比劫夺财', '坐牢', '牢狱', '官非', '下浮封顶'):
                 assert marker not in b
+
+
+# ── 批E：合财身强弱书口径（理象学:6672-6684「只有合财的时候讲身强身弱…
+#    合财就像背一个包袱，身强可以胜财，身弱就不能胜财。此时的身强并不是
+#    党多为强，只要坐支得旺就表示强」）——坐支得旺=日支为日主禄/旺/生扶
+#    之根（比劫/印本气），仅用于合财相关判定的强弱分流，全局扶抑口径不变 ──
+
+from mangpai.subjective.caiming import assess_caiming_level
+from mangpai.subjective.yongshen import classify_strength
+
+_GL2 = {'level': 2, 'wealth_grade': '小康', 'gong_points': 1}
+
+
+def test_e_hecai_zuozhi_dewang_not_suppressed():
+    """甲日坐寅（禄=坐支得旺），甲己合财做功+财3位有原神+财归主位：
+    全局扶抑身弱，但合财以坐支得旺为强——不按身弱财旺（富屋贫人）
+    抑制升档（哨兵：坐支得旺的身弱合财不再判穷）。"""
+    g, z = ['丙', '己', '甲', '戊'], ['午', '亥', '寅', '辰']
+    assert classify_strength('甲', g, z) == '身弱'  # 全局口径前提不变
+    cv = classify_caifu_view('甲', g, z)
+    lv = assess_caiming_level('甲', g, z, dict(_GL2), cv, direction_signals={})
+    assert lv['tier'] == '富'
+
+
+def test_e_hecai_zuozhi_buwang_still_suppressed():
+    """对照：甲日坐申（七杀，非禄/旺/生扶之根），同构身弱合财——
+    富屋贫人抑制不动，仍封顶小康。"""
+    g, z = ['壬', '己', '甲', '戊'], ['亥', '巳', '申', '辰']
+    assert classify_strength('甲', g, z) == '身弱'
+    cv = classify_caifu_view('甲', g, z)
+    lv = assess_caiming_level('甲', g, z, dict(_GL2), cv, direction_signals={})
+    assert lv['tier'] == '小康'

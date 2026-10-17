@@ -283,3 +283,38 @@ selectors↔engine 48 键三方契约锁（test_key_contract 实测绿）；五�
 - ⑤ 书有而未实现规则约 100 项补全（各模块遗漏清单见批1-批5 节）
 - ganqing 消费方 xiangfa_ops 不传 tougian/states 致约 15 条规则不可达（调用方接线问题）
 - juefa 生产断路（断语 22 项/断句 18 条不进生产输出）
+
+## 批D/E/F：接线修复+遗漏补全+LLM 敏感区（已完成，2026-10-17 第二批）
+
+> 3 修复代理并行 + 主代理复核换基线。pytest 1264 passed + 1 xfailed；verify 432/70/64/20 全绿；基线推进 20261017_a1 → **20261017_b1**（heldout 零翻转零抖动；trainset 1 换档无打分损益+2 抖动）。
+
+### 批D（接线+杂项，6 项）
+- xiangfa_ops 调 match_ganqing 补传 tougian/states + None 保守守卫——约 15 条沉睡规则复活，「柱有丙仍报虚湿之地」反向误命中修复；新增 derive_states（工程近似，docstring 注明）
+- _tiyong_of 伤官归用/食神归体，对齐 tiyong.py（理象学:5288-5296）；**遗留：gongliang.py:181 有一份旧口径副本未对齐**
+- 制法效率分级 _HEZHI_EFFICIENCY（理象学:7462-7489 巳申最高…午未合不制）+子午湮灭（初级:322-324）
+- zaihuo：六破疾病表删 5 对伪书据（理象学:2930 破仅子卯卯午）+羊刃逢冲逢合实现（gaoji:16223/16548/16562 三锚）
+- ganqing 锚点失真 4 条归准（fu_clause 换真实原文，辛原注末句补入 GAN_YUANZHU）
+- narrative.py 加 DeprecationWarning
+
+### 批E（遗漏补全，6 项）
+- 支象行业（中级:3685-3687）：guanming classify_hangye_xiang 补地支支象通道（申酉→检法/申酉丑寅→公安）
+- 伤官合杀落地 zhiye _score_lawyer（gaoji:11661，只认天干合型动作防 F15 复计；首版误收 aux 远克即现 3 翻转，加非 aux 闸后回基线——教训入闸注）
+- 岁运三特殊法则（yunfan）：并临双向（gaoji:18894）/征太岁方向特定（:18882/18995）/晦太岁（:19077）——marker 级，不进凶链
+- 合财坐支得旺口径（理象学:6672-6684 日支比劫/印本气即得旺）接入 caiming 身弱合财分流
+- hunyin 应期三前提（冲宫须原局有合、合宫须来支含配偶星、干合日干须配偶星有根）+结婚/离婚信号冲突消解（chuji:6096）+删 pass 死代码与虚称 docstring
+- qianyi 门户伏吟（shouke:704，干支俱同正格，或然档）
+
+### 批F（LLM 校准敏感区，6 项）
+- 否定窗：「未」移出单字表（干支撞窗）+双字词表+伪否定剔除（非常/不是没/不小等）+跨子句不计——「癸未运开库巨富可期」「莫急你是巨富命」「不是没官命你官命不小」全拦截，既有 40 条假阳治理句式零回退
+- cap-marker 豁免加「档词与标记间有转折连词」门——「巨富格…档就是小康」逃逸封堵
+- 幽灵档「平」：_TIER_ORDER 与 prompt 对齐引擎四档真值
+- SCHEMA_SPEC 错路径 xiangfa.all_findings→xiangfa_ops.all_findings
+- N1：中文数字年龄（四十二岁）+干支纪年（甲辰年，60 甲子 CRT 映射含阴阳配校验）
+- gender 归一（male/female/男/女/乾/坤→乾坤造标记）
+
+### 本批未做
+- 层次体系重写：设计稿已完成（docs/design-gongliang-merge-20261017.md，20 锚对照表+迁移方案），实施另立批次
+- juefa 生产断路（断语 22 项接入属设计决策）
+- gongliang.py:181 旧体用口径副本对齐
+- 己墓双轨「未决」裁断（需要理论裁决，非代码问题）
+- 校验器：「大富大贵」成语豁免、官命词表扩词、应期/婚姻维零校验（L2 枚举回对）

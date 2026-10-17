@@ -72,9 +72,11 @@ def test_l1_zhiye_primary_empty_allowed():
 
 
 def test_tier_rank():
-    assert _tier_rank('巨富之家') == 4
-    assert _tier_rank('富命') == 3
-    assert _tier_rank('平常人家') == 1
+    # 修批F③：档序对齐引擎四档真值（贫0/小康1/富2/巨富3）；
+    # 幽灵档「平」不归档——引擎无此档，「平常/平档」一律不计
+    assert _tier_rank('巨富之家') == 3
+    assert _tier_rank('富命') == 2
+    assert _tier_rank('平常人家') == -1
     assert _tier_rank('没有档位词') == -1
 
 
@@ -243,53 +245,56 @@ def test_user_prompt_includes_manifest_and_anchor():
 
 def test_tier_rank_negation_window():
     # 迭代 2 复测：否定式档位词（锚定生效后的合规表述）不计越限
+    # （修批F③：断言数值按四档新序重编号，豁免/拦截语义不动）
     assert _tier_rank('难大富，注意防破财') == -1
-    assert _tier_rank('封顶富，非巨富') == 3
-    assert _tier_rank('财命档止于小康，不主巨富') == 2
+    assert _tier_rank('封顶富，非巨富') == 2
+    assert _tier_rank('财命档止于小康，不主巨富') == 1
     assert _tier_rank('大富难求') == -1
     assert _tier_rank('财富量级有限') == -1  # 财富=泛指
-    assert _tier_rank('能成巨富之资') == 4   # 真越限仍拦
-    assert _tier_rank('经营取财可积富') == 3
+    assert _tier_rank('能成巨富之资') == 3   # 真越限仍拦
+    assert _tier_rank('经营取财可积富') == 2
 
 
 def test_tier_rank_iter6_exemptions():
     # 迭代 6（U3 假阳 9 例口径修）：
+    # （修批F③：断言数值按四档新序重编号，豁免/拦截语义不动）
     # ②泛指动词「致富」不计
-    assert _tier_rank('主经营致富，档次小康') == 2
+    assert _tier_rank('主经营致富，档次小康') == 1
     # ④修饰档归位：「小富」=小康级
-    assert _tier_rank('可小富但难大富') == 2
-    # ④「小康偏下」降半档归位（仍高于贫，边界例不豁免）
-    assert _tier_rank('难成巨富，只能小康偏下') == 1
+    assert _tier_rank('可小富但难大富') == 1
+    # ④「小康偏下」降半档归位（四档序：小康1→偏下0=贫界，边界例不豁免）
+    assert _tier_rank('难成巨富，只能小康偏下') == 0
     # ⑤愿望条件句「想…得靠…」不计
-    assert _tier_rank('求稳则小康可期，想大富得靠大运流年引动') == 2
-    # ①让步+封顶：封顶标记前的档位词不计
+    assert _tier_rank('求稳则小康可期，想大富得靠大运流年引动') == 1
+    # ①让步+封顶：档词与封顶标记同句且有转折连词=让步引用，不计
     assert _tier_rank('虽功量有中富中贵之说，但财命封顶贫') == 0
     assert _tier_rank('虽做功层次高有大富之象，但财星反局被封顶') == -1
-    assert _tier_rank('财命小康，主过河拆桥富格……财命上限小康') == 2
+    assert _tier_rank('财命小康，主过河拆桥富格……财命上限小康') == 1
     # ①封顶后的越限仍拦
-    assert _tier_rank('封顶小康，若运程配合能成巨富') == 4
+    assert _tier_rank('封顶小康，若运程配合能成巨富') == 3
     # ⑥富格/富档=引擎术语复合词，不计（E6 复测新发同族假阳）
-    assert _tier_rank('功量富档虽高，但财命只小康') == 2
+    assert _tier_rank('功量富档虽高，但财命只小康') == 1
     assert _tier_rank('看似过河拆桥的富格，财命定格为贫') == 0
     # ①定档/定格同为封顶标记
-    assert _tier_rank('虽功量可至大富，然财命定档小康') == 2
+    assert _tier_rank('虽功量可至大富，然财命定档小康') == 1
     # 能力承诺式仍拦（E6 新发真越限同型）
-    assert _tier_rank('财命小康，踏实经营可达中富') == 3
+    assert _tier_rank('财命小康，踏实经营可达中富') == 2
     # ⑦（迭代 7，E7 复测新发让步同族假阳）：「虽」让步窗 + 归位语标记
     assert _tier_rank('财命属贫，虽有小富之象，但功神比劫制财反主破财') == 0
-    assert _tier_rank('小康之命，虽有大富之量级但被下浮，不可贪求暴富') == 2
-    assert _tier_rank('功量层级中富中贵，但财命档就是小康，别指望暴富') == 2
+    assert _tier_rank('小康之命，虽有大富之量级但被下浮，不可贪求暴富') == 1
+    assert _tier_rank('功量层级中富中贵，但财命档就是小康，别指望暴富') == 1
     # ⑦后真越限仍拦（无让步无归位的能力承诺）
-    assert _tier_rank('财命富，财统官杀制杀得财，能积巨富') == 4
+    assert _tier_rank('财命富，财统官杀制杀得财，能积巨富') == 3
 
 
 def test_tier_rank_iter6_quote_exemption():
     # ③引擎原文引用豁免：命中处落在引擎 caiming 原文子串内不计
+    # （修批F③：断言数值按四档新序重编号，豁免/拦截语义不动）
     corpus = '"details": ["宾官被制尽（净制），过河拆桥富格——制官得财"]'
-    assert _tier_rank('你财命小康，主过河拆桥富格，经营取财', corpus) == 2
+    assert _tier_rank('你财命小康，主过河拆桥富格，经营取财', corpus) == 1
     # 巨富档不适用引用豁免（防引擎旁注掩护真越限）
     corpus2 = '"details": ["制尽则能成巨富"]'
-    assert _tier_rank('经营得法能成巨富', corpus2) == 4
+    assert _tier_rank('经营得法能成巨富', corpus2) == 3
     # ⑥后「富格」恒豁免（引擎术语复合词），无需 corpus
     assert _tier_rank('主过河拆桥富格') == -1
     assert _tier_rank('账面富贵、过手之财') == -1  # 富贵=泛指
@@ -505,12 +510,13 @@ def test_user_prompt_includes_n1_anchors():
 
 def test_tier_rank_n2_guwei_yufu():
     # N2 迭代修（r1 yx-酒店假阳）：归位语「小康之富」=档词+之富，尾字富按前缀档计
-    assert _tier_rank('你是小康之命，行运得当能积小康之富，莫想一夜暴富') == 2
-    assert _tier_rank('财命贫，辛苦求财，也就平之富') == 1
+    # （修批F③：断言数值按四档新序重编号；「平之富」的平=幽灵档，不归档）
+    assert _tier_rank('你是小康之命，行运得当能积小康之富，莫想一夜暴富') == 1
+    assert _tier_rank('财命贫，辛苦求财，也就平之富') == 0
     # 只降不升：前缀档仍高于引擎时照拦
-    assert _tier_rank('财命贫，实际小康之富') == 2
+    assert _tier_rank('财命贫，实际小康之富') == 1
     # 无档词前缀的「之富」不归位（真越限仍拦）
-    assert _tier_rank('可积巨富之资') == 4
+    assert _tier_rank('可积巨富之资') == 3
 
 
 def test_xiangmao_anchor_g3_no_sanitize():
@@ -568,10 +574,11 @@ def test_qianyi_anchor_n2_empty_basis():
 
 def test_tier_rank_n2_dafudagui():
     # N2 r2 迭代修（b67-初中假阳）：「大富大贵」成语泛指同富贵族，不计
-    assert _tier_rank('财命小康，稳扎稳打，大富大贵需靠运势添翼') == 2
-    assert _tier_rank('小康之命，莫指望大富大贵') == 2
+    # （修批F③：断言数值按四档新序重编号，豁免/拦截语义不动）
+    assert _tier_rank('财命小康，稳扎稳打，大富大贵需靠运势添翼') == 1
+    assert _tier_rank('小康之命，莫指望大富大贵') == 1
     # 拆开单用仍拦
-    assert _tier_rank('踏实经营可达大富') == 3
+    assert _tier_rank('踏实经营可达大富') == 2
 
 
 def test_anchors_n2_r3_meta_ban():
@@ -596,19 +603,20 @@ def test_anchors_n2_r3_meta_ban():
 
 def test_tier_rank_n2_r3_exemptions():
     # N2 r3 复测假阳族（⑥⑦⑧同族变体）：
+    # （修批F③：断言数值按四档新序重编号，豁免/拦截语义不动）
     # ⑧c「富足」泛指形容词
-    assert _tier_rank('勤劳可至小康富足，不可奢望巨富') == 2
-    assert _tier_rank('命定小康，安稳富足') == 2
+    assert _tier_rank('勤劳可至小康富足，不可奢望巨富') == 1
+    assert _tier_rank('命定小康，安稳富足') == 1
     # ⑧d 告诫式暴富专属宽窗（别/莫距命中 6 字，一般 ±5 窗差一字）
     assert _tier_rank('撑死温饱有余，别想着投机暴富，踏实做工薪') == -1
     assert _tier_rank('财命看贫，别指望一夜暴富，守好本分') == 0
-    assert _tier_rank('财命小康，别指望大富暴富') == 2
+    assert _tier_rank('财命小康，别指望大富暴富') == 1
     # ⑧d 无否定语境的暴富仍拦
-    assert _tier_rank('运气好就能暴富') == 3
-    # ⑧e「平平」叠词口语非档位断言
+    assert _tier_rank('运气好就能暴富') == 2
+    # ⑧e「平平」叠词口语非档位断言（修批F③起「平」整体不归档，本条由档序覆盖）
     assert _tier_rank('财命平平，属贫命，量级有限') == 0
-    # 单个「平」作档位词仍计
-    assert _tier_rank('财命平，小康无望') == 1
+    # 单个「平」=引擎不存在的档位词，不归档（修批F③口径改：旧口径按五档计 rank1）
+    assert _tier_rank('财命平，小康无望') == -1
 
 
 def test_l2_guan_daoshi_exemption():
@@ -880,3 +888,105 @@ def test_l2_guanming_unknown_strictest():
               'guanming': {'is_guanming': True}}
     data['事业']['conclusion'] = '这是官命，能当官'
     assert not any('官命=否' in x['detail'] for x in _l2_enum(data, eng_gm))
+
+
+# ── 修批 F 校验器校准敏感区收口哨兵（先红后绿）──
+
+
+def test_f1_tier_negation_window_escape():
+    """修批F①财档否定窗：逃逸用例修复前放行、修复后归位拦截。"""
+    # 「未」撞干支（癸未/丁未）不再误豁免（修复前「未」在单字否定表内）
+    assert _tier_rank('癸未运开库，巨富可期') == 3
+    assert _tier_rank('丁未运，巨富到') == 3
+    # 跨子句否定字不算（「莫急」与档位词不同子句）
+    assert _tier_rank('莫急，你是巨富命') == 3
+    # 「非常」非否定语境（修复前「非」单字误豁免）
+    assert _tier_rank('你非常富有') == 2
+    # 合法否定句式不拦（既有假阳治理口径不回退）
+    assert _tier_rank('财命难大富，注意防破财') == -1   # 难紧贴「大富」
+    assert _tier_rank('一生未能大富，小康安稳') == 1   # 未能=双字否定词
+    assert _tier_rank('无富之命，守成为上') == -1      # 无紧贴档位词
+    assert _tier_rank('财命没有巨富之象，莫贪') == -1  # 没有=双字否定词
+
+
+def test_f1_guanming_double_negation_escape():
+    """修批F①官命同款：双重否定/反语肯定=正向断言（修复前两路均漏）。"""
+    data = _good()
+    data['事业']['conclusion'] = '不是没官命，你官命不小'
+    assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    data['事业']['conclusion'] = '你官命不小'
+    assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    # 合法否定句式不拦（既有口径不回退）
+    data['事业']['conclusion'] = '没有官命，求财为上'
+    assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    data['事业']['conclusion'] = '官命被岁运否决，宜守成'
+    assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_f2_cap_marker_exemption_narrowed():
+    """修批F②：cap-marker 前档词豁免收窄为「档词与标记同句且有转折连词」。"""
+    # 逃逸例（修复前 marker 前档词全豁免）：无转折连词的独立断言，拦
+    assert _tier_rank('原局本是巨富格，可惜岁运反局压制，财命档就是小康') == 3
+    # L2 端到端：ceiling=小康 时该句记违规
+    eng_xk = {'caiming': {'tier_static': '小康', 'tier': '小康'},
+              'guanming': {'is_guanming': True}}
+    data = _good()
+    data['财运']['conclusion'] = '原局本是巨富格，可惜岁运反局压制，财命档就是小康'
+    assert any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_xk))
+    # 合法让步句式不拦（既有锁定口径）：转折连词连接的让步引用仍豁免
+    assert _tier_rank('功量层级中富中贵，但财命档就是小康，别指望暴富') == 1
+    assert _tier_rank('虽功量可至大富，然财命定档小康') == 1
+    # cap 后的越限仍拦（既有口径）
+    assert _tier_rank('封顶小康，若运程配合能成巨富') == 3
+
+
+def test_f3_ghost_tier_ping_unfiled():
+    """修批F③：幽灵档「平」不归档——引擎财档四值（caiming.tier_map 贫/小康/富/巨富）。"""
+    from mangpai.subjective.llm_channel import _TIER_ORDER
+    assert _TIER_ORDER == ('贫', '小康', '富', '巨富')
+    # LLM 输出「平档」按引擎不存在的档位词处理：不归档、不计 rank
+    assert _tier_rank('财命平档') == -1
+    assert _tier_rank('财命属贫，也就平之富') == 0  # 「平之富」归位语同不归档
+    # 合法四档断言照计（既有口径不回退）
+    assert _tier_rank('财命小康') == 1
+
+
+def test_f3_prompt_four_tiers():
+    """修批F③ prompt 轨：SCHEMA/锚定行改四选一表述，幽灵档「平」除名。"""
+    from mangpai.subjective.llm_prompt import SCHEMA_SPEC, _tier_anchor
+    assert '五选' not in SCHEMA_SPEC and '四选一' in SCHEMA_SPEC
+    assert '巨富/富/小康/贫' in SCHEMA_SPEC and '小康/平/贫' not in SCHEMA_SPEC
+    a = _tier_anchor({'caiming': {'tier_static': '贫', 'tier': '小康'}})
+    assert '贫/小康/富/巨富四选' in a and '平' not in a.split('四选')[0]
+
+
+def test_f4_schema_spec_real_paths():
+    """修批F④：SCHEMA 示例路径须为真实键——xiangfa 顶层无 all_findings
+    （实为 xiangfa_ops.all_findings，与 L1 remap 规则 A 同口径）。"""
+    from mangpai.subjective.llm_prompt import SCHEMA_SPEC
+    assert 'xiangfa.all_findings' not in SCHEMA_SPEC
+    assert 'xiangfa_ops.all_findings' in SCHEMA_SPEC
+
+
+def test_f6_bazi_line_gender_normalized(monkeypatch):
+    """修批F⑥：gender 口径归一——male/female/乾/坤 同样落乾/坤造标记
+    （修复前只认「男/女」，male/female 盘标记静默缺失）。"""
+    import json as _json
+    from mangpai.subjective.llm_channel import (
+        DIMENSIONS, render_structured_reading)
+    seen = []
+
+    def fake(system, user, **kw):
+        seen.append(user)
+        return {'text': _json.dumps(
+            {d: {'conclusion': 'x', 'basis': [], 'confidence': '中'}
+             for d in DIMENSIONS}, ensure_ascii=False),
+            'usage': {}, 'cost_cny': 0.0, 'price_tier': 'offpeak',
+            'elapsed_s': 0.0, 'model': 'mock'}
+
+    monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek', fake)
+    eng = {'bazi': {'year': '甲子', 'month': '乙丑', 'day': '丙寅', 'hour': '丁卯'}}
+    for g, mark in (('female', '坤造'), ('male', '乾造'), ('坤', '坤造'),
+                    ('乾', '乾造'), ('女', '坤造'), ('男', '乾造')):
+        render_structured_reading(dict(eng, input={'gender': g}))
+        assert f'（{mark}）' in seen[-1], g

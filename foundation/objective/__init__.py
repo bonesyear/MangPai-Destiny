@@ -13,7 +13,7 @@ from foundation.objective.ganqing import (
     ZHI_YUANZHU, ZHI_RENSHI,
     GanQingRule,
     GAN_QING_RULES, ZHI_QING_RULES,
-    get_ganqing, match_ganqing, match_zhiqing,
+    get_ganqing, match_ganqing, match_zhiqing, derive_states,
     season_of, is_yang_zhi,
 )
 from foundation.objective.nayin import (
@@ -27,7 +27,7 @@ __all__ = [
     'ZHI_YUANZHU', 'ZHI_RENSHI',
     'GanQingRule',
     'GAN_QING_RULES', 'ZHI_QING_RULES',
-    'get_ganqing', 'match_ganqing', 'match_zhiqing',
+    'get_ganqing', 'match_ganqing', 'match_zhiqing', 'derive_states',
     'season_of', 'is_yang_zhi',
     # nayin
     'NAYIN_TABLE', 'NAYIN_WUXING', 'get_nayin', 'get_nayin_wuxing',

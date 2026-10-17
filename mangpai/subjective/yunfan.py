@@ -668,6 +668,125 @@ def _detect_liunian_fan(
     return fans, liandong
 
 
+def _xiji_of_wx(day_gan: str, natal_gans: List[str], natal_zhis: List[str],
+                wx: str, strength: str = '') -> str:
+    """扶抑喜忌定向（同 liunian._judge_xiji 口径：身强/从强忌体喜用，
+    身弱/从弱喜体忌用，中和/不明/缺数据返回空串=喜忌不明）。
+
+    岁运三特殊法则（并临/晦太岁）定向用——marker 级，不入凶链。
+    """
+    day_wx = GAN_WX.get(day_gan, '')
+    if not day_wx or not wx:
+        return ''
+    strength = strength or str(classify_strength(day_gan, natal_gans, natal_zhis))
+    if strength in ('中和', '不明', ''):
+        return ''
+    yin_wx = ''
+    for w, c in WX_SHENG.items():
+        if c == day_wx:
+            yin_wx = w
+            break
+    is_ti = wx in (day_wx, yin_wx)
+    if strength in ('身强', '从强'):
+        return '忌' if is_ti else '喜'
+    return '喜' if is_ti else '忌'
+
+
+def _detect_suiyun_teshu(
+    ln_gan: str, ln_zhi: str, dy_gan: str, dy_zhi: str,
+    day_gan: str, natal_gans: List[str], natal_zhis: List[str],
+    strength: str = '',
+) -> List[Dict]:
+    """岁运三特殊法则（gaoji 岁运特殊关系总诀 :18890-18892「并临力倍分喜忌，
+    征岁犯上灾突发，晦岁侵阳福寿差」）——marker 级信号+中性措辞，输出于
+    suiyun_teshu 键，不入反局凶链（并临吉凶双向，征/晦太岁为书明文凶向
+    提示，皆供叙事层参考）。
+
+      1. 岁运并临（:18894-18898）：大运干支与流年干支完全相同，力量倍增；
+         吉凶双向——「并临之字观原局，喜用逢之锦添花，忌仇逢之雪加霜」，
+         以并临干支五行对原局之用忌（扶抑口径）定向。
+      2. 征太岁（:18882/:18995「大运主动冲克流年（太岁）…以下犯上」）：
+         方向特定=运克岁（运干克岁干[合不论]/运支冲或克岁支）；与既有
+         「岁运联动·双冲」（双向、入凶链）方向互补，此为方向性 marker。
+      3. 晦太岁（:19077-19086「湿土寒水蔽日光…火岁逢辰丑亥子…木岁逢申酉
+         重金」）：流年太岁为火（丙丁巳午，阳气）或木（甲乙寅卯，生机），
+         命局或大运之忌神（湿土辰丑/寒水亥子/重金申酉）晦暗之。
+    """
+    out: List[Dict] = []
+    if not (ln_gan and ln_zhi and dy_gan and dy_zhi):
+        return out
+
+    # 1. 岁运并临：干支全同
+    if ln_gan == dy_gan and ln_zhi == dy_zhi:
+        xj_g = _xiji_of_wx(day_gan, natal_gans, natal_zhis,
+                           GAN_WX.get(ln_gan, ''), strength)
+        xj_z = _xiji_of_wx(day_gan, natal_gans, natal_zhis,
+                           ZHI_WX.get(ln_zhi, ''), strength)
+        if xj_g == '喜' and xj_z == '喜':
+            direction, tail = '吉向', '并临干支皆原局喜用——吉神并临福禄至'
+        elif xj_g == '忌' and xj_z == '忌':
+            direction, tail = '凶向', '并临干支皆原局忌仇——凶神并临祸灾殃'
+        else:
+            direction, tail = '双向/不明', '干支喜忌不一或不明——锦添花/雪加霜两可'
+        out.append({
+            'teshu_type': '岁运并临',
+            'direction': direction,
+            'reason': f'大运{dy_gan}{dy_zhi}与流年{ln_gan}{ln_zhi}干支全同，'
+                      f'岁运并临，其力倍增——{tail}（gaoji:18894-18898）',
+        })
+
+    # 2. 征太岁：运克岁（以下犯上，方向特定）
+    dy_gw, ln_gw = GAN_WX.get(dy_gan, ''), GAN_WX.get(ln_gan, '')
+    dy_zw, ln_zw = ZHI_WX.get(dy_zhi, ''), ZHI_WX.get(ln_zhi, '')
+    gan_ke = bool(dy_gw and ln_gw and WX_KE.get(dy_gw) == ln_gw
+                  and TIAN_GAN_HE.get(dy_gan) != ln_gan)
+    zhi_hit = bool(dy_zw and ln_zw and (
+        _pair_hit(dy_zhi, ln_zhi, LIU_CHONG) or WX_KE.get(dy_zw) == ln_zw))
+    if gan_ke or zhi_hit:
+        ways = []
+        if gan_ke:
+            ways.append(f'运干{dy_gan}克岁干{ln_gan}')
+        if zhi_hit:
+            ways.append(f'运支{dy_zhi}{"冲" if _pair_hit(dy_zhi, ln_zhi, LIU_CHONG) else "克"}'
+                        f'岁支{ln_zhi}')
+        out.append({
+            'teshu_type': '征太岁',
+            'direction': '凶向',
+            'reason': f'大运{dy_gan}{dy_zhi}主动冲克流年太岁{ln_gan}{ln_zhi}'
+                      f'（{"、".join(ways)}）——运克岁，以下犯上、以动惊静，'
+                      f'易有冲突、官非、突发之事（gaoji:18882/18995）',
+        })
+
+    # 3. 晦太岁：火/木太岁被忌神湿土寒水（辰丑亥子）/重金（申酉）晦暗
+    ln_is_huo = GAN_WX.get(ln_gan, '') == '火' or ZHI_WX.get(ln_zhi, '') == '火'
+    ln_is_mu = GAN_WX.get(ln_gan, '') == '木' or ZHI_WX.get(ln_zhi, '') == '木'
+    pool = [c for c in list(natal_gans) + list(natal_zhis) + [dy_gan, dy_zhi] if c]
+    if ln_is_huo:
+        hui = [c for c in pool if c in ('辰', '丑', '亥', '子')
+               and _xiji_of_wx(day_gan, natal_gans, natal_zhis,
+                               ZHI_WX.get(c, ''), strength) == '忌']
+        if hui:
+            out.append({
+                'teshu_type': '晦太岁',
+                'direction': '凶向',
+                'reason': f'流年{ln_gan}{ln_zhi}火岁（阳气），命局/大运湿土寒水'
+                          f'（{"".join(sorted(set(hui)))}）忌神晦暗之——火岁逢辰丑亥子，'
+                          f'光辉被掩，运途晦暗、事倍功半之象（gaoji:19077-19086）',
+            })
+    if ln_is_mu:
+        jins = [c for c in pool if c in ('申', '酉', '庚', '辛')]
+        if len(jins) >= 2 and _xiji_of_wx(
+                day_gan, natal_gans, natal_zhis, '金', strength) == '忌':
+            out.append({
+                'teshu_type': '晦太岁',
+                'direction': '凶向',
+                'reason': f'流年{ln_gan}{ln_zhi}木岁（生机），命局/大运重金'
+                          f'（{"".join(sorted(set(jins)))}）忌神伐之——木岁逢申酉重金，'
+                          f'生机被伐之象（gaoji:19077-19086）',
+            })
+    return out
+
+
 def analyze_yunfan(
     natal_gans: List[str],
     natal_zhis: List[str],
@@ -703,6 +822,8 @@ def analyze_yunfan(
           'dayun_fan': [大运反局...],      # 每步大运的反局类型
           'liunian_fan': [流年反局...],    # 每流年的反局类型
           'sui_yun_liandong': [岁运联动...], # 天地合/三刑/双冲（最凶，单列）
+          'suiyun_teshu': [岁运三特殊关系 marker...],  # 批E：并临/征太岁/晦太岁
+            # （中性措辞，不入凶链；gaoji:18894/18882/19077）
           'summary': str,
         }
     """
@@ -782,6 +903,7 @@ def analyze_yunfan(
     liunian_fan: List[Dict] = []
     liunian_ji: List[Dict] = []
     sui_yun_liandong: List[Dict] = []
+    suiyun_teshu: List[Dict] = []  # 批E：岁运三特殊法则 marker（不入凶链）
     for entry in (liunian_list or []):
         gz = entry.get('gz', '')
         if gz and len(gz) >= 2:
@@ -793,6 +915,17 @@ def analyze_yunfan(
         fans, liandong = _detect_liunian_fan(
             gan, zhi, natal_gans, natal_zhis, gshen, fei,
             work_actions, wtypes, day_gan, dy_gan, dy_zhi)
+        # 批E：岁运三特殊法则（并临/征太岁/晦太岁）marker——中性措辞，
+        # 供叙事层参考，不并入 fans/liandong 凶链
+        teshu = _detect_suiyun_teshu(gan, zhi, dy_gan, dy_zhi, day_gan,
+                                     natal_gans, natal_zhis, _strength)
+        if teshu:
+            suiyun_teshu.append({
+                'year': entry.get('year', 0),
+                'gz': f'{gan}{zhi}',
+                'dayun_gz': f'{dy_gan}{dy_zhi}' if dy_gan and dy_zhi else '',
+                'teshu': teshu,
+            })
         # G5 破从/合去（流年级：含合去日主）
         pc_fans, pc_jis = _detect_po_cong(
             gan, zhi, day_gan, natal_gans, natal_zhis, _strength, _cong_label,
@@ -830,6 +963,8 @@ def analyze_yunfan(
         parts.append(f'{len(sui_yun_liandong)}岁运联动(最凶)')
     if dayun_ji or liunian_ji:
         parts.append(f'{len(dayun_ji) + len(liunian_ji)}运岁合去忌神(吉向)')
+    if suiyun_teshu:
+        parts.append(f'{len(suiyun_teshu)}岁运特殊关系marker(并临/征岁/晦岁)')
 
     return {
         'natal_zhengfan': natal_zf,
@@ -838,6 +973,7 @@ def analyze_yunfan(
         'sui_yun_liandong': sui_yun_liandong,
         'dayun_ji': dayun_ji,      # G5 大运吉向（合去/合绊忌神，标注不入凶链）
         'liunian_ji': liunian_ji,  # G5 流年吉向（同上）
+        'suiyun_teshu': suiyun_teshu,  # 批E 岁运三特殊法则 marker（中性，不入凶链）
         'summary': '；'.join(parts),
     }
 

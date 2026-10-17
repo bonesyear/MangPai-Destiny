@@ -98,3 +98,34 @@ class TestExemptions:
     def test_cong_ge_exempts_g2_g5(self):
         # qi27 比劫去杀连升 癸酉甲寅戊卯戊寅：从强杀为忌，G2/G5 豁免保官命
         assert _is(['癸', '甲', '戊', '戊'], ['酉', '寅', '卯', '寅']) is True
+
+
+# ── 批E：支象行业通道（中级:3685-3687「官命组合中，如出现申、酉两字做功，
+#    一般是检察、法院、法律有关的官职；如出现申、酉、丑、寅字的组合做功，
+#    一般与公安部门的官」）——classify_hangye_xiang 旧仅有天干象通道 ──
+
+from mangpai.subjective.guanming import classify_hangye_xiang
+
+_COMBO_GUAN = {'is_guanming': True, 'zhiyong_combos': [], 'shengyong_huayong': []}
+
+
+def test_e_zhixiang_shenyou_jiancha_fayuan():
+    """甲日：申（杀）酉（官）两字皆参与做功（巳申合、午克申酉）→ 检察/法院/法律。"""
+    r = classify_hangye_xiang('甲', ['丙', '丁', '甲', '庚'], ['巳', '午', '申', '酉'],
+                              dict(_COMBO_GUAN))
+    assert '检察' in r['by_zhixiang'] and '法院' in r['by_zhixiang']
+
+
+def test_e_zhixiang_sgcy_gongan():
+    """甲日：申酉丑寅四字中 申丑寅≥3 字在局且交织做功（申寅冲）→ 公安部门。"""
+    r = classify_hangye_xiang('甲', ['丙', '丁', '甲', '戊'], ['巳', '丑', '申', '寅'],
+                              dict(_COMBO_GUAN))
+    assert '公安' in r['by_zhixiang']
+
+
+def test_e_zhixiang_requires_guanming_premise():
+    """书口径「官命组合中」：非官命（is_guanming=False）支象通道不启动。"""
+    r = classify_hangye_xiang('甲', ['丙', '丁', '甲', '庚'], ['巳', '午', '申', '酉'],
+                              {'is_guanming': False, 'zhiyong_combos': [],
+                               'shengyong_huayong': []})
+    assert r['by_zhixiang'] == ''

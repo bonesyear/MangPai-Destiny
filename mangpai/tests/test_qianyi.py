@@ -171,3 +171,25 @@ def test_engine_wiring_and_payload_channel():
     payload = build_payload(res)
     assert 'qianyi' in payload
     assert payload['qianyi']['qianyi_yingqi']['move_windows']
+
+
+# ── 批E：门户伏吟（shouke:704「外出（伏吟门户）」明文 + :702「丁卯伏吟
+#    门户，外出之意」+ :2652「门户伏吟，逃至国外」案例）——时柱=门户，
+#    流年与时柱干支全同（干支俱同伏吟，shouke:716 正格）即出 marker，
+#    归或然档（:716 自承可不应验）──
+
+def test_e_menhu_fuyin_waichu():
+    """流年丁卯与时柱丁卯干支全同 → 门户伏吟外出 marker（或然）。"""
+    r = _run('丁未己酉戊子丁卯', lns=('丁卯',))
+    hits = [w for w in _moves(r) if w['mechanism'] == '门户伏吟']
+    assert hits and hits[0]['confidence'] == '或然' and hits[0]['pillar'] == 'hour'
+    assert '出国' not in hits[0]['note']
+
+
+def test_e_menhu_fuyin_priority_over_ma_fuyin():
+    """时支恰为马星（亥年→马巳）时：干支俱同的门户口径优先，同柱
+    马星伏吟（仅支同）不并列双出。"""
+    r = _run('辛亥庚子庚寅丁巳', lns=('丁巳',))
+    assert any(w['mechanism'] == '门户伏吟' for w in _moves(r))
+    assert not any(w['mechanism'] == '马星伏吟' and w['pillar'] == 'hour'
+                   and w['liunian'] == '丁巳' for w in _moves(r))

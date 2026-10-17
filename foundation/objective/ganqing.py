@@ -46,6 +46,17 @@ _SHENG_FANG: Set[str] = {'寅', '申', '巳', '亥'}   # 四生
 _SI_KU: Set[str] = {'辰', '戌', '丑', '未'}          # 四库
 _SI_BAI: Set[str] = {'子', '午', '卯', '酉'}          # 四败/四正
 
+# 干支 -> 五行（foundation 层无共享常量表，derive_states 计数用；
+# 与 mangpai.objective.constants 同口径，本层自治不反向依赖）
+_GAN_WX: Dict[str, str] = {
+    '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+    '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水',
+}
+_ZHI_WX: Dict[str, str] = {
+    '寅': '木', '卯': '木', '巳': '火', '午': '火', '辰': '土', '戌': '土',
+    '丑': '土', '未': '土', '申': '金', '酉': '金', '亥': '水', '子': '水',
+}
+
 
 def season_of(month_zhi: str) -> str:
     """月令地支 -> 季节（春/夏/秋/冬）。空或非法返回 ''。"""
@@ -110,7 +121,9 @@ GAN_YUANZHU: Dict[str, str] = {
     '辛': '辛乃阴金，非珠玉之谓也。凡温软清润者，皆辛金也。戊己土多而能埋，故畏之；'
           '壬癸水多而必秀，故乐之。辛为丙之臣也，合丙化水，使丙火臣服壬水，而安扶社稷；'
           '辛为甲之君也，合丙化水，使丙火不焚甲木，而救援生灵。生于九夏而得己土，则能晦火而存之；'
-          '生于隆冬而得丁火，则能敌寒而养之。',
+          '生于隆冬而得丁火，则能敌寒而养之。'
+          '故辛金生于冬月，见丙火则男命不贵，虽贵亦不忠；女命克夫，不克亦不和。'
+          '见丁男女皆贵且顺。',
     '壬': '壬水即癸水之发源，昆仑之水也；癸水即壬水之归宿，扶桑之水也。有分有合，运行不息，'
           '所以为百川者此也，亦为雨露者此也，是不可歧而二之。申为天关，乃天河之口，壬水长生于此，'
           '能泄西方金气。周流之性，冲进不滞，刚中之德犹然也。若申子辰全而又透癸，则其势冲奔，'
@@ -232,6 +245,12 @@ class GanQingRule:
       branch_yang/yin : True       地支规则：branches 中含阳支/阴支
       branch_shengfang/siku/sibai : True  含生方/四库/四败
       general         : True       无条件（恒成立，常与说明性规则同用）
+
+    上下文缺失语义（批D）：tougian/branches 未提供（None）时，含 no_tougian/
+    no_branches 排除条件之规则保守不命中——空集会使「无丙丁」类排除恒真，
+    造成反向误命中（如柱有丙仍命中乙「虚湿之地，骑马亦忧」）；显式传空列表
+    视为「确知无透干/无地支」，正常判定。正向键（tougian_any/branches 等）
+    在空集上本就不命中，不受影响。
     """
     gan: str                       # 天干（地支规则为 ''，配 zhi_clause）
     fu_clause: str                 # 赋文原句
@@ -393,10 +412,13 @@ _WU_RULES: List[GanQingRule] = [
     _r('戊', '火燥物病', {'season_any': ['春', '夏'], 'state': ['燥']}, '燥则物枯', '忌',
        '春夏燥则物枯',
        '燥则物枯'),
-    _r('戊', '生于秋冬，水多宜火暖之，则万物化成', {'season_any': ['秋', '冬'], 'state': ['水多']}, '宜火暖（物化）', '喜',
+    # 批D 锚点修正：以下两条之条件/行为实出自任氏曰（ditianchansui:421-422
+    # 「生于秋冬，水多宜火暖之，则万物化成，湿则物病」）而非赋文——fu_clause
+    # 归准为所发挥之赋文原句「水润物生，火燥物病」，任氏曰文句留 renshi 字段。
+    _r('戊', '水润物生，火燥物病', {'season_any': ['秋', '冬'], 'state': ['水多']}, '宜火暖（物化）', '喜',
        '秋冬水多宜火暖之则万物化成',
        '生于秋冬，水多宜火暖之，则万物化成', source='任氏发挥'),
-    _r('戊', '生于秋冬，湿则物病', {'season_any': ['秋', '冬'], 'state': ['湿']}, '湿则物病', '忌',
+    _r('戊', '水润物生，火燥物病', {'season_any': ['秋', '冬'], 'state': ['湿']}, '湿则物病', '忌',
        '秋冬湿则物病',
        '湿则物病', source='任氏发挥'),
     _r('戊', '若在艮坤，怕冲宜静', {'month_zhi': ['寅', '申']}, '怕冲宜静', '忌',
@@ -480,12 +502,19 @@ _XIN_RULES: List[GanQingRule] = [
     _r('辛', '寒则喜丁', {'season': '冬', 'state': ['水旺']}, '寒则喜丁', '喜',
        '冬水旺有丁火温水而养金',
        '生于冬而水旺，有丁火则温水而养金'),
-    _r('辛', '辛冬月丙不贵', {'season': '冬', 'stems': ['丙']}, '冬得丙不贵', '凶',
-       '辛生于冬月，丙火虽暖不如丁之有情',
-       '辛冬月丙不贵', source='原注'),
-    _r('辛', '辛冬月丁皆贵', {'season': '冬', 'stems': ['丁']}, '冬得丁皆贵', '吉',
-       '辛生于冬月，得丁火敌寒养金则贵',
-       '生于隆冬而得丁火，则能敌寒而养之', source='原注'),
+    # 批D 锚点修正：辛冬月丙/丁两条之 fu_clause 旧为自造缩写（「辛冬月丙不贵」），
+    # 真出处=辛原注末句（ditianchansui:445「故辛金生于冬月，见丙火则男命不贵，
+    # 虽贵亦不忠；女命克夫，不克亦不和。见丁男女皆贵且顺」）——fu_clause 取真实
+    # 原文句，该句已同步补入 GAN_YUANZHU['辛']。match_ganqing 无 gender 上下文，
+    # 男女分断合判录于 behavior（见丙：男命不贵/女命克夫并录）。
+    _r('辛', '见丙火则男命不贵，虽贵亦不忠；女命克夫，不克亦不和',
+       {'season': '冬', 'stems': ['丙']},
+       '冬月见丙：男命不贵（虽贵亦不忠），女命克夫（不克亦不和）', '凶',
+       '辛金生于冬月水旺之地，见丙火原注断男命不贵、女命克夫',
+       '故辛金生于冬月，见丙火则男命不贵，虽贵亦不忠；女命克夫，不克亦不和', source='原注'),
+    _r('辛', '见丁男女皆贵且顺', {'season': '冬', 'stems': ['丁']}, '冬得丁男女皆贵且顺', '吉',
+       '辛生于冬月，得丁火敌寒养金，男女皆贵且顺',
+       '生于隆冬而得丁火，则能敌寒而养之……见丁男女皆贵且顺', source='原注'),
 ]
 
 # ── 壬水 ──
@@ -585,9 +614,16 @@ def _season_hit(rule_seasons: List[str], ctx_season: str) -> bool:
 
 
 def _rule_matches(cond: Dict[str, Any], *, season: str, month_zhi: str,
-                  sanhe: Optional[str], tougian: Set[str], stems: Set[str],
-                  branches: Set[str], day_gz: str, states: Set[str]) -> bool:
-    """逐键校验条件；全部满足才命中。"""
+                  sanhe: Optional[str], tougian: Optional[Set[str]], stems: Set[str],
+                  branches: Optional[Set[str]], day_gz: str, states: Set[str]) -> bool:
+    """逐键校验条件；全部满足才命中。
+
+    tougian/branches=None 表示该维度上下文未提供（区别于空集=确知无）：
+    含 no_tougian/no_branches 排除条件之规则保守不命中（批D，防空集恒真
+    反向误命中）；正向键在 None 上按空集处理（本就不命中）。
+    """
+    _tg = tougian or set()
+    _br = branches or set()
     # general：恒成立（但仍要满足其它并存键）
     # season / season_any
     if 'season' in cond and not _season_hit([cond['season']], season):
@@ -601,17 +637,17 @@ def _rule_matches(cond: Dict[str, Any], *, season: str, month_zhi: str,
     if 'sanhe' in cond:
         want = cond['sanhe']
         three = list(want)
-        sanhe_ok = (sanhe == want) or all(b in branches for b in three)
+        sanhe_ok = (sanhe == want) or all(b in _br for b in three)
         if not sanhe_ok:
             return False
     # tougian_any：命中其一即可
-    if 'tougian_any' in cond and not any(t in tougian for t in cond['tougian_any']):
+    if 'tougian_any' in cond and not any(t in _tg for t in cond['tougian_any']):
         return False
     # tougian_all：须全部命中
-    if 'tougian_all' in cond and not all(t in tougian for t in cond['tougian_all']):
+    if 'tougian_all' in cond and not all(t in _tg for t in cond['tougian_all']):
         return False
-    # no_tougian：均不透
-    if 'no_tougian' in cond and any(t in tougian for t in cond['no_tougian']):
+    # no_tougian：均不透（tougian 未提供时保守不命中）
+    if 'no_tougian' in cond and (tougian is None or any(t in tougian for t in cond['no_tougian'])):
         return False
     # stems：柱中天干命中其一
     if 'stems' in cond and not any(s in stems for s in cond['stems']):
@@ -620,10 +656,10 @@ def _rule_matches(cond: Dict[str, Any], *, season: str, month_zhi: str,
     if 'no_stems' in cond and any(s in stems for s in cond['no_stems']):
         return False
     # branches：柱中地支命中其一
-    if 'branches' in cond and not any(b in branches for b in cond['branches']):
+    if 'branches' in cond and not any(b in _br for b in cond['branches']):
         return False
-    # no_branches
-    if 'no_branches' in cond and any(b in branches for b in cond['no_branches']):
+    # no_branches（branches 未提供时保守不命中）
+    if 'no_branches' in cond and (branches is None or any(b in branches for b in cond['no_branches'])):
         return False
     # day_gz
     if 'day_gz' in cond and day_gz not in cond['day_gz']:
@@ -633,15 +669,15 @@ def _rule_matches(cond: Dict[str, Any], *, season: str, month_zhi: str,
         return False
     # 地支分类键（branch_yang/yin/shengfang/siku/sibai）：对单支判定，
     # 由 match_zhiqing 逐支调用前注入 branches=单支；此处按 branches 中是否存在该类支判定
-    if 'branch_yang' in cond and not any(b in _YANG_ZHI for b in branches):
+    if 'branch_yang' in cond and not any(b in _YANG_ZHI for b in _br):
         return False
-    if 'branch_yin' in cond and not any(b in _YIN_ZHI for b in branches):
+    if 'branch_yin' in cond and not any(b in _YIN_ZHI for b in _br):
         return False
-    if 'branch_shengfang' in cond and not any(b in _SHENG_FANG for b in branches):
+    if 'branch_shengfang' in cond and not any(b in _SHENG_FANG for b in _br):
         return False
-    if 'branch_siku' in cond and not any(b in _SI_KU for b in branches):
+    if 'branch_siku' in cond and not any(b in _SI_KU for b in _br):
         return False
-    if 'branch_sibai' in cond and not any(b in _SI_BAI for b in branches):
+    if 'branch_sibai' in cond and not any(b in _SI_BAI for b in _br):
         return False
     return True
 
@@ -654,14 +690,18 @@ def match_ganqing(gan: str, *, season: Optional[str] = None, month_zhi: Optional
 
     season 可显式传更精细值（如 '春初'/'仲春'），否则由 month_zhi 推得泛季节。
     tougian 为透出天干列表；stems/branches 为柱中全部干/支；states 为旺衰多寡态集合。
+    tougian/branches 不传（None）= 该维度上下文未提供：含 no_tougian/no_branches
+    之规则保守不命中（批D，防空集恒真反向误命中）；传 [] = 确知无，正常判定。
     """
     g = _norm_gan(gan)
     if g not in GAN_QING_RULES:
         return []
     ctx_season = season or (season_of(month_zhi) if month_zhi else '')
     ctx = dict(season=ctx_season, month_zhi=month_zhi or '', sanhe=sanhe,
-               tougian=set(tougian or []), stems=set(stems or []),
-               branches=set(branches or []), day_gz=day_gz or '',
+               tougian=None if tougian is None else set(tougian),
+               stems=set(stems or []),
+               branches=None if branches is None else set(branches),
+               day_gz=day_gz or '',
                states=set(states or []))
     return [r for r in GAN_QING_RULES[g] if _rule_matches(r.condition, **ctx)]
 
@@ -694,6 +734,61 @@ def get_ganqing(gan: str) -> Optional[Dict[str, Any]]:
     }
 
 
+def derive_states(gans: List[str], zhis: List[str]) -> List[str]:
+    """由四柱干支推导 match_ganqing 上下文的可得旺衰/多寡态（states）。
+
+    批D 接线用（xiangfa_ops 干支性情象层）。工程化近似口径：
+      多寡态：8 字（天干 + 地支本气）五行计数 >=3 判「多/旺/盛/盈/狂」类
+              （火->火旺/火多；水->水多/水旺/水盈/水狂；土->土多/土气深固；
+              金->金多；木->木盛），<=1 判「少」（火->火少）；
+      合众态：火+土合计 >=5 -> 火土并旺/火土多；金 0 且水 0 -> 无金水；
+      燥湿态：燥土（未/戌）在支 -> 燥；湿土（丑/辰）在支 -> 湿；
+      关系态：水在局（壬癸亥子任一）-> 有水不争克；辛乙俱透 -> 辛克乙；
+              戊壬俱透 -> 戊克壬。
+    日主自身旺衰（'旺'/'衰'）、「地润天和」等须全局衡量之态不在此推导
+    （保守不产出，对应规则不命中）。
+    """
+    cnt: Dict[str, int] = {wx: 0 for wx in ('木', '火', '土', '金', '水')}
+    for g in (gans or []):
+        w = _GAN_WX.get(g, '')
+        if w:
+            cnt[w] += 1
+    for z in (zhis or []):
+        w = _ZHI_WX.get(z, '')
+        if w:
+            cnt[w] += 1
+    states: Set[str] = set()
+    if cnt['火'] >= 3:
+        states |= {'火旺', '火多'}
+    elif cnt['火'] <= 1:
+        states.add('火少')
+    if cnt['水'] >= 3:
+        states |= {'水多', '水旺', '水盈', '水狂'}
+    if cnt['土'] >= 3:
+        states |= {'土多', '土气深固'}
+    if cnt['金'] >= 3:
+        states.add('金多')
+    if cnt['木'] >= 3:
+        states.add('木盛')
+    if cnt['火'] + cnt['土'] >= 5:
+        states |= {'火土并旺', '火土多'}
+    if cnt['金'] == 0 and cnt['水'] == 0:
+        states.add('无金水')
+    zset = {z for z in (zhis or []) if z}
+    if zset & {'未', '戌'}:
+        states.add('燥')
+    if zset & {'丑', '辰'}:
+        states.add('湿')
+    if cnt['水'] >= 1:
+        states.add('有水不争克')
+    gset = {g for g in (gans or []) if g}
+    if {'辛', '乙'} <= gset:
+        states.add('辛克乙')
+    if {'戊', '壬'} <= gset:
+        states.add('戊克壬')
+    return sorted(states)
+
+
 __all__ = [
     # 赋文原文
     'GAN_FU', 'ZHI_FU', 'GAN_YUANZHU', 'GAN_RENSHI', 'ZHI_YUANZHU', 'ZHI_RENSHI',
@@ -701,6 +796,6 @@ __all__ = [
     'GanQingRule', 'BEHAVIOR_TYPES',
     'GAN_QING_RULES', 'ZHI_QING_RULES',
     # 查询
-    'get_ganqing', 'match_ganqing', 'match_zhiqing',
+    'get_ganqing', 'match_ganqing', 'match_zhiqing', 'derive_states',
     'season_of', 'is_yang_zhi',
 ]

@@ -579,6 +579,25 @@ def _assess_caixing_path(
     return out
 
 
+def _hecai_zuozhi_dewang(day_gan: str, zhis: List[str]) -> bool:
+    """合财身强弱的书口径（理象学:6672-6684「只有合财的时候讲身强身弱。什么
+    道理呢？合财就像背一个包袱，身强可以胜财，身弱就不能胜财。此时的身强
+    并不是党多为强，只要坐支得旺就表示强」）。
+
+    坐支得旺=日支为日主禄/旺/生扶之根——日支本气为比劫（同我，禄刃皆属）
+    或印（生我）即算得旺。合财相关判定的强弱分流专用，不替代全局扶抑
+    classify_strength 口径。
+    """
+    day_zhi = zhis[2] if len(zhis or []) == 4 else ''
+    dw = GAN_WX.get(day_gan, '')
+    zw = ZHI_WX.get(day_zhi, '')
+    if not dw or not zw:
+        return False
+    if zw == dw:                    # 比劫本气（禄/刃，扶我之根）
+        return True
+    return WX_SHENG.get(zw) == dw   # 印本气（生我之根）
+
+
 # ───────────────────── 财富看法 ─────────────────────
 
 def classify_caifu_view(
@@ -1679,6 +1698,14 @@ def assess_caiming_level(
     #     或普通富裕」——浮财/路径受阻=财能量小、难取，难富而未必要贫）：
     #     浮财（无原神且不在主位）/财被合绊/财入墓未开，任一命中封顶小康。
     shenruo_caiwang = bool(strength == '身弱' and caifu_view.get('cai_count', 0) >= 2)
+    # 批E 合财身强弱书口径分流（理象学:6672-6684「只有合财的时候讲身强身弱…
+    # 此时的身强并不是党多为强，只要坐支得旺就表示强」）：合财做功在档而日支
+    # 为日主禄/旺/生扶之根（比劫/印本气）者，合财以强论可胜财，不按「身弱
+    # 财旺富屋贫人」抑制升档。仅合财判定分流（hecai_work 在档方触发），全局
+    # 扶抑口径与富屋贫人条款本身不动。
+    if shenruo_caiwang and cxp.get('hecai_work') \
+            and _hecai_zuozhi_dewang(day_gan, zhis or []):
+        shenruo_caiwang = False
     # 基阶校准二（P1-a）：财星当财·经营带原神+主位者基阶不落下富（3）。
     # 段氏「有财则伤食是其原神，可以当投资之财」——财有原神、归主位、有经营
     # 做功（合财/制财）者，财有源头且为我所及，纵功量层低估（无功/一层功）

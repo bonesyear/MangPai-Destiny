@@ -46,9 +46,15 @@ _logger = logging.getLogger(__name__)
 # 降级文本不再单点依赖 service 前缀白名单兜底）
 _DISCLAIMER_LINE = '命理分析仅供参考，不构成人生决策依据。'
 
+# 修批F⑥：gender → 乾/坤造标记归一表（对齐 bazi_calc 入口合法集 男/女/male/female/乾/坤）
+_GENDER_ZAO = {'男': '乾造', '乾': '乾造', 'male': '乾造',
+               '女': '坤造', '坤': '坤造', 'female': '坤造'}
+
 # L2 财命档位序（index 大=高）。引擎双轨：tier_static 原局轨 + tier 全量轨，
 # 措辞上限取两轨较高者（运中层级断语合法，v6 口径）。
-_TIER_ORDER = ('贫', '平', '小康', '富', '巨富')
+# 修批F③：对齐引擎四档真值（caiming.tier_map={1:贫,2:小康,3:富,4:巨富}）——
+# 幽灵档「平」移出；LLM 输出「平档」按引擎不存在的档位词处理：不归档、不计 rank。
+_TIER_ORDER = ('贫', '小康', '富', '巨富')
 
 # L2 死亡词黑名单（兜底双保险之二；payload 已 scrub，此乃对 LLM 输出端）。
 # G1（F6-2）：补近义词 离世/去世/归西/病逝 + 同类 过世/身故/辞世（W1 合成例 9）。
@@ -72,11 +78,14 @@ _SENT_END = '。！？!?\n，；：:'
 
 # L2 官命正向断言关键词（仅在引擎 is_guanming=False 时拦截）。
 # ponytail: 关键词回对是启发式，否定语境按「前 5 字符+后 5 字符」窗口排除
-# （迭代 7：±2→±5 对齐财档 _TIER_NEG 窗，盖「官命一票否决/官命又被否决/
+# （迭代 7：±2→±5 对齐财档否定窗，盖「官命一票否决/官命又被否决/
 # 官命被反局否决/非正统官命」四类否定出窗误判），仍覆盖不了全部中文
 # 否定句式——语义级残留由 L1+人工兜底，见归档 §2.1。
+# 修批F①：否定判定改走 _neg_in_pre/_neg_in_post（与财档同窗同口径——同子句、
+# 双字词、剔除双重否定「不是没官命」与反语肯定「官命不小」），_NEG_PREFIX
+# 仅留作 output/ 扫描脚本兼容引用，校验逻辑不再使用。
 _GUAN_POSITIVE = ('官命', '当官', '走仕途', '是官', '贵格', '掌大权')
-_NEG_PREFIX = ('不', '非', '无', '难', '未', '莫', '否')
+_NEG_PREFIX = ('不', '非', '无', '难', '未', '莫', '否')  # 已弃用，见上注
 
 # N1 七维批·L2 红线词表（红2 起全维度扫描，与死词表口径一致——
 # 跨维逃逸曾致出境词/美丑词落在迁移/相貌维之外而放行）：
@@ -215,11 +224,49 @@ def _l1_basis(data: dict, features: dict, remapped: list | None = None) -> list:
 # 等否定式合规表述，裸 substring 全误判越限）。命中词前 5 字符内现否定字、
 # 或后随「（填1字）难求/不足/不起/不了/无望」则该处不计。「财富」之富为泛指，亦不计。
 # （迭代 6：窗 4→5，盖「不可奢求大富」类不字距 5 的合规否定。）
-_TIER_NEG = '不非难无莫勿未别'
+# 修批F①否定窗击穿收口：
+# - 「未」移出单字表——干支「癸未/乙未」高频撞窗（「癸未运开库，巨富可期」逃逸）；
+# - 「难/无」单字改双字词（未能/没有/并无/难成/难发/无官/无财族）或紧贴档位词
+#   （难大富/无富）才计——单字在「无数/难道」类非否定语境误豁免真越限；
+# - 否定单位与档位词须同子句（中间无句读标点）——「莫急，你是巨富命」跨子句豁免逃逸；
+# - 伪否定语境剔除：双重否定（不是没/并非不…）、非常/非凡（「你非常富有」逃逸）、
+#   反语肯定（不小/不弱/不低/不微，「你官命不小」逃逸）。
+_TIER_NEG = '不非莫勿别'
+_TIER_NEG_PHRASES = ('未能', '没有', '并无', '毫无', '难成', '难发', '难达', '难有',
+                     '无官', '无财', '无富', '无贵', '无缘', '无份', '否决')
 _TIER_NEG_AFTER = re.compile(r'^[一-鿿]?(?:难求|不足|不起|不了|无望)')
+_NEG_CLAUSE_BREAK = '，。！？；：、;:!?…—'
+_NEG_FALSE_PATTERNS = ('不是没', '并非没', '并非不', '不是不', '未必不', '未尝不',
+                       '非常', '非凡', '不小', '不弱', '不低', '不微')
+_NEG_UNIT_RE = re.compile('|'.join(list(_TIER_NEG_PHRASES)
+                                   + ['[' + _TIER_NEG + ']']))
+
+
+def _neg_in_pre(text: str, j: int, width: int = 5) -> bool:
+    """命中词前 width 字窗内有有效否定（同子句、剔除伪否定）则 True。"""
+    seg = text[max(0, j - width):j]
+    for p in _NEG_FALSE_PATTERNS:
+        seg = seg.replace(p, '×' * len(p))
+    for m in _NEG_UNIT_RE.finditer(seg):
+        if not any(c in _NEG_CLAUSE_BREAK for c in seg[m.end():]):
+            return True
+    return False
+
+
+def _neg_in_post(text: str, end: int, width: int = 5) -> bool:
+    """命中词后 width 字窗内有有效否定（同子句、剔除伪否定）则 True。"""
+    seg = text[end:end + width]
+    for p in _NEG_FALSE_PATTERNS:
+        seg = seg.replace(p, '×' * len(p))
+    for m in _NEG_UNIT_RE.finditer(seg):
+        if not any(c in _NEG_CLAUSE_BREAK for c in seg[:m.start()]):
+            return True
+    return False
 
 # 迭代 6 口径修（U3：16 例越限中 9 例假阳=校验器误判，聚四类缺口）：
-# ①让步封顶：「…之说/之象，但财命封顶X」「上限X」前的档位词是让步引用，不计；
+# ①让步封顶：「…之说/之象，但财命封顶X」「上限X」前、与标记同句且有转折连词
+#   （但/然/却）的档位词是让步引用，不计（修批F②收窄——无转折连词的独立
+#   断言不豁免：「原局本是巨富格，可惜岁运反局压制，财命档就是小康」逃逸）；
 # ②泛指动词：「致富」同「财富」不计；
 # ③引擎原文引用：命中词落在引擎 caiming 原文子串内（≥3 字）不计——
 #   但巨富档不适用（防引擎旁注文字掩护真越限）；
@@ -260,8 +307,11 @@ def _tier_rank(text: str, corpus: str = '') -> int:
             if j == -1:
                 break
             start = j + 1
-            if 0 <= cap and j < cap:
-                continue  # ①让步+封顶：封顶标记前的档位词为被压住的让步引用
+            if 0 <= cap and j < cap \
+                    and any(c in '但然却' for c in text[j + len(t):cap]):
+                continue  # ①让步+封顶：档词与封顶标记同句且有转折连词（但/然/却）
+                # =被压住的让步引用。修批F②收窄：无转折连词的独立断言不豁免
+                # （「原局本是巨富格，可惜岁运反局压制，财命档就是小康」逃逸）。
             r = i
             if t == '富':
                 prev = text[j - 1:j]
@@ -277,16 +327,18 @@ def _tier_rank(text: str, corpus: str = '') -> int:
                                         for c in text[max(0, j - 8):j]):
                     continue  # ⑧d 告诫式「别/莫…暴富」专属宽窗 ±8
                 if prev == '小':
-                    r = 2  # ④「小富」=小康级修饰档，归位
+                    r = 1  # ④「小富」=小康级修饰档，归位（修批F③四档序：小康=1）
                 elif prev == '之':
                     if text[j - 3:j - 1] == '小康':
-                        r = 2  # ⑧「小康之富」归位语，按小康计
-                    elif text[j - 2:j - 1] in ('贫', '平'):
-                        r = _TIER_ORDER.index(text[j - 2:j - 1])  # ⑧「贫/平之富」同理
-            if any(c in _TIER_NEG for c in text[max(0, j - 5):j]):
-                continue
-            if t == '平' and (text[j - 1:j] == '平' or text[j + 1:j + 2] == '平'):
-                continue  # ⑧e「平平」叠词口语（普通/平常），非档位断言
+                        r = 1  # ⑧「小康之富」归位语，按小康计
+                    elif text[j - 2:j - 1] == '贫':
+                        r = 0  # ⑧「贫之富」同理
+                    elif text[j - 2:j - 1] == '平':
+                        continue  # 修批F③：幽灵档「平」不归档（引擎无此档）
+            if _neg_in_pre(text, j) or text[j - 1:j] in ('难', '无') \
+                    or (t == '富' and text[j - 2:j] in ('难大', '无大')):
+                continue  # 否定窗（修批F①：同子句否定单位/难无紧贴前缀，
+                # 「难大富/无大富」的难无隔「大」字亦计——距 2 的唯一合法形态）
             if '想' in text[max(0, j - 4):j]:
                 continue  # ⑤愿望条件句「想大富得靠…」
             if '虽' in text[max(0, j - 5):j]:
@@ -355,9 +407,10 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                 if w == '是官' and t[i - 1:i] == '倒':
                     i = t.find(w, i + 1)
                     continue  # 「倒是官带财帽」让步/术语族（N2 r3 yx-富钢材生意发财假阳）
-                # 前后各 5 字符内出现否定词（不是…/…否决/无缘/难成…）视为否定语境放行
-                seg = t[max(0, i - 5):i + len(w) + 5]
-                if not any(ch in _NEG_PREFIX for ch in seg):
+                # 前后各 5 字符内有有效否定（不是…/…否决/无缘/难成…）视为否定语境放行；
+                # 修批F①：同财档口径——否定单位须同子句，双重否定/反语肯定不免
+                if not (_neg_in_pre(t, i) or _neg_in_post(t, i + len(w))
+                        or t[i - 1:i] in ('难', '无')):
                     v.append({'layer': 'L2',
                               'detail': f'事业 与引擎官命=否矛盾：「{w}」'})
                     break
@@ -459,9 +512,12 @@ def render_structured_reading(
     system = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
     bazi_line = _bazi_line(engine_result)
     # G2（F6-8 前置）：八字行带乾/坤造标记——秀气性别分流语按本造性别落地
-    _g = str((engine_result.get('input') or {}).get('gender') or '')
-    if _g in ('男', '女'):
-        bazi_line += f"（{'乾造' if _g == '男' else '坤造'}）"
+    # 修批F⑥：gender 口径归一——引擎合法集含 male/female/乾/坤
+    # （bazi_calc.py 入口校验），原只认「男/女」，male/female 盘标记静默缺失
+    _g = str((engine_result.get('input') or {}).get('gender') or '').strip()
+    _g = _GENDER_ZAO.get(_g) or _GENDER_ZAO.get(_g.lower())
+    if _g:
+        bazi_line += f'（{_g}）'
     user = build_user_prompt(features_json, bazi_line,
                              user_question or '', features=features)
     if not call_llm:

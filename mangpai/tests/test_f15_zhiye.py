@@ -105,3 +105,33 @@ def test_jobs_merchant_kept():
 def test_yuefei_performer_stays_low():
     """岳飞（癸未乙卯甲子己巳）：F13 哨兵保持——performer 仍 1 分。"""
     assert _run('甲', '癸乙甲己', '未卯子巳')['scores'].get('performer', 0) == 1
+
+
+# ── 批E：伤官合杀/食神制杀真落地（gaoji:11661「伤官合杀、食神制杀：多为
+#    检察院、纪委等执法监督部门」，公检法司归 lawyer 桶）——F15 撤回注
+#    （zhiye.py:554-556）规避复计：伤官合杀只认天干合型（与伤官制官克型
+#    不相交）；食神制杀克型与伤官制官同动作，仅在其未计分时补位 ──
+
+from mangpai.subjective.zhiye import _score_lawyer
+from mangpai.subjective.utils import ensure_relations as _er
+
+
+def _lawyer(gans, zhis):
+    wa = _er(gans[2], gans, zhis, None).get('work_actions') or []
+    return _score_lawyer(gans[2], gans, zhis, wa)
+
+
+def test_e_shangguan_he_sha_landing():
+    """丁日：戊（伤官）×癸（七杀）年月天干合 → 伤官合杀条款落地。
+    （日主不参与之干合必为宾位合 auxiliary——书以组合论象，本条款
+    不以做功非 aux 为门；与伤官制官克型动作不相交，无 F15 复计。）"""
+    score, ev = _lawyer(['戊', '癸', '丁', '辛'], ['申', '酉', '酉', '丑'])
+    assert any('伤官合杀' in e and '执法监督' in e for e in ev)
+
+
+def test_e_shishen_zhi_sha_no_double_count():
+    """丁日 戌（伤官本气）克亥（正官本气）：伤官制官条款已计分，同形同
+    动作的食神制杀不重复计（F15 误伤 li154/董竹君之源=同动作双计）。"""
+    score, ev = _lawyer(['丙', '戊', '丁', '辛'], ['午', '戌', '亥', '酉'])
+    assert any('伤官制官' in e for e in ev)
+    assert not any('执法监督' in e for e in ev)

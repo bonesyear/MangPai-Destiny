@@ -183,3 +183,57 @@ class TestGongZhiXingZhengPian:
                                     ['亥', '子', '辰', '戌'], '男')
         assert r['quality'] == '好'
         assert any('宫制去夫妻星忌神' in s for s in r['signals'])
+
+
+# ── 批E：结/离婚应期前提补全 + 结婚/离婚信号冲突消解 ──
+# (a) 冲宫为婚期须原局有合、合处逢冲（中级:5283-5284）；
+# (b) 支合宫须来支为/含配偶星（中级:5143-5147）；
+# (c) 干合日干须验是配偶星且有根（中级:5217/5219-5220「无根虚浮，逢合
+#     必制之坏之，不能定为婚姻的应期」）；
+# (d) 冲宫事件分向（chuji:6096「原局逢合大运和流年逢冲时为应期，原局
+#     有冲时大运和流年逢合时为应期」）：原局宫有合时冲=结婚向（离婚侧
+#     不再出「宫动散」）；裸冲（原局无合）不再出结婚向。
+
+from mangpai.subjective.hunyin import infer_jiehun_yingqi, infer_lihun_yingqi
+
+
+def test_e_chong_gong_he_chu_feng_chong():
+    """原局宫有合（日时卯戌合），流年酉冲卯=合处逢冲→结婚应期；
+    同一冲宫事件离婚侧不再出「夫妻宫动散」。"""
+    g, z = ['甲', '丙', '戊', '辛'], ['子', '午', '卯', '戌']
+    j = infer_jiehun_yingqi('戊', g, z, '男', liunian_zhi='酉')
+    l = infer_lihun_yingqi('戊', g, z, '男', liunian_zhi='酉')
+    assert any('合处逢冲' in s for s in j['signals'])
+    assert not any('动散' in s for s in l['signals'])
+
+
+def test_e_bare_chong_no_jiehun_signal():
+    """裸冲（原局宫无合）：结婚侧不出冲宫信号；离婚侧保留宫动散。"""
+    g, z = ['甲', '丙', '戊', '辛'], ['子', '午', '卯', '辰']
+    j = infer_jiehun_yingqi('戊', g, z, '男', liunian_zhi='酉')
+    l = infer_lihun_yingqi('戊', g, z, '男', liunian_zhi='酉')
+    assert not any('冲婚姻宫' in s for s in j['signals'])
+    assert any('动散' in s for s in l['signals'])
+
+
+def test_e_he_gong_requires_spouse_star():
+    """支合宫须来支为/含配偶星：丙日（财=金，局有酉金）申宫，
+    流年巳（藏庚=财）巳申合 → 出信号；寅宫流年亥（壬甲，不含金）
+    寅亥合 → 不出。"""
+    j1 = infer_jiehun_yingqi('丙', ['乙', '丁', '丙', '辛'],
+                             ['酉', '子', '申', '卯'], '男', liunian_zhi='巳')
+    assert any('合婚姻宫' in s for s in j1['signals'])
+    j2 = infer_jiehun_yingqi('丙', ['乙', '丁', '丙', '辛'],
+                             ['酉', '子', '寅', '卯'], '男', liunian_zhi='亥')
+    assert not any('合婚姻宫' in s for s in j2['signals'])
+
+
+def test_e_gan_he_daygan_requires_rooted_star():
+    """干合日干须是配偶星且有根：甲日己（正财）合甲——局有土根（辰）
+    → 出信号；局全无土（财不存、己无根虚浮）→ 不出。"""
+    j1 = infer_jiehun_yingqi('甲', ['乙', '丁', '甲', '庚'],
+                             ['寅', '辰', '子', '申'], '男', liunian_gan='己')
+    assert any('合日干' in s for s in j1['signals'])
+    j2 = infer_jiehun_yingqi('甲', ['乙', '丁', '甲', '庚'],
+                             ['卯', '子', '酉', '亥'], '男', liunian_gan='己')
+    assert not any('合日干' in s for s in j2['signals'])

@@ -24,6 +24,7 @@ import json
 import logging
 import os
 import re
+import warnings
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -415,22 +416,43 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str | None = None) ->
 # ---------------------------------------------------------------------------
 _CN_NUM = {'零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5,
            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+_CN_UNIT = {'十': 10, '百': 100, '千': 1000}
 
 
 def _cn_to_int(s: str) -> int | None:
-    """中文小数字转 int（一/两/三/十/十一/二十…≤99），失败 None。"""
+    """中文数字转 int（一/两/三/十/十一/二十/四十二/一百零五/三千…十百千组合），失败 None。"""
     if not s:
         return None
     if s in _CN_NUM:
         return _CN_NUM[s]
-    if '十' in s:
-        left, _, right = s.partition('十')
-        tens = _CN_NUM.get(left, 1) if left else 1
-        ones = _CN_NUM.get(right, 0) if right else 0
-        if (left and left not in _CN_NUM) or (right and right not in _CN_NUM):
+    total, num = 0, 0
+    for ch in s:
+        if ch in _CN_UNIT:  # 先判单位（「十」同时在 _CN_NUM，单字走首分支）
+            total += (num or 1) * _CN_UNIT[ch]
+            num = 0
+        elif ch in _CN_NUM:
+            num = _CN_NUM[ch]
+        else:
             return None
-        return tens * 10 + ones
-    return None
+    return total + num
+
+
+# 修批F⑤：干支纪年校验用——干支→公历映射（公元 4 年=甲子； whitelist 区间 1800-2099）
+_GZ_GAN = '甲乙丙丁戊己庚辛壬癸'
+_GZ_ZHI = '子丑寅卯辰巳午未申酉戌亥'
+_GZ_YEAR_RE = re.compile(r'[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]年')
+
+
+def _gz_years(gz: str, lo: int = 1800, hi: int = 2099) -> list:
+    """干支 → 区间内全部公历年（60 甲子环）；非法干支组合（如甲丑，阴阳不配）返空表。"""
+    s, b = _GZ_GAN.find(gz[0]), _GZ_ZHI.find(gz[1])
+    if s < 0 or b < 0 or (s - b) % 2:
+        return []
+    i = next((k for k in range(60) if k % 10 == s and k % 12 == b), None)
+    if i is None:
+        return []
+    base = 4 + i
+    return list(range(base + ((lo - base + 59) // 60) * 60, hi + 1, 60))
 
 
 def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -475,7 +497,8 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
 def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict[str, Any]:
     """校验断语中的数字：凡年份/年龄/计数/具体金额，须能在引擎字段中找到出处。
 
-    覆盖：4位/2位年份（93年→1993 归一）、N岁、N次婚/N个孩子（含中文数字）、
+    覆盖：4位/2位年份（93年→1993 归一）、干支纪年（甲辰年→公历回对，修批F⑤）、
+    N岁（含中文数字，修批F⑤）、N次婚/N个孩子（含中文数字）、
     具体金额（N万/N亿，引擎只出档位不出具体金额，故一律标记）、金额档字
     （百万级/千万级/亿级须与财命档位同族）。
 
@@ -486,7 +509,8 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
     wl = _engine_number_whitelist(engine_result)
     violations = []
 
-    # 年份：4 位直接对；2 位对任一百家尾数
+    # 年份：4 位直接对；2 位对任一百家尾数；干支纪年映射公历后回对（修批F⑤：
+    # 「甲辰年发大财」修复前逃逸；非法干支组合无公历解=编造，同样标记）
     for m in re.finditer(r'(\d{4})年', text):
         y = int(m.group(1))
         if 1800 <= y <= 2099 and y not in wl['years']:
@@ -497,13 +521,23 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
         if not any(y % 100 == yy for y in wl['years']):
             violations.append({'text': m.group(0), 'kind': 'year',
                                'detail': f'{m.group(1)}年无对应引擎年份'})
+    for m in _GZ_YEAR_RE.finditer(text):
+        ys = _gz_years(m.group(0)[:2])
+        if not any(y in wl['years'] for y in ys):
+            violations.append({'text': m.group(0), 'kind': 'year',
+                               'detail': (f'{m.group(0)}无对应引擎年份' if ys else
+                                          f'{m.group(0)}为非法干支组合')})
 
-    # 年龄
-    for m in re.finditer(r'(\d{1,2})岁', text):
-        a = int(m.group(1))
+    # 年龄（修批F⑤：补中文数字——「四十二岁有一劫」修复前逃逸；十百千两零组合
+    # 走 _cn_to_int 转数值后回对，解析失败不计）
+    for m in re.finditer(r'(\d{1,2}|[零一二两三四五六七八九十百千]+)岁', text):
+        g = m.group(1)
+        a = int(g) if g.isdigit() else _cn_to_int(g)
+        if a is None:
+            continue
         if a not in wl['ages']:
             violations.append({'text': m.group(0), 'kind': 'age',
-                               'detail': f'{a}岁不在引擎年龄白名单'})
+                               'detail': f'{m.group(1)}岁不在引擎年龄白名单'})
 
     # 计数：N次婚/段情/场官司、N个孩子/兄弟/丈夫（阿拉伯+中文数字）
     num = r'(\d+|[一二两三四五六七八九十]+)'
@@ -576,6 +610,11 @@ def render_hao_narrative(
     Returns:
       郝金阳口吻的断语文本；LLM 不可用时返回降级 prompt 文本。
     """
+    # 批D：遗留通道运行时警告（S1 裁定正式通道 = llm_channel 侧）
+    warnings.warn(
+        'render_hao_narrative 为遗留通道（新调用方禁用）；正式通道 = '
+        'mangpai.subjective.llm_channel.render_structured_reading',
+        DeprecationWarning, stacklevel=2)
     # 红5b：prompt 构造输入侧死亡词典 scrub（复用 payload 装配层实现）
     engine_result = _scrub_death(engine_result)
     engine_conclusion = summarize_engine_result(engine_result)

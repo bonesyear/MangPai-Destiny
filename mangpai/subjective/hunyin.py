@@ -19,8 +19,9 @@ hunyin - 盲派婚姻专辑·主观层（subjective）
   4. 水中捞月三要素：正星坐宫+日主与日支自合+天干偏星干扰
      （zhongji:5081-5083）-> 理想过高、求而不得。
   5. 结离婚应期：
-     结婚--大运流年到妻/夫星、合妻/夫星、婚姻宫被合冲引动；
-     离婚--男比劫到运年克财、女伤官到运年克官、妻/夫星被冲合走、婚姻宫被冲；
+     结婚--大运流年到妻/夫星、配偶星支合入婚姻宫、原局有合之宫逢冲
+     （合处逢冲）、配偶星有根之干合日干；
+     离婚--男比劫到运年克财、女伤官到运年克官、婚姻宫被裸冲（原局无合）；
      女命关财门--运岁比劫夺财（财是官之原神），gaoji:12963-12967。
 
 消费关系：
@@ -39,7 +40,7 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
-    TIAN_GAN_HE, LU, TOMB_MAP, LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS,
+    TIAN_GAN_HE, LU, TOMB_MAP, LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS, SAN_HE,
     CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
@@ -653,6 +654,33 @@ def detect_shuizhong_laoyue(
 
 # ───────────────────── 5/6. 结离婚应期 ─────────────────────
 
+def _dayzhi_natal_he_chong(zhis: List[str]) -> tuple:
+    """日支（婚姻宫）在原局的合/冲状态（六合/三合同局两支为合，六冲为冲）。
+
+    应期分向之本（chuji:6096「原局逢合大运和流年逢冲时为应期，原局有冲时
+    大运和流年逢合时为应期」；中级:5283-5284「原有合…应在冲其合为结婚
+    应期」）。
+    """
+    day_idx = PILLAR_KEYS.index('day') if len(zhis) == 4 else -1
+    if day_idx < 0 or not zhis[day_idx]:
+        return False, False
+    dz = zhis[day_idx]
+    he = chong = False
+    for i, z in enumerate(zhis):
+        if i == day_idx or not z:
+            continue
+        if (dz, z) in LIU_HE or (z, dz) in LIU_HE:
+            he = True
+        else:
+            for key in SAN_HE:
+                if len(key) == 3 and dz in key and z in key:
+                    he = True
+                    break
+        if (dz, z) in LIU_CHONG or (z, dz) in LIU_CHONG:
+            chong = True
+    return he, chong
+
+
 def infer_jiehun_yingqi(
     day_gan: str, gans: List[str], zhis: List[str],
     gender: str = '男',
@@ -663,6 +691,14 @@ def infer_jiehun_yingqi(
 
     信号：大运流年干为配偶星(到星)、大运流年支合/冲婚姻宫(日支)、
           大运流年与日干合(合星)。多信号齐备为结婚应期。
+    批E 前提补全（书口径）：
+      (a) 冲宫为婚期须原局有合、合处逢冲（中级:5283-5284「原有合…应在
+          冲其合为结婚应期」）——裸冲（原局宫无合）不出结婚向；
+      (b) 支合宫须来支为/含配偶星（中级:5143-5147「配偶星逢太岁地支合入
+          配偶宫中」）；
+      (c) 干合日干须验是配偶星且有根（中级:5217/5219-5220「一定要观察
+          配偶星是否有根得旺，若无根虚浮，逢合必制之坏之，不能定为婚姻
+          的应期」）。
 
     Returns:
         {'is_jiehun_signal': bool, 'signals': [str]}
@@ -674,6 +710,7 @@ def infer_jiehun_yingqi(
         day_gan = p.day_gan
     swx = _spouse_wx(day_gan, gender, gans, zhis)
     day_zhi = zhis[PILLAR_KEYS.index('day')] if len(zhis) == 4 else ''
+    gong_natal_he, _gong_natal_chong = _dayzhi_natal_he_chong(zhis)
     signals: List[str] = []
 
     for label, dgan, dzhi in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
@@ -683,11 +720,24 @@ def infer_jiehun_yingqi(
             signals.append(f'{label}干{dgan}为配偶星（到星），结婚应期信号')
         if dzhi and day_zhi:
             if (dzhi, day_zhi) in LIU_HE or (day_zhi, dzhi) in LIU_HE:
-                signals.append(f'{label}支{dzhi}合婚姻宫{day_zhi}，引动夫妻宫')
+                # (b) 来支须为/含配偶星方论星合入宫（中级:5143-5147）
+                if _is_star_zhi(day_gan, dzhi, gender, swx):
+                    signals.append(f'{label}支{dzhi}（配偶星）合婚姻宫{day_zhi}，星合入宫，结婚应期')
             if (dzhi, day_zhi) in LIU_CHONG or (day_zhi, dzhi) in LIU_CHONG:
-                signals.append(f'{label}支{dzhi}冲婚姻宫{day_zhi}，宫动婚成')
+                # (a)(d) 冲宫为婚期须原局有合、合处逢冲（中级:5283-5284；
+                # chuji:6096 原局逢合岁运逢冲为应期）；裸冲归离婚侧「宫动散」，
+                # 不再结婚/离婚双出（批2 冲突消解）
+                if gong_natal_he:
+                    signals.append(f'{label}支{dzhi}冲婚姻宫{day_zhi}，原局有合、合处逢冲，结婚应期')
         if dgan and TIAN_GAN_HE.get(day_gan) == dgan:
-            signals.append(f'{label}干{dgan}合日干（合星），婚配应期')
+            # (c) 验是配偶星且有根（中级:5217/5219-5220：无根虚浮，逢合必制
+            # 之坏之，不定婚期）——来干为配偶星五行且原局地支有其根（本气/
+            # 藏干同五行）
+            if swx and GAN_WX.get(dgan) == swx and any(
+                    z and (ZHI_WX.get(z) == swx or any(
+                        GAN_WX.get(cg) == swx for cg, _q in get_canggan_mangpai(z)))
+                    for z in zhis):
+                signals.append(f'{label}干{dgan}合日干（配偶星来合身，有根得旺），婚配应期')
 
     return {'is_jiehun_signal': len(signals) >= 1, 'signals': signals}
 
@@ -700,7 +750,12 @@ def infer_lihun_yingqi(
 ) -> Dict:
     """离婚应期：大运流年克配偶星/冲婚姻宫。
 
-    男命比劫到运年克财、女命伤官到运年克官；配偶星被冲合走；婚姻宫被冲 -> 离婚信号。
+    男命比劫到运年克财、女命伤官到运年克官；婚姻宫被冲（原局无合之裸冲）
+    -> 离婚信号。
+    批E 冲突消解（批2 发现同一「运年支冲日支」结婚+离婚双出）：按
+    chuji:6096「原局逢合大运和流年逢冲时为应期」分向——原局宫有合者，
+    冲=合处逢冲结婚应期（结婚向，见 infer_jiehun_yingqi），本侧不再出
+    「宫动散」；裸冲（原局宫无合）方为离婚向宫动散。
 
     Returns:
         {'is_lihun_signal': bool, 'signals': [str]}
@@ -715,6 +770,7 @@ def infer_lihun_yingqi(
     # 克配偶星之物：男财被比劫(同我)克、女官被食伤(我生)克
     killer_wx = day_wx if gender == '男' else WX_SHENG.get(day_wx, '')
     day_zhi = zhis[PILLAR_KEYS.index('day')] if len(zhis) == 4 else ''
+    gong_natal_he, _gong_natal_chong = _dayzhi_natal_he_chong(zhis)
     signals: List[str] = []
 
     for label, dgan, dzhi in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
@@ -725,10 +781,9 @@ def infer_lihun_yingqi(
             killer = '比劫' if gender == '男' else '伤官'
             signals.append(f'{label}干{dgan}为{killer}，克{star}星，离婚信号')
         if dzhi and day_zhi and ((dzhi, day_zhi) in LIU_CHONG or (day_zhi, dzhi) in LIU_CHONG):
-            signals.append(f'{label}支{dzhi}冲婚姻宫{day_zhi}，夫妻宫动散')
-        if dzhi and swx and ZHI_WX.get(dzhi) == swx:
-            # 运年支为配偶星(到星)亦可能引动婚变（星到而宫坏）
-            pass
+            # 原局宫有合者冲=结婚应期（合处逢冲），离婚侧不出；裸冲方论宫动散
+            if not gong_natal_he:
+                signals.append(f'{label}支{dzhi}冲婚姻宫{day_zhi}，夫妻宫动散')
 
     return {'is_lihun_signal': len(signals) >= 1, 'signals': signals}
 

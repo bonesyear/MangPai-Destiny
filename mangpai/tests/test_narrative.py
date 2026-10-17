@@ -310,3 +310,40 @@ def test_render_input_death_scrubbed():
     assert '早逝' not in line and '财命：小康' in line
     out = render_hao_narrative(er, call_llm=False)
     assert '早逝' not in out
+
+
+# ---------- 批D：遗留通道 DeprecationWarning ----------
+
+def test_render_hao_narrative_emits_deprecation_warning():
+    """批D：render_hao_narrative 为遗留通道（S1 裁定正式通道 =
+    llm_channel.render_structured_reading），调用须发 DeprecationWarning。"""
+    er = {'bazi': {'year': '壬子'}, 'zuogong': {'work_types': ['制用'], 'work_level': 1}}
+    with pytest.warns(DeprecationWarning):
+        render_hao_narrative(er, user_question=None, call_llm=False)
+
+
+# ---------- 修批 F⑤：N1 数字校验中文数字/干支纪年盲区 ----------
+
+def test_validate_age_chinese_numerals_f5():
+    """修批F⑤：中文数字年龄纳入校验——「四十二岁有一劫」修复前逃逸。"""
+    r = validate_narrative_numbers('你四十二岁有一劫。', _ER)
+    assert any(v['kind'] == 'age' and '四十二岁' in v['text'] for v in r['violations'])
+    # 合法对照：白名单内中文数字年龄不拦（dayun start_age=5 / end_age=15）
+    r2 = validate_narrative_numbers('你五岁起运，十五岁换运。', _ER)
+    assert not any(v['kind'] == 'age' for v in r2['violations'])
+    # 十百千两零组合转数值
+    assert _cn_to_int('四十二') == 42
+    assert _cn_to_int('一百零五') == 105
+    assert _cn_to_int('三千') == 3000
+
+
+def test_validate_ganzhi_year_f5():
+    """修批F⑤：干支纪年纳入年份校验——「甲辰年发大财」修复前逃逸。"""
+    r = validate_narrative_numbers('甲辰年发大财。', _ER)
+    assert any(v['kind'] == 'year' and '甲辰年' in v['text'] for v in r['violations'])
+    # 合法对照：干支年映射到白名单公历年不拦（戊辰=1988 流年、戊戌=1958 出生年）
+    r2 = validate_narrative_numbers('戊辰年破财，戊戌年生人。', _ER)
+    assert not any(v['kind'] == 'year' for v in r2['violations'])
+    # 非法干支组合（甲丑阴阳不配，无公历解）=编造，拦
+    r3 = validate_narrative_numbers('甲丑年有事。', _ER)
+    assert any(v['kind'] == 'year' for v in r3['violations'])

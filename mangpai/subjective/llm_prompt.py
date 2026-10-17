@@ -28,9 +28,9 @@ SCHEMA_SPEC = """\
 }
 - 七个维度键固定，缺一不可；某维特征数据为空（引擎未判定）则 conclusion 写「数据不足」，basis 给空数组 []。
 - basis 数组每项 = 输入特征 JSON 中**逐字照抄**的字段路径，点分隔（如 "caiming.tier_static"、"gongliang.level"、"zuogong.work_types"），程序会逐条回解析，路径不存在即判违规——只引真实存在的字段，子键拿不准宁缺毋编，不得按命理常识臆测键名（特征 JSON 里没有的键一律不写）。
-- 数组字段（如 xiangfa_ops.juxiang、xiangfa.all_findings、zuogong.work_actions、liunian_analysis.liunian）只允许引用数组名本身；禁止任何形式的下标（如 "xiangfa_ops.juxiang[7]"、"juxiang.7"），也禁止把数组当字典按内容取键（如 "juxiang.寒湿"）。
-- conclusion 措辞强度不得超出引擎断言：引擎给档位/倾向（如财命五档、官命是/否、灾祸风险档），你只能用同级或更弱措辞；引擎未给的具体金额、次数、年份、岁数一律不许编造，宁可断方向不断数。
-- 财运维的档位词只允许「巨富/富/小康/平/贫」五选一，且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格。
+- 数组字段（如 xiangfa_ops.juxiang、xiangfa_ops.all_findings、zuogong.work_actions、liunian_analysis.liunian）只允许引用数组名本身；禁止任何形式的下标（如 "xiangfa_ops.juxiang[7]"、"juxiang.7"），也禁止把数组当字典按内容取键（如 "juxiang.寒湿"）。
+- conclusion 措辞强度不得超出引擎断言：引擎给档位/倾向（如财命四档、官命是/否、灾祸风险档），你只能用同级或更弱措辞；引擎未给的具体金额、次数、年份、岁数一律不许编造，宁可断方向不断数。
+- 财运维的档位词只允许「巨富/富/小康/贫」四选一（引擎财档无「平」档，不得使用），且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格。
 - 事业维的职业部分：主荐职业必须取自 zhiye.primary 对应桶；zhiye.primary 为空=引擎无明确职业倾向，必须如实说「无明确职业倾向」，禁止断言任何具体职业（高分桶只能作「倾向性参考」并注明引擎未定）。
 - 应期维：逐运吉凶以 dayun_analysis.dayun 各运 overall 与正负信号为准，逐年以 liunian_analysis 逐年 overall 为准，吉凶性质不得相反（凶运说成吉=翻转），吉凶参半须两面并陈；禁止脱离大运/流年表的泛化套话（如「近年多有是非」「晚景渐佳」），表外年份不许断言吉凶。
 - 迁移维：只许依据 qianyi.qianyi_yuanju 的 marker 与 qianyi.qianyi_yingqi 的应期窗叙述；措辞上限「迁移/远行」，绝对禁止「出国/移民/海外/国外/外国」（任何形态均不许，含否定式、解释式提及）；conclusion 只写迁移/远行的象本身，不要声明或解释你在遵守禁令；marker 与应期窗均空=无迁移信号，必须如实说明、不得断言迁移，且该维 basis 必须给空数组 []（qianyi 各键均空=无出处，禁止引用）；应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。
@@ -76,7 +76,8 @@ def build_system_prompt(fewshot_text: str) -> str:
 
 
 # 财命档位序（与 llm_channel._TIER_ORDER 同口径，避免循环import各留一份）。
-_TIER_ORDER = ('贫', '平', '小康', '富', '巨富')
+# 修批F③：对齐引擎四档真值（caiming.tier_map），幽灵档「平」移出。
+_TIER_ORDER = ('贫', '小康', '富', '巨富')
 
 # 职业桶标签（与 zhiye._CAREER_LABELS/_BASE_CAREER_LABELS 同口径，各留一份）。
 _BUCKET_LABELS = {
@@ -138,7 +139,7 @@ def _tier_anchor(features: dict) -> str:
     ceiling = _TIER_ORDER[max(ranks)]
     return (f'【本案财命档锚定】caiming.tier_static={vals["tier_static"] or "无"}（原局轨）、'
             f'caiming.tier={vals["tier"] or "无"}（全量轨）；两轨较高档=「{ceiling}」。'
-            f'财运 conclusion 的档位词只允许贫/平/小康/富/巨富五选且不得超过「{ceiling}」；'
+            f'财运 conclusion 的档位词只允许贫/小康/富/巨富四选（引擎无「平」档）且不得超过「{ceiling}」；'
             '功量金额档（百万/千万/亿级）≠财命档，不得据金额升格。'
             f'能力承诺句（「能成/可成/可达/可至/勤劳可…」）与条件假设句（「一旦/若…便…」）中的'
             f'档位词同样不得超过「{ceiling}」——条件再顺、应期再巧也不许承诺破档。')

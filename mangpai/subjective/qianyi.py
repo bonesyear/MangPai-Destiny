@@ -11,7 +11,8 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
   总纲：shouke:3600-3602「马冲在哪儿，离开哪儿。马合在哪，留在哪儿」；
   合到门户：zhongji:4180「丙辛合到门户上」+ lixiangxue:6571「甲运合己，
            合到门户」——两书同构互证；
-  或然机制：shouke:6692（马星伏吟而动）、shouke:72（流年冲年/时支=冲出，
+  或然机制：shouke:6692（马星伏吟而动）、shouke:704（门户伏吟外出，
+           批E 补）+ shouke:72（流年冲年/时支=冲出，
            书自承「未必所有人都会出门」）。
 
 定位与边界：
@@ -35,6 +36,8 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
      - move_windows：马逢冲（岁运支冲原局马星支，shouke:3602+gaoji:6757）、
        合到门户（岁运干与原局年/时干成五合，zhongji:4180+lixiangxue:6571）、
        马星伏吟（流年支与原局马星支伏吟，shouke:6692，或然）、
+       门户伏吟（流年与时柱干支全同，shouke:704，或然；同柱命中时优先于
+       马星伏吟）、
        冲出年时（流年支冲年/时支，shouke:72，或然）；
      - stay_windows：马逢合=停留不动（zhongji:1567+gaoji:6757+shouke:3602
        后半「马合在哪，留在哪儿」）。
@@ -201,8 +204,22 @@ def analyze_qianyi(
                       f'马合在哪留在哪儿，主停留/不动')
         # 或然两机制（流年锚，shouke:6692/72 均系流年书例，大运不扫）
         if is_liunian:
+            # 门户伏吟（批E，shouke:704「外出（伏吟门户）」明文 + :702「丁卯
+            # 伏吟门户，外出之意」+ :2652「门户伏吟，逃至国外」案例）：时柱=
+            # 门户（lixiangxue:4114），流年与时柱干支全同（干支俱同伏吟，
+            # shouke:716 为伏吟正格）→ 门户伏吟外出 marker，归或然档
+            # （:716 自承伏吟可不应验）。与马星伏吟的关系：本机制为干支俱同
+            # 的门户专象，马星伏吟（仅支同）与之命中同柱时门户口径优先、
+            # 不并列双出（子集让位，注释备案于此）。
+            menhu_fuyin = bool(dg and dz and dg == gans[3] and dz == zhis[3])
+            if menhu_fuyin:
+                _emit(move_windows, dy, ln, '门户伏吟', 'hour', '或然',
+                      'shouke:704;shouke:702;shouke:2652',
+                      f'流年{dg}{dz}与时柱（门户）干支全同，门户伏吟，'
+                      f'或有外出/远行之象（或然）')
             # 马星伏吟：流年支与原局马星支伏吟（shouke:6692「马星伏吟而动」）
-            if dz in ma_positions:
+            if dz in ma_positions \
+                    and not (menhu_fuyin and ma_positions[dz] == 'hour'):
                 _emit(move_windows, dy, ln, '马星伏吟', ma_positions[dz], '或然',
                       'shouke:6692',
                       f'流年{dz}与原局{_PILLAR_SPACE[ma_positions[dz]]}马星伏吟，'
