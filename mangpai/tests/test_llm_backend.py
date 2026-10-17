@@ -39,3 +39,70 @@ def test_estimate_cost_pro_and_unknown():
     assert abs(off - (10_000 * 4.5 + 5_000 * 13.5) / 1e6) < 1e-12
     # S1：未知模型/其他 provider 显式 None（未计价），不再误导性 ¥0
     assert _estimate_cost('unknown-model', _U) is None
+
+
+# ---------- 红6：429 可重试 + 畸形 URL 包装 ----------
+
+import io
+import json
+import urllib.error
+
+import pytest
+
+from mangpai.subjective import llm_backend as _lb
+
+
+class _FakeResp:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return json.dumps({'choices': [{'message': {'content': '{}'}}],
+                           'usage': {}}).encode('utf-8')
+
+
+def test_http_429_retried_like_5xx(monkeypatch):
+    """红6a：HTTP 429 限流与 5xx 同策略重试（修复前 429 落入 4xx 分支直接抛）。"""
+    monkeypatch.setattr(_lb, '_load_api_key', lambda: 'k')
+    monkeypatch.setattr(_lb.time, 'sleep', lambda s: None)
+    calls = []
+
+    def fake_urlopen(req, timeout=None):
+        calls.append(1)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError(req.full_url, 429, 'Too Many Requests',
+                                         {}, None)
+        return _FakeResp()
+
+    monkeypatch.setattr('urllib.request.urlopen', fake_urlopen)
+    out = _lb.call_deepseek('s', 'u')
+    assert out['text'] == '{}' and len(calls) == 3
+
+    # 对照：其余 4xx（400）仍不重试直接抛
+    calls.clear()
+
+    def fake_400(req, timeout=None):
+        calls.append(1)
+        raise urllib.error.HTTPError(req.full_url, 400, 'Bad Request', {},
+                                     io.BytesIO(b'bad'))
+
+    monkeypatch.setattr('urllib.request.urlopen', fake_400)
+    with pytest.raises(_lb.LLMBackendError):
+        _lb.call_deepseek('s', 'u')
+    assert len(calls) == 1
+
+
+def test_malformed_url_wrapped_as_backend_error(monkeypatch):
+    """红6b：畸形 URL 的 ValueError 包装为 LLMBackendError——
+    llm_channel.render_structured_reading 的 except 能接住降级（不裸穿透）。"""
+    monkeypatch.setattr(_lb, '_load_api_key', lambda: 'k')
+    monkeypatch.setenv('MANGPAI_LLM_BASE_URL', 'not-a-url')
+    with pytest.raises(_lb.LLMBackendError, match='URL 畸形'):
+        _lb.call_deepseek('s', 'u')
+    # 调用方视角：render 层接住降级而非 ValueError 穿透
+    from mangpai.subjective.llm_channel import render_structured_reading
+    out = render_structured_reading({'bazi': {}, 'input': {}}, validate='mark')
+    assert out.startswith('[LLM 不可用')

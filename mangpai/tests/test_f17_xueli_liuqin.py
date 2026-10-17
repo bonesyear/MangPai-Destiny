@@ -4,12 +4,14 @@
 书锚：
 - zhongji:5397「以官杀、印星与食神当学历之神；以财星、伤官、比劫当破坏学历之神」
 - zhongji:5405-5409 伤官配印/配官杀做功则学有所成；比劫结伙成群主不思学习
-- gaoji:13649「父母星与父母宫同时被破坏，且破坏之力甚剧」（星宫同坏总门）
-- gaoji:14116-14118「官杀之原神为财，食伤之原神为比劫」（财星统看则原神=食伤）
+- gaoji:13644-13646「父母星与父母宫同时被破坏，且破坏之力甚剧」（星宫同坏总门）
+- gaoji:14040「官杀之原神为财，食伤之原神为比劫」（财星统看则原神=食伤）
+- gaoji:13502-13506/13551 父星变法「财克印」须存在实际动作（同柱盖头或冲克）
 - gaoji:14412 排行诀 / 14651 情谊诀 / 14230 子女优劣诀
 """
 from mangpai.subjective.xueli import classify_xueli_shen, classify_xueli_level
 from mangpai.subjective.liuqin import (
+    classify_parent_star,
     detect_parent_zaoshi,
     detect_zixi_youwu,
     detect_zixi_youlie,
@@ -190,3 +192,26 @@ def test_analyze_liuqin_has_three_new_sections():
     assert 'xiongdi_paihang' in r
     assert 'xiongdi_qingyi' in r
     assert 'zixi_youlie' in r
+
+
+# ── 父星变法「财克印」须存在实际动作（gaoji:13502-13506，旧判据恒真退化已修）──
+def test_father_variant_cai_ke_yin_book_case():
+    """书例（gaoji:13551）坤造 庚戌辛巳己亥乙亥：亥水财星巳亥冲克巳火印星
+    → 存在实际财克印动作，印当父。"""
+    r = classify_parent_star('己', list('庚辛己乙'), list('戌巳亥亥'))
+    assert r['father_variant'] == '印'
+
+
+def test_father_variant_cai_yin_coexist_no_action():
+    """财印同局但无盖头亦无冲克作用（丙寅 丁卯 丙午 庚巳）→ 不触发变法。
+    旧判据 WX_KE[财五行]==印五行 五行恒成立，此盘旧代码误触发。"""
+    r = classify_parent_star('丙', list('丙丁丙庚'), list('寅卯午巳'))
+    assert r['father_variant'] == ''
+
+
+def test_xueli_yin_taiwang_cai_ke_yin_positive():
+    """印星太旺得财克印反主学习上进（zhongji:5404）——旧档「财轻印重」-1
+    与书反向，改判正向。戊子 癸亥 甲子 壬申：印4财1。"""
+    r = classify_xueli_level('甲', list('戊癸甲壬'), list('子亥子申'))
+    assert any('财克印' in s and '上进' in s for s in r['signals'])
+    assert not any('财轻印重' in s for s in r['signals'])

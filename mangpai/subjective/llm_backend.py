@@ -15,7 +15,7 @@
   response_format={"type": "json_object"}，thinking 计入 output tokens）
 - MANGPAI_LLM_REASONING_EFFORT → 缺省 low（仅 thinking 开启时发出）
 - MANGPAI_LLM_TIMEOUT / MANGPAI_LLM_RETRIES → 缺省 120 / 2（本地模型可调大超时）
-- 重试：超时/5xx/网络错误重试，指数退避；4xx 不重试直接抛
+- 重试：超时/5xx/429（限流）/网络错误重试，指数退避；其余 4xx 不重试直接抛
 - 成本：按官方定价表折算人民币（¥/1M tokens），按请求时间（北京时间）自动选峰/谷档，
   随返回 dict 带出 usage/cost/price_tier/elapsed；定价表仅 DeepSeek 有效——
   未知模型/其他 provider 的 cost_cny 显式返回 None（未计价），不显示误导性 ¥0
@@ -181,19 +181,25 @@ def call_deepseek(
     for attempt in range(retries + 1):
         if attempt:
             time.sleep(2 ** attempt)  # 2s, 4s
-        req = urllib.request.Request(
-            base_url, data=data,
-            headers={'Content-Type': 'application/json',
-                     'Authorization': f'Bearer {key}'},
-            method='POST')
+        try:
+            req = urllib.request.Request(
+                base_url, data=data,
+                headers={'Content-Type': 'application/json',
+                         'Authorization': f'Bearer {key}'},
+                method='POST')
+        except ValueError as e:
+            # 红6b：畸形 URL（unknown url type 等）Request 构造即抛 ValueError——
+            # 包装为 LLMBackendError，llm_channel except 方能接住降级；
+            # 畸形不会自愈，不重试
+            raise LLMBackendError(f'URL 畸形（{base_url!r}）: {e}') from e
         t0 = time.monotonic()
         t0_wall = time.time()  # 计价按请求发出的实际时段选峰/谷档
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 raw = resp.read()
         except urllib.error.HTTPError as e:
-            # 4xx（鉴权/参数错）重试无意义，直接抛
-            if 400 <= e.code < 500:
+            # 4xx（鉴权/参数错）重试无意义，直接抛；429 限流除外——与 5xx 同策略重试
+            if 400 <= e.code < 500 and e.code != 429:
                 hint = ''
                 if e.code == 400 and base_url != _API_URL:
                     hint = ('（若报错为 unknown field/不支持的参数：该服务不接受 '
@@ -203,6 +209,9 @@ def call_deepseek(
                 ) from e
             last_err = LLMBackendError(f'HTTP {e.code}')
             continue
+        except ValueError as e:
+            # 红6b：urlopen 阶段同族 ValueError（如重定向后 URL 畸形）同口径包装
+            raise LLMBackendError(f'URL 畸形（{base_url!r}）: {e}') from e
         except (urllib.error.URLError, TimeoutError, OSError) as e:
             last_err = LLMBackendError(f'网络错误: {e}')
             continue

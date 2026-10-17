@@ -241,3 +241,24 @@ def test_guanming_veto_threshold_protects_positive_structure():
     assert slice_['liunian_fan']  # 壬午年确有反局/联动
     gm = analyze_guanming('辛', gans, zhis, yunfan_result=slice_)
     assert gm['is_guanming']  # 门槛保护：岁运反局理由被剥离，不否决
+
+
+def test_liunian_chong_tomb_exempt():
+    """流年冲原局墓库功神=冲开库（豁免），不报类型一破坏功神。
+
+    zhenbao:691「流年冲八字、大运一般为动，冲墓库一般为开」——与大运侧 F8
+    冲开墓库豁免同口径（2026-10-17 修复批对齐）。时支辰墓为功神，戌年冲辰
+    -> 豁免；对照组：午（非墓）为功神，子年冲午 -> 仍报破坏功神。
+    """
+    gans, zhis = ['甲', '丙', '戊', '庚'], ['寅', '午', '申', '辰']
+    r = analyze_yunfan(gans, zhis, '戊',
+                       liunian_list=[{'gz': '甲戌', 'year': 2018}],
+                       natal_work_actions=[], natal_gong_shen=['hour_zhi'],
+                       natal_fei_shen=[], natal_work_types=[])
+    assert not any('破坏功神' in t for t in _ln_fan_types(r))
+
+    r2 = analyze_yunfan(gans, zhis, '戊',
+                        liunian_list=[{'gz': '戊子', 'year': 2020}],
+                        natal_work_actions=[], natal_gong_shen=['month_zhi'],
+                        natal_fei_shen=[], natal_work_types=[])
+    assert any('破坏功神' in t for t in _ln_fan_types(r2))

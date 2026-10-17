@@ -123,20 +123,25 @@ class TestHeFour:
 
 class TestDayunPhase:
     def test_fenkan_gan_half(self):
-        # 张克东例：甲寅运第 3 年（1975 乙卯），无刑冲合 → 分看干主事
+        # 张克东例：甲寅运第 4 年（1975 乙卯），无刑冲合 → 分看干主事
+        # 口径修正（2026-10-17）：起运岁为虚岁，start_year = 出生年+虚岁-1
+        # （liunian.py 对齐 jiaoyun.py:277-279；书例 理象学:3916-3922
+        # 2005 生 3 虚岁起运→2007）。1932 生 41 虚岁起运 → 1972 起，
+        # 1975 = 第 4 年（旧口径错作第 3 年）。
         p = determine_dayun_phase(
             '甲', '寅', [{'gz': '乙卯', 'year': 1975}],
             birth_year=1932, dayun_start_age=41)
         assert p['phase'] == '分看'
-        assert p['per_year'][1975] == {'position': 3, 'active': '干'}
+        assert p['per_year'][1975] == {'position': 4, 'active': '干'}
 
     def test_fenkan_zhi_half(self):
-        # 甲寅运第 6 年（1978 戊午，与运无刑冲合）→ 分看支主事
+        # 甲寅运第 7 年（1978 戊午，与运无刑冲合）→ 分看支主事
+        # （口径修正同上：1972 起运，1978 = 第 7 年，旧口径错作第 6 年）
         p = determine_dayun_phase(
             '甲', '寅', [{'gz': '戊午', 'year': 1978}],
             birth_year=1932, dayun_start_age=41)
         assert p['phase'] == '分看'
-        assert p['per_year'][1978] == {'position': 6, 'active': '支'}
+        assert p['per_year'][1978] == {'position': 7, 'active': '支'}
 
     def test_tongkan_on_liunian_he(self):
         # 张克东例转统看：己未年甲己合 → 十年统看

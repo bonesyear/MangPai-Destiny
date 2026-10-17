@@ -603,8 +603,9 @@ def detect_zeishen_bushen(
         for wa in work_actions:
             if wa.get('type') not in ('冲', '克', '穿', '刑', '破'):
                 continue
-            # 滤 auxiliary：宾位/非日主参与之制非真做功（书 6122-6126 蒋介石
-            # 丁克庚宾位干克不得塞入制局目标集，否则原神同制误净，「制之不净达不到四层功」）
+            # 滤 auxiliary：宾位/非日主参与之制非真做功（yanjiu:6192-6206 蒋介石
+            # 命造「局中伤官庚金作为亥水的原神也在制当中，只是制之不净」——宾位
+            # 干克不得塞入制局目标集，否则原神同制误净，「制之不净达不到四层功」）
             if wa.get('auxiliary'):
                 continue
             to = wa.get('to_pos', '')
@@ -700,6 +701,17 @@ def detect_zeishen_bushen(
             f'贼神「{zeishen_wx}」孤立（{why}）且实存，制之干净'
         )
         return _build_zb('净', bushen_wx, zeishen_wx, bushen_str, zeishen_str,
+                         zeishen_isolated, zeishen_has_yuan, yuan_yi_zhi,
+                         cheng_dang, momentum_waste, reason)
+
+    # 贼神孤立但虚透无本气（局中无实存）-> 不成：贼非实存，捕神无的放矢——
+    # yanjiu:5543-5545「如果小偷特别少，或者没小偷，警察就没有用武之地」。
+    if zeishen_isolated and not zeishen_real:
+        reason = (
+            f'不成（贼神虚透）：贼神「{zeishen_wx}」虚透无本气，孤立不实存，'
+            f'不成贼捕，捕神「{bushen_wx}」无用武之地'
+        )
+        return _build_zb('不成', bushen_wx, zeishen_wx, bushen_str, zeishen_str,
                          zeishen_isolated, zeishen_has_yuan, yuan_yi_zhi,
                          cheng_dang, momentum_waste, reason)
 

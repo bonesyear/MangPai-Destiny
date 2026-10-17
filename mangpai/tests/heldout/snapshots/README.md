@@ -6,7 +6,7 @@
 
 ## 当前基线指针
 
-- **`LATEST`**（纯文本单行）= 当前基线快照文件名，现指向 **`20260918_t1.json`**。
+- **`LATEST`**（纯文本单行）= 当前基线快照文件名，现指向 **`20261017_a1.json`**。
 - `blind_eval.py --baseline latest`（或 `--diff latest <快照>`）自动解指针（H-fix-8 起）。
 - 推进基线 = 人工改写 `LATEST` 一行——**刻意不随 `--out` 自动更新**，防误推基线。
 
@@ -33,6 +33,7 @@
 | `20260918_p4.json` | P4 职业军警新面批·P 系列收官（objective muku 新检测 `detect_ku_zhi_ku` 库制库·阳制阴，纯增量既有函数零改动；zhiye military 消费条款+6：阳库收/刑阴库+阴库成双多见，贵气门外格局级通道） | 见 _meta | p3 | heldout 三维零翻转零抖动；trainset 职 +1（40→41✅，gj-警察墓库）全预注册、官/财零翻转；军警探针 3/10→4/10（军官例四归位）；文本抖动 0 |
 | `20260918_t1.json` | T-教授 财命窄条款微批（caiming 消费侧单点：日支穿月令财→封顶小康，月令本气口径，chuji:2379/3678、zhongji:2322 双锚；objective/总线零改动）（**当前基线**） | 见 _meta | p4 | heldout 三维零翻转零抖动（官 48✅/财 47✅/职 24✅ 保）；trainset 财 +2（61→63✅：cj-教授 ❌→✅、zj-邢铭芬 ⚠️→✅、yx-贫穷命贫困线上 ❌→⚠️）全预注册、官 102✅/职 41✅ 零翻转；文本抖动 1 条（yx-书法家-2 caiming_adjust，条款文本设计内）；马云/李嘉诚/保尔森/奥纳西斯/煤矿锚全保 |
 | `20260918_r1fix.json` | 审查修复批·P2（主会话代码审查发现的 P2 项：output 8 处 cwd 相对路径锚定 + KB book-index 路径与 pytest 计数校准 + privacy-policy 路径前缀 + output/README 白名单精确化；代码本体审查 P0=0） | 见 _meta | t1 | heldout/trainset 零翻转零抖动（官 48✅/财 47✅/职 24✅ 保）；引擎判定零改动（仅 LLM 通道/工具脚本/文档） |
+| `20261017_a1.json` | 原著对照修复批（批6·审计台账 docs/audit-vs-originals-20261017.md）：注释锚修正 10 项（changsheng 归属任铁樵、天乙版本注、ganqing 65→75 条等）+ 方向性 bug 14 项（xiangfa_ops 财带印帽判反、ganqing 3 条件语义、yunfan 流年冲墓豁免、liunian 虚岁 -1、dayun 气势反局、zeishen 虚贼不成、liuqin 财克印恒真、hunyin 配偶星替代+正偏星之制、xueli 财克印方向+死代码、laoyu 墓开官非、shipaige 丁见丙寅、caiming 过河拆桥去冒称+制不尽封顶富、yongshen R3 六合化气豁免删除）+ LLM 校验器 6 域（非 JSON 回显封死、L2 出境/美丑全维、死词表双侧同步补词+冒号断句、缺数据最严口径、narrative 免责+scrub、backend 429/URL 兜底） | 见 _meta | t1 | heldout 财命 -7.2%/trainset 财 -2.7%（均噪声带内、官/职零翻转）：翻转 9 条归因=R3 豁免删除 4（书禁六合化气读法，理象学:2311/shouke:2574）+流年冲墓豁免 2（li141 错误信号碰巧得分）+过河拆桥 2（qi05/普例3 巨富过冲经封顶门收至富、✅→⚠️）+qi02 ⚠️；文本抖动 21 条全归因修复文案 |
 
 注：hfix6→hfix5 顺序非笔误——v2 计划把契约测试（6）前置于大函数拆分（5），快照按实际落地顺序编号。
 

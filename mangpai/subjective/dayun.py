@@ -13,6 +13,7 @@ dayun - 盲派大运分析·主观判断层（subjective）
 from typing import Dict, List, Optional, Any
 
 from mangpai.objective.dayun import _analyze_pillar_interaction
+from mangpai.objective.constants import WX_KE
 
 
 def judge_pillar_signals(interaction: Dict) -> Dict:
@@ -56,8 +57,15 @@ def judge_pillar_signals(interaction: Dict) -> Dict:
     if fei_shen_activated:
         positive_signals.append(f'激活{len(fei_shen_activated)}个废神->新做功')
 
+    # 气势变化非必吉——中级:314-316「最怕行反局大运……主此大运凶」：
+    # 移出 positive_signals；新主导五行克原局主导五行（运与原局势力对抗）
+    # 判反向入 negative_signals，其余为中性，仅在 desc 标「须辨正反」。
     if qishi_change and qishi_change.get('changed'):
-        positive_signals.append(qishi_change['desc'])
+        if WX_KE.get(qishi_change.get('new_dominant', ''), '') == \
+                qishi_change.get('natal_dominant', ''):
+            negative_signals.append(
+                qishi_change['desc'] + '——反局大运，气势逆转为凶')
+        # 同向/无对抗者不进正负信号，desc 侧标注见下
 
     cs_stage = changsheng.get('stage')
     if cs_stage == '长生' and changsheng.get('weak'):
@@ -113,7 +121,14 @@ def judge_pillar_signals(interaction: Dict) -> Dict:
     if fei_shen_activated:
         desc_parts.append(f'激活{len(fei_shen_activated)}废神')
     if qishi_change:
-        desc_parts.append(qishi_change['desc'])
+        if qishi_change.get('changed') and WX_KE.get(
+                qishi_change.get('new_dominant', ''), '') == \
+                qishi_change.get('natal_dominant', ''):
+            desc_parts.append(qishi_change['desc'] + '（反局）')
+        elif qishi_change.get('changed'):
+            desc_parts.append(qishi_change['desc'] + '（气势变化，须辨正反）')
+        else:
+            desc_parts.append(qishi_change['desc'])
     if is_kong:
         desc_parts.append('地支空亡')
     desc_parts.append(f'综合：{overall}')

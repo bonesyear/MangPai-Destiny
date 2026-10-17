@@ -173,7 +173,8 @@ def _staged_lines():
     """解析 git diff --cached --unified=0，产出 (文件名, 新增行) 列表。"""
     proc = subprocess.run(
         ["git", "diff", "--cached", "--unified=0", "--no-color", "--diff-filter=ACMR"],
-        capture_output=True, text=True)
+        capture_output=True, text=True,
+        encoding="utf-8", errors="replace")  # git diff 输出是 UTF-8，Windows locale(GBK) 解码会炸
     if proc.returncode != 0:
         raise RuntimeError("git diff --cached 失败: " + proc.stderr.strip())
     per_file = {}

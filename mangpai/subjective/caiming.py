@@ -14,10 +14,12 @@ caiming - 盲派财命定性·主观层（subjective）
   4. 官杀当财两式（源文2817-2819：官多财少->财统官，财多官少->官统财，二者皆官杀当财）：
        财统官--官杀多而财少，财统御官，官杀当财（七杀当财，量级高于财当财）；
        官统财--财多而官杀少，官统御财，官杀当财（七杀当财，量级高于财当财）。
-  5. 过河拆桥：主位（日支或时支）财生宾位官杀，宾官又被宾字合/制 -> 主位财
-     过河（生宾官）后桥（宾官）被拆，财流失/被他人所得，主破财。核心是「宾字
-     合/制桥（宾官）」，合用对称（六合/暗合两端皆试），制用取被制方；官统财/
-     财统官（主制宾官得财）与之互斥，不并存。
+  5. 过河拆桥：主位（日支或时支）财生宾位官杀，宾官又被宾字合/制 -> 发大财
+     结构（zhongji:2976-2978「这种结构是发大财的」，全节6例皆发财，无破财
+     变体）。结构成立即富格，制尽程度只影响量级（制尽净制=巨富路径，制不尽
+     量级减等封顶富），不翻方向。核心是「宾字合/制桥（宾官）」，合用对称
+     （六合/暗合两端皆试），制用取被制方；官统财/财统官（主制宾官得财）
+     与之互斥，不并存。
 
 取财五法（第二节）：经营 / 风险 / 智力 / 体力 / 工薪
   - 经营：财星明现 + 合财/制财做功，商人经营取财；
@@ -31,9 +33,9 @@ caiming - 盲派财命定性·主观层（subjective）
      （虚透不聚）-> 层级降一阶；
   2. 生财路径是否畅通：明现财星被紧贴合绊（受害方口径同 yongshen R3）或
      财星本气支入墓未开 -> 各降一阶（官杀当财/制不尽当财路径不适用）；
-  3. 制财得财 vs 制不净破财：过河拆桥（制尽=富格/制不尽=破财）已有，与浮财/
-     阻通同汇入 level.blockers；tier 输出扩展为「档位 + 生财路径(path) + 阻因
-     (blockers)」三件套。
+  3. 制财得财：过河拆桥（结构成立即富格，制尽/制不尽只影响量级——
+     zhongji:2976-2978，无破财变体），与浮财/阻通同汇入 level.blockers；
+     tier 输出扩展为「档位 + 生财路径(path) + 阻因(blockers)」三件套。
 
 消费关系：
   - objective.zuogong_detect.detect_relations（合/制关系，过河拆桥/取财做功用）
@@ -594,9 +596,10 @@ def classify_caifu_view(
       3. 局无财星而有食伤 -> 伤食当财（技术/智力）；
       4. 官杀当财两式：官杀多（≥2位）且制官杀成立 ->
          财统官（官杀>财）/ 官统财（财>官杀），二者皆官杀当财；
-      5. 过河拆桥：主位财生宾官、宾官被宾字合/制 -> 制尽（净制）为富格（巨富，
-         高级篇口径），制不尽为破财（财流失，中级篇口径）；与官统财/财统官互斥
-         （主制宾官得财则不判破财）。主取优先序：官统财/财统官 > 过河拆桥 > 财星 >
+      5. 过河拆桥：主位财生宾官、宾官被宾字合/制 -> 结构成立即富格
+         （zhongji:2976-2978「这种结构是发大财的」）；制尽（净制）为巨富路径，
+         制不尽量级减等（封顶富），只影响量级不翻方向；与官统财/财统官互斥
+         （主制宾官得财则不重计）。主取优先序：官统财/财统官 > 过河拆桥 > 财星 >
          禄 > 食伤；财库开闭为聚散信号并列（不竞争主取）。
     一局可多重命中（如既有财星又官杀当财），全部列出，标主取。
 
@@ -610,7 +613,8 @@ def classify_caifu_view(
           'has_lu': bool,
           'has_shishang': bool,
           'guohe_chaiqiao': bool,    # 过河拆桥
-          'guohe_chaiqiao_type': str|None,  # '富格'(制尽巨富)/'破财'(制不尽)
+          'guohe_chaiqiao_type': str|None,  # '富格'（结构成立即富格）/None
+          'guohe_zhi_jin': bool,     # 制尽净制（巨富路径）；False=制不尽（量级减等）
           'details': [str],          # 各看法依据
         }
     """
@@ -749,9 +753,11 @@ def classify_caifu_view(
             views.append('官统财（官杀当财）')
             details.append(f'财多（{cai_count}位）而官杀少（{guan_count}位），官统财，官杀当财（七杀当财量级高）')
 
-    # 5. 过河拆桥（制尽=富格巨富 / 制不尽=破财，高级篇分键）
-    # 官统财/财统官（主制宾官得财）与过河拆桥（宾字拆宾官破财）为对偶互斥财命定式：
-    # 主位已制宾官得财（官杀当财）则不再判过河拆桥破财，避免矛盾破财信号。
+    # 5. 过河拆桥（结构成立即富格；制尽=巨富路径 / 制不尽=量级减等，只影响
+    # 量级不翻方向——zhongji:2976-2978「这种结构是发大财的」，全节无破财变体。
+    # 旧「制不尽=破财（中级篇口径）」为冒称，中级原文并无破财断语，已移除）
+    # 官统财/财统官（主制宾官得财）与过河拆桥（宾字拆宾官）为对偶互斥财命定式：
+    # 主位已制宾官得财（官杀当财）则不再重计过河拆桥。
     guohe = {}
     if '财统官' not in views and '官统财（官杀当财）' not in views:
         guohe = _detect_guohe_chaiqiao(day_gan, gans, zhis, cats, wa, _active_ku)
@@ -802,7 +808,8 @@ def classify_caifu_view(
         'has_lu': has_lu,
         'has_shishang': has_shishang,
         'guohe_chaiqiao': bool(guohe),
-        'guohe_chaiqiao_type': guohe_type,  # '富格'(制尽巨富)/'破财'(制不尽)/None
+        'guohe_chaiqiao_type': guohe_type,  # '富格'（结构成立即富格）/None
+        'guohe_zhi_jin': bool(guohe.get('zhi_jin')) if guohe else False,
         'caiku': caiku,                      # 财库开闭记录（消费 muku）
         'has_open_caiku': has_open_caiku,    # 开财库（发财）信号
         'caixing_path': caixing_path,        # 财星源头/路径（原神/主位/合绊/入墓）
@@ -838,7 +845,7 @@ def _controlled_guan_positions(
     半合）from/to 无方向语义、两端俱入局受合（与 _detect_guohe_chaiqiao
     「合用对称，两端皆试」同口径）——合之施动端支本/中气所藏同党官随合
     入局、非游离残存（K3-294批4：yx-富发财数千万 午未合，午中己官随合，
-    书明文壬辰运发财数千万，非制不尽破财）。
+    书明文壬辰运发财数千万——制不尽亦富格，量级减等）。
     默认 False（制不尽当财等「被制引动」判据用）：合制仅计 to_pos 本气，
     支中藏官受合牵扯不算被制（reg67-合例六两妻 卯戌合戌中丁官、
     cj-中医 辰酉合辰中癸官——书俱不判官杀当财）。
@@ -853,7 +860,7 @@ def _controlled_guan_positions(
             # 之附属官非游离残存——yx-富发财数千万 午未合、午中己官随合，
             # 书明文壬辰运发财数千万）；from 端本气官=合局主角（拆桥之桥
             # 或拆桥者本身），其去留由拆桥动作判定、不在此计（qi02-夫死
-            # 申子半合、申为被拆之桥本气官，计之则破财误翻富格）。
+            # 申子半合、申为被拆之桥本气官，计之则误翻富格量级）。
             to_pos = a.get('to_pos', '')
             if to_pos and _pos_element(to_pos, gans, zhis) == guan_wx:
                 pos.add(to_pos)
@@ -877,11 +884,13 @@ def _is_zhi_jin(
 ) -> bool:
     """过河拆桥宾官是否制尽（净制判据）。
 
-    段氏过河拆桥分两路（高级篇财命章）：
+    段氏过河拆桥（zhongji:2976-2978「这种结构是发大财的」，全节6例皆发财、
+    无破财变体）：结构成立即富格，制尽程度只影响量级——
       - 制尽（净制）：宾官被制且官杀方俱制无残存同党 -> 制官得财，
-        七杀当财量级，过河拆桥富格（巨富）。
-      - 制不尽：宾官被制但官杀残存 -> 财过河生宾官、宾官未制尽反夺财，
-        破财（中级篇口径）。
+        七杀当财量级，过河拆桥富格（巨富路径）。
+      - 制不尽：宾官被制但官杀残存 -> 仍富格，量级减等（封顶富），
+        不翻方向。旧「制不尽=破财（中级篇口径）」为冒称，中级原文并无
+        破财断语，已移除。
     工程化启发式：以「官杀明现位俱为制用/合制目标（无残存）」为制尽判据；
     成势制尽须贼神捕神/净制模块判党势，此处保守以位置覆盖度兜底，可能偏宽。
 
@@ -889,7 +898,7 @@ def _is_zhi_jin(
     不计「残存同党」——藏而不透之官附于主位（日支/时支本中气所藏，如日支
     财支中气藏官=财之附属），非宾官夺财之党；主位**透干**官杀明现有力，
     仍计残存（qi05 时干癸杀透干，制不尽成立）。b67 森田健（辛戊己癸/卯戌
-    亥酉）：日支亥中气甲（官）被旧判据计为残存 -> 误判制不尽破财（gold
+    亥酉）：日支亥中气甲（官）被旧判据计为残存 -> 误判制不尽（gold
     富·壬申癸酉年发财）；修法后宾官卯俱被月戌合制 -> 制尽富格。
 
     宾位透干随根论制（K3-294批4，famous-索罗斯书锚「制七杀申金，制之
@@ -919,19 +928,20 @@ def _detect_guohe_chaiqiao(
     cats: List[Set[str]], wa: List[Dict],
     active_ku: Optional[Set[str]] = None,
 ) -> Dict:
-    """过河拆桥检测：主位财生宾官、宾官被宾字合/制，按制尽/制不尽分键。
+    """过河拆桥检测：主位财生宾官、宾官被宾字合/制，结构成立即富格。
 
     段氏过河拆桥核心是「宾字合/制桥（宾官）」：主位（日支或时支）财 -> 生 ->
     宾位（年/月）官杀（五行：财五行生官五行），且该宾官被另一宾字合/制 ->
-    财过河生宾官、桥（宾官）被拆。
+    财过河生宾官、桥（宾官）被拆——zhongji:2976-2978 明文「这种结构是发大财
+    的」，全节6例皆发财、无破财变体，故制尽/制不尽只影响量级不翻方向。
     - 主位财：放宽「日支必为财」硬前置 -> 日支或时支有财即可（主位财过河）；
     - 合用对称：六合/暗合/半合 from/to 无方向语义，两端皆试（宾官可在 from 端）；
       制用方向明确，取 to_pos（被制方=宾官）。
-    官统财/财统官（主制宾官得财）与本检测互斥，由调用方据 views 守门，避免矛盾破财信号。
+    官统财/财统官（主制宾官得财）与本检测互斥，由调用方据 views 守门，避免重复计。
 
     Returns:
-        {} 或 {'type': '富格'|'破财', 'detail': str}
-        富格=制尽净制（巨富，高级篇）；破财=制不尽（财流失，中级篇）。
+        {} 或 {'type': '富格', 'zhi_jin': bool, 'detail': str}
+        zhi_jin=True=制尽净制（巨富路径）；False=制不尽（量级减等，封顶富）。
     """
     day_wx = GAN_WX.get(day_gan, '')
     if not day_wx:
@@ -947,7 +957,7 @@ def _detect_guohe_chaiqiao(
     # 主位（日支或时支）有财：段氏过河拆桥核心是「宾字合/制桥（宾官）」，
     # 「日支财生宾官」为经典「财过河」结构；时支同主位，时支财过河生宾官亦成立。
     # 放宽「日支必为财」硬前置 -> 主位有财即可，避免漏检时支财过河之桥被拆。
-    # 财须有根（藏干皆计，含余气——qi05 巳中庚余气财过河被拆=破财真阳、
+    # 财须有根（藏干皆计，含余气——qi05 巳中庚余气财过河被拆（制不尽）真阳、
     # qi20 戌中辛余气财富格真阳，俱不可排）；唯**库财**（藏干五行入该支
     # 之墓）未活化者不算（对齐上方 cai_count 库财口径，K3-294批4：
     # cj-贫穷命悲惨 丑中辛=金库之财、丑未戌三刑坏库书判穷命悲惨）。
@@ -1024,7 +1034,7 @@ def _detect_guohe_chaiqiao(
         return {}
 
     # 验财生官位置相连（批6 P0-2）：主位财须确生该被拆宾官——同柱干支相
-    # 作用、支支五行之气流通、干干紧贴（书例皆具体相连：zhongji:2977「主位
+    # 作用、支支五行之气流通、干干紧贴（书例皆具体相连：zhongji:2983「主位
     # 的酉生了宾位的亥官」、zhongji:2821 注「财官必须相连了，即财生官了」）。
     # 旧码仅全局验五行（WX_SHENG[财]==官）不验该财确生该宾官：ans12（丁未
     # 壬子丁巳辛丑）桥=壬（月干，丁壬宾宾合制首中），巳中庚支藏中气财不生
@@ -1038,7 +1048,7 @@ def _detect_guohe_chaiqiao(
     bridge_idx = PILLAR_KEYS.index(bridge_pk) if bridge_pk in PILLAR_KEYS else -1
     pos_cn = PILLAR_NAMES_CN[bridge_idx] if bridge_idx >= 0 else ''
     desc = found_action.get('desc', '制')
-    # 制尽/制不尽分键（高级篇富格 vs 中级篇破财）
+    # 制尽/制不尽分键：结构成立即富格（zhongji:2976-2978），制尽程度只影响量级
     if _is_zhi_jin(day_gan, gans, zhis, cats, wa, guan_wx):
         # 日主争合坏格守卫（K3-294批4，yx-贫打工书锚）：两及以上同五行透干
         # 争合日主（甲日年月两己），段氏争合「合不住、其情不专」——财意
@@ -1048,14 +1058,14 @@ def _detect_guohe_chaiqiao(
                       if k != 2 and g and TIAN_GAN_HE.get(g) == day_gan)
         if zhenghe >= 2:
             return {}
-        return {'type': '富格', 'detail': (
+        return {'type': '富格', 'zhi_jin': True, 'detail': (
             f'{cai_pos_cn}{cai_zhi}（财）生宾位{pos_cn}官杀，宾官又被宾字{desc}且制尽（净制），'
             f'过河拆桥富格——制官得财（七杀当财量级），巨富')}
     # 主位制宾官豁免（K3-294批4，famous-索罗斯书锚）：主位（日/时）以非辅助
     # 制用动作直制该宾官者，为「主制宾官得财」官杀当财做功（双午制申，书明文
-    # 「制七杀申金，制之干净功力十足」），财非过河流失——制不尽亦不论破财
-    # （与上官统财/财统官互斥门同旨，彼以 views 计数守门、此以做功动作守门，
-    # 索罗斯 官财 3:3 平数时 views 门漏、动作门兜住）。
+    # 「制七杀申金，制之干净功力十足」）——不入过河拆桥（与上官统财/财统官
+    # 互斥门同旨，彼以 views 计数守门、此以做功动作守门，索罗斯官财 3:3 平数
+    # 时 views 门漏、动作门兜住）。
     for a in wa:
         if a.get('auxiliary') or a.get('type') not in _ZHI_CONTROL:
             continue
@@ -1064,9 +1074,13 @@ def _detect_guohe_chaiqiao(
                 and _pos_pillar(tp) in ('year', 'month') \
                 and _pos_element(tp, gans, zhis) == guan_wx:
             return {}
-    return {'type': '破财', 'detail': (
+    # 制不尽：结构成立即富格（zhongji:2976-2978「这种结构是发大财的」，全节
+    # 6例皆发财、无破财变体），制不尽者量级减等（封顶富，见 assess_caiming_level
+    # 富格独力上浮净制门），不翻方向。旧「制不尽=破财（中级篇口径）」为冒称，
+    # 中级原文并无破财断语，已移除。
+    return {'type': '富格', 'zhi_jin': False, 'detail': (
         f'{cai_pos_cn}{cai_zhi}（财）生宾位{pos_cn}官杀，宾官被宾字{desc}但制不尽'
-        f'（官杀残存），过河拆桥，财流失破财')}
+        f'（官杀残存），过河拆桥富格——制不尽量级减等')}
 
 
 # ───────────────────── 取财五法 ─────────────────────
@@ -1308,7 +1322,8 @@ def assess_caiming_level(
       1. gongliang 四档定性 wealth_grade/level（功量层主定基阶）；
       2. 财源清浊：官杀当财（官统财/制不尽当财）量级最高，财星当财次之，
          禄/食伤当财偏下（体力/智力取财量级有限）；
-      3. 制尽程度：制尽净制上浮一阶，制不尽/过河拆桥破财下浮一阶；
+      3. 制尽程度：制尽净制上浮一阶；过河拆桥制不尽量级减等（封顶富），
+         不翻方向（zhongji:2976-2978，无破财变体）；
       4. 财库开闭（消费 muku）：开财库（墓中之财复出）上浮一阶主大发，
          闭财库/财入库持平（守财储蓄，聚而不散）。
 
@@ -1340,7 +1355,6 @@ def assess_caiming_level(
     has_zhibujin = False
     has_zhibujin = detect_zhibujin_dangcai(day_gan, gans or [], zhis or []).get('found', False)
     has_lu_or_shishang = any(v in views for v in ('禄神当财', '伤食当财'))
-    guohe_pocai = caifu_view.get('guohe_chaiqiao_type') == '破财'
     # 制库得财（理象学制例一）：月令墓库被主位冲/刑开，库中财与原神同制
     # ——制尽级财命定式，量级同制尽（书锚=奥纳西斯船王巨富）。
     _zhiku = _detect_zhiku_decai(day_gan, gans or [], zhis or [], muku_result)
@@ -1350,8 +1364,6 @@ def assess_caiming_level(
     # 财星源头/路径（M2：贫富三要素——原神/主位定浮实，合绊/入墓定阻通）
     cxp = caifu_view.get('caixing_path') or {}
     blockers: List[str] = list(cxp.get('blockers') or [])
-    if guohe_pocai:
-        blockers.append('过河拆桥，财流失')
     # 从格（从财/从弱/从强）豁免：从格以所从之神为局主，扶抑系「浮财/身财平衡」
     # 口径不适用（段氏从财格=财成势从之，巨富潜质，非浮财）。
     strength = ''
@@ -1383,7 +1395,7 @@ def assess_caiming_level(
                         _zhh7 = True
                         break
             cong_floor_blocked = _dc7 < 2 and not _zhh7
-    # 凶向信号（反局/破财/过河拆桥/用忌受制绊）：浮财升档抑制与下方封顶共用
+    # 凶向信号（反局/破财/用忌受制绊）：浮财升档抑制与下方封顶共用
     ds = direction_signals or {}
     ds_xiong = bool(ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai')
                     or ds.get('yongshen_xiong') or ds.get('mingju_xiong'))
@@ -1395,8 +1407,8 @@ def assess_caiming_level(
     # ── 从财格顺势档（D类从格细则，段氏从财书例直判）──
     # 从弱且财为所从（财为最大异党明现）：扶抑浮财口径本不适用（下方豁免），
     # 但「从格豁免」不等于档位留白——从财之贫富按从财自身成势直判：
-    #   财成局（三合/半合局五行=财）：「巳酉丑合财局…日主发大财」（例200），
-    #     基阶不落下富；
+    #   财成局（三合/半合局五行=财）：「巳酉丑合财局…日主发大财」（shouke:6574
+    #     例199），基阶不落下富；
     #   财有原神（食伤明现生财）且财明现≥2：从财得财有转化（22期例1
     #     「庚金无根…作从财格看，用神是水木，乙亥年发财」），基阶不落下富；
     #   财伏吟单一（同名财支≥3）而无合局转化：「卯财是单个的，没有转化，
@@ -1514,6 +1526,10 @@ def assess_caiming_level(
     # 制不尽残杀当财同属官杀当财诸式，零财者不带上浮，落回禄/伤食当财口径。
     _zbj_ok = has_zhibujin and (caifu_view or {}).get('cai_count', 0) >= 1
     _liangji_cap = False  # 封顶富（量级不足）标记：后续上浮链（开财库）不得翻越
+    # 过河拆桥制不尽者不吃贼捕净制豁免（qi05/普例3 过冲实录）：guohe 检测器已判
+    # 制不尽（量级减等，封顶富 :944），与贼捕净制结论冲突时按富格口径收。
+    _guohe_bujin = bool(caifu_view.get('guohe_chaiqiao_type') == '富格'
+                        and not caifu_view.get('guohe_zhi_jin'))
     if (has_guancai or _zbj_ok or has_zhiku) and tier_idx < 4 and not cong_cai_pin:
         tier_idx += 1
         # P1-4 财统官 3->4 须财量级证据（段氏「官多财少，财可统官」+ 量级口径）：
@@ -1544,7 +1560,7 @@ def assess_caiming_level(
         # 「财与财的原神同时被制，财富级别可见一斑」；不净者（原神残存）模块
         # 自注「封顶三层」，与封顶富同口径。
         elif _zbj_ok and not has_guancai and tier_idx > 3:
-            if _zeishen_jingzhi(day_gan, gans or [], zhis or []):
+            if _zeishen_jingzhi(day_gan, gans or [], zhis or []) and not _guohe_bujin:
                 adjust = '上浮（官杀当财量级高；贼神捕神净制，量级同制尽）'
             else:
                 tier_idx = 3
@@ -1557,7 +1573,7 @@ def assess_caiming_level(
         elif (any(v.startswith('过河拆桥·富格') for v in views)
                 and '官统财（官杀当财）' not in views and '财统官' not in views
                 and tier_idx > 3):
-            if _zeishen_jingzhi(day_gan, gans or [], zhis or []):
+            if _zeishen_jingzhi(day_gan, gans or [], zhis or []) and not _guohe_bujin:
                 adjust = '上浮（官杀当财量级高；贼神捕神净制，量级同制尽）'
             else:
                 tier_idx = 3
@@ -1581,7 +1597,7 @@ def assess_caiming_level(
         else:
             adjust = '上浮（官杀当财量级高）'
     # F6：制库得财（has_zhiku）为制尽级财命定式，「非禄/食伤当财之量级有限路径」
-    # （本模块 _detect_zhiku_degui docstring 明载；理象学制例一 6470-6474 奥纳西斯
+    # （本模块 _detect_zhiku_degui docstring 明载；理象学制例一 2688-2689 奥纳西斯
     # 「开库的同时将库中的伤官与财星全制服了，所以能成巨富」）——gongliang 制库门
     # 修复后奥纳西斯基阶 2->4，elif 落入此下浮 巨富->富 误降（批 F6 红线：巨富
     # 三锚不得降）。制库得财在档者免此下浮。
@@ -1622,21 +1638,22 @@ def assess_caiming_level(
         _liangji_cap = True
         adjust = ('上浮封顶（财统官而' + '；'.join(cxp['cai_zhonggong'])
                   + '，财弱不能统官，官杀当财量级不成立，封顶富）')
-    # 过河拆桥·富格直判 floor 富（P1，trainset b67 锚）：富格=制尽净制、制官
-    # 得财之财命定式（高级篇），纵功量层低估（无功/一层功）亦不落贫/小康下；
-    # 升档仍走上方官杀当财 +1（仅 +1 不越级）。凶向封顶链在下方收尾，不受
+    # 过河拆桥·富格直判 floor 富（P1，trainset b67 锚）：结构成立即富格
+    # （zhongji:2976-2978「这种结构是发大财的」），纵功量层低估（无功/一层功）
+    # 亦不落贫/小康下；升档仍走上方官杀当财 +1（仅 +1 不越级；制不尽者由上方
+    # 富格独力上浮净制门封顶富，量级减等）。凶向封顶链在下方收尾，不受
     # 此 floor 影响（真凶向命中者仍封顶——floor 只抗功量低估，不抗方向）。
     if (caifu_view.get('guohe_chaiqiao_type') == '富格'
             and tier_idx < 3 and not cong_cai_pin):
         tier_idx = 3
         adjust = (adjust + '；' if adjust != '持平' else '') + \
-            '过河拆桥富格直判（制尽净制，制官得财定式），基阶不落下富'
-    # 制尽/破财调整（-1 去重）：方向信号已携带过河拆桥破财时由下方凶向封顶链
-    # 统一处理（封顶小康），此处不再重复 -1——双计会把本在 cap 上的档再压一阶，
-    # 且封顶链「下浮封顶」文本因档已低于 cap 不再触发（凶向标记丢失）。
-    if guohe_pocai and tier_idx > 1 and not ds.get('guohe_pocai'):
-        tier_idx -= 1
-        adjust = (adjust + '；' if adjust != '持平' else '') + '下浮（过河拆桥破财）'
+            '过河拆桥富格直判（结构成立即富格，zhongji:2976-2978），基阶不落下富'
+        # 制不尽（zhi_jin=False）量级减等、封顶富（:944 口径）：不开下方开财库等
+        # 后续上浮链翻越——qi05/普例3 曾 floor→3 再叠开库上浮至巨富过冲。
+        if not caifu_view.get('guohe_zhi_jin'):
+            _liangji_cap = True
+    # （旧「制不尽=破财 -1 降档」为冒称中级口径，已移除——中级:2976-2978 明文
+    # 发大财，全节6例皆发财无破财变体；制不尽只影响量级不翻方向。）
     # 开财库上浮（墓中之财复出主大发）
     # C批收敛三：开库大发须财有原神（段氏「有财则伤食是其原神，可以当投资之
     # 财」——财无原神=浮财无源，纵开库复出亦弱而难发，30期ans29书文「水弱
@@ -1710,7 +1727,7 @@ def assess_caiming_level(
     if fucai_capped and tier_idx < base_level:
         wealth_grade = ''
     # 吉凶方向封顶（P0 A + M1 + N1/N2/N3 + A15）：反局/牢狱/比劫夺财破财/
-    # 过河拆桥破财/忌神制用神(R2)/用神被合绊(R3)/原局凶向三式（伤官见官为忌/
+    # 忌神制用神(R2)/用神被合绊(R3)/原局凶向三式（伤官见官为忌/
     # 财生杀攻身/官杀入墓）任一凶向命中，财命按严重度封顶--severe（比劫夺财
     # 严重/财生杀攻身因财致祸/财星反局主大凶）->贫(1)，余->小康下(2)。
     # 段氏功量层只判「做了什么」，凶向反哺「该不该做」：制用神/反局破财不得
@@ -1807,7 +1824,7 @@ def analyze_caiming(
           'yunsui_delta': dict|None,  # 岁运反局增量（P0-a；None=无岁运反局）
           'summary': str,        # 一句话财命定性（含岁运 delta）
           'summary_static': str, # 原局轨定性（P0-a）
-          'guohe_chaiqiao': bool, # 过河拆桥破财信号
+          'guohe_chaiqiao': bool, # 过河拆桥结构成立（富格）信号
           'caiku': [...],        # 财库开闭记录（消费 muku）
         }
     """
@@ -1832,7 +1849,7 @@ def analyze_caiming(
             gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3],
         )
         gl = analyze_gongliang(zg, day_gan, gans, zhis)
-    # 凶向信号（反局/牢狱/比劫夺财/过河拆桥破财）——双轨（P0-a 原局/运岁分离）：
+    # 凶向信号（反局/牢狱/比劫夺财）——双轨（P0-a 原局/运岁分离）：
     #   direction_natal: 原局级凶向（yunfan_result=None，岁运反局不入链）-> tier_static；
     #   direction_full : 含「当前运岁」反局切片（A1）-> tier（含 delta，流年事件用）。
     # 原局断语（财富层级）评原局轨，流年事件断语（某年破财/凶）评含 delta 轨，
@@ -1849,18 +1866,8 @@ def analyze_caiming(
         zhengfan_result=zhengfan_result, laoyu_result=laoyu_result,
         yunfan_result=yunfan_result,
     )
-    # 过河拆桥破财由 caifu_view 检出，补入方向信号（双轨同补——原局定式两轨皆入）
-    if cv.get('guohe_chaiqiao_type') == '破财':
-        direction_natal = dict(direction_natal)
-        direction_natal['guohe_pocai'] = True
-        direction_natal['pocai'] = True
-        if '过河拆桥破财' not in (direction_natal.get('reasons') or []):
-            direction_natal['reasons'] = list(direction_natal.get('reasons') or []) + ['过河拆桥破财']
-        direction = dict(direction)
-        direction['guohe_pocai'] = True
-        direction['pocai'] = True
-        if '过河拆桥破财' not in (direction.get('reasons') or []):
-            direction['reasons'] = list(direction.get('reasons') or []) + ['过河拆桥破财']
+    # （旧「过河拆桥制不尽=破财补入方向信号」为冒称中级口径，已移除——
+    # zhongji:2976-2978 明文发大财，结构成立即富格，制不尽只影响量级不翻方向。）
     level_static = assess_caiming_level(day_gan, gans or [], zhis or [], gl, cv,
                                         muku_result=muku_result,
                                         direction_signals=direction_natal,
@@ -1878,8 +1885,8 @@ def analyze_caiming(
     if pv.startswith(('官统财', '财统官')):
         path += '（制杀得财，量级高于财星当财）'
     elif pv.startswith('过河拆桥'):
-        path += '（制尽净制，制官得财）' if cv.get('guohe_chaiqiao_type') == '富格' \
-            else '（制不尽，财流失）'
+        path += '（制尽净制，制官得财）' if cv.get('guohe_zhi_jin') \
+            else '（制不尽，量级减等）'
     elif pv == '财星当财':
         if cxp.get('fucai'):
             path += '（财无原神且不在主位，浮财无源）'
@@ -1915,10 +1922,8 @@ def analyze_caiming(
         s += f'；生财路径：{path}'
         if lv.get('blockers'):
             s += '；阻因：' + '、'.join(lv['blockers'])
-        # 破财信号文本仅属「制不尽」分键：富格（制尽净制，制官得财）非破财，
-        # 无条件下挂会把「破财」标记词泄入 summary 误杀评分（qi41 富格泄漏）。
-        if cv.get('guohe_chaiqiao_type') == '破财':
-            s += '；伴过河拆桥破财信号'
+        # （旧「过河拆桥破财信号」summary 词随「制不尽=破财」冒称一并移除——
+        # zhongji:2976-2978 明文发大财，无破财变体。）
         if zbj.get('found'):
             s += '；制不尽当财（残存官杀作财看）'
         for ck in caiku:

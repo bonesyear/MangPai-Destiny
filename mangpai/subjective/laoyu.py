@@ -697,6 +697,10 @@ def detect_guansha_rumu(
 
     段氏：官杀（克我者）入墓库（墓库收官杀五行）且墓库未冲刑开库，
     主官非、罢官失权、牢狱之灾。复用 TOMB_MAP（墓库→所收五行）。
+    墓被冲刑非「凶减」——gaoji:14850-14851「墓库最怕刑冲，一动则官非立至」、
+    口诀 gaoji:15114「最怕运岁刑冲穿，墓门大开祸临头」，墓动亦凶向
+    （中性偏凶）。zhongji:5599-5600「冲穿坏库为出狱」是入狱后应期语境，
+    不挪用为原局墓开之解。
 
     Returns:
         {
@@ -742,7 +746,9 @@ def detect_guansha_rumu(
     details: List[str] = []
     if in_tomb:
         details.append(f'官杀({guan_wx}五行)入墓{tomb_zhi}，' +
-                       ('墓未开，官非失权牢狱之象' if not tomb_open else '然墓被冲刑开库，凶减'))
+                       ('墓未开，官非失权牢狱之象' if not tomb_open else
+                        '墓被冲刑，墓动官非立至之象（墓门大开祸临头，'
+                        'gaoji:14850-14851/15114）'))
     return {
         'in_tomb': in_tomb, 'guan_wx': guan_wx, 'tomb_zhi': tomb_zhi,
         'tomb_open': tomb_open, 'laoyu_signal': laoyu_signal, 'details': details,

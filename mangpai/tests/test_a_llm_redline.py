@@ -72,6 +72,24 @@ class TestDeathScrub:
         res = _run('甲申辛未壬子壬寅')
         assert 'siwang' in (res.get('zaihuo') or {})
 
+    def test_scrub_death_terms_batch2(self):
+        """红3b：scrub 词典补词（早逝/病故/亡故/终年/卒于/活不过/往生/百年之后）
+        输入侧整条过滤；并与 llm_channel._DEATH_WORDS 两侧口径对齐。"""
+        from mangpai.subjective.llm_channel import _DEATH_WORDS
+        new = ('早逝', '病故', '亡故', '终年', '卒于', '活不过', '往生', '百年之后')
+        for t in new:
+            assert t in _DEATH_TERMS and t in _DEATH_WORDS, t
+        payload = _scrub_death({
+            'liuqin': {'summary': '父母早逝之象', 'note': '手足和睦'},
+            'misc': ['终年六十八', '卒于甲戌年', '平安'],
+        })
+        blob = json.dumps(payload, ensure_ascii=False)
+        for t in new:
+            assert t not in blob, f'scrub 后仍命中 {t}'
+        # 非死亡内容保留
+        assert payload['liuqin']['note'] == '手足和睦'
+        assert payload['misc'] == ['平安']
+
 
 # ── A② zeishen 单源化 ──
 

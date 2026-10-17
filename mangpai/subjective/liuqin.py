@@ -41,7 +41,7 @@ from typing import Dict, List, Optional, Set
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
     TIAN_GAN_HE, LU, CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN,
-    is_pillars,
+    TOMB_MAP, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.changsheng import get_changsheng_mangpai
@@ -110,10 +110,46 @@ def _attacked_kinds_on_pillar(wa: List[Dict], pillar_idx: int) -> List[str]:
     return kinds
 
 
+def _pos_cat(day_gan: str, gans: List[str], zhis: List[str], pos: str) -> str:
+    """由做功 pos（如 'year_zhi'/'month_gan'）取该字十神大类（地支以本气论）。"""
+    try:
+        if pos.endswith('_gan'):
+            return _cat(_compute_shishen(day_gan, gans[PILLAR_KEYS.index(pos[:-4])]))
+        if pos.endswith('_zhi'):
+            return _wx_cat(day_gan, ZHI_WX.get(zhis[PILLAR_KEYS.index(pos[:-4])], ''))
+    except (ValueError, IndexError):
+        return ''
+    return ''
+
+
+def _cai_ke_yin_actual(day_gan: str, gans: List[str], zhis: List[str],
+                       wa: List[Dict]) -> bool:
+    """是否存在实际的财克印动作（gaoji:13502-13506 指具体字间的克坏组合）。
+
+    两式：① 同柱盖头——财干坐印支或印干坐财支（印盖头财，如癸卯、丙辰，
+    地支以本气论）；② 财字与印字之间有克/冲/刑/穿/破作用
+    （如 gaoji:13551 亥水财星克巳火印星，巳亥冲）。仅财印同局共存不触发。
+    """
+    for i in range(4):
+        gc = _cat(_compute_shishen(day_gan, gans[i]))
+        zc = _wx_cat(day_gan, ZHI_WX.get(zhis[i], '')) if zhis[i] else ''
+        if (gc == '财' and zc == '印') or (gc == '印' and zc == '财'):
+            return True
+    for a in wa:
+        if a.get('type') not in ('克', '冲', '刑', '穿', '破'):
+            continue
+        fc = _pos_cat(day_gan, gans, zhis, a.get('from_pos', ''))
+        tc = _pos_cat(day_gan, gans, zhis, a.get('to_pos', ''))
+        if (fc == '财' and tc == '印') or (fc == '印' and tc == '财'):
+            return True
+    return False
+
+
 # ───────────────────── 1. 父母星定位变法 + 早逝/多婚/弃养 ─────────────────────
 
 def classify_parent_star(
     day_gan: str, gans: List[str], zhis: List[str],
+    relations: Optional[Dict] = None,
 ) -> Dict:
     """父母星定位（正法+变法）。
 
@@ -133,17 +169,6 @@ def classify_parent_star(
           'desc': str,
         }
     """
-    day_wx = GAN_WX.get(day_gan, '')
-    cai_wx = WX_KE.get(day_wx, '')     # 财五行=我克
-    guan_wx = WX_KE_ME.get(day_wx, '')  # 官五行=克我
-    yin_wx = WX_SHENG.get(day_wx, '')   # 印五行=生我（反过来：生我者为印）
-    # 注：WX_SHENG[day_wx]=我生者(食伤)；生我者须反查
-    sheng_me_wx = ''
-    for w, child in WX_SHENG.items():
-        if child == day_wx:
-            sheng_me_wx = w  # 印五行
-            break
-
     all_cats: List[Set[str]] = [_pillar_cats(day_gan, gans[i], zhis[i]) for i in range(4)]
     flat = set().union(*all_cats) if all_cats else set()
 
@@ -151,11 +176,15 @@ def classify_parent_star(
     father_normal = '财' if '财' in flat else ('官杀' if '官杀' in flat else '财')
     father_variant = ''
     father_reason = ''
-    # 变法：财克印（财坏印）→ 印当父（弃养象）。判据：命局有印且印被财克坏。
+    # 变法：财克印（财坏印）→ 印当父（弃养象）。
+    # 判据（gaoji:13502-13506）：命局有印，且存在实际的财克印动作（同柱盖头
+    # 或财字与印字间克/冲/刑/穿/破，见 _cai_ke_yin_actual；gaoji:13551 亥水
+    # 财星克巳火印星）。我克者五行恒克生我者，仅财印同局共存不触发
+    # （旧判据 WX_KE[财五行]==印五行 恒真退化，已修）。
     if '印' in flat and '财' in flat:
-        # 印五行被财五行克（财五行=我克=WX_KE[day_wx]；印五行=生我者）
-        # 财克印须五行成立：WX_KE[财五行]==印五行
-        if WX_KE.get(cai_wx) == sheng_me_wx:
+        rel = _ensure_relations(day_gan, gans, zhis, relations)
+        wa: List[Dict] = rel.get('work_actions') or []
+        if _cai_ke_yin_actual(day_gan, gans, zhis, wa):
             father_variant = '印'
             father_reason = '财克印（财坏印），印当父，多主弃养之象'
 
@@ -203,7 +232,7 @@ def detect_parent_zaoshi(
 ) -> Dict:
     """父母早逝标志（口诀二）。
 
-    总纲（gaoji:13649）：父母星与父母宫**同时**被破坏方断早逝（星宫同坏总门，
+    总纲（gaoji:13644-13646）：父母星与父母宫**同时**被破坏方断早逝（星宫同坏总门，
     F17 L2 补回——单标志只录 marker 不即断）。
     星坏标志：
       1. 财临库地：父星（财/官杀）坐墓库且墓库被刑冲开或父星无原神。
@@ -268,7 +297,7 @@ def detect_parent_zaoshi(
         markers.append(f'父母宫受{"、".join(attack_kinds)}')
 
     # 总门（F17 L2）：书总纲「父母星与父母宫同时被破坏，且破坏之力甚剧」方断早逝
-    # （gaoji:13649）。星坏=财临库地/患父患母等星级标志；宫坏=年月宫犯刑冲穿破。
+    # （gaoji:13644-13646）。星坏=财临库地/患父患母等星级标志；宫坏=年月宫犯刑冲穿破。
     # 单标志（仅宫坏或仅星坏）只录 marker 不即断。
     star_huai = any(('财临库地' in m) or ('患父患母' in m) for m in markers)
     gong_huai = bool(xing_hits) or bool(attack_kinds)
@@ -518,7 +547,7 @@ def detect_zixi_youwu(
         markers.append(f'子息宫受{"、".join(bad_kinds)}')
 
     # 3. 子息星原神被坏：官杀原神=财，食伤原神=比劫，财星统看原神=食伤
-    #    （gaoji:14116-14118「官杀之原神为财，食伤之原神为比劫」；比劫克财是忌神
+    #    （gaoji:14040「官杀之原神为财，食伤之原神为比劫」；比劫克财是忌神
     #    非原神——F17 L4 修正取反）
     yuan_cat = '财' if cat == '官杀' else ('比劫' if cat == '食伤' else '食伤')
     # 原神柱受冲穿破
@@ -564,13 +593,10 @@ def detect_zixi_youwu(
     }
 
 
-_TOMB_WX_ZHIS = {
-    '木': {'未'}, '火': {'戌'}, '金': {'丑'}, '水': {'辰'}, '土': {'辰'},
-}
-
-
 def _tomb_zhis_of_wx(wx: str) -> Set[str]:
-    return _TOMB_WX_ZHIS.get(wx, set())
+    """某五行的墓库地支集合。直接用 constants.TOMB_MAP——土墓辰戌双位
+    （理象学:2035「土墓在辰、戌」）；旧本地表 _TOMB_WX_ZHIS 土墓只列辰，有误。"""
+    return {z for z, wxs in TOMB_MAP.items() if wx in wxs}
 
 
 def detect_zixi_xingbie(
@@ -875,7 +901,7 @@ def classify_xiongdi_qingyi(
 ) -> Dict:
     """兄弟姐妹情谊（口诀四，gaoji:14651）。
 
-    比劫争财（透干财星+透干比劫含日主≥2，案例十双甲争戊 gaoji:14720）→ 争夺；
+    比劫争财（透干财星+透干比劫含日主≥2，案例十双甲争戊 gaoji:14705-14716）→ 争夺；
     兄弟宫（月柱）与日柱相合/月支生日主 → 厚；月日刑冲穿破 → 薄。
 
     Returns:
@@ -1093,7 +1119,7 @@ def analyze_liuqin(
             _logger.warning("assess_direction_signals 失败，降级为空: %s", e, exc_info=True)
             direction_result = {'compute_error': True}
 
-    pstar = classify_parent_star(day_gan, gans, zhis)
+    pstar = classify_parent_star(day_gan, gans, zhis, relations=relations)
     pzs = detect_parent_zaoshi(day_gan, gans, zhis, relations)
     pdh = detect_parent_duohun(day_gan, gans, zhis, relations)
     pqy = detect_parent_qiyang(day_gan, gans, zhis, relations)

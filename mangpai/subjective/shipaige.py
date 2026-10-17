@@ -341,8 +341,8 @@ def analyze_shipaige(
     if (('乙' in gans and '庚' in gans and '戌' in zhi_set)
             or ('辛' in gans and '丙' in gans and '辰' in zhi_set)):
         triggered['寿元'].append('邀合入墓皆凶')
-    # 碎片:114
-    if '丁' in gans and '寅' in zhi_set:
+    # 碎片:114「丁见丙寅命早没（阳生阴死）」——须丙在干，仅丁+寅不触发
+    if '丁' in gans and '丙' in gans and '寅' in zhi_set:
         triggered['寿元'].append('丁见丙寅命早没')
     # 碎片:115
     muyu = _MUYU.get(day_wx, '')

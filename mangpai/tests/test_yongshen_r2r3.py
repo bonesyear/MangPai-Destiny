@@ -7,9 +7,8 @@
     「癸酉运枭神夺食，子死于非命」；岳飞书例 子忌制巳寿元星=凶而贵存）；
   R3：段氏「紧贴相合为绊…谁都无法发挥作用」；受害方口径同 he_types
     合克/合伤/闭气；忌神受绊为吉不触发（李嘉诚未午合）；做功参与抑制
-    （冲/穿入局者合不能绊——奥纳西斯未入丑未冲不论绊）；合化出喜用豁免
-    （P1：化气属喜用类且≠受害方本行则向化非绊——森田健卯戌合化火=印，
-    段氏「需行火运生扶日主则好」；化气==本行仍论绊，子丑/庚乙两测锁定）。
+    （冲/穿入局者合不能绊——奥纳西斯未入丑未冲不论绊）。合化豁免已删：
+    书明文禁止六合化气读法（理象学:2311、shouke:2574），合绊受害照判。
 """
 import pytest
 
@@ -89,14 +88,15 @@ class TestR2JishenZhiyongshen:
 
 class TestR3HebanYongshen:
     def test_r3_morita_ken_huaqi_exempt(self):
-        """森田健 辛戊己癸/卯戌亥酉：身弱，卯戌合绊戌（比劫用神、日主根）——
-        然卯戌合化火=印（喜用类且≠戌本行），合化出喜用豁免（P1 R3 精化：
-        段氏论此造「需行火运生扶日主则好」，合之化气正是其所喜，非绊凶）。
-        合绊事实仍计入身弱判定（戌根失力），不再双重计入凶向；
-        化气==受害方本行者仍论绊（见 zichou/gan_he 两测）。"""
+        """森田健 辛戊己癸/卯戌亥酉：身弱，卯戌合绊戌（比劫用神、日主根）。
+        旧「卯戌合化火=印」合化出喜用豁免已删——书明文禁止六合化气读法
+        （理象学:2311「地支六合并不讲合化，只讲合」；shouke:2574「千万不要
+        理解成卯戌合化火助日主，六合以合为主，化是极其微弱的」），合绊受害
+        照判（此造财命翻转属书口径纠正，blind_eval 报明细）。"""
         r = detect_heban_yongshen('己', ['辛', '戊', '己', '癸'],
                                   ['卯', '戌', '亥', '酉'])
-        assert not r['detected']
+        assert r['detected']
+        assert any('戌' in h for h in r['hits'])
 
     def test_r3_onassis_suppressed_by_chong(self):
         """奥纳西斯 乙己己庚/巳丑未午：从强，未午合但未入丑未冲做功
@@ -188,7 +188,7 @@ class TestR1Precision:
         assert not r['detected']
 
     def test_r1b_chen_you_hehua_fanzhu(self):
-        """辰酉合酉非受害方（合化金反助酉刃），不豁免：王亚樵造酉刃夺财
+        """辰酉合酉非受害方（受害方是辰，酉刃无损），不豁免：王亚樵造酉刃夺财
         能力不因辰酉合而失（黑道暗杀非官锚）。"""
         from mangpai.subjective.yongshen import detect_bijiao_duocai
         r = detect_bijiao_duocai('辛', ['己', '丙', '辛', '壬'],
@@ -217,9 +217,9 @@ class TestDirectionAggregate:
         assert brief['yongshen_xiong'] is False
 
     def test_caiming_capped_by_r3(self):
-        """化例三中堂（R3子丑合绊丑根，化气土==丑本行不豁免）-> 财命封顶小康下。
-        （旧锚森田健：卯戌合化火=印，P1 合化出喜用豁免后 R3 不命中、不再封顶，
-        其造 gold=富·壬申癸酉年发财，b67 trainset 锚。）"""
+        """化例三中堂（R3子丑合绊丑根，化气土==丑本行，旧豁免本不适用）->
+        财命封顶小康下。（旧锚森田健：卯戌合绊戌根，合化豁免删除后 R3 命中、
+        凶向封顶——书明文禁止卯戌合化火读法，其造财档翻转如实报 blind_eval。）"""
         from mangpai.subjective.caiming import analyze_caiming
         cm = analyze_caiming('己', ['甲', '丙', '己', '甲'],
                              ['子', '寅', '丑', '子'])

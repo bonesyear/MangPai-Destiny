@@ -326,8 +326,10 @@ def classify_xueli_level(
             score -= 2
             signals.append('财坏印（财多印少），学历受损')
         else:
-            score -= 1
-            signals.append('财轻印重，印未全坏')
+            # 印星太旺需财克印，反主学习上进（zhongji:5404「只有印星太旺要财
+            # 克印时，反有学习上进的意思」）——旧档判 -1 与书反向，改判正向。
+            score += 1
+            signals.append('印星太旺得财克印，反主学习上进')
     elif yin == 0 and cai >= 2:
         score -= 1
         signals.append('财多无印，学历之神不显')
@@ -338,7 +340,7 @@ def classify_xueli_level(
         signals.append('伤官明现无印杀相配，不守规矩不爱学习教课书')
     # 比劫结伙成群主不思学习（zhongji:5408-5409）。年月=学业期宫位，年月比劫成群
     # 方为重破坏（zhongji:5484「年月比劫是不爱学习的标志」）；年时分布之比劫多主
-    # 帮身泄印（zhongji:5540 例17 闲注「泄的越多学问越高」），按透干有根群轻扣；
+    # 帮身泄印（zhongji:5545 例17 闲注「泄的越多学问越高」），按透干有根群轻扣；
     # 单透无根群不扣（zhongji:5575 例21 甲泄印反锚）。
     bijie_deduct = bijie_tou_ym >= 2 or (bijie_tou >= 1 and bijie_gen >= 2)
     if bijie_tou_ym >= 2:
@@ -348,14 +350,15 @@ def classify_xueli_level(
         score -= 1
         signals.append('比劫透干有根群，主不思学习')
 
-    # 杀制伤官/合杀 -> 高学历（段氏：官杀亦学历之神，杀配伤官/合杀为用主科甲高学历）
-    # - 合杀：七杀明现 + 伤官明现 + 合动作连接杀位与伤官位（伤官合杀，合杀为用）；
-    # - 杀制伤官：七杀明现 + 伤官明现 + 杀五行克伤官五行（杀制伤官，杀配伤官）。
+    # 伤官合杀 -> 高学历（段氏：官杀亦学历之神，合杀为用主科甲高学历）。
+    # 合杀：七杀明现 + 伤官明现 + 合动作连接杀位与伤官位（伤官合杀，合杀为用）。
+    # 注：书之「杀制伤官」为成势会局之制（zhongji:5449 闲注「杀星火会局，制尽了
+    # 伤官亥水」），非杀五行克伤官五行——杀=克我、伤=我生，克我者恒不克我生者，
+    # 旧「杀五行克伤官五行」判据五行恒假（死代码），已删。
     per_ss = _pillar_mingxian_shishen(day_gan, gans, zhis)
     sha_pillars = {i for i, s in enumerate(per_ss) if '七杀' in s}
     shang_pillars = {i for i, s in enumerate(per_ss) if '伤官' in s}
     he_sha = False
-    sha_zhi_shang = False
     if sha_pillars and shang_pillars:
         # 合杀（伤官合杀）：合动作两端须分别为七杀与伤官--取 pos 实际相合之字
         # （天干合取干、地支合/暗合/半合取支藏本中气），非整柱，避免柱含杀伤而
@@ -369,17 +372,10 @@ def classify_xueli_level(
             if ('七杀' in fss and '伤官' in tss) or ('伤官' in fss and '七杀' in tss):
                 he_sha = True
                 break
-        # 杀制伤官：七杀五行克伤官五行（杀_wx 克 伤官_wx）
-        sha_wx = WX_KE_ME.get(day_wx, '')    # 官杀五行=克我
-        shang_wx = WX_SHENG.get(day_wx, '')  # 食伤五行=我生
-        if sha_wx and shang_wx and WX_KE.get(sha_wx) == shang_wx:
-            sha_zhi_shang = True
     if he_sha:
         signals.append('伤官合杀（合杀为用），杀配伤官主高学历')
-    if sha_zhi_shang:
-        signals.append('杀制伤官，杀配伤官主高学历')
 
-    if he_sha or sha_zhi_shang:
+    if he_sha:
         level = '高'
     elif score >= 3:
         level = '高'

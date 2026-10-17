@@ -391,14 +391,15 @@ def test_l0_requires_seven_dims():
 
 
 def test_l2_qianyi_redline():
-    # 迁移维绝对禁「出国/移民/海外/国外/外国」（对齐引擎措辞上限「迁移/远行」）
+    # 迁移维绝对禁出境词（对齐引擎措辞上限「迁移/远行」）
     data = _good()
     for s in ('你命中有出国之象', '宜移民海外发展', '中年定居国外',
               '配偶是外国人', '远行海外方吉'):
         data['迁移']['conclusion'] = s
         v = _l2_enum(data, _ENGINE)
         assert any('迁移' in x['detail'] for x in v), s
-    # 措辞上限内放行；且只约束迁移维（其他维不拦——如婚姻维提及迁居地）
+    # 措辞上限内放行（红2 起出境词改全维扫描，跨维逃逸用例见
+    # test_l2_qianyi_redline_all_dims）
     data['迁移']['conclusion'] = '命局多迁移，中年后有远行应期'
     assert not any('迁移' in x['detail'] for x in _l2_enum(data, _ENGINE))
 
@@ -770,3 +771,112 @@ def test_demo_cases_path_cwd_independent(tmp_path):
         assert _demo_cases_path().exists()  # 换 cwd 仍可解析
     finally:
         os.chdir(cwd)
+
+
+# ── 红1~红4 校验器对抗修复哨兵（先红后绿）──
+
+
+def test_nonjson_degrade_no_raw_echo(monkeypatch, caplog):
+    """红1：非 JSON 降级不回显原文（未校验原文直达用户=死亡红线全旁路），
+    原文仅日志留痕；返回前缀契约不变（feishu service 靠它兜底降级）。"""
+    import logging
+    from mangpai.subjective.llm_channel import render_structured_reading
+    raw = '你六十八岁寿终——这段非 JSON 原文修复前会原样回显'
+    monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek',
+                        lambda *a, **kw: {'text': raw, 'usage': {}, 'cost_cny': 0.0,
+                                          'price_tier': 'offpeak', 'elapsed_s': 0.0,
+                                          'model': 'mock'})
+    with caplog.at_level(logging.WARNING, logger='mangpai.subjective.llm_channel'):
+        out = render_structured_reading(_ENGINE, validate='mark')
+    assert out.startswith('[LLM 输出非合法 JSON')
+    assert '寿终' not in out and '原始输出' not in out  # 原文不回显
+    assert '命理分析仅供参考' in out                    # 免责行保留
+    assert '寿终' in caplog.text                        # 原文日志留痕
+
+
+def test_l2_qianyi_redline_all_dims():
+    """红2：出境词全维度扫描（修复前只扫迁移维，落在其他维即逃逸）+ 补词族。"""
+    data = _good()
+    for dim in ('性格', '婚姻', '事业'):
+        data[dim]['conclusion'] = '中年宜出境发展'
+        v = _l2_enum(data, _ENGINE)
+        assert any(f'{dim} 越措辞上限词' in x['detail'] for x in v), dim
+        data[dim]['conclusion'] = '一段断语'
+    # 补词族（出境/移居/异国/留洋）同样全维拦截
+    for s in ('移居南方方吉', '异国他乡求财', '早年留洋求学'):
+        data['婚姻']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('越措辞上限词' in x['detail'] for x in v), s
+    # 迁移维原口径仍拦
+    data['迁移']['conclusion'] = '你命中有出国之象'
+    assert any('迁移 越措辞上限词' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_l2_xiangmao_redline_all_dims():
+    """红2：相貌结论词全维度扫描（修复前只扫相貌维）+ 补词族；排除窗跨维放行。"""
+    data = _good()
+    for s in ('五官英俊', '模样好看', '气质靓丽', '面容俊俏', '命主颜值高', '姿色过人'):
+        data['性格']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('性格 触禁结论词' in x['detail'] for x in v), s
+    # 排除窗（美元/丑时/干支）按词法放行，与维度无关
+    data['性格']['conclusion'] = '忌佩戴美元饰品'
+    assert not any('触禁结论词' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    # 相貌维原口径仍拦
+    data['相貌']['conclusion'] = '面容漂亮'
+    assert any('相貌 触禁结论词' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_l2_death_words_batch2():
+    """红3a：死词表补词族全拦——早逝/病故/亡故/终年/卒于/活不过/往生/百年之后。"""
+    data = _good()
+    for s in ('五十早逝', '冬月病故', '中年亡故', '终年六十八', '卒于甲戌年',
+              '此命活不过一年', '晚年往生', '百年之后事难料'):
+        data['应期']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('死亡红线' in x['detail'] for x in v), s
+
+
+def test_l2_death_colon_boundary():
+    """红3c：冒号断句——「按规不涉寿数：寿元六旬而终」式拒答标记跨句豁免修复。"""
+    data = _good()
+    for s in ('按规不涉寿数：寿元六旬而终', '按规不涉寿数: 寿元六旬而终'):
+        data['应期']['conclusion'] = s
+        v = _l2_enum(data, _ENGINE)
+        assert any('死亡红线' in x['detail'] for x in v), s
+    # 同句合规拒答仍豁免（拒答标记与死词同句，不误拦）
+    data['应期']['conclusion'] = '寿数红线不涉：此造只看事业财运'
+    assert not any('死亡红线' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_l2_tier_unknown_ceiling_strictest():
+    """红4：引擎缺 caiming 数据（ceiling=-1）不再整体跳过——按最严口径，
+    任何未被否定/豁免的档位断言都拦（修复前巨富放行）。"""
+    eng_empty = {'caiming': {}, 'guanming': {'is_guanming': True}}
+    data = _good()
+    data['财运']['conclusion'] = '你是巨富之命'
+    assert any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_empty))
+    data['财运']['conclusion'] = '财命小康，安稳度日'
+    assert any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_empty))
+    # 否定式/无档位词仍放行（不误拦合规表述）
+    data['财运']['conclusion'] = '财命难大富，注意防破财'
+    assert not any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_empty))
+    data['财运']['conclusion'] = '财星受制，求财辛苦'
+    assert not any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_empty))
+
+
+def test_l2_guanming_unknown_strictest():
+    """红4：引擎缺 guanming 数据（is_guanming=None）按否口径查正向断言
+    （修复前 `is False` 不成立整体跳过）；引擎判是官命时不受影响。"""
+    eng_no_gm = {'caiming': {'tier_static': '富', 'tier': '富'}, 'guanming': {}}
+    data = _good()
+    data['事业']['conclusion'] = '这是官命，能当官'
+    assert any('官命=否' in x['detail'] for x in _l2_enum(data, eng_no_gm))
+    # 否定语境仍放行
+    data['事业']['conclusion'] = '不是官命，仕途无缘'
+    assert not any('官命=否' in x['detail'] for x in _l2_enum(data, eng_no_gm))
+    # 引擎判是官命：正向断言合法不拦
+    eng_gm = {'caiming': {'tier_static': '富', 'tier': '富'},
+              'guanming': {'is_guanming': True}}
+    data['事业']['conclusion'] = '这是官命，能当官'
+    assert not any('官命=否' in x['detail'] for x in _l2_enum(data, eng_gm))

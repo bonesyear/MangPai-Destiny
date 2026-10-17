@@ -1,4 +1,5 @@
-"""郝金阳风格叙事层（**遗留通道**——S1 标注）。
+"""郝金阳风格叙事层（**遗留通道，新调用方禁用**——S1 标注；正式通道
+= llm_channel.render_structured_reading）。
 
 把 mangpai 引擎的结构化结论（dict）转成郝金阳口吻的自然语言推演。
 不靠规则硬编码拼装断语——而是把【引擎结论】+ few-shot 范例 + 系统提示词
@@ -32,8 +33,16 @@ from mangpai.subjective.prompts.hao_style_fewshot import (
     format_fewshot_block,
 )
 from mangpai.subjective.zaihuo import zaihuo_llm_view
+from mangpai.subjective import _scrub_death
 
 _logger = logging.getLogger(__name__)
+
+
+def _disclaimer_line() -> str:
+    """免责行单源复用 llm_channel._DISCLAIMER_LINE（不复制字符串；
+    两模块互引，函数内延迟导入防环形依赖）。"""
+    from mangpai.subjective.llm_channel import _DISCLAIMER_LINE
+    return _DISCLAIMER_LINE
 
 # LLM 调用预期异常族：anthropic SDK 软依赖，基类须软解析
 try:
@@ -270,6 +279,9 @@ def summarize_engine_result(engine_result: Dict[str, Any]) -> str:
     """
     if not isinstance(engine_result, dict):
         return str(engine_result)
+    # 红5b：遗留通道输入侧死亡词典 scrub（复用 build_payload 装配层
+    # _scrub_death 实现，不复制逻辑；返回新 dict，不就地改调用方数据）
+    engine_result = _scrub_death(engine_result)
 
     zg = engine_result.get('zuogong') or {}
     gl = engine_result.get('gongliang') or {}
@@ -542,6 +554,11 @@ def render_hao_narrative(
 ) -> str:
     """把引擎结构化结论渲染成郝金阳风格的自然语言推演。
 
+    **遗留通道，新调用方禁用**（红5c；S1 标注）——正式通道 =
+    `llm_channel.render_structured_reading`（七维结构化 + 三层校验）。
+    本通道所有返回路径（成功/降级/拦截）均自带免责声明（红5a），
+    prompt 构造输入侧经死亡词典 scrub（红5b）。
+
     Args:
       engine_result: 引擎结构化结论 dict（裸 compute_all() 输出或
         bundle_case_result 合并后的 enriched dict 均可）。
@@ -559,6 +576,8 @@ def render_hao_narrative(
     Returns:
       郝金阳口吻的断语文本；LLM 不可用时返回降级 prompt 文本。
     """
+    # 红5b：prompt 构造输入侧死亡词典 scrub（复用 payload 装配层实现）
+    engine_result = _scrub_death(engine_result)
     engine_conclusion = summarize_engine_result(engine_result)
     bazi_line = _bazi_line(engine_result)
     examples = fewshot_examples if fewshot_examples is not None else FEWSHOT_EXAMPLES
@@ -580,7 +599,7 @@ def render_hao_narrative(
     )
 
     if not call_llm:
-        return user_prompt
+        return f"{user_prompt}\n\n{_disclaimer_line()}"  # 红5a：降级路径自带免责
 
     try:
         text = _call_llm(HAO_STYLE_SYSTEM_PROMPT, user_prompt, model=model)
@@ -590,7 +609,7 @@ def render_hao_narrative(
         return (
             f"[LLM 不可用，降级返回 prompt 文本 | 原因: {e}]\n\n"
             f"===== SYSTEM =====\n{HAO_STYLE_SYSTEM_PROMPT}\n\n"
-            f"===== USER =====\n{user_prompt}"
+            f"===== USER =====\n{user_prompt}\n\n{_disclaimer_line()}"
         )
 
     # N1 生成后校验：断语数字回对引擎字段
@@ -601,6 +620,7 @@ def render_hao_narrative(
                 return (
                     '[断语被引擎校验拦截：含引擎结论中无出处的数字，不予输出]\n'
                     + _format_validation_note(report)
+                    + f'\n{_disclaimer_line()}'
                 )
             text = text + '\n\n' + _format_validation_note(report)
-    return text
+    return f'{text}\n\n{_disclaimer_line()}'  # 红5a：成功/mark 路径同带免责

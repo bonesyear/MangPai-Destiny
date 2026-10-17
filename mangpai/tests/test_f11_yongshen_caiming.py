@@ -79,16 +79,22 @@ def test_ans12_not_fake_fuge():
 
 
 def test_qi05_qi20_guohe_anchors_hold():
-    # 真阳锚：巳中庚财生月支亥官（支支相生=相连）——破财/富格两型不动
+    # 真阳锚：巳中庚财生月支亥官（支支相生=相连）——制不尽/制尽皆富格，
+    # 制尽程度只影响量级不翻方向（zhongji:2976-2978「这种结构是发大财的」，
+    # 全节6例皆发财无破财变体；旧「制不尽=破财」为冒称中级口径，已移除）
     v05 = classify_caifu_view('丁', ['庚', '丁', '丁', '癸'], ['戌', '亥', '巳', '卯'])
-    assert '过河拆桥·破财' in v05['views']     # qi05 制不尽破财真阳
+    assert '过河拆桥·富格' in v05['views']     # qi05 制不尽仍富格（量级减等）
+    assert v05['guohe_zhi_jin'] is False
     v20 = classify_caifu_view('丁', ['己', '乙', '丁', '庚'], ['丑', '亥', '巳', '戌'])
     assert '过河拆桥·富格' in v20['views']     # qi20 制尽富格真阳
+    assert v20['guohe_zhi_jin'] is True
 
 
 def test_qi02_qi20_guoting_guohe_hold():
     # 支支相生不限柱位（五行之气流通）：隔柱支财生支官仍相连
     v = classify_caifu_view('乙', ['甲', '丙', '乙', '己'], ['申', '子', '丑', '卯'])
-    assert '过河拆桥·破财' in v['views']       # qi02-夫死：丑财生年支申官
+    assert '过河拆桥·富格' in v['views']       # qi02-夫死：丑财生年支申官（制不尽亦富格）
+    assert v['guohe_zhi_jin'] is False
     v2 = classify_caifu_view('丁', ['甲', '乙', '丁', '庚'], ['寅', '亥', '卯', '戌'])
     assert '过河拆桥·富格' in v2['views']      # qi20-歌厅小姐：戌中辛财生亥官
+    assert v2['guohe_zhi_jin'] is True

@@ -2,7 +2,9 @@
 hunyin - 盲派婚姻专辑·主观层（subjective）
 
 理论来源：段建业《盲派中级命理学》第十章「婚姻专辑」（源文 4270-5393 行）
-核心思想：男命以财星为妻、女命以官杀为夫，日支为婚姻宫。婚姻吉凶看妻/夫星
+核心思想：男命以财星为妻、女命以官杀为夫（如无则另看：男命无财看伤食、
+          女命无官杀看印星，zhongji:4280，gaoji:12361 口诀互证），日支为
+          婚姻宫。婚姻吉凶看妻/夫星
           与婚姻宫的喜忌、刑冲合害；多婚/独身/水中捞月看星宫结构与神煞；
           结离婚应期看大运流年引动妻/夫星与婚姻宫。
 
@@ -93,21 +95,62 @@ def _qishi_dang(gans: List[str], zhis: List[str]) -> Dict:
 
 
 def _spouse_star_cat(gender: str) -> str:
-    """配偶星十神大类：男命=财，女命=官杀。"""
+    """配偶星十神大类（正法）：男命=财，女命=官杀（zhongji:4279-4280）。
+    替代规则（无正配星时男取食伤、女取印）见 _spouse_wx——本函数仅给正法
+    大类，多婚「比劫克财/伤官克官」等正法结构规则仍用此口径。"""
     return '财' if gender == '男' else '官杀'
 
 
-def _spouse_wx(day_gan: str, gender: str) -> str:
-    """配偶星五行：男=我克(财)，女=克我(官杀)。"""
+def _wx_star_present(gans: List[str], zhis: List[str], wx: str) -> bool:
+    """某五行星在原局是否出现（透干+地支本气+藏干，口径同 _star_positions）。"""
+    if not wx:
+        return False
+    for i in range(4):
+        if GAN_WX.get(gans[i]) == wx:
+            return True
+        z = zhis[i]
+        if ZHI_WX.get(z) == wx:
+            return True
+        for idx, (cg, _) in enumerate(get_canggan_mangpai(z)):
+            if idx == 0:
+                continue  # 本气已由主气五行覆盖
+            if GAN_WX.get(cg) == wx:
+                return True
+    return False
+
+
+def _spouse_wx(day_gan: str, gender: str,
+               gans: Optional[List[str]] = None,
+               zhis: Optional[List[str]] = None) -> str:
+    """配偶星五行：男=我克(财)，女=克我(官杀)。
+
+    替代规则（zhongji:4280「如无则另看：男命无财看伤食，女命无官杀看印星」；
+    gaoji:12361 口诀「男命无财看食伤，女命无官财印寻」互证）：给出原局
+    gans/zhis 且正配星不出现时，男命取食伤五行（我生）、女命取印五行（生我）。
+    未给原局时保持正法口径不变。
+    """
     day_wx = GAN_WX.get(day_gan, '')
+    if not day_wx:
+        return ''
     if gender == '男':
-        return WX_KE.get(day_wx, '')
-    return WX_KE_ME.get(day_wx, '')
+        primary = WX_KE.get(day_wx, '')
+        substitute = WX_SHENG.get(day_wx, '')      # 我生者=食伤
+    else:
+        primary = WX_KE_ME.get(day_wx, '')
+        substitute = ''
+        for w, child in WX_SHENG.items():          # 生我者=印，反查
+            if child == day_wx:
+                substitute = w
+                break
+    if primary and gans and zhis and len(gans) == 4 and len(zhis) == 4:
+        if not _wx_star_present(gans, zhis, primary):
+            return substitute
+    return primary
 
 
 def _star_positions(day_gan: str, gans: List[str], zhis: List[str], gender: str) -> List[int]:
     """配偶星所在柱索引（天干或地支本/中气含配偶星五行）。"""
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     if not swx:
         return []
     out: List[int] = []
@@ -131,7 +174,7 @@ def _star_positions(day_gan: str, gans: List[str], zhis: List[str], gender: str)
 
 def _star_mingxian_count(day_gan: str, gans: List[str], zhis: List[str], gender: str) -> int:
     """配偶星明现柱数（天干+地支本/中气，余气不计）。"""
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     if not swx:
         return 0
     cnt = 0
@@ -171,14 +214,31 @@ def _dayzhi_attacked(wa: List[Dict]) -> List[str]:
     return kinds
 
 
-def _is_star_zhi(day_gan: str, z: str, gender: str) -> bool:
-    """支是否为配偶星之支（本气或藏干含配偶星五行，含余气——戴安娜丑中辛锚）。"""
-    swx = _spouse_wx(day_gan, gender)
+def _is_star_zhi(day_gan: str, z: str, gender: str, swx: Optional[str] = None) -> bool:
+    """支是否为配偶星之支（本气或藏干含配偶星五行，含余气——戴安娜丑中辛锚）。
+    swx 缺省按正法口径取；调用方有原局时应传替代规则后的 swx（_spouse_wx）。"""
+    if swx is None:
+        swx = _spouse_wx(day_gan, gender)
     if not swx or not z:
         return False
     if ZHI_WX.get(z) == swx:
         return True
     return any(GAN_WX.get(cg) == swx for cg, _q in get_canggan_mangpai(z))
+
+
+def _dayzhi_zuo_zhengxing(day_gan: str, day_zhi: str, swx: str) -> bool:
+    """日支是否坐正配星得位（日支本气=配偶星，且为正星：男正财/女正官）。
+
+    zhongji:4466-4468「坐支夫妻宫的夫妻星得位时看偏正」——仅日支本气即
+    配偶星时方论正偏之制；星在他支攻宫被宫制去不在此列（zhongji:4294/4300
+    冲去官忌神仍判好婚姻）。
+    """
+    if not swx or ZHI_WX.get(day_zhi) != swx:
+        return False
+    cgs = get_canggan_mangpai(day_zhi)
+    if not cgs:
+        return False
+    return _compute_shishen(day_gan, cgs[0][0]) in ('正财', '正官')
 
 
 def _zhi_main_cat(day_gan: str, z: str) -> str:
@@ -276,7 +336,7 @@ def classify_hunyin_quality(
     # 星在日支(婚姻宫)得位（+1.0）
     day_idx = PILLAR_KEYS.index('day')
     day_zhi_wx = ZHI_WX.get(zhis[day_idx], '')
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     if day_zhi_wx == swx:
         signals.append('配偶星居婚姻宫（日支），星宫得位')
         score += _STAR_IN_GONG_W
@@ -297,7 +357,7 @@ def classify_hunyin_quality(
     if day_zhi in _KU_ZHIS and adv:
         kept = []
         for t, oz, a in adv:
-            if not _is_star_zhi(day_gan, oz, gender):
+            if not _is_star_zhi(day_gan, oz, gender, swx):
                 ku_open = True
             else:
                 kept.append((t, oz, a))
@@ -306,19 +366,27 @@ def classify_hunyin_quality(
         signals.append(f'婚姻宫坐库（{day_zhi}），刑冲开库为喜（库喜刑冲）')
         score += 1.0
 
-    star_adv = [(t, oz, a) for t, oz, a in adv if _is_star_zhi(day_gan, oz, gender)]
+    star_adv = [(t, oz, a) for t, oz, a in adv if _is_star_zhi(day_gan, oz, gender, swx)]
     nonstar_adv = [(t, oz, a) for t, oz, a in adv
-                   if not _is_star_zhi(day_gan, oz, gender)]
+                   if not _is_star_zhi(day_gan, oz, gender, swx)]
     gong_good = False
     if star_adv and dang:
         gong_dang = _zhi_party(day_zhi)
         star_dangs = {_zhi_party(oz) for _t, oz, _a in star_adv}
         if gong_dang == dang and dang not in star_dangs \
                 and len(star_adv) == 1 and not nonstar_adv and opp < 2:
-            # 宫制去夫妻星忌神且制得住→好婚姻（zhongji:4289-4294/4300）
-            signals.append('婚姻宫制去夫妻星忌神（宫方成势，制之得住），好婚姻')
-            score += 2.0
-            gong_good = True
+            # 宫制星分正偏（zhongji:4466-4468「偏星可以制，正星不可以制。正星
+            # 受制，婚姻易出问题」）：仅夫妻星得位坐宫（日支本气=配偶星）时论——
+            # 日支坐正财/正官（正星）被制 → 不加分，出「正星受制」负向信号
+            # （gong_good=False，落入下方通用被攻罚则）；坐偏财/七杀（偏星）
+            # 或星在外攻宫被宫制去 → 维持加分。
+            if _dayzhi_zuo_zhengxing(day_gan, day_zhi, swx):
+                signals.append('正星坐宫被制（正星不可以制），婚姻易出问题')
+            else:
+                # 宫制去夫妻星忌神且制得住→好婚姻（zhongji:4289-4294/4300）
+                signals.append('婚姻宫制去夫妻星忌神（宫方成势，制之得住），好婚姻')
+                score += 2.0
+                gong_good = True
         elif dang in star_dangs and gong_dang != dang:
             # 配偶宫为忌神被夫妻星制去（去之为吉），婚姻较好（zhongji:4291/4340/4504）
             signals.append('配偶宫为忌神，被夫妻星制去（去之为吉），婚姻较好')
@@ -328,7 +396,7 @@ def classify_hunyin_quality(
     # 合宫三分（zhongji:4351/4318）：星合入宫=吉；合印/禄=不论坏；合他星=差
     he_bad: List[str] = []
     for oz, a in he_acts:
-        if _is_star_zhi(day_gan, oz, gender):
+        if _is_star_zhi(day_gan, oz, gender, swx):
             signals.append(f'配偶星({oz})合入婚姻宫，星宫相合为吉')
             score += 1.0
         elif _zhi_main_cat(day_gan, oz) not in ('印', '比劫'):
@@ -428,7 +496,7 @@ def classify_duohun(
                         break
 
     # ── M3 补三检测（源文第二节多婚规则 + 高级篇盖头）──
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     # 本气配偶星支（被穿/破/冲仅认本气：中气藏星过弱，免误检——如 zb04 未中乙财
     # 被丑未冲误中，书断"妻好无事"）
     star_zhis_main: Set[str] = {z for z in zhis if z and ZHI_WX.get(z) == swx}
@@ -604,7 +672,7 @@ def infer_jiehun_yingqi(
         gans = [p.year_gan, p.month_gan, p.day_gan, p.hour_gan]
         zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
         day_gan = p.day_gan
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     day_zhi = zhis[PILLAR_KEYS.index('day')] if len(zhis) == 4 else ''
     signals: List[str] = []
 
@@ -643,7 +711,7 @@ def infer_lihun_yingqi(
         zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
         day_gan = p.day_gan
     day_wx = GAN_WX.get(day_gan, '')
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     # 克配偶星之物：男财被比劫(同我)克、女官被食伤(我生)克
     killer_wx = day_wx if gender == '男' else WX_SHENG.get(day_wx, '')
     day_zhi = zhis[PILLAR_KEYS.index('day')] if len(zhis) == 4 else ''
@@ -672,7 +740,7 @@ def _star_in_tomb(day_gan: str, gans: List[str], zhis: List[str], gender: str) -
 
     返回收星之墓支列表（如配偶星五行=木，局有未→未收木入墓）。
     """
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     if not swx:
         return []
     tombs: List[str] = []
@@ -818,7 +886,7 @@ def classify_jiehun_sifa(
         return {'methods': [], 'primary': ''}
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     methods: List[str] = []
     day_idx = PILLAR_KEYS.index('day')
     day_zhi = zhis[day_idx]
@@ -895,10 +963,10 @@ def classify_dushen_sige(
     grids: List[str] = []
     day_idx = PILLAR_KEYS.index('day')
     day_zhi = zhis[day_idx]
-    swx = _spouse_wx(day_gan, gender)
+    swx = _spouse_wx(day_gan, gender, gans, zhis)
     star_count = _star_mingxian_count(day_gan, gans, zhis, gender)
     adv, _he = _gong_actions(wa, zhis)
-    star_adv = [(t, oz) for t, oz, _a in adv if _is_star_zhi(day_gan, oz, gender)]
+    star_adv = [(t, oz) for t, oz, _a in adv if _is_star_zhi(day_gan, oz, gender, swx)]
 
     # 星被夫妻宫所拒（宫与星支间冲/穿/刑/克，书「妻星无法进入妻宫」）
     def _other_zhi_of_day(a: Dict) -> str:

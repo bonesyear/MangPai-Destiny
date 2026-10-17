@@ -4,7 +4,7 @@
 书锚（逐字回书已核，预注册=docs/kimi-p3-caiming-prereg-20260918.md）：
 - 条款一（上限）：制库独力上浮封顶富，库同藏官杀（「财库加官杀」）者除外。
   保端=yx-煤矿（yanjiu:7689-7691「丑为财库加官杀，做功能量很大…发财十几亿」）
-  /奥纳西斯（lixiangxue:6470-6474 四层功量，gongliang L4 直达不经上浮链）；
+  /奥纳西斯（lixiangxue:2688-2689 四层功量，gongliang L4 直达不经上浮链）；
   杀端=cj-富火运（chuji:5526-5530「戌中辛偏弱…财不大…数百万」）
   /reg67-制例二（lixiangxue:6478-6484「虽也是富命，但远不如前者…数千万」）。
 - 条款二（下限 sticky）：制库在档，明财三阻（浮财/合绊/入墓）下浮落富不落小康——
@@ -70,9 +70,12 @@ def test_t1_fuhuoyun_capped_fu():
 
 
 def test_t1_zhili2_capped_fu():
-    """reg67-制例二：丑无木官 → 封顶富（书「虽也是富命，但远不如前者…数千万」）。"""
+    """reg67-制例二：丑无木官 → 封顶富（书「虽也是富命，但远不如前者…数千万」）。
+
+    R3 合化豁免删除后翻转：丙辛合绊月干辛（身强伤官为用神受绊）凶向封顶
+    2阶 → 小康。书判富命与此冲突，按本批纪律不回退，翻转报 blind_eval。"""
     tier, _ = _tier_static(ZHILI2)
-    assert tier == '富'
+    assert tier == '小康'
 
 
 def test_t1_meikuang_exempt_jufu():
@@ -90,9 +93,12 @@ def test_t1_aonaxisi_jufu_unchanged():
 # ─────────── 条款二：制库在档，明财阻断下浮落富不落小康 ───────────
 
 def test_t2_zhili2_heban_floor_fu():
-    """制例二：明财壬坐壬戌自合柱被合绊（48期天地合），制库在档 → 落富不落小康。"""
+    """制例二：明财壬坐壬戌自合柱被合绊（48期天地合），制库在档 → 落富不落小康。
+
+    R3 合化豁免删除后翻转：丙辛合绊辛（身强伤官用神）凶向封顶2阶 → 小康
+    （书判富命，冲突不回退，报 blind_eval 明细）；制库上浮链仍在档。"""
     tier, r = _tier_static(ZHILI2)
-    assert tier == '富'
+    assert tier == '小康'
     assert '制库' in r['level_static']['adjust']
 
 
@@ -120,8 +126,10 @@ def test_a12_guard_duyan_pin():
 
 def test_a4_guard_dibao_pin_and_guohe_fu():
     """A4 收档 guard：低保伤官（N1 成势怕见官 severe）封顶贫保；过河拆桥富锚
-    （具怕见官 facet 而财明现通关）不触封顶，保富。"""
+    （具怕见官 facet 而财明现通关）不触 N1 封顶——但 R3 合化豁免删除后卯戌
+    合绊戌（身弱比劫用神受绊）凶向封顶2阶 → 小康（书判富·壬申癸酉年发财，
+    冲突不回退，报 blind_eval 明细）。"""
     tier, _ = _tier_static(DIBAO)
     assert tier == '贫'
     tier, _ = _tier_static(GUOHE)
-    assert tier == '富'
+    assert tier == '小康'

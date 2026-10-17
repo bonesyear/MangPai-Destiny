@@ -5,7 +5,7 @@
 2. 节气抽样（sxtwl 24节气 + jiaoyun 命五行->交运节气规则）
 3. 藏干12（CANG_GAN_MANGPAI 12地支藏干表）
 4. 长生10干（CHANGSHENG_START_MANGPAI 阴阳同生同死 + 5关键位）
-5. 干支性情65条（ganqing 条件->行为规则 + match_ganqing/match_zhiqing）
+5. 干支性情75条（天干70+地支5；ganqing 条件->行为规则 + match_ganqing/match_zhiqing）
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -173,7 +173,7 @@ all_ok = all(len(get_changsheng_all(g))==12 for g in TIAN_GAN)
 check('10干×12支全覆盖', all_ok, '覆盖不全')
 
 # ══════════════════════════════════════════════════════════════
-print('── 5. 干支性情65条 ──')
+print('── 5. 干支性情75条 ──')
 gan_total = sum(len(v) for v in GAN_QING_RULES.values())
 zhi_total = sum(len(v) for v in ZHI_QING_RULES.values())
 check('10干规则全覆盖', set(GAN_QING_RULES.keys())==set(TIAN_GAN), '干不全')

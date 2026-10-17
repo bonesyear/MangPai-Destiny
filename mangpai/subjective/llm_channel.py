@@ -11,7 +11,7 @@
 - L1 出处：basis 每条路径回解析特征 JSON，不存在/为空/带数组下标 → 违规；
   意图唯一的近-miss（缺 _ops 前缀/层级拍平/多包一层/叶键别名）自动 remap 转正；
 - L2 枚举：财命档位/官命是非回对引擎枚举值 + 死亡词黑名单兜底
-  + 迁移维禁「出国/移民/海外/国外/外国」+ 相貌维禁「漂亮/美/丑/帅」（N1 七维批）；
+  + 出境词/相貌结论词全维度禁（红2：与死词表同口径，跨维逃逸亦拦；N1 七维批起）；
 - N1 数字校验复用 narrative.validate_narrative_numbers（对白名单外数字留痕）。
 
 单命示例：python3 -m mangpai.subjective.llm_channel
@@ -21,6 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import json
+import logging
 import re
 from typing import Any, Dict, Optional
 
@@ -39,6 +40,8 @@ from mangpai.subjective.narrative import (
 DIMENSIONS = ('性格', '事业', '财运', '婚姻', '应期', '迁移', '相貌')
 _CONFIDENCE = ('高', '中', '低')
 
+_logger = logging.getLogger(__name__)
+
 # 免责声明（V4 P0-1）：成功/降级/拦截三路径成品均自带（G2 F6-4：
 # 降级文本不再单点依赖 service 前缀白名单兜底）
 _DISCLAIMER_LINE = '命理分析仅供参考，不构成人生决策依据。'
@@ -49,9 +52,13 @@ _TIER_ORDER = ('贫', '平', '小康', '富', '巨富')
 
 # L2 死亡词黑名单（兜底双保险之二；payload 已 scrub，此乃对 LLM 输出端）。
 # G1（F6-2）：补近义词 离世/去世/归西/病逝 + 同类 过世/身故/辞世（W1 合成例 9）。
+# 红3：再补 早逝/病故/亡故/终年/卒于/活不过/往生/百年之后（对抗用例实测逃逸族；
+# 输入侧 subjective._DEATH_TERMS 同步补同一批，两侧口径对齐）。
 _DEATH_WORDS = ('死亡', '寿终', '享年', '夭折', '早夭', '短命',
                 '命不久', '寿数', '寿命', '寿元', '大限生死',
-                '离世', '去世', '归西', '病逝', '过世', '身故', '辞世')
+                '离世', '去世', '归西', '病逝', '过世', '身故', '辞世',
+                '早逝', '病故', '亡故', '终年', '卒于', '活不过', '往生',
+                '百年之后')
 
 # L2 死亡词误报窗（V4 P2-2/2-3）：模型合规拒答句会复述死亡词（如「寿数」）
 # 并外露「红线」字样——死亡词所在句内出现拒答标记则该处不计。
@@ -59,7 +66,9 @@ _DEATH_WORDS = ('死亡', '寿终', '享年', '夭折', '早夭', '短命',
 # 误豁免（W1 合成例 6/10）。
 # ponytail: 拒答识别是同句关键词启发式，语义级拒答变体漏判由 mark/reject 输出人工兜底
 _DEATH_REFUSAL = ('不测', '不予', '拒绝', '红线', '不预测', '不涉')
-_SENT_END = '。！？!?\n，；'
+# 红3：句界符补冒号「：:」——「按规不涉寿数：寿元六旬而终」式冒号不断句
+# 曾使拒答标记跨句豁免真死断。
+_SENT_END = '。！？!?\n，；：:'
 
 # L2 官命正向断言关键词（仅在引擎 is_guanming=False 时拦截）。
 # ponytail: 关键词回对是启发式，否定语境按「前 5 字符+后 5 字符」窗口排除
@@ -69,18 +78,25 @@ _SENT_END = '。！？!?\n，；'
 _GUAN_POSITIVE = ('官命', '当官', '走仕途', '是官', '贵格', '掌大权')
 _NEG_PREFIX = ('不', '非', '无', '难', '未', '莫', '否')
 
-# N1 七维批·L2 按维红线：
-# 迁移维绝对禁出境词（对齐引擎措辞上限「迁移/远行」，qianyi 模块不出硬断语）。
-_QIANYI_FORBID = ('出国', '移民', '海外', '国外', '外国')
-# 相貌维禁结论词（marker 层无判定无档位，只许引用 marker 描述）。
+# N1 七维批·L2 红线词表（红2 起全维度扫描，与死词表口径一致——
+# 跨维逃逸曾致出境词/美丑词落在迁移/相貌维之外而放行）：
+# 出境词绝对禁（对齐引擎措辞上限「迁移/远行」，qianyi 模块不出硬断语）。
+# 红2 补词：出境/移居/异国/留洋（对抗用例实测逃逸族）。
+_QIANYI_FORBID = ('出国', '移民', '海外', '国外', '外国',
+                  '出境', '移居', '异国', '留洋')
+# 相貌结论词禁（marker 层无判定无档位，只许引用 marker 描述）。
 # N2b 裁定（书锚为准）：含「美」复合评价词（优美/柔美/秀美/俊美等）书内零锚
 # → 一律入禁，单字「美」扫描已全覆盖（r3 残留 2 例均被抓），不加词表不加
-# 后缀放行（美丽/美妙等在相貌维仍是评价词——「美丽」lixiangxue 有 3 处用例
+# 后缀放行（美丽/美妙等仍是评价词——「美丽」lixiangxue 有 3 处用例
 # （9928/12583/12632），禁之属保守不违书但非零锚，W3-P2#2 注释口径改准）；
 # 真正缺口在生成侧，由 llm_prompt SCHEMA/锚定禁令显式点名复合词族收敛。
 # G1（W2 P1 复合词真漏网）：标致/水灵/清秀/端庄 书内零锚但不含美丑帅字——
 # 词级匹配补入（无单字误报，无需排除窗）；prompt 轨同步点名五词（含甜美）。
-_XIANGMAO_FORBID = ('漂亮', '美', '丑', '帅', '标致', '水灵', '清秀', '端庄')
+# 红2 补词：英俊/好看/靓丽/俊俏/颜值高/姿色（对抗用例实测逃逸族，词级匹配
+# 无单字误报——「好看」书锚 zhongji:3981-3982 系身材描述非结论档位词，入禁
+# 属保守不违书，与「美丽」同口径）。
+_XIANGMAO_FORBID = ('漂亮', '美', '丑', '帅', '标致', '水灵', '清秀', '端庄',
+                    '英俊', '好看', '靓丽', '俊俏', '颜值高', '姿色')
 # 相貌排除窗（E7 窗口机制同族，但按相邻字判定更准——±5 窗会放跑真结论词）：
 # 「美元」货币、「丑时」时辰、「X丑」干支 非相貌结论词，放行。
 _STEMS = '甲乙丙丁戊己庚辛壬癸'
@@ -320,13 +336,18 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                    for k in ('tier_static', 'tier')), default=-1)
     corpus = json.dumps(cm, ensure_ascii=False)
     got = _tier_rank(texts['财运'], corpus)
-    if ceiling >= 0 and got > ceiling:
+    # 红4：ceiling=-1（引擎降级/缺 caiming 数据）不再整体跳过——按最严口径，
+    # 任何未被否定/豁免的档位断言（rank>=0）一律记违规（此前巨富放行）
+    if got > ceiling:
+        cap = _TIER_ORDER[ceiling] if ceiling >= 0 else '未知(缺数据)'
         v.append({'layer': 'L2',
-                  'detail': f'财运档位越引擎上限：引擎={_TIER_ORDER[ceiling]}，叙述={_TIER_ORDER[got]}'})
+                  'detail': f'财运档位越引擎上限：引擎={cap}，叙述={_TIER_ORDER[got]}'})
 
     # 官命是非（引擎否 → 叙述不得正向断言）
+    # 红4：is_guanming 缺数据（None，引擎降级空 dict）按否口径同查——
+    # 缺数据时正向官命断言同样拦（此前 `is False` 不成立导致整体跳过）
     gm = engine_result.get('guanming') or {}
-    if gm.get('is_guanming') is False:
+    if gm.get('is_guanming') is not True:
         t = texts['事业']
         for w in _GUAN_POSITIVE:
             i = t.find(w)
@@ -342,26 +363,25 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                     break
                 i = t.find(w, i + 1)
 
-    # 迁移维措辞上限（引擎「迁移/远行」，绝对禁出境词）
-    t = texts['迁移']
-    for w in _QIANYI_FORBID:
-        if w in t:
-            v.append({'layer': 'L2', 'detail': f'迁移 越措辞上限词「{w}」'})
-            break
-
-    # 相貌维禁结论词（marker 层无档位；美元/丑时/干支排除窗放行）
-    t = texts['相貌']
-    for w in _XIANGMAO_FORBID:
-        start = 0
-        while True:
-            j = t.find(w, start)
-            if j == -1:
+    # 出境词 + 相貌结论词：红2 起全维度扫描（词表口径与死词表一致；
+    # 财档/官命仍按维——其 ceiling/是非逻辑依赖维度上下文）。
+    # 相貌排除窗（美元/丑时/干支）按词法放行，与所在维度无关。
+    for dim, t in texts.items():
+        for w in _QIANYI_FORBID:
+            if w in t:
+                v.append({'layer': 'L2', 'detail': f'{dim} 越措辞上限词「{w}」'})
                 break
-            start = j + 1
-            if _xiangmao_exempt(t, w, j):
-                continue
-            v.append({'layer': 'L2', 'detail': f'相貌 触禁结论词「{w}」'})
-            break
+        for w in _XIANGMAO_FORBID:
+            start = 0
+            while True:
+                j = t.find(w, start)
+                if j == -1:
+                    break
+                start = j + 1
+                if _xiangmao_exempt(t, w, j):
+                    continue
+                v.append({'layer': 'L2', 'detail': f'{dim} 触禁结论词「{w}」'})
+                break
     return v
 
 
@@ -458,8 +478,11 @@ def render_structured_reading(
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
-        return (f"[LLM 输出非合法 JSON，不予展示 | {e}]\n原始输出:\n{raw}"
-                f"\n{_DISCLAIMER_LINE}")
+        # 红1：降级不回显 raw——未校验原文直达用户则死亡红线全旁路；
+        # 原文仅写日志留痕。返回前缀契约不变（feishu service 前缀白名单兜底）
+        _logger.warning('LLM 输出非合法 JSON，不予展示（%s）；原文留痕: %r',
+                        e, raw[:500])
+        return f"[LLM 输出非合法 JSON，不予展示 | {e}]\n{_DISCLAIMER_LINE}"
 
     report = validate_reading(data, features, engine_result) if validate != 'off' \
         else {'ok': True, 'violations': []}

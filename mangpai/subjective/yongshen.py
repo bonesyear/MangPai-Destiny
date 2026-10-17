@@ -31,9 +31,9 @@
      日干参与之合（合财/合官）属 zuogong「合用」做功层，不在此论；
    - 中和/不明不定用忌，不触发（防过火）。
 
-4. **凶向信号聚合**——反局(fan)/坐牢(laoyu)/比劫夺财/过河拆桥破财
+4. **凶向信号聚合**——反局(fan)/坐牢(laoyu)/比劫夺财
    /忌神制用神(R2)/用神被合绊(R3) 任一命中即「凶向」，供 caiming/guanming
-   /zhiye 反哺降档/否决。
+   /zhiye 反哺降档/否决。（旧「过河拆桥破财」为冒称中级口径，已移除。）
 
 设计约束（见 memory: mangpai-objective-subjective-refactor）：
   - 本模块属 subjective 判断层，单向消费 objective 检测 + 同层 zuogong/zhengfan/laoyu；
@@ -46,7 +46,7 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.constants import (
-    GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE, HUA_YONG_MAP,
+    GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE,
     LIU_CHONG, XING_PAIRS, SAN_HE, BAN_HE, LIU_HAI, LU,
 )
 from mangpai.objective.shishen import wx_cat as _wx_cat
@@ -766,16 +766,9 @@ _LIUHE_VICTIMS: Dict[frozenset, frozenset] = {
     frozenset('午未'): frozenset('未'),
 }
 
-# 地支六合化气（合化方向，R3 合化豁免用）：子丑化土、寅亥化木、卯戌化火、
-# 辰酉化金、巳申化水、午未化土。天干五合化气用 constants.HUA_YONG_MAP。
-_LIUHE_HUAQI: Dict[frozenset, str] = {
-    frozenset('子丑'): '土',
-    frozenset('寅亥'): '木',
-    frozenset('卯戌'): '火',
-    frozenset('辰酉'): '金',
-    frozenset('巳申'): '水',
-    frozenset('午未'): '土',
-}
+# （原 _LIUHE_HUAQI 地支六合化气表已删——书明文禁止六合化气读法：
+# 理象学:2311「地支六合并不讲合化，只讲合」；shouke:2574「千万不要理解成
+# 卯戌合化火助日主，六合以合为主，化是极其微弱的」。）
 
 _YANG_GANS = set('甲丙戊庚壬')
 _PK4 = ['year', 'month', 'day', 'hour']
@@ -1259,12 +1252,10 @@ def detect_heban_yongshen(
     已入局交战、未「失去原性」，合不能废其用——不触发（段氏「相冲可破局破合…
     相合与相冲兼论」之义；奥纳西斯 未午合而未入丑未冲做功，段氏论巨富不论绊）。
     克/刑/破不参与抑制：克为单向施力，被克非入局、克他亦不证其用。
-    **合化出喜用豁免（P1）**：合之化气五行属喜用类且异于受害方本行者，合非
-    「绊住失用」而是「向化喜用」，不论凶绊（森田健 卯戌合化火=印——段氏论
-    此造「卯戌合绊，戌根失去力量」是说身弱，又明文「需行火运生扶日主则好」，
-    合之化气正是其所喜；合绊计入身弱后不再双重计入凶向，其造 gold=富）。
-    化气仍为受害方本行者合仅是绊（qi03 寅亥合化木、寅本木，「故不吉」），
-    化出忌神者更不豁免。
+    **合化豁免已删（书明文禁止化气读法）**：理象学:2311「地支六合并不讲合化，
+    只讲合」；shouke:2574「千万不要理解成卯戌合化火助日主，六合以合为主，
+    化是极其微弱的」。合绊受害照判，不再以「合化出喜用」豁免凶绊（旧豁免的
+    头号例证卯戌合化火正是书点名禁止的读法）。
     严重度：命中≥2处 -> severe。
 
     Returns:
@@ -1318,15 +1309,6 @@ def detect_heban_yongshen(
         _dzh and _dzh.get('activated')
         and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == '财')
 
-    def _huaqi_exempt(huaqi: str, victim_wx: str) -> bool:
-        """合化出喜用豁免（P1 R3 精化）：合之化气五行属喜用类且异于受害方
-        本行者，合非「绊住失用」而是「向化喜用」——受害方经合转化为喜用
-        之气，不论凶绊（森田健卯戌合化火=印，段氏明文「需行火运生扶日主
-        则好」；下岗财会丁壬合化木=印；li002 丙辛合化水=财）。
-        化气仍为受害方本行者，合仅是绊住本字（qi03 寅亥合化木、寅本木，
-        段氏明文「喜神被合绊，故不吉」）；化出忌神者更不豁免。"""
-        return bool(huaqi) and huaqi != victim_wx and _wx_cat(dw, huaqi) in ys
-
     def _ji_isolated(wx: str) -> bool:
         """忌神五行孤立（明现≤1：透干或支主气）：孤立者被合去即成净
         （段氏「合去」=去除——ans30 壬财孤立，丁合去之则忌神净；乙财两见
@@ -1356,9 +1338,6 @@ def detect_heban_yongshen(
                     if cong_hequ_exempt and pcat in js \
                             and _ji_isolated(ZHI_WX.get(partner, '')):
                         continue  # 从格异党孤立合去=吉（忌神被合去成净），不论绊
-                    if _huaqi_exempt(_LIUHE_HUAQI.get(frozenset(a + b), ''),
-                                     ZHI_WX.get(z, '')):
-                        continue  # 合化出喜用（化气≠本行且属喜用类），不论凶绊
                     hits.append(f'{a}{b}合绊 {_PK_CN[j]}支{z}({cat}为用神受绊)')
     # ── 天干五合（他干紧贴=年干×月干，互绊）──
     # 日主争合整对豁免（K3-294批4，限扶抑格）：日主与该五合之一方相合者，
@@ -1395,8 +1374,6 @@ def detect_heban_yongshen(
                             and _wx_cat(dw, GAN_WX.get(partner_g, '')) == '比劫' \
                             and not _ji_isolated(GAN_WX.get(partner_g, '')):
                         continue  # 官合劫=官星制劫护财（合制做功），不论绊
-                if _huaqi_exempt(HUA_YONG_MAP.get((g0, g1), ''), GAN_WX.get(g, '')):
-                    continue  # 合化出喜用（化气≠本行且属喜用类），不论凶绊
                 hits.append(f'{g0}{g1}合 {_PK_CN[j]}干{g}({cat}为用神受绊)')
 
     detected = bool(hits)
@@ -1625,7 +1602,8 @@ def assess_direction_signals(
     """聚合「凶向」信号，供 caiming/guanming/zhiye 反哺降档/否决。
 
     凶向 = 反局(fan，原局反局 OR 当前运岁反局) OR 坐牢(risk≥中) OR 比劫夺财(R1)
-    OR 过河拆桥破财 OR 忌神制用神(R2) OR 用神被合绊(R3)。
+    OR 忌神制用神(R2) OR 用神被合绊(R3)。（旧「过河拆桥破财」冒称中级口径，
+    zhongji:2976-2978 明文发大财，已移除；guohe_pocai 键保留兼容，恒 False。）
 
     yunfan_result（A1）：「当前运岁」反局切片（yunfan.current_fan_slice 产出，
     含 dayun_fan/liunian_fan/sui_yun_liandong 三键）。原局本正而运岁引动反局
@@ -1748,7 +1726,8 @@ def assess_direction_signals(
     # 而实非牢狱），故仅作信息保留，不计入凶向否决/降档触发，避免误伤正当富贵。
     laoyu_hit = False
 
-    # 过河拆桥破财（gongliang_result 未带时留 False；caiming 自算 guohe 透传）
+    # guohe_pocai：旧「过河拆桥制不尽=破财」冒称中级口径已移除（zhongji:
+    # 2976-2978 明文发大财）——caiming 不再产出该信号，键保留兼容恒 False。
     guohe_pocai = bool(gl.get('guohe_pocai'))
 
     pocai = bool(bijiao.get('detected')) or guohe_pocai

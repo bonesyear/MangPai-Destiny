@@ -601,7 +601,9 @@ def determine_dayun_phase(
 
     per_year: Dict[Any, Dict] = {}
     if phase == '分看' and birth_year and dayun_start_age is not None:
-        start_year = int(birth_year) + int(dayun_start_age)
+        # 起运岁为虚岁：虚岁 N → 公历年 = 出生年+N-1（同 jiaoyun.py:277-279 口径；
+        # 书例 理象学:3916-3922：2005 生 3 虚岁起运 → 交运年 2007，非 2008）
+        start_year = int(birth_year) + int(dayun_start_age) - 1
         for entry in liunian_list:
             y = entry.get('year')
             if not y:

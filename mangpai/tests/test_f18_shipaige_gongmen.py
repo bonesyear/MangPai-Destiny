@@ -106,9 +106,15 @@ def test_wugui():
 
 
 def test_ding_jian_bingyin():
-    """碎片:114 丁见丙寅命早没。"""
-    r = analyze_shipaige('丁', '卯', '甲', '寅', '戊', '申', '庚', '子')
+    """碎片:114 丁见丙寅命早没——须丙在干（丁+丙+寅方触发）。"""
+    r = analyze_shipaige('丁', '卯', '丙', '寅', '戊', '申', '庚', '子')
     assert '丁见丙寅命早没' in _keys(r, '寿元')
+
+
+def test_ding_yin_wu_bing_not_triggered():
+    """碎片:114 漏检修复：丁+寅无丙不触发（旧代码任丁+寅即触发，误）。"""
+    r = analyze_shipaige('丁', '卯', '甲', '寅', '戊', '申', '庚', '子')
+    assert '丁见丙寅命早没' not in _keys(r, '寿元')
 
 
 def test_muyu_shuizai():

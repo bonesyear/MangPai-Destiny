@@ -34,3 +34,17 @@ mangpai/docs/book-index/*
 
 # 临时文件
 /tmp/
+
+# 原著原本/整书文本不入库（版权红线，2026-10-17；书证只引行号）
+/mangpai-docs-full-*.tar.gz
+/docs/duan-books/
+/docs/yuanhaiziping/
+/docs/ditianchansui/
+/docs/book-index*
+/docs/ziping-zhenquan-*.txt
+/docs/duan-*.md
+/docs/audit-phase*.md
+/docs/audit-checklist.md
+/docs/audit-foundation-checklist.md
+/docs/chuangong-spec.md
+/docs/zhengminsheng-shipaige-fragments.md

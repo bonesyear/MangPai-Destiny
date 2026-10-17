@@ -15,7 +15,7 @@
 """
 from mangpai.subjective.hunyin import (
     classify_hunyin_quality, detect_shuizhong_laoyue, classify_dushen_sige,
-    detect_guan_caimen, detect_lu_ban_taohua,
+    detect_guan_caimen, detect_lu_ban_taohua, _spouse_wx,
 )
 
 
@@ -145,3 +145,41 @@ class TestLuBanTaohua:
         # 坤 戊壬乙丁/午戌卯亥：乙禄卯，卯戌合，戌藏辛七杀→禄绊桃花
         r = detect_lu_ban_taohua('乙', ['戊', '壬', '乙', '丁'], ['午', '戌', '卯', '亥'], '女')
         assert r['is_lu_ban']
+
+
+class TestSpouseStarSubstitute:
+    """配偶星替代规则（zhongji:4280「如无则另看：男命无财看伤食，女命无官杀
+    看印星」；gaoji:12361 口诀互证）。藏干口径同 _star_positions。"""
+
+    def test_nan_wu_cai_qu_shishang(self):
+        # 乾 甲子/甲子/甲子/甲酉：全局无土（财），取食伤=火
+        assert _spouse_wx('甲', '男', list('甲甲甲甲'), list('子子卯酉')) == '火'
+
+    def test_nv_wu_guansha_qu_yin(self):
+        # 坤 甲午/丙卯/甲午/丁亥：全局无金（官杀），取印=水
+        assert _spouse_wx('甲', '女', list('甲丙甲丁'), list('午卯午亥')) == '水'
+
+    def test_you_cai_bu_tidai(self):
+        # 乾 甲寅/甲卯/甲子/甲酉：寅中戊余气为财，财现不替代
+        assert _spouse_wx('甲', '男', list('甲甲甲甲'), list('寅卯子酉')) == '土'
+
+
+class TestGongZhiXingZhengPian:
+    """宫制星分正偏（zhongji:4466-4468「偏星可以制，正星不可以制。正星受制，
+    婚姻易出问题」；仅夫妻星得位坐宫时论）。"""
+
+    def test_zhengxing_zuogong_shouzhi(self):
+        # 乾 癸亥/甲子/甲丑/庚戌：日支丑本气己=正财（正星得位坐宫），戌刑丑
+        # → 正星受制，不加好婚姻分，出负向信号（旧代码不分正偏 +2.0 判好）
+        r = classify_hunyin_quality('甲', ['癸', '甲', '甲', '庚'],
+                                    ['亥', '子', '丑', '戌'], '男')
+        assert any('正星坐宫被制' in s for s in r['signals'])
+        assert r['quality'] != '好'
+
+    def test_pianxing_zuogong_kezhi_weichi(self):
+        # 乾 癸亥/甲子/甲辰/辛戌：日支辰本气戊=偏财（偏星坐宫），戌冲辰
+        # → 偏星可以制，维持宫制星加分判好
+        r = classify_hunyin_quality('甲', ['癸', '甲', '甲', '辛'],
+                                    ['亥', '子', '辰', '戌'], '男')
+        assert r['quality'] == '好'
+        assert any('宫制去夫妻星忌神' in s for s in r['signals'])

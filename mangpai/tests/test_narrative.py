@@ -261,10 +261,52 @@ def test_render_reject_mode_intercepts(monkeypatch):
 def test_render_off_mode_skips_validation(monkeypatch):
     monkeypatch.setattr(_narr, '_call_llm', lambda s, u, model=None: '你1999年升官。')
     out = _narr.render_hao_narrative(_ER, call_llm=True, validate='off')
-    assert out == '你1999年升官。'
+    # 红5a：off 路径同样自带免责行——旧断言 `out == 原文` 锁的正是本次所修
+    # 「裸断语直达用户」漏洞，按修复后契约改写（不校验≠不免责）
+    assert out == '你1999年升官。\n\n' + _narr._disclaimer_line()
 
 
 def test_render_clean_text_no_note(monkeypatch):
     monkeypatch.setattr(_narr, '_call_llm', lambda s, u, model=None: '你1988年破财，5岁起运。')
     out = _narr.render_hao_narrative(_ER, call_llm=True, validate='mark')
     assert '【引擎校验】' not in out
+
+
+# ---------- 红5：遗留通道免责 + 输入侧 scrub ----------
+
+def test_render_disclaimer_all_paths(monkeypatch):
+    """红5a：遗留通道全部返回路径自带免责行（单源复用 llm_channel._DISCLAIMER_LINE）。"""
+    from mangpai.subjective.llm_channel import _DISCLAIMER_LINE
+    # 1) prompt 降级路径（call_llm=False）
+    out = render_hao_narrative(_ER, call_llm=False)
+    assert out.rstrip().endswith(_DISCLAIMER_LINE)
+    # 2) LLM 调用失败降级路径
+    def boom(s, u, model=None):
+        raise ImportError('no anthropic')
+    monkeypatch.setattr(_narr, '_call_llm', boom)
+    out = _narr.render_hao_narrative(_ER, call_llm=True)
+    assert out.startswith('[LLM 不可用') and out.rstrip().endswith(_DISCLAIMER_LINE)
+    # 3) reject 拦截路径
+    monkeypatch.setattr(_narr, '_call_llm', lambda s, u, model=None: '你1999年升官。')
+    out = _narr.render_hao_narrative(_ER, call_llm=True, validate='reject')
+    assert '拦截' in out and out.rstrip().endswith(_DISCLAIMER_LINE)
+    # 4) mark 附注路径
+    out = _narr.render_hao_narrative(_ER, call_llm=True, validate='mark')
+    assert '【引擎校验】' in out and out.rstrip().endswith(_DISCLAIMER_LINE)
+    # 5) off 路径
+    out = _narr.render_hao_narrative(_ER, call_llm=True, validate='off')
+    assert out.rstrip().endswith(_DISCLAIMER_LINE)
+    # 6) 干净成功路径
+    monkeypatch.setattr(_narr, '_call_llm', lambda s, u, model=None: '你1988年破财。')
+    out = _narr.render_hao_narrative(_ER, call_llm=True, validate='mark')
+    assert '【引擎校验】' not in out and out.rstrip().endswith(_DISCLAIMER_LINE)
+
+
+def test_render_input_death_scrubbed():
+    """红5b：遗留通道 prompt 构造输入侧 scrub——引擎 dict 死亡词不进 prompt
+    （复用 subjective._scrub_death 实现）；非死亡内容保留。"""
+    er = dict(_ER, liuqin={'summary': '父母早逝之象'})
+    line = summarize_engine_result(er)
+    assert '早逝' not in line and '财命：小康' in line
+    out = render_hao_narrative(er, call_llm=False)
+    assert '早逝' not in out

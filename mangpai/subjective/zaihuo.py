@@ -413,6 +413,7 @@ def detect_siwang(
     寿元星三级（源文 16154-16160）：第一食神、第二印、第三日主/禄。
     按命局所现之星取最高级为寿元星，判其刑破穿害/入墓/见绝/空亡。
     墓绝空亡三者合见为最凶。凶性三煞（亡神/劫煞/灾煞）并空亡为凶兆。
+    （灾煞系传统神煞移入，段氏书无载。）
     yunfan_result（岁运反局联动：天地合/三刑/双冲）为急性触发。
 
     Returns:
@@ -509,6 +510,7 @@ def detect_siwang(
                 markers.append(f'禄神入{z}墓被冲开')
 
     # 凶性三煞（亡神/劫煞/灾煞）并空亡
+    # （灾煞系传统神煞移入，段氏书无载——段氏全部 7 本书零命中，全书 grep 证实）
     ss = resolve_shensha(day_gan, zhis, shensha_result)
     xiong_sha: List[str] = []
     for key in ('亡神', '劫煞', '灾煞'):

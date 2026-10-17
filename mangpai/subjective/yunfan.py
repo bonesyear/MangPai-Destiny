@@ -522,7 +522,7 @@ def _detect_dayun_fan(
             # 干为原局主位墓库之透干）：干为墓透之代表，墓在主位（日/时）做功
             # 方成立。宾位墓透/无墓可透者不论——reg67 资本运营丁酉运丁伏吟被
             # 癸克，丁所透之未墓在宾位（年支），书明文「行酉运，亿万巨富」
-            # （理象学:7720），假阳锚。
+            # （理象学:7594），假阳锚。
             _tomb_gs = any(
                 i < len(natal_zhis) and natal_zhis[i]
                 and natal_zhis[i] in TOMB_MAP
@@ -562,6 +562,11 @@ def _detect_liunian_fan(
     # ── 类型一：流年单独引动忌神/破坏功神/改做功方式 ──
     hits_gong = [x for x in inter
                  if x['target_pos'] in gong_pos and x['type'] in _HARM_TYPES]
+    # 冲开墓库豁免（与大运侧 F8 同口径）：zhenbao:691「流年冲八字、大运一般
+    # 为动，冲墓库一般为开」——流年冲原局墓库支=冲开库之应期，非毁功神。
+    # 穿/破/刑无开库义，不豁免。
+    hits_gong = [x for x in hits_gong
+                 if not (x['type'] == '冲' and x['target_elem'] in TOMB_MAP)]
     if hits_gong:
         fans.append({
             'fan_type': '流年反局·类型一(破坏功神)',

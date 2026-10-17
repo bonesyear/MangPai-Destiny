@@ -18,6 +18,7 @@
 """
 from mangpai.subjective.laoyu import (
     analyze_laoyu, detect_shaqie_zhi, detect_fanju_chen_chou, detect_laoyu_zi,
+    detect_guansha_rumu,
 )
 
 
@@ -102,3 +103,16 @@ def test_jieshang_guansha_still_fires():
     # 甲丁乙庚/寅卯丑辰：年干甲劫财+寅中伤官+庚官=比劫伤官怕见官（书判五年）
     r = analyze_laoyu('乙', list('甲丁乙庚'), list('寅卯丑辰'))
     assert '劫伤抗官' in r['methods']
+
+
+# ── 官杀入墓·墓开方向（gaoji:14850-14851 墓库最怕刑冲一动则官非立至； ──
+# ── gaoji:15114 墓门大开祸临头。zhongji:5599-5600 出狱应期语境不挪用）──
+
+def test_guansha_rumu_tomb_open_not_xiongjian():
+    """庚丑/甲子/甲丑/甲未：七杀明现入丑墓，丑未冲墓开——旧标「凶减」方向反转，
+    改标「墓动官非立至之象」（中性偏凶）；laoyu_signal 口径保持（入墓不开）。"""
+    r = detect_guansha_rumu('甲', list('庚甲甲甲'), list('丑子丑未'))
+    assert r['in_tomb'] and r['tomb_open']
+    assert not r['laoyu_signal']
+    assert any('墓动官非立至' in d for d in r['details'])
+    assert not any('凶减' in d for d in r['details'])
