@@ -990,3 +990,88 @@ def test_f6_bazi_line_gender_normalized(monkeypatch):
                     ('乾', '乾造'), ('女', '坤造'), ('男', '乾造')):
         render_structured_reading(dict(eng, input={'gender': g}))
         assert f'（{mark}）' in seen[-1], g
+
+
+
+# ── L2 校验器补应期/婚姻维零校验 + 「大富大贵」豁免收窄哨兵（先红后绿）──
+
+
+def test_l2_yingqi_overall_contradiction():
+    """应期维吉凶回对：conclusion 引用运/年干支，其 overall 与叙述褒贬矛盾记违规。
+
+    overall=凶 配吉词 / overall=吉 配凶词 → 违规；吉凶参半/平不查；缺数据不查。
+    """
+    eng = dict(_ENGINE,
+               dayun_analysis={'dayun': [{'gz': '甲子', 'overall': '凶'},
+                                         {'gz': '乙丑', 'overall': '吉'},
+                                         {'gz': '丙寅', 'overall': '吉凶参半'}]},
+               liunian_analysis={'liunian': [{'gz': '丙午', 'overall': '凶'}]})
+    data = _good()
+    # 修前逃逸→修后拦截：凶运配吉词
+    data['应期']['conclusion'] = '甲子运事业顺利，投资亨通'
+    assert any('甲子' in x['detail'] for x in _l2_enum(data, eng))
+    # 吉运配凶词
+    data['应期']['conclusion'] = '乙丑运防凶险灾祸，凡事谨慎'
+    assert any('乙丑' in x['detail'] for x in _l2_enum(data, eng))
+    # 流年条目同查
+    data['应期']['conclusion'] = '丙午年事事顺利，好运连连'
+    assert any('丙午' in x['detail'] for x in _l2_enum(data, eng))
+    # 参半不查
+    data['应期']['conclusion'] = '丙寅运整体顺利，小有波折'
+    assert not any('丙寅' in x['detail'] for x in _l2_enum(data, eng))
+    # 合法句式不拦：凶运如实言阻、吉运如实言吉
+    data['应期']['conclusion'] = '甲子运多阻碍，宜守不宜进'
+    assert not any('甲子' in x['detail'] for x in _l2_enum(data, eng))
+    data['应期']['conclusion'] = '乙丑运顺利亨通，可进取'
+    assert not any('乙丑' in x['detail'] for x in _l2_enum(data, eng))
+    # 缺数据（无 dayun/liunian 键）不查
+    data['应期']['conclusion'] = '甲子运顺利亨通'
+    assert not any('甲子' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_l2_hunyin_quality_contradiction():
+    """婚姻维质量回对：引擎 hunyin.quality.quality=差 配褒词 / =好 配贬词记违规。
+
+    =平不查；缺 hunyin 键不查。
+    （断言锁定「婚姻质量」字样——褒词「美满」本身触相貌禁词另记，不混。）
+    """
+    data = _good()
+    eng_bad = dict(_ENGINE, hunyin={'quality': {'quality': '差'}})
+    eng_good = dict(_ENGINE, hunyin={'quality': {'quality': '好'}})
+    # 修前逃逸→修后拦截：质量=差 配褒词
+    data['婚姻']['conclusion'] = '婚姻美满，夫妻恩爱和睦'
+    assert any('婚姻质量' in x['detail'] and '美满' in x['detail']
+               for x in _l2_enum(data, eng_bad))
+    # 质量=好 配贬词
+    data['婚姻']['conclusion'] = '防婚变离异，中年婚姻不幸'
+    assert any('婚姻质量' in x['detail'] and '婚变' in x['detail']
+               for x in _l2_enum(data, eng_good))
+    # 合法句式不拦：差配实话、好配稳词
+    data['婚姻']['conclusion'] = '婚姻有摩擦，需多包容经营'
+    assert not any('婚姻质量' in x['detail'] for x in _l2_enum(data, eng_bad))
+    data['婚姻']['conclusion'] = '婚姻稳定，感情深厚，相互扶持'
+    assert not any('婚姻质量' in x['detail'] for x in _l2_enum(data, eng_good))
+    # 质量=平不查；缺 hunyin 键不查
+    eng_ping = dict(_ENGINE, hunyin={'quality': {'quality': '平'}})
+    data['婚姻']['conclusion'] = '婚姻美满'
+    assert not any('婚姻质量' in x['detail'] for x in _l2_enum(data, eng_ping))
+    assert not any('婚姻质量' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
+def test_tier_rank_dafudagui_assertion_narrowed():
+    """「大富大贵」成语豁免收窄：仅适用非断言语境——前 3 字内出现断言主语
+    （你/命中/此造/命主/一生）时不豁免（「你命中大富大贵，只是财库未开」
+    在 ceiling=小康 时曾漏网）；泛指句锁定口径不回退。"""
+    # 断言句拦截（按「大富」计 rank2）
+    assert _tier_rank('你命中大富大贵，只是财库未开') == 2
+    assert _tier_rank('此造大富大贵') == 2
+    assert _tier_rank('命主一生大富大贵') == 2
+    # 泛指句放行（既有 test_tier_rank_n2_dafudagui 锁定口径）
+    assert _tier_rank('财命小康，稳扎稳打，大富大贵需靠运势添翼') == 1
+    assert _tier_rank('小康之命，莫指望大富大贵') == 1
+    # L2 端到端：ceiling=小康 时断言句记越限（修前漏网）
+    eng_xk = {'caiming': {'tier_static': '小康', 'tier': '小康'},
+              'guanming': {'is_guanming': False}}
+    data = _good()
+    data['财运']['conclusion'] = '你命中大富大贵，只是财库未开'
+    assert any('越引擎上限' in x['detail'] for x in _l2_enum(data, eng_xk))

@@ -132,8 +132,8 @@
   "detail": "level=3(书3) score=76"
  },
  "gl:复例二副总": {
-  "verdict": "❌",
-  "detail": "level=3(书1) score=68"
+  "verdict": "✅",
+  "detail": "level=1(书1) score=12"
  },
  "xf:共象:丁目": {
   "verdict": "⚠️",
@@ -252,8 +252,8 @@
   "detail": "ok=True 审计档=✅ val=差"
  },
  "hunyin:离婚": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=✅ val=平"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=✅ val=差"
  },
  "xueli:初中": {
   "verdict": "✅",

@@ -11,7 +11,8 @@
 - L1 出处：basis 每条路径回解析特征 JSON，不存在/为空/带数组下标 → 违规；
   意图唯一的近-miss（缺 _ops 前缀/层级拍平/多包一层/叶键别名）自动 remap 转正；
 - L2 枚举：财命档位/官命是非回对引擎枚举值 + 死亡词黑名单兜底
-  + 出境词/相貌结论词全维度禁（红2：与死词表同口径，跨维逃逸亦拦；N1 七维批起）；
+  + 出境词/相貌结论词全维度禁（红2：与死词表同口径，跨维逃逸亦拦；N1 七维批起）
+  + 应期运岁吉凶/婚姻质量回对引擎 overall/quality（2026-10-17 零校验补齐）；
 - N1 数字校验复用 narrative.validate_narrative_numbers（对白名单外数字留痕）。
 
 单命示例：python3 -m mangpai.subjective.llm_channel
@@ -285,6 +286,11 @@ def _neg_in_post(text: str, end: int, width: int = 5) -> bool:
 #   （普通/平常）非档位断言。
 _TIER_CAP_MARKERS = ('封顶', '上限', '定档', '定格', '档就是', '档为')
 
+# ⑧b 收窄（2026-10-17）：「大富大贵」泛指豁免仅适用非断言语境——前 3 字内现
+#   断言主语（你/命中/此造/命主/一生）即断言语境，不豁免（「你命中大富大贵，
+#   只是财库未开」在 ceiling=小康 时曾借此漏网）。
+_DAFUDAGUI_SUBJ = ('你', '命中', '此造', '命主', '一生')
+
 
 def _quoted(text: str, j: int, length: int, corpus: str) -> bool:
     """命中处的 ±2 字窗（≥3 字）是否为引擎原文子串。"""
@@ -321,8 +327,11 @@ def _tier_rank(text: str, corpus: str = '') -> int:
                     continue  # ⑥富格/富档=引擎格局/档位术语；富贵=泛指
                 if text[j + 1:j + 2] == '足':
                     continue  # ⑧c「富足」泛指形容词，同富贵族
-                if text[j - 1:j + 3] == '大富大贵':
-                    continue  # ⑧b「大富大贵」成语泛指，同富贵族
+                if text[j - 1:j + 3] == '大富大贵' \
+                        and not any(s in text[max(0, j - 4):j - 1]
+                                    for s in _DAFUDAGUI_SUBJ):
+                    continue  # ⑧b「大富大贵」成语泛指，同富贵族；
+                    # 前 3 字现断言主语（你/命中/此造/命主/一生）=断言语境，不豁免
                 if prev == '暴' and any(c in _TIER_NEG
                                         for c in text[max(0, j - 8):j]):
                     continue  # ⑧d 告诫式「别/莫…暴富」专属宽窗 ±8
@@ -356,8 +365,22 @@ def _tier_rank(text: str, corpus: str = '') -> int:
     return best
 
 
+# L2 应期维吉凶回对词表（2026-10-17 零校验补齐，小词表起步）：
+# 应期 conclusion 引用某运/年干支，该条目 overall=凶 而叙述含吉词、
+# overall=吉 而叙述含凶词 → 矛盾记违规；吉凶参半/平不查，缺数据不查。
+# ponytail: 结论级词表启发式，否定语境/分运分句不细辨，语义级残留由人工兜底
+_YINGQI_POS_WORDS = ('大吉', '顺利', '亨通', '好运')
+_YINGQI_NEG_WORDS = ('大凶', '凶险', '灾祸')
+
+# L2 婚姻维质量回对词表（同批，小词表起步）：引擎 hunyin.quality.quality=差
+# 而叙述含褒词、=好 而叙述含贬词 → 矛盾记违规；=平或缺 hunyin 数据不查。
+_HUNYIN_POS_WORDS = ('美满', '幸福', '恩爱', '和睦')
+_HUNYIN_NEG_WORDS = ('婚变', '离异', '不幸')
+
+
 def _l2_enum(data: dict, engine_result: dict) -> list:
-    """L2 枚举回对：财命档位不越引擎双轨上限；官命是非不反引擎；死亡词黑名单。"""
+    """L2 枚举回对：财命档位不越引擎双轨上限；官命是非不反引擎；死亡词黑名单；
+    应期运岁吉凶/婚姻质量回对引擎 overall/quality。"""
     v = []
     texts = {dim: str(((data.get(dim) or {}) if isinstance(data.get(dim), dict) else {}).get('conclusion') or '')
              for dim in DIMENSIONS}
@@ -415,6 +438,37 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                               'detail': f'事业 与引擎官命=否矛盾：「{w}」'})
                     break
                 i = t.find(w, i + 1)
+
+    # 应期维吉凶回对（零校验补齐）：conclusion 引用的运/年干支，引擎 overall
+    # 与叙述褒贬矛盾记违规（overall ∈ 吉/凶/吉凶参半/平——参半/平不查；
+    # 缺 dayun/liunian 数据不查）。
+    t_yq = texts['应期']
+    if t_yq:
+        _yl = (((engine_result.get('dayun_analysis') or {}).get('dayun') or [])
+               + ((engine_result.get('liunian_analysis') or {}).get('liunian') or []))
+        for e in _yl:
+            gz, ov = e.get('gz', ''), e.get('overall', '')
+            if not gz or gz not in t_yq:
+                continue
+            if ov == '凶':
+                w = next((w for w in _YINGQI_POS_WORDS if w in t_yq), None)
+            elif ov == '吉':
+                w = next((w for w in _YINGQI_NEG_WORDS if w in t_yq), None)
+            else:
+                continue
+            if w:
+                v.append({'layer': 'L2',
+                          'detail': f'应期 与引擎「{gz}」overall={ov}矛盾：叙述含「{w}」'})
+
+    # 婚姻维质量回对（零校验补齐）：引擎 hunyin.quality.quality=差 而叙述褒词、
+    # =好 而叙述贬词记违规；=平或缺 hunyin 数据不查。
+    _hq = ((engine_result.get('hunyin') or {}).get('quality') or {}).get('quality')
+    if _hq in ('好', '差'):
+        _hw = _HUNYIN_NEG_WORDS if _hq == '好' else _HUNYIN_POS_WORDS
+        w = next((w for w in _hw if w in texts['婚姻']), None)
+        if w:
+            v.append({'layer': 'L2',
+                      'detail': f'婚姻 与引擎婚姻质量={_hq}矛盾：叙述含「{w}」'})
 
     # 出境词 + 相貌结论词：红2 起全维度扫描（词表口径与死词表一致；
     # 财档/官命仍按维——其 ceiling/是非逻辑依赖维度上下文）。

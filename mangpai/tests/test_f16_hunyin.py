@@ -59,6 +59,24 @@ class TestZhiBuZhuFanHuai:
         assert _q(['戊', '己', '乙', '丁'], ['戌', '未', '巳', '亥'], '男') == '差'
 
 
+class TestGongFengChuanBiLi:
+    """宫逢穿=坏（多婚条件1，zhongji:4459「夫妻宫逢穿…必离婚，或配偶死亡」；
+    :4419「妻宫逢穿，则必离」）：星宫同体被穿=宫星俱坏（gaoji:12949 断语
+    「丑午一穿宫星坏」），得位分以「安静无伤」为前提（gaoji:12368-12369
+    「宫星得位，安静无伤…宫位不受刑、冲、破、穿、合（他合）」）。"""
+
+    def test_baseline67_lihun_chou_chuan_wu(self):
+        # 坤 癸辛戊丁/丑酉午巳（baseline67 hunyin:离婚）：无官杀看印（:4280），
+        # 夫星=午火印星坐夫宫（星宫同体），年支丑穿午=穿坏夫宫夫星→差（必离）
+        r = classify_hunyin_quality('戊', ['癸', '辛', '戊', '丁'],
+                                    ['丑', '酉', '午', '巳'], '女')
+        assert r['quality'] == '差'
+
+    def test_12947_chou_chuan_wu_fugong(self):
+        # 坤 己丙壬己/丑寅午酉（gaoji:12947-12950 案例十一）：丑午穿坏夫宫，一生未婚
+        assert _q(['己', '丙', '壬', '己'], ['丑', '寅', '午', '酉'], '女') == '差'
+
+
 class TestShuizhongLaoyue:
     """水中捞月三要素（P0-2）。"""
 

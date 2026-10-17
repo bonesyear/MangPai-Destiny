@@ -303,7 +303,7 @@ def classify_hunyin_quality(
     男命看财星(妻星)、女命看官杀(夫星)，日支为婚姻宫。
     加权口径（源文：宫为主、星为辅；破坏程度定吉凶深浅）：
       宫：安稳 +2.0；被穿 -2.0 / 冲 -1.5 / 合(他星) -1.5 / 刑 -1.0 / 破 -1.0；
-      星：明现 +1.0、居宫得位 +1.0、不明现 -1.0、争合 -1.0、杂透多现 -1.0。
+      星：明现 +1.0、居宫得位 +1.0（须安静无伤，gaoji:12368）、不明现 -1.0、争合 -1.0、杂透多现 -1.0。
 
     Returns:
         {'quality': '好'|'差'|'平', 'score': float, 'signals': [str],
@@ -334,13 +334,10 @@ def classify_hunyin_quality(
     else:
         signals.append('配偶星不明现')
         score += _STAR_ABSENT_W
-    # 星在日支(婚姻宫)得位（+1.0）
+    # 星在日支(婚姻宫)得位（+1.0）——判定延后至宫作用计算后（安静无伤方论得位）
     day_idx = PILLAR_KEYS.index('day')
     day_zhi_wx = ZHI_WX.get(zhis[day_idx], '')
     swx = _spouse_wx(day_gan, gender, gans, zhis)
-    if day_zhi_wx == swx:
-        signals.append('配偶星居婚姻宫（日支），星宫得位')
-        score += _STAR_IN_GONG_W
     # ── 婚姻宫（宫为主）：冲穿刑非一律凶，按书喜忌定吉凶（F16 重写）──
     # 书口径（zhongji:4286-4351）：宫安静=好；宫制去夫妻星忌神（制得住）=好；
     # 宫为忌被夫妻星制去=较好；宫有用被刑冲破穿/合他星=差；宫坐库喜刑冲（开库）；
@@ -402,6 +399,18 @@ def classify_hunyin_quality(
             score += 1.0
         elif _zhi_main_cat(day_gan, oz) not in ('印', '比劫'):
             he_bad.append(oz)
+
+    # 星居宫得位以「安静无伤」为前提（gaoji:12368-12369「宫星得位，安静无伤：
+    # 配偶星落入配偶宫…且宫位不受刑、冲、破、穿、合（他合）…此为最稳固之婚姻」；
+    # zhongji:4462-4463「夫妻宫落夫妻星时，不喜他合…离婚者居多」；:4459
+    # 「夫妻宫逢穿…必离婚」；gaoji:12949「丑午一穿宫星坏」）——宫受攻制
+    # （库开刑冲除外）或他合时，不得位分。
+    if day_zhi_wx == swx:
+        if not adv and not he_bad:
+            signals.append('配偶星居婚姻宫（日支），星宫得位')
+            score += _STAR_IN_GONG_W
+        else:
+            signals.append('配偶星居婚姻宫，但宫位受冲穿刑/他合，得位不守（安静无伤方论得位）')
 
     if gong_good:
         loss = len(he_bad) * _GONG_ATTACK_W['合']

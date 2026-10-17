@@ -204,8 +204,11 @@ def _wx_of(elem: str) -> str:
 
 # H-fix-4b：_shishen_cat(day_wx, wx) 与 _wx_cat 五处副本同逻辑（条件互斥、
 # 等价），下沉 objective.shishen.wx_cat，顶部别名保调用点不变。
-# 口径备注：体 = 比劫(同我) + 印(生我) + 食伤(我生)；用 = 财(我克) + 官杀(克我)
-# （与 zuogong_confirm._tiyong_of 同口径，纯五行生克不用十神表）。
+# 口径备注（批D 对齐）：体 = 比劫(同我) + 印(生我) + 食神；用 = 财(我克)
+# + 官杀(克我) + 伤官——伤官归用、食神归体（理象学:5288-5296「食神更近于体，
+# 伤官则接近于用」），与 zuogong_confirm._tiyong_of / objective.tiyong
+# ._NEUTRAL_BIAS 同口径，纯五行生克不用十神表。本模块只消费十神大类
+# （比劫/印/食伤/财/官杀）、不做体用二分，本备注不影响判定行为。
 
 
 def _elem_cats(day_wx: str, elem: str, include_canggan: bool = True) -> Set[str]:
