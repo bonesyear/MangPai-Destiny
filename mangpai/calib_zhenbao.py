@@ -55,7 +55,7 @@ def show(name, res, cm, gm, hy, zy, yq):
     print(f"\n{'='*70}\n【{name}】  {res['bazi']['year']} {res['bazi']['month']} {res['bazi']['day']} {res['bazi']['hour']}")
     print("摘要:", res['summary'])
     zg = res['zuogong']; gl = res['gongliang']
-    print(f"[做功] types={zg.get('work_types')} level={zg.get('work_level')}/{zg.get('work_tier')} eff={zg.get('work_efficiency')}")
+    print(f"[做功] types={zg.get('work_types')} eff={zg.get('work_efficiency')}")
     print(f"[层功] L{gl.get('level')} {gl.get('tier_name')} score={gl.get('score')} 富贵={gl.get('fugui_pinjian')} 净={gl.get('zhi_jing')}")
     zf = res.get('zhengfan',{})
     print(f"[正反] {zf.get('configuration')} ({zf.get('type')})")

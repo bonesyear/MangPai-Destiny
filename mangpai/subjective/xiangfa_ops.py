@@ -1375,7 +1375,7 @@ def xiangfa_fallback(
 ) -> Dict:
     """象法回退分支（K4）：做功不成立时切象法。
 
-    回退激活（fallback_active）：zuogong 无功（work_types 空或 work_level==0）。
+    回退激活（fallback_active）：zuogong 无功（work_types 空）。
     三分支：印带杀帽 / 伤官诀 / 局象纯；三结构检测（与回退并列录入）：
     连体 / 连墓做功 / 丙戊一家半禄。
 
@@ -1417,8 +1417,8 @@ def xiangfa_fallback(
         zg = analyze_zuogong(
             day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1], gans[3], zhis[3])
     work_types = (zg or {}).get('work_types') or []
-    work_level = (zg or {}).get('work_level') or 0
-    out['fallback_active'] = (not work_types) or work_level == 0
+    # G1：work_level==0 支路随层次体系废除而删——zuogong 无功 ⟺ work_types 空
+    out['fallback_active'] = not work_types
 
     # ── 1. 印带杀帽：天干七杀坐地支本气印之柱（印=权力，杀帽=权柄之象）──
     yin_wx = ''

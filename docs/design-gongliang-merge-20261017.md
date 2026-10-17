@@ -174,3 +174,30 @@
 - 「连珠」docs/duan-books/ 全库 grep 零命中（复扫确认）
 - 现行 work_level 钉扎值出处：test_hfix5_gongliang.py:44-134 ph5 钉值 9 例 + baseline67.json 18 例 lv= 记录
 - 未钉扎的 10 例标「回填」，迁移时实测补全，不得凭推算填写
+
+---
+
+## 6. 实施结果（G1 批落地后回填，2026-10-17）
+
+全部改动按 §4.2/§4.3 表执行完毕。**blind vs LATEST（20261017_b1）三维零翻转零抖动**（heldout/trainset 各 0 翻转、文本抖动各 0，六维 Δ 全 +0.0%）——§0 结构论证成立。预注册=`docs/kimi-g1-gongliang-merge-prereg-20261017.md`。
+
+### 6.1 回填实测（11 例，diag_case.py 真实引擎，改动前捕获）
+
+合预期 8 例：例六 L2 / 例七 L2 / 例九 L3 / 普例一 L1（相生降档）/ 普例三 L1 / 普例四 L2 / 普例五 L2 / 总理例 L4（points 6.5，书「近四层」吻合，verify 新锚钉 4）。偏差 3 例（全部预注册备案，不为单例改权重，verify/regression67 钉实测层数注明书层）：
+
+- **慈禧 L3**（书 4）：R2 预案触发——points 7.5 raw4 经「制不净（食伤透干）」封顶 3；附录口径让位法则7。
+- **副总 L3**（书 1）：§4.2C「实测不符则预注册」——加法功量 4.5 点（同制+2/七杀当财+1/克链+1/月令+0.5）raw4 封顶 3；regression67 CAT2 standing ❌ 备案锚。
+- **差例三 L3**（书「无功」）：设计未单列预案，按同纪律备案——引擎无「天干坏之」否决规则，记为已知模型缺口（候选后续批：天干坏局否决规则，须另立设计与书证）。
+
+### 6.2 与设计的偏差（逐条）
+
+1. **§4.3 预判 test_hfix5_compute_all「不红」偏差**：该文件钉 `_build_summary` 全文，engine.py:887 层次行改读 gongliang 后 PIN_LI/PIN_QL_SUMMARY 两颗钉翻转（4 测红）——按同一 exec 实况捕获重钉复绿；乾隆盘旧钉「单层做功（Level 1）」正系 §0 实证错位例，新钉归书「极富极贵（4 层功）」。
+2. **TestParallelToAssessWorkLevel**（test_gongliang）§4.3 未列但必红（import assess_work_level 即失败）→ 整类删除（pytest −1 测）。
+3. verify 总数 432→**420**（§11 删 9 + §14d-2 删 2 + §18 删 5 + 新锚 4）；pytest 1264→**1263**；README/KB 验证口径行/§8 工具表/快捷命令行、PACKAGE.md ×2 已同步，check_doc_numbers 过。
+4. regression67 --write-baseline 重钉时一并吸收 `hunyin:离婚` ✅→❌ 既存回归（**干净树 f5c50f6 复现**=批D/E/F 基线陈旧，非本批引入）——预注册 §五-4 备案，建议另批核查 hunyin 模块。
+5. 空数据早退 reason 文案微调（「功量微弱（半层/无功）」→「无功（理象学:6022-6024）」）——与 0 态语义对齐，全库无测试钉该串。
+6. 顺手修正（任务授权）：KB:50 模块签名、KB:111/495 概念性 432→420、PACKAGE.md work_level.py 腐行 ×2 删、objective/README.md work_level.py 腐行+输出结构示例三键改注。
+
+### 6.3 不做清单守护（§5 全守住）
+
+14 条计分规则阈值与守门未动（hfix5 重钉安全断言实证 ph1-ph4 逐字节不变、13 盘 level/score 不变）；_SCORE_BAND/_compute_score/_compute_boundary 全保留（仅 _SCORE_BAND 增 0 分支）；caiming/guanming/gongmen_wuzhi/yongshen 消费侧条款未动；五层功未立；「连珠」词与任何形式类型计数未复活（全库 grep 零残留）；work_efficiency 三档保留；台账其他遗留项未顺手做。基线未写新快照、git 未提交——主代理复核后统一换基线（F6 先例：人工改 LATEST 一行 + _meta 三字段齐全，test_snapshot_hygiene 闸）。

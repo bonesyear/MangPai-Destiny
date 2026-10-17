@@ -60,10 +60,10 @@ def _zuogong_line(zg: dict) -> str:
     if not zg:
         return ''
     types = zg.get('work_types') or []
-    lv = zg.get('work_level')
-    tier = zg.get('work_tier', '')
     eff = zg.get('work_efficiency', '')
-    head = f"做功：{'+'.join(types) if types else '无'} L{lv} {tier} {eff}".strip()
+    # G1：层次段（L{lv} {tier}）随 zuogong_confirm 层次体系废除而删——
+    # 层功由 _gongliang_line 承担（做功层次唯一事实源 = gongliang）
+    head = f"做功：{'+'.join(types) if types else '无'} {eff}".strip()
     return head
 
 
@@ -460,8 +460,8 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
 
     - years: 结果 JSON 中全部 1800-2099 四位数（出生年/流年年/交运日期等）；
     - ages: 大运 start_age/end_age 整数 + 当前年龄（当前年−出生年）+ 大限宫位边界；
-    - counts: 上下文计数（N步大运/N流年/入墓N处/锁N/命中N法/约N个/work_level/
-      gongliang level/score 等）；
+    - counts: 上下文计数（N步大运/N流年/入墓N处/锁N/命中N法/约N个/
+      gongliang level/score/gong_points 等）；
     - bands: 财命 summary 中的金额档字（百万/千万/亿/百亿/千亿…）。
     """
 
@@ -484,9 +484,13 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
             pass
     for pat in (r'(\d+)步大运', r'(\d+)流年', r'入墓(\d+)处', r'锁(\d+)',
                 r'命中(\d+)法', r'约(\d+)个', r'(\d+)岁运联动',
-                r'"(?:work_level|level|score)": (\d+)'):
+                r'"(?:level|score)": (\d+)'):
         for m in re.finditer(pat, blob):
             counts.add(int(m.group(1)))
+    # gong_points 为小数功量点（如 2.5=两层半），整数截断入白名单——
+    # 防 LLM 引「0.5 层」类小数功量时被幻影数字误杀（G1 R3）
+    for m in re.finditer(r'"gong_points": (\d+(?:\.\d+)?)', blob):
+        counts.add(int(float(m.group(1))))
     cm = engine_result.get('caiming') or {}
     cm_blob = str(cm.get('summary', '')) + str(cm.get('tier', ''))
     for m in re.finditer(r'(百亿|千亿|数十亿|千万|百万|十万|亿|万)', cm_blob):

@@ -1,6 +1,7 @@
 """段氏四层功量 (gongliang) 测试 - 验证源文第6章命例回归与输出契约。
 
-与 zuogong_confirm.assess_work_level 并行的另一套体系（1-4 层富贵量级），
+gongliang 为做功层次唯一事实源（G1 收编终态：原 zuogong_confirm.assess_work_level
+的 L0-L5 类型计数体系已废除，0-4 层富贵量级，0=无功）。
 本测试覆盖：输出字段契约、核心铁律（原神用神同制）、制净封顶、普通四柱降档、
 以及源文第6章 14 命例的层数回归（14 例与源文一致；普例2 经同制实制佐证
 （合族单独不支撑同制）+ 日干无功弃之不看（日主自克非制）细化后达书层）。
@@ -65,9 +66,11 @@ class TestOutputContract:
         r = _run(LIJIACHENG)
         assert r['tier_name'] == _TIER_NAMES[r['level']]
 
-    def test_empty_input_is_level1(self):
+    def test_empty_input_is_level0(self):
+        # 无功立独立 0 态（G1，理象学:6022-6024「有的命只有半层功或根本无功」）
         r = analyze_gongliang()
-        assert r['level'] == 1
+        assert r['level'] == 0
+        assert r['tier_name'] == '无功'
         assert r['score'] == 0
 
 
@@ -160,18 +163,6 @@ class TestSourceRegression:
 
     def test_yuefei_3(self):
         assert _run(YUEFEI)['level'] == 3
-
-
-class TestParallelToAssessWorkLevel:
-    """与 zuogong_confirm.assess_work_level 并行存在、互不覆盖。"""
-
-    def test_both_callable(self):
-        from mangpai.subjective.zuogong_confirm import assess_work_level
-        # 两套体系均可独立调用，gongliang 不依赖 assess_work_level
-        r = _run(LIJIACHENG)
-        assert r['level'] == 4
-        # assess_work_level 仍存在且为另一套（0-5）
-        assert callable(assess_work_level)
 
 
 class TestBoundaryAnnotation:

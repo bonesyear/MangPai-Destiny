@@ -106,7 +106,7 @@ class TestBuildPayload:
             "shensha": {"羊刃": {"zhi": "未", "in_pillars": ["year"]}},
             "binzhu": {"layer1": {"label": "主"}, "layer2": {"label": "宾"}},
             "tiyong": {"ti_count": 1, "yong_count": 3},
-            "zuogong": {"work_types": ["制用"], "work_level": 1},
+            "zuogong": {"work_types": ["制用"]},
             "gongliang": {"level": 1, "tier_name": "小富小贵", "score": 12,
                           "gong_points": 0.0, "reasons": [], "zhi_jing": "无制",
                           "yuanshen_yongshen": None, "controls": [],
@@ -202,7 +202,7 @@ class TestAssemble:
     def payload(self):
         return {
             "bazi": {"full": "己未 乙亥 辛巳 癸巳"},
-            "zuogong": {"work_types": ["制用"], "work_level": 1},
+            "zuogong": {"work_types": ["制用"]},
         }
 
     def test_returns_system_user_tuple(self, payload):

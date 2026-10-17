@@ -28,7 +28,7 @@ from mangpai.objective import (
     GAN_XIANG, ZHI_XIANG, SHISHEN_XIANG, GONG_WEI_XIANG, SHENSHA_XIANG,
     LIUSHI_GANZHI_XIANG,
 )
-from mangpai.subjective.zuogong_confirm import analyze_zuogong, assess_work_level
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.gongliang import analyze_gongliang
 from mangpai.subjective.zhengfan import analyze_zhengfan
 from mangpai.subjective.shipaige import analyze_shipaige
@@ -51,7 +51,7 @@ __all__ = [
     'analyze_wood_type', 'analyze_soil',
     'classify_he_types', 'analyze_virtual_solid',
     'analyze_zhengfan', 'classify_gongshen', 'analyze_gongshen',
-    'assess_work_level', 'analyze_gongliang',
+    'analyze_gongliang',
     'analyze_shenshu', 'analyze_dayun_mangpai', 'analyze_liunian_mangpai', 'analyze_yunfan',
     'analyze_zhiye', 'analyze_gongmen_wuzhi', 'analyze_liuqin', 'analyze_zaihuo',
     'analyze_juefa',

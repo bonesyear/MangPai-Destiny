@@ -22,7 +22,6 @@
 | `zuogong.py` | **核心做功引擎**：制用/合用/墓用/生用/化用五类做功分析 |
 | `gongshen.py` | 功神/废神分类 |
 | `he_types.py` | 合的类型细分（天干合、地支六合、三合、半合等） |
-| `work_level.py` | 做功层次评估（Level 0-5） |
 | `virtual_solid.py` | 虚实分析（天干根气、通根） |
 | `zhengfan.py` | 正局/反局判断 |
 | `dayun.py` | **大运盲派分析**：干支关系/墓库开闭/废神激活/禄刃应期/气势变化/综合吉凶 |
@@ -87,10 +86,9 @@ result = {
     'tiyong': {...},         # 体用分类
     'zuogong': {             # 做功分析（核心）
         'work_types': [...], # 做功类型
-        'work_tier': '...',  # 做功层次描述
-        'work_level': 0-5,   # 做功层级
         'work_efficiency': '...', # 效率
         'work_actions': [...],    # 具体做功动作
+        # 做功层次唯一事实源 = subjective.gongliang（0-4 层功量，G1 收编）
     },
     'muku': {...},           # 墓库分析
     'anhe': {...},           # 暗合

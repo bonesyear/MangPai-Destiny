@@ -23,7 +23,7 @@
 | 职业 | 41✅/12⚠️/32❌ = **48.24%** (n=85) | 24✅ = **46.15%** (n=52) |
 
 （T-教授 财 +2 全预注册（教授/邢铭芬，贫穷命 ❌→⚠️ 改善非✅），M3 噪声带内，CI 下界 44.8%→46.6%。P4 职 +1 全预注册（gj-警察墓库），M3 噪声带内。P3 财 +2 全预注册，M3 噪声带内、CI 下界 43.1%→44.8%）
-- **验证口径**：`verify_mangpai.py` 432 项 + `pytest mangpai/tests/` 1265 collected（**1264 passed+1 xfailed，校验器修批F·校准敏感区收口 2026-10-17 实测**；方向性bug修复批·上游模块+校验器红1-4 批 1207+1xf、github description 闸门批 1173+1xf、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129+1xf、S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）+ `scripts/check_credentials.py`（脱敏脱密：凭证/隐私/本机路径，pre-commit 同源）+ `scripts/check_doc_numbers.py`（文档数字闸门：README/KB 权威声明位 vs 实测，非 pre-commit 默认项，改测试/模块数后手动跑）（旧 853 口径 2026-07-17 起作废）。
+- **验证口径**：`verify_mangpai.py` 420 项 + `pytest mangpai/tests/` 1264 collected（**1263 passed+1 xfailed，做功层次体系重写批 G1 2026-10-17 实测**；校验器修批F·校准敏感区收口 1264+1xf、方向性bug修复批·上游模块+校验器红1-4 批 1207+1xf、github description 闸门批 1173+1xf、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129+1xf、S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）+ `scripts/check_credentials.py`（脱敏脱密：凭证/隐私/本机路径，pre-commit 同源）+ `scripts/check_doc_numbers.py`（文档数字闸门：README/KB 权威声明位 vs 实测，非 pre-commit 默认项，改测试/模块数后手动跑）（旧 853 口径 2026-07-17 起作废）。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
 - **十批全模块审计已收官**（2026-08-17）：P0=96/P1=245/P2=259，修复批次 F0-F19 已批准（见 `docs/audit-progress-20260816.md`）；审计勘误本文件记录见 §10。
 
@@ -39,7 +39,7 @@ mangpai/
   engine.py              MangpaiEngine.compute_all() 编排器
   __init__.py            公共 API re-export 枢纽（from mangpai import X 对一切可用）
   calib_zhenbao.py       郝金阳10例校准脚本（zhenbao-01~23b）
-  verify_mangpai.py      432 项自洽检查（唯一版本，objective 副本已删）
+  verify_mangpai.py      420 项自洽检查（唯一版本，objective 副本已删）
   verify_dayun.py        70 项大运检查；verify_layer1.py 64 项基础层
   verify_layer3_checkpoint.py  20 项方向层检查点
   objective/  27 模块：bazi_calc/canggan/changsheng/constants/nayin/shensha/shenshu/
@@ -47,7 +47,7 @@ mangpai/
     zuogong_detect(纯检测)/virtual_solid/wood_type/soil_type/jiaoyun/dayun(纯检测)/
     yingqi/biqi/body_parts/advanced 已删(H-fix-4a,死 shim 零调用)/
     shishen(十神单一权威,H-fix-4b)/_relation_utils(pair_in,H-fix-4b)
-  subjective/ 30 模块：zuogong_confirm(analyze_zuogong+assess_work_level)/zhengfan/
+  subjective/ 30 模块：zuogong_confirm(analyze_zuogong)/zhengfan/
     gongliang(1-4层功量)/zeishen_bushen/yongshen(方向层R1-R3+N1-N3+classify_strength)/
     caiming/guanming/zhiye/hunyin/xueli/laoyu/liuqin/zinv(子女岁运应期+借腹,D6b 新模块,§4.13)/
     qianyi(迁移marker+应期窗,缺口批1,§4.14)/xiangmao(相貌marker层,缺口批2,§4.15)/
@@ -108,7 +108,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 - 小样本噪声：n≈50-115 时 Wilson 半宽 ±9-13pp，个位数 ✅ 变动多在噪声带内——结论以 CI 下界+显著性判定为准。
 - 模拟器（_zy*_sim/_gm_sim）只含 gold 可评例，**unscorable 例换档对 sim 失明**——落地后必须 blind_eval 全量 diff 兜底（职批4两处换档均靠此抓回归险）。
 - famous/calib 出现 REGRESSION 先 stash 实证是否存量——⚠️批7 勘误：罗斯切尔德 zy「批11 存量」**已自愈**（famous_baseline.json 该条即 ✅merchant，重跑仍 ✅，同分 6:6 靠 tie_pri margin=0 仍脆；乔布斯 baseline ❌→当前 ✅merchant），calib 常驻回归 2 条=zhenbao-01 官命/zhenbao-14a 财命（批13-15 存量起，修批B stash 实证=存量，R4 复核；原 zhenbao-05 官命/层功两条系 gold 标注错非引擎错，D1 数据批按书修正消化）。
-- 853/432 是自洽检查非命例回归——**绿≠无回归**，回归判定以 67例/famous/calib/blind 为准。
+- 853/420 是自洽检查非命例回归——**绿≠无回归**，回归判定以 67例/famous/calib/blind 为准。
 
 ---
 
@@ -131,7 +131,9 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 - 化用 detect 含坐下印；前置校准：涉日支制两端有一为印=化用路径内象不抑制；化用两 type（合化/杀印相生）共享 action='化用'，测试过滤按 type='合化'。
 - 穿=害等价；寅巳既穿又刑沿「刑去重穿」约定。
 
-### 4.2 功量层 gongliang（1-4 层，比 zuogong.work_level 准，engine 已接）
+### 4.2 功量层 gongliang（0-4 层，G1 起为做功层次唯一事实源，engine 已接）
+
+- **G1 收编终态（2026-10-17）**：原 zuogong_confirm.assess_work_level 的 L0-L5「类型计数+主被动加减」体系废除（书明文否定：理象学:6912 功的种数≠层数、:6018 上限四层；「连珠成势」七书零命中），做功层次以本模块为唯一事实源；`work_level`/`work_tier`/`work_level_desc` 三键与 gongliang `work_level_duizhang` 双轨对账键一并删除，公共 API `assess_work_level` 导出撤销。空数据早退补 **0=无功** 独立态（:6022-6024，tier_name='无功'、score=0）；半层不立档，由 gong_points 小数+boundary 表达。`has_severe_harm`/`has_active_harm` 穿害信号在 zuogong_confirm `_harm_signals()` 逐字等价保留。设计稿=`docs/design-gongliang-merge-20261017.md`、预注册=`docs/kimi-g1-gongliang-merge-prereg-20261017.md`（含慈禧/副总/差例三三例偏差备案：书 4/1/无功 vs 实测 L3/L3/L3，不为单例改权重）。
 
 - 加分：原神用神同制+2（**须冲/克/穿实制佐证**，合族单独不支撑——PUTONG2 书锚；多候选偏好财/官杀为用神）；制墓库+2（F6 去 san_he 门——书 6037 无三合条件，两书例丑未冲/戌刑丑皆非三合；新门=同制成立+冲/刑真制库动作+墓库为制用目标（冲互向 from 端亦计），同制位为墓库不重计，穿/克不计——例六/岳飞子未穿、例七寅克戌书均未计）；七杀当财+1（透干+与制局目标同根）；入墓+1；库源+1（须同制成立；**库源×入墓同源去重**——引出与收藏同一墓对相反读法不重计）；包局+1（san_he 或 **方局三会**——法则6 明载三会，奥纳西斯巳午未书例；方局支须以冲/刑作用于方局外之支，合/克/穿/破不计——cj-工薪实证）；层层相制+1（克链≥2，冲链不计）；月令+0.5；连墓加层（月令入墓于已计源头之库+1，李嘉诚第4点）；金字塔门（zb 链长≥3+冲边≥2+zb 净 → 乾隆 L4）。
 - 克链入墓惰性：已入墓元素出边不入链。
@@ -492,7 +494,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 9. **收窄先验 margin**：同桶 ✅ 集 margin≤1 者经不起任何降分；fp/真标两侧条款命中常同形（门户 25/26fp vs 14/15 真），clause 级收窄常零区分度。
 10. **纯收窄≈0✅**：职业/财命修复必须 fn 侧 boost 为主+fp 收窄前置配合；粗 uniform boost 换错桶 collateral 大。
 11. **模拟器失明面**：_zy/_gm dump 只含 gold 可评例，unscorable 换档须 blind_eval 全量 diff 兜底；sim 先做基线自洽校验（mismatch=[]）再信翻转数。
-12. **绿≠无回归**：432 自洽检查与方向/veto 场景正交；principled judge cat4 曾绕 veto 失明（已改 engine 路径）。
+12. **绿≠无回归**：420 自洽检查与方向/veto 场景正交；principled judge cat4 曾绕 veto 失明（已改 engine 路径）。
 13. **存量回归识别**：famous/calib 回归先 stash 实证——⚠️批7 勘误：罗斯切尔德已自愈移出（见 §6.4），calib 常驻 2 条（见 §6.4，D1 起 4→2）。
 14. **Edit 工具**：长块 old_string 易因全角标点/em-dash/箭头失配，拆小改+ASCII 锚点。
 15. **被否决修法勿重试**：方向门（10 书锚）/mingju 宽撤 merchant/桃花压平/桃花宽让位/GZ 主气收窄/SSK fallback 收窄/纯强度 MAX 聚合/不成 capL2/克链≥3 提阈/库源自墓排除/身弱财旺 cap/中气原神收窄/mingju_xiong 宽撤——全部有书锚或 sim 否决记录（见各批记忆）。**F15 增补三条**：①merchant 收窄（食伤生财主气化/冲财合财去重——误伤 heldout 既有✅ ans33/li131/li133，旧双计口径恰是过阈来源）；②lawyer 伤官合杀/食神制杀条款（与伤官制官同动作复计，误伤 li154/董竹君门户锚）；③C4 富屋贫人扩展 gating（身弱+财官主气≥4——与 7.2 案例一董事长同构不可分）。
@@ -508,9 +510,9 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 | 工具 | 用途 |
 |---|---|
-| `mangpai/verify_mangpai.py` | 432 项自洽检查（唯一版） |
+| `mangpai/verify_mangpai.py` | 420 项自洽检查（唯一版） |
 | `mangpai/verify_dayun.py` / `verify_layer1.py` / `verify_layer3_checkpoint.py` | 70 大运 / 64 基础 / 20 方向检查点 |
-| `python3 -m pytest mangpai/tests/ -q` | 1265 collected（**1264 passed+1 xfailed，校验器修批F·校准敏感区收口 2026-10-17 实测**；旧记 方向性bug修复批·红1-4 批 1207、github description 闸门批 1173、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129、T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
+| `python3 -m pytest mangpai/tests/ -q` | 1264 collected（**1263 passed+1 xfailed，做功层次体系重写批 G1 2026-10-17 实测**；旧记 校验器修批F·校准敏感区收口 1264、方向性bug修复批·红1-4 批 1207、github description 闸门批 1173、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129、T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
 | `scripts/check_layering.py` / `scripts/check_typing_imports.py` | 分层单向依赖守护（H-fix-4c 入库，`--graph` 出依赖图）/ typing-import 崩溃面守护（H-fix-1 配套） |
 | `scripts/check_credentials.py` | **脱敏脱密闸门**（2026-09-19 入库）：P0 凭证 / P1 隐私 → 阻止，P2 本机路径 → 警告；默认扫暂存区**新增行**（存量不干扰），`--all` 全量审计，输出打码含断言；与 `.git/hooks/pre-commit` 同源（`scripts/install_git_hooks.sh` 安装，clone 后须跑一次） |
 | `scripts/check_doc_numbers.py` | **文档数字闸门**（2026-09-19 入库）：README/KB 权威声明位（首行/验证表/架构表/验证口径行/本表 pytest 行）模块数与 pytest 数字 vs 实测（`pytest --collect-only` ~0.5s + 分层口径计数：foundation/objective 递归、subjective 只算顶层），漂移即退出码 1；`--quiet`/`--json`；`--github`=opt-in 联网追加核对 GitHub 仓库 description 数字声明（2026-09-25 入库：`MANGPAI_GITHUB_REPO` 默认 bonesyear/MangPai-Destiny、`GITHUB_TOKEN` 可选、public 仓库匿名可读；不一致/提取不到数字/网络失败均退 1 报明原因防假-green；默认关闭、不带开关时离线行为逐字节不变）；verify 四件套=低频项跳过（总数运行期动态累计，静态解析不可靠）；**非 pre-commit 默认项**，改了测试/模块数后手动跑 → 常驻闸门六件套（分层/typing/键契约/防假-green/脱敏/文档数字） |
@@ -527,8 +529,8 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 **标准验证六件套**（每批落地前必跑）：
 ```bash
-python3 mangpai/verify_mangpai.py                 # 432 全绿
-python3 -m pytest mangpai/tests/ -q               # 1265 collected（1264 passed+1 xfailed，校验器修批F·校准敏感区收口 2026-10-17 实测）
+python3 mangpai/verify_mangpai.py                 # 420 全绿
+python3 -m pytest mangpai/tests/ -q               # 1264 collected（1263 passed+1 xfailed，做功层次体系重写批 G1 2026-10-17 实测）
 python3 mangpai/tests/heldout/blind_eval.py --out snapshots/<批>.json --note "<验证状态>" --baseline latest
 PYTHONHASHSEED=0 python3 mangpai/tests/heldout/blind_eval.py --out /tmp/seed0.json  # 与默认 seed 逐字节一致
 python3 mangpai/tests/backtest/regression67.py    # 0 回归

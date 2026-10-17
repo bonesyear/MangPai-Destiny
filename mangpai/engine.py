@@ -422,8 +422,8 @@ class MangpaiEngine:
         if zb_res is None:
             zb_res = {}
 
-        # 段氏四层功量（与 zuogong.work_level 并行的富贵量级体系，
-        # 消费 zuogong 做功数据做二次量化，1-4 层；消费 zeishen_bushen 净制/包制信号）
+        # 段氏四层功量（G1：做功层次唯一事实源，0-4 层；
+        # 消费 zuogong 做功数据做二次量化；消费 zeishen_bushen 净制/包制信号）
         self._write(result, 'gongliang', self._safe_compute(
             'gongliang', analyze_gongliang,
             zg, self.day_gan, self.gans, self.zhis,
@@ -884,7 +884,9 @@ class MangpaiEngine:
         work_types = zg.get('work_types', [])
         if work_types:
             parts.append(f"做功类型：{'、'.join(work_types)}")
-            parts.append(f"做功层次：{zg.get('work_tier', '')}（Level {zg.get('work_level', 0)}）")
+            # G1：做功层次唯一事实源 = gongliang（0-4 层；zuogong 不再评层）
+            gl = result.get('gongliang', {}) or {}
+            parts.append(f"功量层次：{gl.get('tier_name', '')}（{gl.get('level', 0)} 层功）")
             parts.append(f"做功效率：{zg.get('work_efficiency', '')}")
         else:
             parts.append("做功：无功")

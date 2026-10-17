@@ -49,7 +49,7 @@ def show(name, res):
     zg = res['zuogong']; gl = res['gongliang']
     print(f"【{name}】 {res['bazi']['year']} {res['bazi']['month']} {res['bazi']['day']} {res['bazi']['hour']}")
     print(f"  zuogong: types={zg.get('work_types')} primary={zg.get('primary_work')} "
-          f"level={zg.get('work_level')}/{zg.get('work_tier')} eff={zg.get('work_efficiency')}")
+          f"eff={zg.get('work_efficiency')}")
     print(f"  gongliang: level={gl.get('level')} score={gl.get('score')} tier={gl.get('tier_name')} "
           f"points={gl.get('gong_points')} zhi_jing={gl.get('zhi_jing')} penalty={gl.get('penalty')}")
     print(f"  gongliang.reasons: {gl.get('reasons')}")

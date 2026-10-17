@@ -1,5 +1,16 @@
 # 盲派客观层 变更记录
 
+## 2026-10-17 G1 · 做功层次体系收编批（zuogong_confirm L0-L5 类型计数体系废除，gongliang 收编为做功层次唯一事实源；公共 API 变更；设计稿+预注册先行）
+
+| 项目 | 内容 |
+|------|------|
+| 收编裁定 | 书只有一个功量体系：理象学:6912「三种不同的功…论功量只有一层」否定类型计数、:6018「最多也只有四层功罢了」锁四层上限、「连珠成势」七书零命中。gongliang 加法功量模型 16 书锚全绿即为书口径工程化实现，收编为唯一事实源；**算法本体（14 条计分规则阈值/守门/_SCORE_BAND/_compute_score/_compute_boundary）零改动** |
+| 公共 API 变更 | `analyze_zuogong` 删 `work_level`/`work_tier`/`work_level_desc` 三键（其余键不变）；`mangpai.__init__` 撤 `assess_work_level` 导出；`analyze_gongliang` 删 `work_level_duizhang` 双轨对账键（M5 段整删）。`has_severe_harm`/`has_active_harm` 抽 `zuogong_confirm._harm_signals()` 逐字等价保留（两个 any() 遍历 non_aux、work_types 空→双 False） |
+| 无功零态 | gongliang 空数据早退 level=1→**0**（理象学:6022-6024「有的命只有半层功或根本无功」）：tier_name='无功'、score=0，`_TIER_NAMES`/`_SCORE_BAND` 补 0 分支；半层不立档（gong_points 小数+boundary 表达） |
+| 消费方过渡 | narrative._zuogong_line 删 L{lv} 段（层功归 _gongliang_line）；数字白名单 regex 删 work_level 补 gong_points 小数（R3）；engine._build_summary 改读 gongliang（「功量层次：{tier_name}（{level} 层功）」）；xiangfa_ops 删 work_level==0 冗余支路；calib/harness 打印行；prompts/mangpai.md 授权四行（:11 四层功量级表/:34 删连珠成势/:42 功量规则依据/:67 basis 示例） |
+| 回填 11 例（diag_case 实测） | 合书 8：例六2/例七2/例九3/普例一1/普例三1/普例四2/普例五2/总理例4（书「近四层」points 6.5）；偏差备案 3（预注册 §五）：慈禧 L3（书 4，R2 附录口径让位法则7）/副总 L3（书 1，:6900-6912 通则 vs 加法累计 4.5 点张力）/差例三 L3（书「无功」，引擎无「天干坏之」否决规则=已知模型缺口候选后续批）——均**不为单例改权重**，verify 新 4 锚钉实测层数注明书层 |
+| 验证 | pytest **1263 passed+1xf**（1264→1263：删 TestParallelToAssessWorkLevel 1 测）；verify **420**+70+64+20（432→420：§11 删 9+§14d-2 删 2+§18 删 5+新锚 4）；test_hfix5_gongliang 按文件头部流程 exec 全量重钉（安全断言：ph1-ph4 逐字节不变、13 盘 level/score 不变，仅 duizhang 键与双轨 reasons 消失）；test_hfix5_compute_all 两颗 summary 钉 exec 重钉（设计 4.3 预判「不红」偏差备案——乾隆盘旧钉「单层做功 Level 1」正系设计 §0 实证错位例，新钉归书「极富极贵 4 层功」）；regression67 cat1 删 cap（书无类型数→层次映射）+复例二副总补 CAT2（standing ❌ 备案锚）+baseline67 --write-baseline 重钉（`hunyin:离婚` ✅→❌ 既存回归**干净树复现**=批D/E/F 基线陈旧非本批，一并吸收备案另批核查）；**blind vs `snapshots/20261017_b1.json`（LATEST）三维零翻转零抖动**（heldout/trainset 各 0 翻转 0 文本抖动，六维 Δ 全 +0.0%，设计 §0 结构论证成立）；check_layering+check_typing_imports+check_credentials+check_doc_numbers 全过；README/KB 验证数字同步（420/1264 collected=1263+1xf）。基线推进待主代理统一换基线提交；设计稿=`docs/design-gongliang-merge-20261017.md`、预注册=`docs/kimi-g1-gongliang-merge-prereg-20261017.md`、KB §4.2 收编终态、审计台账遗留项③关闭 |
+
 ## 2026-09-18 T-教授 · 财命窄条款微批（caiming 消费侧单点，objective/总线零改动；预注册先行）
 
 | 项目 | 内容 |

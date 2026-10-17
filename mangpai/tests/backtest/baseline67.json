@@ -1,75 +1,75 @@
 {
  "zg:制例一奥纳西斯": {
   "verdict": "⚠️",
-  "detail": "types=['制用', '合用', '生用'] primary=合用 lv=3"
+  "detail": "types=['制用', '合用', '生用'] primary=合用"
  },
  "zg:制例二": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '成势', '生用'] primary=制用 lv=2"
+  "detail": "types=['制用', '合用', '成势', '生用'] primary=制用"
  },
  "zg:制例三": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '生用'] primary=制用 lv=2"
+  "detail": "types=['制用', '合用', '生用'] primary=制用"
  },
  "zg:化例一": {
   "verdict": "✅",
-  "detail": "types=['制用', '化用'] primary=化用 lv=3"
+  "detail": "types=['制用', '化用'] primary=化用"
  },
  "zg:化例二": {
   "verdict": "✅",
-  "detail": "types=['制用', '化用'] primary=化用 lv=2"
+  "detail": "types=['制用', '化用'] primary=化用"
  },
  "zg:化例三中堂": {
   "verdict": "✅",
-  "detail": "types=['制用', '化用', '合用'] primary=化用 lv=4"
+  "detail": "types=['制用', '化用', '合用'] primary=化用"
  },
  "zg:生例一富婆": {
   "verdict": "✅",
-  "detail": "types=['制用', '生用'] primary=生用 lv=1"
+  "detail": "types=['制用', '生用'] primary=生用"
  },
  "zg:生例二经理": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '生用'] primary=生用 lv=2"
+  "detail": "types=['制用', '合用', '生用'] primary=生用"
  },
  "zg:生例四企业家": {
   "verdict": "✅",
-  "detail": "types=['制用', '生用'] primary=生用 lv=1"
+  "detail": "types=['制用', '生用'] primary=生用"
  },
  "zg:合例一富命": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用'] primary=合用 lv=3"
+  "detail": "types=['制用', '合用'] primary=合用"
  },
  "zg:合例六两妻": {
   "verdict": "✅",
-  "detail": "types=['制用', '化用', '合用'] primary=合用 lv=4"
+  "detail": "types=['制用', '化用', '合用'] primary=合用"
  },
  "zg:合例八暗合": {
   "verdict": "⚠️",
-  "detail": "types=['制用', '合用', '生用'] primary=生用 lv=1"
+  "detail": "types=['制用', '合用', '生用'] primary=生用"
  },
  "zg:墓例一经理": {
   "verdict": "⚠️",
-  "detail": "types=['制用', '墓用'] primary=制用 lv=1"
+  "detail": "types=['制用', '墓用'] primary=制用"
  },
  "zg:墓例三电厂官": {
   "verdict": "⚠️",
-  "detail": "types=['制用', '合用', '墓用', '生用'] primary=合用 lv=3"
+  "detail": "types=['制用', '合用', '墓用', '生用'] primary=合用"
  },
  "zg:墓例四曾国藩": {
   "verdict": "⚠️",
-  "detail": "types=['制用', '墓用', '生用'] primary=生用 lv=2"
+  "detail": "types=['制用', '墓用', '生用'] primary=生用"
  },
  "zg:复例一数学家": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '墓用'] primary=制用 lv=3"
+  "detail": "types=['制用', '合用', '墓用'] primary=制用"
  },
  "zg:复例二副总": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用'] primary=合用 lv=2"
+  "detail": "types=['制用', '合用'] primary=合用"
  },
  "zg:复例四老师经商": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '生用'] primary=制用 lv=2"
+  "detail": "types=['制用', '合用', '生用'] primary=制用"
  },
  "gl:李嘉诚": {
   "verdict": "✅",
@@ -130,6 +130,10 @@
  "gl:阎锡山": {
   "verdict": "✅",
   "detail": "level=3(书3) score=76"
+ },
+ "gl:复例二副总": {
+  "verdict": "❌",
+  "detail": "level=3(书1) score=68"
  },
  "xf:共象:丁目": {
   "verdict": "⚠️",
@@ -248,8 +252,8 @@
   "detail": "ok=True 审计档=✅ val=差"
  },
  "hunyin:离婚": {
-  "verdict": "✅",
-  "detail": "ok=True 审计档=✅ val=差"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=✅ val=平"
  },
  "xueli:初中": {
   "verdict": "✅",

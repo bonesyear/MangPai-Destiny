@@ -76,8 +76,7 @@ def test_summarize_bare_engine_output():
     """裸 compute_all() 输出（仅引擎维度）也能压成一行，缺失 subjective 段静默跳过。"""
     er = {
         'bazi': {'year': '戊戌', 'month': '己未', 'day': '乙巳', 'hour': '丁亥'},
-        'zuogong': {'work_types': ['制用', '生用'], 'work_level': 2,
-                    'work_tier': '双层做功', 'work_efficiency': '中'},
+        'zuogong': {'work_types': ['制用', '生用'], 'work_efficiency': '中'},
         'gongliang': {'level': 3, 'tier_name': '大富大贵',
                       'zhi_jing': '不净', 'fugui_pinjian': '第三档·大富大贵'},
         'zhengfan': {'configuration': '正局（土旺成势）', 'type': 'zheng'},
@@ -99,8 +98,7 @@ def test_summarize_enriched_bundle():
     """bundle_case_result 合并后的 enriched dict 抽全维度。"""
     er = {
         'bazi': {'year': '壬子', 'month': '癸卯', 'day': '壬子', 'hour': '甲辰'},
-        'zuogong': {'work_types': ['制用'], 'work_level': 1,
-                    'work_tier': '单层做功', 'work_efficiency': '中'},
+        'zuogong': {'work_types': ['制用'], 'work_efficiency': '中'},
         'gongliang': {'level': 3, 'tier_name': '大富大贵', 'zhi_jing': '不净'},
         'zhengfan': {'configuration': '正局', 'type': 'zheng'},
         'muku': {'open_tombs': [], 'closed_tombs': [],
@@ -127,8 +125,7 @@ def test_summarize_enriched_bundle():
 def test_render_prompt_mode_returns_prompt_text():
     er = {
         'bazi': {'year': '戊戌', 'month': '己未', 'day': '乙巳', 'hour': '丁亥'},
-        'zuogong': {'work_types': ['制用'], 'work_level': 2,
-                    'work_tier': '双层', 'work_efficiency': '中'},
+        'zuogong': {'work_types': ['制用'], 'work_efficiency': '中'},
         'gongliang': {'level': 3, 'tier_name': '大富大贵', 'zhi_jing': '不净'},
     }
     out = render_hao_narrative(er, user_question='今年养车怎么样？', call_llm=False)
@@ -140,13 +137,13 @@ def test_render_prompt_mode_returns_prompt_text():
 
 
 def test_render_prompt_mode_no_question():
-    er = {'bazi': {'year': '壬子'}, 'zuogong': {'work_types': ['制用'], 'work_level': 1}}
+    er = {'bazi': {'year': '壬子'}, 'zuogong': {'work_types': ['制用']}}
     out = render_hao_narrative(er, user_question=None, call_llm=False)
     assert '命主未明问' in out
 
 
 def test_bundle_case_result_merges_subjective():
-    res = {'bazi': {'year': '戊戌'}, 'zuogong': {'work_level': 2}}
+    res = {'bazi': {'year': '戊戌'}, 'zuogong': {'work_types': ['制用']}}
     cm = {'tier': '富'}
     gm = {'is_guanming': False}
     hy = {'quality': '差'}
@@ -162,7 +159,7 @@ def test_bundle_case_result_merges_subjective():
     assert er['dayun_gz'] == '壬戌'
     assert er['liunian_gz'] == '戊辰'
     # 引擎原字段仍保留
-    assert er['zuogong']['work_level'] == 2
+    assert er['zuogong']['work_types'] == ['制用']
 
 
 # ---------- N3：few-shot 口径一致性（2026-07-17 重跑后锁定） ----------
@@ -201,7 +198,6 @@ _ER = {
     'bazi': {'year': '戊戌', 'month': '己未', 'day': '乙巳', 'hour': '丁亥'},
     'dayun': {'dayun': [{'gz': '壬戌', 'start_age': 5, 'end_age': 15}]},
     'liunian': [{'gz': '戊辰', 'year': 1988}],
-    'zuogong': {'work_level': 2},
     'gongliang': {'level': 3, 'score': 68},
     'summary': '共1步大运；共1流年',
     'caiming': {'tier': '小康', 'summary': '财命层级：小康；功量富档：百万级'},
@@ -227,7 +223,7 @@ def test_validate_year_not_in_whitelist_flagged():
 
 def test_validate_age_and_count():
     r = validate_narrative_numbers('你5岁起运，一生四次婚姻，有五个孩子。', _ER)
-    # 5岁在白名单（start_age=5）；4次/5个不在引擎计数（白名单=1,2,3,68）→ 标记
+    # 5岁在白名单（start_age=5）；4次/5个不在引擎计数（白名单=1,3,68）→ 标记
     kinds = [v['kind'] for v in r['violations']]
     assert 'age' not in kinds
     assert kinds.count('count') == 2
@@ -317,7 +313,7 @@ def test_render_input_death_scrubbed():
 def test_render_hao_narrative_emits_deprecation_warning():
     """批D：render_hao_narrative 为遗留通道（S1 裁定正式通道 =
     llm_channel.render_structured_reading），调用须发 DeprecationWarning。"""
-    er = {'bazi': {'year': '壬子'}, 'zuogong': {'work_types': ['制用'], 'work_level': 1}}
+    er = {'bazi': {'year': '壬子'}, 'zuogong': {'work_types': ['制用']}}
     with pytest.warns(DeprecationWarning):
         render_hao_narrative(er, user_question=None, call_llm=False)
 

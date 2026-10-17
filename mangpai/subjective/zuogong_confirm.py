@@ -22,16 +22,19 @@ zuogong_confirm - 盲派做功引擎·做功成立确认层（subjective）
 
 分层说明（objective/subjective 重构）：
   本模块为"解释性判断"层：消费 objective.zuogong_detect 的纯关系检测结果，
-  做党势强弱判定、做功成立确认、primary_work 优先级链、做功效率/层次/主被动
-  评估。assess_work_level（做功层次 0-5 评估）亦属解释性判断，故由原
-  objective/work_level 合并至此。判断含置信度（中）。
+  做党势强弱判定、做功成立确认、primary_work 优先级链、做功效率/主被动
+  评估。判断含置信度（中）。
   依赖方向单向：subjective -> objective（本模块只 import objective，不反向）。
-已知争议：做功的判定条件和范围、层次划分标准各盲师有不同，本模块采用类型
-          数量+结构+主被动+方向综合判定
+做功层次（G1 收编）：原 assess_work_level 的 L0-L5「类型计数+主被动加减」
+  体系已废除（书明文否定：理象学:6912 功的种数≠层数、:6018 上限四层；
+  设计稿 docs/design-gongliang-merge-20261017.md）。做功层次唯一事实源
+  = subjective.gongliang（0-4 层加法功量）。本模块只保留
+  has_severe_harm/has_active_harm 穿害信号（gongliang:414、xiangfa 等消费）。
+已知争议：做功的判定条件和范围各盲师有不同，本模块采用类型+结构+方向综合判定
 置信度：中
 """
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.zuogong_detect import detect_relations, _day_faction
 from mangpai.objective.gongfei import classify_gongshen
@@ -51,82 +54,22 @@ from mangpai.objective.canggan import get_canggan_mangpai
 
 _logger = logging.getLogger(__name__)
 
-# ── 做功层次评估（原 objective/work_level，解释性判断，置信度中）──
-# Level 0: 无功（废神多，需看大运激发）
-# Level 1: 单层做功（单一类型/单一路径）
-# Level 2: 双层做功（多类型叠加，效率较高）
-# Level 3: 叠加功量（三类型以上或包围制等高效率结构）
-# Level 4: 化用成局或制局（化用成功 + 多类型叠加≥3）
-# Level 5: 连珠做功或全局成势做功（三合局成势 + 功神占比>70%）
-# 主动做功多->格局加分；被动受制多->格局减分
-# 被动合/被动生不减分（财来合我、印来生我可为吉）
-# 反向做功（用在主位制体在宾位）效率高，但段氏无明确加成依据，
-# 仅在描述中加注"含反向做功"作参考信号，不直接调整层次
-_TIER_MAP = {
-    0: '无功',
-    1: '单层做功',
-    2: '双层做功',
-    3: '叠加功量',
-    4: '化用成局',
-    5: '连珠成势',
-}
+# ── 穿的 harm 信号（G1：原 assess_work_level 的 L0-L5 类型计数体系已废除，
+#    做功层次唯一事实源 = subjective.gongliang；以下两个 any() 为原函数
+#    :128-139 逐字保留，行为等价：work_types 为空 -> 双 False，否则在非辅助
+#    动作集上判穿）──
 
 
-def assess_work_level(
-    work_types: List[str],
-    work_actions: List[Dict],
-    tomb_works_count: int,
-    day_he_type: Optional[str],
-    active_work_count: int = 0,
-    passive_work_count: int = 0,
-    passive_control_count: int = 0,
-    hua_success: bool = False,
-    san_he_formed: bool = False,
-    gong_shen_ratio: float = 0.0,
-    reverse_work_count: int = 0,
-    efficiency_discount_count: int = 0,
-    chengshi_primary: bool = False,
-) -> Dict:
-    """评估做功层次。
+def _harm_signals(work_types: List[str], work_actions: List[Dict]) -> Tuple[bool, bool]:
+    """穿的 harm 信号（原 assess_work_level 内联段逐字保留）。
 
-    Args:
-        work_types: 做功类型列表（制用/合用/墓用/生用/化用/成势）
-        work_actions: 做功动作列表
-        tomb_works_count: 墓用做功数量
-        day_he_type: 日干合类型
-        active_work_count: 日柱主动做功数量（from_pos 以 day_ 开头）
-        passive_work_count: 日柱被动被做功数量（to_pos 以 day_ 开头）
-        passive_control_count: 日柱被动受制数量（被克/冲/穿/刑/破/入墓）
-        hua_success: 天干合化是否成功（化用成局条件之一）
-        san_he_formed: 是否三合局成势（连珠成势条件之一）
-        gong_shen_ratio: 功神占全部干支的比例（0-1）
-        reverse_work_count: 反向做功数量（用在主位制体在宾位）；仅作参考信号加注，不调整 level
-        efficiency_discount_count: 因长生/天干入墓而效率打折的动作数
-        chengshi_primary: 主做功是否为成势（三合局做功为主）。连珠成势(L5)须成势本身
-            为命局主功方成立--三合局仅为 incidental 之命（主功在制/合/生）不升至 L5，
-            避免层次虚高（制例二 寅午戌火局成势但主功在寅克丑戌之制用，非连珠成势）
-
-    Returns:
-        {'level': int, 'desc': str, 'tier': str,
-         'has_severe_harm': bool, 'has_active_harm': bool}
+    被动穿（severity=high 且 to_pos 含 day_）-> has_severe_harm；
+    主动穿（severity=high 且 from_pos 含 day_）-> has_active_harm。
+    work_types 为空时双 False（与原函数早退分支等价）。调用方传
+    (sorted(work_types), non_aux)，与原 assess_work_level 同参。
     """
     if not work_types:
-        return {
-            'level': 0,
-            'tier': '无功',
-            'desc': '无功（废神多，需看大运激发）',
-            'has_severe_harm': False,
-            'has_active_harm': False,
-        }
-
-    type_count = len(work_types)
-
-    # ── 穿的区分（段建业《段氏理象学》穿篇）──
-    # 盲派认为穿比冲更凶，"穿坏即灾"。但穿有方向性区分：
-    # 被动穿（别人穿我，to_pos含day）-> 严重损害日柱做功质量
-    # 主动穿（我穿别人，from_pos含day）-> 仍属制用做功，但穿为暗伤，
-    #   不如冲/克效率高，做功有暗损（段氏："穿是暗中破坏，虽制犹伤"）
-    # 非日柱穿 -> 不直接影响日柱做功
+        return False, False
     has_severe_harm = any(
         wa.get('type') == '穿'
         and wa.get('severity') == 'high'
@@ -139,82 +82,7 @@ def assess_work_level(
         and wa.get('from_pos', '').startswith('day_')
         for wa in work_actions
     )
-    if has_severe_harm:
-        harm_note = '（日柱被穿，做功质量严重受损）'
-    elif has_active_harm:
-        harm_note = '（日柱穿他柱，做功有暗损）'
-    else:
-        harm_note = ''
-
-    # ── 基础层次（按类型数量+结构判定）──
-    # 阈值经微调：Level 3 不只看类型数，也认可"双类型 + 强主动"等高效率结构，
-    # 避免所有命局堆在 1-2 层。Level 4/5 为特殊层次，须满足专门条件方可达到。
-    if san_he_formed and gong_shen_ratio > 0.7 and chengshi_primary:
-        base_level = 5
-        base_desc = '三合局成势且功神占比>70%，连珠成势做功，层次极高'
-    elif hua_success and type_count >= 3:
-        base_level = 4
-        base_desc = '化用成局且多类型叠加（化用+' + '+'.join(work_types) + '），层次甚高'
-    elif type_count >= 3:
-        base_level = 3
-        base_desc = f'三类型以上做功（{"+".join(work_types)}），叠加功量，效率极高'
-    elif type_count >= 2 and active_work_count >= 3:
-        base_level = 3
-        base_desc = f'多类型做功（{"+".join(work_types)}）且日柱强主动，叠加功量'
-    elif type_count >= 2:
-        base_level = 2
-        base_desc = f'多类型做功（{"+".join(work_types)}），效率较高'
-    elif tomb_works_count >= 2:
-        base_level = 1
-        base_desc = '墓用做功，层次中等'
-    elif day_he_type:
-        base_level = 1
-        base_desc = f'日干{day_he_type}做功，层次因合局完整度而异'
-    else:
-        base_level = 1
-        base_desc = '单一类型做功，层次普通'
-
-    # ── 主动/被动/反向做功调整 ──
-    # 主动做功多->格局加分（我取外物）
-    # 被动受制多->格局减分（被克/冲/穿/刑/破/入墓）
-    # 被动合/被动生不减分（财来合我、印来生我可为吉）
-    # 反向做功（用在主位制体在宾位）效率高，但段氏无"反向做功->层次+1"的明确依据，
-    # 故不直接调整 level，仅在描述中加注"含反向做功"作为参考信号。
-    # 注：效率加成/减损仅在 0-3 常规 band 内生效；Level 4/5 为特殊层次（化用成局/连珠成势），
-    # 须由专门条件达到，效率加成不再上推，以保证层次标签与达成路径一致。
-    level = base_level
-    direction_note = ''
-    passive_benefit_count = passive_work_count - passive_control_count
-    if level < 4:
-        if active_work_count >= 2 and active_work_count > passive_control_count:
-            level = min(level + 1, 3)
-            direction_note = '，主动做功为主，格局加成'
-        elif passive_control_count >= 2 and passive_control_count > active_work_count:
-            level = max(level - 1, 0)
-            direction_note = '，被动受制为主，格局减损'
-        elif passive_benefit_count >= 2:
-            direction_note = '，被动合/生为主（财来合我、印来生我），为吉象'
-        # 长生/天干入墓折扣动作过多（≥非辅助做功半数）-> 层次降一级
-        # 效率减损仅在 0-3 常规 band 内生效，不波及 Level 4/5 特殊层次
-        if (efficiency_discount_count > 0 and work_actions
-                and efficiency_discount_count * 2 >= len(work_actions)):
-            level = max(0, level - 1)
-            disc_note = '，做功折扣多，效率减损'
-            direction_note = (direction_note + disc_note) if direction_note else disc_note
-    # 反向做功：仅作参考信号加注，不调整 level（段氏无明确加成依据）
-    if reverse_work_count >= 1:
-        rev_note = f'，含反向做功{reverse_work_count}项(参考信号)'
-        direction_note = (direction_note + rev_note) if direction_note else rev_note
-
-    tier = _TIER_MAP[level]
-
-    return {
-        'level': level,
-        'tier': tier,
-        'desc': f'{base_desc}{harm_note}{direction_note}',
-        'has_severe_harm': has_severe_harm,
-        'has_active_harm': has_active_harm,
-    }
+    return has_severe_harm, has_active_harm
 
 
 # ── 做功成立确认（原 objective/zuogong 的 confirm 层）──
@@ -352,10 +220,11 @@ def analyze_zuogong(
     """盲派做功分析。
 
     检测四柱中的制用、合用、墓用、生用、化用、成势六类做功方式，
-    依优先级链判定主做功，分类功神废神，评估做功层次。
+    依优先级链判定主做功，分类功神废神，评估做功效率与主被动。
+    （G1：做功层次已收编进 subjective.gongliang，本函数不再评层。）
 
     分层：纯关系检测交由 objective.zuogong_detect.detect_relations 完成；
-    本函数做党势强弱判定、做功成立确认、primary_work、效率/层次/主被动评估。
+    本函数做党势强弱判定、做功成立确认、primary_work、效率/主被动评估。
 
     支持两种调用签名（P2-1 统一 API）：
       1. 旧签名：analyze_zuogong(day_gan, day_zhi, year_gan, year_zhi,
@@ -417,7 +286,8 @@ def analyze_zuogong(
     _DEDUP_PRIORITY = {'冲': 7, '刑': 6, '穿': 5, '破': 4, '地支合': 3, '克': 2, '生': 1}
     _DEDUP_TYPES = {'冲', '克', '刑', '穿', '破', '地支合', '生'}
     # 穿（severity=high）即使被去重也不标 auxiliary：穿为暗伤，其 harm 信号必须
-    # 透传到 assess_work_level 的 has_severe_harm/has_active_harm 判断。
+    # 透传到 _harm_signals 的 has_severe_harm/has_active_harm 判断（G1 后消费方
+    # 为 gongliang/xiangfa 等，行为与原 assess_work_level 逐字等价）。
     # 被动穿（to_pos 含 day_）-> has_severe_harm；主动穿（from_pos 含 day_）-> has_active_harm。
     # 寅巳对同时为刑(pri6)与穿(pri5)，刑胜出时穿被去重--若不保护，主动穿漏标
     # has_active_harm（被动穿已由 _is_passive_chuan 保护，_is_active_chuan 对称补全）。
@@ -1132,45 +1002,21 @@ def analyze_zuogong(
         if wa.get('type') in _PASSIVE_CONTROL_TYPES
     ]
 
-    # ── 化用是否成功（供 work_level 判 Level 4）──
-    hua_success = '化用' in work_types
-
-    # ── 功神占比（供 work_level 判 Level 5）──
+    # ── 功神占比（输出字段，供消费方参考）──
     gs_result = classify_gongshen(work_actions, pillar_keys, gans, zhis)
     gong_count = len(gs_result['gong_shen'])
     total_positions = sum(1 for g in gans if g) + sum(1 for z in zhis if z)
     gong_shen_ratio = (gong_count / total_positions) if total_positions else 0.0
 
-    # ── 做功层次评估（本模块内 assess_work_level）──
-    # 连珠成势(L5)须成势本身为主功：主做功动作是否为三合局。serial chain 不以三合局
-    # 为 primary_action（成势多属 incidental），故 incidental 三合局命不升至 L5。
-    _chengshi_primary = (primary_action is not None
-                         and primary_action.get('type') == '三合局')
-    level_result = assess_work_level(
-        sorted(work_types), non_aux, len(tomb_works), day_he_type,
-        active_work_count=len(active_work),
-        passive_work_count=len(passive_work),
-        passive_control_count=len(passive_control),
-        hua_success=hua_success,
-        san_he_formed=san_he_formed,
-        gong_shen_ratio=gong_shen_ratio,
-        reverse_work_count=reverse_work_count,
-        efficiency_discount_count=efficiency_discount_count,
-        chengshi_primary=_chengshi_primary,
-    )
-    level = level_result['level']
-    work_tier = level_result['tier']
-    work_level_desc = level_result.get('desc', '')
-    has_severe_harm = level_result.get('has_severe_harm', False)
-    has_active_harm = level_result.get('has_active_harm', False)
+    # ── 穿的 harm 信号（G1：层次评估已收编进 gongliang，本模块不再评层；
+    #    信号行为与原 assess_work_level 逐字等价：work_types 空 -> 双 False，
+    #    否则在非辅助动作集上判穿）──
+    has_severe_harm, has_active_harm = _harm_signals(sorted(work_types), non_aux)
 
     return {
         'work_actions': work_actions,
         'work_types': sorted(work_types),
         'work_efficiency': efficiency,
-        'work_level': level,
-        'work_tier': work_tier,
-        'work_level_desc': work_level_desc,
         'has_severe_harm': has_severe_harm,
         'has_active_harm': has_active_harm,
         'day_he_type': day_he_type,

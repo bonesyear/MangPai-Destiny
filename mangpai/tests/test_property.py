@@ -6,7 +6,7 @@
 
 不变量：
   1. MangpaiEngine.compute_all() 不抛异常；
-  2. gongliang.level ∈ [0, 5]、zuogong.work_level ∈ [0, 5]（存在时）；
+  2. gongliang.level ∈ [0, 4]（G1：做功层次唯一事实源；zuogong 不再评层）；
   3. 十神值全部合法（十神集合 + 日主）；
   4. 空亡为 2 个合法地支；
   5. summary 为字符串；
@@ -60,15 +60,10 @@ def _assert_invariants(bd):
     kw = bd['kong_wang'].get('zhi', [])
     assert len(kw) == 2 and all(z in DI_ZHI for z in kw)
 
-    # 层功 level ∈ [0,5]
+    # 层功 level ∈ [0,4]（G1：做功层次唯一事实源，0=无功）
     gl = r.get('gongliang')
     if isinstance(gl, dict) and gl.get('level') is not None:
-        assert 0 <= gl['level'] <= 5, f"gongliang.level={gl['level']} 越界"
-
-    # 做功 work_level ∈ [0,5]
-    zg = r.get('zuogong')
-    if isinstance(zg, dict) and zg.get('work_level') is not None:
-        assert 0 <= zg['work_level'] <= 5, f"work_level={zg['work_level']} 越界"
+        assert 0 <= gl['level'] <= 4, f"gongliang.level={gl['level']} 越界"
 
     # summary 为字符串
     assert isinstance(r.get('summary'), str)
@@ -126,7 +121,6 @@ def test_deterministic_repeat():
         r1 = _assert_invariants(bd)
         r2 = _assert_invariants(bd)
         assert r1.get('gongliang', {}).get('level') == r2.get('gongliang', {}).get('level')
-        assert r1.get('zuogong', {}).get('work_level') == r2.get('zuogong', {}).get('work_level')
         assert r1.get('summary') == r2.get('summary')
 
 
@@ -138,4 +132,4 @@ def test_every_jiazi_as_day_pillar(gz):
     assert isinstance(r, dict)
     gl = r.get('gongliang')
     if isinstance(gl, dict) and gl.get('level') is not None:
-        assert 0 <= gl['level'] <= 5
+        assert 0 <= gl['level'] <= 4

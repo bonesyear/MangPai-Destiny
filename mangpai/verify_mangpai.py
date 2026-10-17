@@ -36,7 +36,8 @@ from mangpai.objective.constants import (
     TOMB_MAP, DI_ZHI, LU,
 )
 from mangpai.objective.shensha import compute_shensha_ext, _TAO_HUA, _YI_MA, _TIAN_YI, _WEN_CHANG, _HUA_GAI
-from mangpai.subjective.zuogong_confirm import analyze_zuogong, assess_work_level
+from mangpai.subjective.zuogong_confirm import analyze_zuogong
+from mangpai.subjective.gongliang import analyze_gongliang
 from mangpai.objective.tiyong import _TI_SHISHEN, _YONG_SHISHEN, classify_tiyong
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.muku import is_entomb, analyze_muku, is_gan_entombed, gan_tomb_zhi
@@ -592,61 +593,37 @@ for a, b, wx in [('甲', '己', '土'), ('乙', '庚', '金'),
     check(f'合化 {a}{b}→{wx}', HUA_YONG_MAP.get((a, b)) == wx)
     check(f'合化 {b}{a}→{wx}', HUA_YONG_MAP.get((b, a)) == wx)
 
-# ── 11. 做功层次评估 ──
-print('\n── 11. 做功层次评估 ──')
+# ── 11. 做功层次（G1：唯一事实源 gongliang，0-4 层功量）──
+print('\n── 11. 做功层次（gongliang 书锚）──')
 
-# 无做功→Level 0
-result0 = assess_work_level([], [], 0, None)
-check('无做功→Level 0', result0['level'] == 0, f"got level={result0['level']}")
+# G1 新增四锚（设计稿 docs/design-gongliang-merge-20261017.md §3；层数为实测回填，
+# 偏差例已预注册备案 docs/kimi-g1-gongliang-merge-prereg-20261017.md，不为单例改权重）
+# 总理例（理象学:7332-7336「墓库做功功量很大…近四层功…总理」）：实测 L4 合书
+_gl_zl = analyze_gongliang(day_gan='乙', gans=['戊', '壬', '乙', '己'],
+                           zhis=['辰', '戌', '未', '卯'])
+check('总理例 戊壬乙己/辰戌未卯 → 四层功（书近四层）', _gl_zl['level'] == 4,
+      f"got level={_gl_zl['level']}")
 
-# 单类型→Level 1
-result1 = assess_work_level(['制用'], [{'type': '冲'}], 0, None)
-check('单类型→Level 1', result1['level'] == 1, f"got level={result1['level']}")
+# 慈禧（理象学:10595-10611「双层…又加一层…共四层」）：实测 L3（制不净封顶）——
+# R2 预案：附录口径让位法则7，预注册备案
+_gl_cx = analyze_gongliang(day_gan='乙', gans=['乙', '丁', '乙', '己'],
+                           zhis=['未', '亥', '丑', '卯'])
+check('慈禧 乙丁乙己/未亥丑卯 → 三层（书四层，R2 预注册备案）', _gl_cx['level'] == 3,
+      f"got level={_gl_cx['level']}")
 
-# 双类型→Level 2
-result2 = assess_work_level(['制用', '合用'], [{'type': '冲'}, {'type': '地支合'}], 0, None)
-check('双类型→Level 2', result2['level'] == 2, f"got level={result2['level']}")
+# 差例三（理象学:6354-6358「似乎功量很大…全被天干坏了。一生没有富贵」）：
+# 实测 L3——引擎无「天干坏之」否决规则，预注册备案
+_gl_c3 = analyze_gongliang(day_gan='己', gans=['甲', '乙', '己', '辛'],
+                           zhis=['午', '亥', '巳', '未'])
+check('差例三 甲乙己辛/午亥巳未 → 三层（书无功，预注册备案）', _gl_c3['level'] == 3,
+      f"got level={_gl_c3['level']}")
 
-# 三类型→Level 3
-result3 = assess_work_level(['制用', '合用', '墓用'],
-                            [{'type': '冲'}, {'type': '地支合'}, {'type': '墓用'}], 1, None)
-check('三类型→Level 3', result3['level'] == 3, f"got level={result3['level']}")
-
-# 主动做功加成
-result_active = assess_work_level(['制用'],
-    [{'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'},
-     {'type': '克', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}],
-    0, None, active_work_count=2, passive_work_count=0, passive_control_count=0)
-check('主动做功≥2→+1', result_active['level'] == 2,
-      f"got level={result_active['level']}")
-
-# 被动受制减分（只有被动制才减分）
-result_pc = assess_work_level(['制用'],
-    [{'type': '克', 'from_pos': 'hour_zhi', 'to_pos': 'day_zhi'},
-     {'type': '冲', 'from_pos': 'hour_zhi', 'to_pos': 'day_zhi'}],
-    0, None, active_work_count=0, passive_work_count=2, passive_control_count=2)
-check('被动受制≥2→-1', result_pc['level'] == 0,
-      f"got level={result_pc['level']}")
-
-# 被动合不减分
-result_ph = assess_work_level(['合用'],
-    [{'type': '地支合', 'from_pos': 'hour_zhi', 'to_pos': 'day_zhi'},
-     {'type': '暗合', 'from_pos': 'hour_zhi', 'to_pos': 'day_zhi'}],
-    0, None, active_work_count=0, passive_work_count=2, passive_control_count=0)
-check('被动合≥2不减分', result_ph['level'] == 1,
-      f"got level={result_ph['level']}")
-
-# 被动穿触发has_severe_harm
-result_harm = assess_work_level(['制用'],
-    [{'type': '穿', 'severity': 'high', 'to_pos': 'day_zhi', 'from_pos': 'hour_zhi'}],
-    0, None)
-check('被动穿→has_severe_harm=True', result_harm['has_severe_harm'])
-
-# 主动穿不触发has_severe_harm
-result_no_harm = assess_work_level(['制用'],
-    [{'type': '穿', 'severity': 'high', 'from_pos': 'day_zhi', 'to_pos': 'hour_zhi'}],
-    0, None)
-check('主动穿→has_severe_harm=False', not result_no_harm['has_severe_harm'])
+# 三种合副总（理象学:6900-6912「三种功…只有一层，不是三层功」，通则 G1 锚）：
+# 实测 L3（制不净封顶），预注册备案
+_gl_fz = analyze_gongliang(day_gan='丁', gans=['甲', '癸', '丁', '庚'],
+                           zhis=['寅', '酉', '丑', '子'])
+check('副总 甲癸丁庚/寅酉丑子 → 三层（书一层，预注册备案）', _gl_fz['level'] == 3,
+      f"got level={_gl_fz['level']}")
 
 # ── 12. 墓库表验证 ──
 print('\n── 12. 墓库表 ──')
@@ -745,18 +722,6 @@ check('效率降级: 折扣动作过半',
       f"disc_count={disc_count}, non_aux={len(non_aux_disc)}")
 check('效率降级: 效率=低(由中降一级)', zg_disc.get('work_efficiency') == '低',
       f"work_efficiency={zg_disc.get('work_efficiency')}")
-
-# 14d-2. work_level 折扣直接验证：传 efficiency_discount_count → level 降一级
-wl_base = assess_work_level(
-    ['制用', '合用'], [{'type': '冲'}, {'type': '地支合'}], 0, None)
-wl_disc = assess_work_level(
-    ['制用', '合用'], [{'type': '冲'}, {'type': '地支合'}], 0, None,
-    efficiency_discount_count=2)
-check('work_level 基线(双类型无折扣)=Level 2', wl_base['level'] == 2,
-      f"got level={wl_base['level']}")
-check('work_level 折扣过半→Level 降一级',
-      wl_disc['level'] == wl_base['level'] - 1,
-      f"got level={wl_disc['level']}, base={wl_base['level']}")
 
 # ── 15. S1 去重修复（P0-1）──
 print('\n── 15. S1 去重修复（地支合入去重 + 无序键）──')
@@ -908,32 +873,6 @@ check('MangpaiEngine 透传 kong_wang',
 check('MangpaiEngine 空亡做功打折',
       _kw_chong(res_kw.get('zuogong', {})).get('efficiency_discount') is True,
       f"action={_kw_chong(res_kw.get('zuogong', {}))}")
-
-# ── 18. 反向做功降级（P1-2）──
-print('\n── 18. 反向做功降级（不+1，仅参考信号）──')
-
-# 反向做功≥2 不再 +1 level，仅在 desc 加注"含反向做功"参考信号
-# 单类型 base=Level 1，reverse=2 → 旧逻辑 +1=2，新逻辑保持 1
-wl_rev1 = assess_work_level(['制用'], [{'type': '冲'}], 0, None, reverse_work_count=2)
-check('反向做功不+1(单类型保持Level 1)', wl_rev1['level'] == 1,
-      f"got level={wl_rev1['level']}")
-check('反向做功 desc含参考信号', '含反向做功' in wl_rev1['desc'],
-      f"desc={wl_rev1['desc']}")
-# 双类型 base=Level 2，reverse=2 → 旧逻辑 +1=3，新逻辑保持 2
-wl_rev2 = assess_work_level(['制用', '合用'],
-                            [{'type': '冲'}, {'type': '地支合'}], 0, None,
-                            reverse_work_count=2)
-check('反向做功不+1(双类型保持Level 2)', wl_rev2['level'] == 2,
-      f"got level={wl_rev2['level']}")
-# 无反向做功 → desc 不含参考信号
-wl_rev0 = assess_work_level(['制用'], [{'type': '冲'}], 0, None, reverse_work_count=0)
-check('无反向做功 desc不含参考信号', '含反向做功' not in wl_rev0['desc'],
-      f"desc={wl_rev0['desc']}")
-# 端到端：14a 反向做功盘 → work_level_desc 含参考信号
-zg_rev_desc = analyze_zuogong('甲', '酉', '丙', '未', '戊', '寅', '庚', '未')
-check('反向做功盘 desc含参考信号',
-      '含反向做功' in zg_rev_desc.get('work_level_desc', ''),
-      f"desc={zg_rev_desc.get('work_level_desc')}")
 
 # ── 19. 伏吟/反吟检测（P2-1）──
 print('\n── 19. 伏吟/反吟检测 ──')

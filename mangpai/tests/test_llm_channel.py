@@ -10,14 +10,14 @@ from mangpai.subjective.llm_channel import (
 _FEATURES = {
     'caiming': {'tier_static': '小康', 'tier': '富'},
     'guanming': {'is_guanming': False, 'summary': '无官'},
-    'zuogong': {'work_types': ['化用'], 'work_level': 2},
+    'zuogong': {'work_types': ['化用']},
 }
 _ENGINE = {'caiming': {'tier_static': '小康', 'tier': '富'},
            'guanming': {'is_guanming': False}}
 
 
 def _good():
-    return {d: {'conclusion': '一段断语', 'basis': ['zuogong.work_level'],
+    return {d: {'conclusion': '一段断语', 'basis': ['zuogong.work_types'],
                 'confidence': '中'}
             for d in ('性格', '事业', '财运', '婚姻', '应期', '迁移', '相貌')}
 
@@ -323,7 +323,7 @@ _REMAP_FEATURES = {
                'duohun': {'is_duohun': True, 'factors': ['婚姻宫被冲']},
                'summary': '婚姻差'},
     'caiming': {'caifu_view': {'caixing_path': {'has_yuanshen': True}}},
-    'zuogong': {'work_level': 2},
+    'zuogong': {'work_types': ['化用']},
 }
 
 
@@ -357,7 +357,7 @@ def test_l1_remap_unique_expansion():
 def test_l1_remap_ambiguous_stays_violation():
     # 歧义不 remap：hunyin.signals 可展开到 quality/duohun 多处 → 仍违规
     feats = {'hunyin': {'a': {'signals': ['x']}, 'b': {'signals': ['y']}},
-             'zuogong': {'work_level': 2}}
+             'zuogong': {'work_types': ['化用']}}
     data = _good()
     data['性格']['basis'] = ['hunyin.signals', 'hunyin.nope']
     remapped = []
@@ -367,7 +367,7 @@ def test_l1_remap_ambiguous_stays_violation():
 
 def test_l1_remap_empty_target_stays_violation():
     # remap 只治键名写错；映射到的真键为空仍记违规
-    feats = {'xiangfa_ops': {'juxiang': []}, 'zuogong': {'work_level': 2}}
+    feats = {'xiangfa_ops': {'juxiang': []}, 'zuogong': {'work_types': ['化用']}}
     data = _good()
     data['性格']['basis'] = ['xiangfa.juxiang']
     remapped = []

@@ -5,7 +5,7 @@ gongliang - 段氏做功等级量化（四层功量）·主观层
           （源文件 mangpai/docs/duan-books/duan-shi-lixiangxue-yanjiu.txt
            6077-6376 行）
 
-核心思想（段氏四层功，与 zuogong_confirm.assess_work_level 并行的另一套体系）：
+核心思想（段氏四层功——本模块为做功层次唯一事实源，G1 批起）：
   段氏以「功量」(做功等级) 量化命局富贵层次，最多四层功：
     一层功：小富小贵（富=百万级，贵=科级到处级）
     二层功：中富中贵（富=千万到亿级，贵=处级到厅级）
@@ -61,10 +61,12 @@ gongliang - 段氏做功等级量化（四层功量）·主观层
   合族（六合/半合）单独不支撑同制，丑经酉丑相拱/子丑合书判相生之功——
   及日干无功弃之不看（日主自克非制）后达书层）。
 
-与 zuogong_confirm.assess_work_level 的区别（两套体系并行，互不覆盖）：
-  assess_work_level：基于「做功类型数 + 主被动 + 结构」打 0-5 层（做功成立/效率视角）。
-  本模块 gongliang   ：基于「原神用神同制 + 制净程度 + 功量累加」打 1-4 层
-                       （段氏富贵量级视角），消费 zuogong 的 work 数据做二次量化。
+唯一事实源声明（G1 收编终态，设计稿 docs/design-gongliang-merge-20261017.md）：
+  原 zuogong_confirm.assess_work_level 的 L0-L5「类型计数 + 主被动加减」体系
+  已被书明文否定（理象学:6912「三种不同的功…论功量只有一层」、:6018 上限四层）
+  并随 G1 批废除；做功层次以本模块为唯一事实源（0-4 层，0=无功）。
+  本模块 gongliang：基于「原神用神同制 + 制净程度 + 功量累加」打 0-4 层
+                   （段氏富贵量级视角），消费 zuogong 的 work 数据做二次量化。
 
 分层位置：subjective/，import subjective.zuogong_confirm 获取做功数据
           （zuogong_result 为 analyze_zuogong 输出；缺省时本函数可自调 analyze_zuogong）。
@@ -97,8 +99,10 @@ from mangpai.subjective.yongshen import (
 
 _logger = logging.getLogger(__name__)
 
-# ── 四层功 tier 名（段氏富贵量级）──
+# ── 四层功 tier 名（段氏富贵量级；0=无功，理象学:6022-6024「有的命只有半层功
+#    或根本无功」——无功不立富贵量级名，直书「无功」）──
 _TIER_NAMES: Dict[int, str] = {
+    0: '无功',
     1: '小富小贵',
     2: '中富中贵',
     3: '大富大贵',
@@ -122,8 +126,9 @@ _YUANSHEN_PAIRS: List[Tuple[str, str]] = [
     ('食伤', '比劫'),   # 用神=食伤, 原神=比劫
 ]
 
-# ── level -> 分数区间（score 在层内连续刻画强弱）──
+# ── level -> 分数区间（score 在层内连续刻画强弱；0=无功恒 0 分）──
 _SCORE_BAND: Dict[int, Tuple[int, int]] = {
+    0: (0, 0),
     1: (0, 39),
     2: (40, 67),
     3: (68, 89),
@@ -227,7 +232,7 @@ def analyze_gongliang(
     """段氏四层功量评估。
 
     消费 zuogong 的做功数据，按段氏「原神用神同制 + 制净程度 + 功量累加」
-    铁律量化命局富贵层次（1-4 层功），与 assess_work_level 并行，不覆盖。
+    铁律量化命局富贵层次（0-4 层功，0=无功；做功层次唯一事实源）。
 
     两种调用方式：
       1. 传 zuogong_result（analyze_zuogong 输出）+ day_gan/gans/zhis（十神推断所需）：
@@ -246,7 +251,7 @@ def analyze_gongliang(
 
     Returns:
         {
-          'level': 1-4,                  # 段氏四层功
+          'level': 0-4,                  # 段氏四层功（0=无功）
           'tier_name': '小富小贵'|...,    # 富贵量级名
           'score': 0-100,                # 层内连续强弱
           'gong_points': float,          # 原始功量点（累加，未封顶）
@@ -287,11 +292,12 @@ def analyze_gongliang(
     gans = inp['gans']
     zhis = inp['zhis']
 
-    # 数据完全缺失 -> 无功
+    # 数据完全缺失 -> 无功（level=0，理象学:6022-6024「有的命只有半层功或根本
+    # 无功」——无功立独立 0 态，不再借 L1 表达）
     if not wa_list and not wtypes:
         return _build_result(
-            level=1, points=0.0, score=0,
-            reasons=['命局无做功数据，功量微弱（半层/无功），普通百姓层次'],
+            level=0, points=0.0, score=0,
+            reasons=['命局无做功数据，无功（理象学:6022-6024），普通百姓层次'],
             zhi_jing='无制', controls=[], gong_cats=[], chain=0,
             penalty='无功', day_wx_ok=bool(day_wx),
         )
@@ -1340,8 +1346,8 @@ def _build_gongliang_result(
     pocai_reason: str,
 ) -> Dict:
     """装配输出（H-fix-5 ⑤，H11 方案）：层内分数、边界区标注、_build_result
-    装配、可选字段（yongshen_xiong/fuhe/strength/cong_ge）录入、双轨对账
-    （work_level vs gongliang）、pocai 方向信号、贼神捕神上游信号录入。
+    装配、可选字段（yongshen_xiong/fuhe/strength/cong_ge）录入、pocai 方向信号、
+    贼神捕神上游信号录入。（G1：双轨对账段已删——做功层次唯一事实源。）
     体逐字搬移；reasons 追加在副本上进行（同 _apply_caps_and_direction
     的别名防御，可观察输出与原函数一致）。"""
     reasons = list(reasons)  # H-fix-5：追加在副本上进行，不改动调用方列表
@@ -1368,26 +1374,8 @@ def _build_gongliang_result(
         result['strength'] = _strength_gl
         result['cong_ge'] = _strength_gl in ('从强', '从弱')
 
-    # ── M5 双轨对账：gongliang.level（富贵量级）vs zuogong.work_level（做功效率）──
-    # 两套体系并行（模块 docstring）：work_level 0-5 层看「做功成立/效率」，
-    # gongliang 1-4 层看「富贵量级」。差≥2 层为视角背离，标冲突供复核（只标注，
-    # 不改任一层数——如普例1 做功效率高而富贵量级被普通四柱降档，即合理背离）。
-    _wl = zg.get('work_level')
-    if isinstance(_wl, int) and _wl > 0:
-        _diff = level - _wl
-        _duizhang = {
-            'work_level': _wl,
-            'gongliang_level': level,
-            'diff': _diff,
-            'conflict': abs(_diff) >= 2,
-        }
-        if abs(_diff) >= 2:
-            _duizhang['note'] = (
-                f'双轨冲突：做功层次L{_wl}（效率视角）与功量L{level}（富贵量级）'
-                f'差{abs(_diff)}层，宜复核（降档/封顶/体系口径差异）'
-            )
-            result['reasons'].append('双轨对账：' + _duizhang['note'])
-        result['work_level_duizhang'] = _duizhang
+    # （M5 双轨对账已随 G1 收编删除：zuogong_confirm 的 L0-L5 类型计数体系废除，
+    #  本模块为做功层次唯一事实源，work_level_duizhang 键不再输出。）
 
     # 比劫夺财破财方向信号（供 caiming/guanming/zhiye 反哺降档/否决）
     result['pocai_signal'] = pocai_signal

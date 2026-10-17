@@ -28,7 +28,6 @@ mangpai-system/
 │   ├── virtual_solid.py # 虚实分析
 │   ├── zhengfan.py      # 正反局判定
 │   ├── gongshen.py      # 宫身分析
-│   ├── work_level.py    # 做功层次评估
 │   ├── shenshu.py       # 十神数量歌诀（郑民生十排歌）409 测试通过
 │   ├── shipaige.py      # 十排歌扩展：断语集锦（六大领域）+ 方法论 ★新增
 │   ├── xiangfa.py       # 象法（干支象/十神象/宫位象）
@@ -53,7 +52,7 @@ mangpai-system/
 ├── tests/
 │   └── test_subjective.py  # 主观层测试
 │
-├── verify_mangpai.py    # 全量验证入口（V7 合并版 432 项，原 objective/verify_mangpai.py 已并入）
+├── verify_mangpai.py    # 全量验证入口（V7 合并版 420 项，原 objective/verify_mangpai.py 已并入）
 └── verify_dayun.py      # 大运验证（70 测试通过）
 ```
 
@@ -80,7 +79,6 @@ mangpai-system/
 | `virtual_solid.py` | 5KB | 虚实判断 | 高 |
 | `zhengfan.py` | 10KB | 正反局判定 | 高 |
 | `gongshen.py` | 2KB | 宫身分析 | 高 |
-| `work_level.py` | 8KB | 做功层次评估 | 高 |
 | `shenshu.py` | 8KB | 十神数量歌诀：郑民生十排歌，1清纯/7成势/2-6混杂 | 高 |
 | `shipaige.py` | 12KB | 十排歌扩展：断语（父母/婚姻/子女/事业/牢狱/寿元）+ 方法论 | 低(待校订) |
 | `xiangfa.py` | 8KB | 象法表：干支象/十神象/宫位象 | 中 |
@@ -94,7 +92,7 @@ mangpai-system/
 
 | 文件 | 测试数 | 状态 |
 |------|--------|------|
-| `verify_mangpai.py` | 432（V7 合并版） | ✅ 全通过 |
+| `verify_mangpai.py` | 420（V7 合并版） | ✅ 全通过 |
 | `verify_dayun.py` | 70 | ✅ 全通过 |
 
 ### 待开发模块
