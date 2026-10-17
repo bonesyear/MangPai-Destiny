@@ -80,8 +80,10 @@ KEYS_PHASE3 = ['muku', 'anhe', 'biqi', 'wood_type', 'soil', 'he_types',
 KEYS_PHASE5 = ['relations', 'yunfan', 'direction', 'caiming', 'guanming',
                'hunyin', 'xueli', 'laoyu', 'zeishen_bushen', 'xiangfa_ops',
                'zhiye', 'gongmen_wuzhi', 'liuqin', 'zinv', 'qianyi',
-               'xiangmao', 'zaihuo', 'yingqi_subj', 'narrative']
-KEYS_FULL_48 = (KEYS_PHASE1 + KEYS_PHASE2 + KEYS_PHASE3
+               'xiangmao', 'zaihuo', 'yingqi_subj', 'narrative', 'juefa']
+# 批K（2026-10-17）：juefa 入编排置 narrative 之后（48→49 键，
+# 既有键序全部不动）
+KEYS_FULL_49 = (KEYS_PHASE1 + KEYS_PHASE2 + KEYS_PHASE3
                 + ['dayun_analysis', 'liunian_analysis', 'jiaoyun_analysis',
                    'shipaige'] + KEYS_PHASE5 + ['summary'])
 
@@ -253,9 +255,9 @@ def test_phase5_subjective_domain_key_order_and_relations():
 
 
 @pytest.mark.parametrize('bazi_data,key_count,summary', [
-    (LI_FULL, 48, PIN_LI_SUMMARY),
-    (LI_DAYUN, 48, PIN_LI_SUMMARY),
-    (QL_BARE, 45, PIN_QL_SUMMARY),
+    (LI_FULL, 49, PIN_LI_SUMMARY),
+    (LI_DAYUN, 49, PIN_LI_SUMMARY),
+    (QL_BARE, 46, PIN_QL_SUMMARY),
 ])
 def test_orchestrator_matches_manual_phases(bazi_data, key_count, summary):
     """编排一致性：compute_all() == 手工逐阶段调用（键序 + 全值）。"""
@@ -267,8 +269,9 @@ def test_orchestrator_matches_manual_phases(bazi_data, key_count, summary):
     assert by_orchestrator['summary'] == summary
 
 
-def test_full_key_order_48():
-    """全量供给（dayun+liunian 注入）下 48 键顺序锁定（H-fix-6 契约同口径）。"""
+def test_full_key_order_49():
+    """全量供给（dayun+liunian 注入）下 49 键顺序锁定（H-fix-6 契约同口径；
+    批K juefa 入编排 48→49，置 narrative 之后）。"""
     res = MangpaiEngine(LI_FULL).compute_all()
-    assert list(res.keys()) == KEYS_FULL_48
-    assert len(res) == 48
+    assert list(res.keys()) == KEYS_FULL_49
+    assert len(res) == 49

@@ -60,6 +60,7 @@ from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 from mangpai.subjective.xiangfa_ops import analyze_xiangfa_ops
 from mangpai.subjective.narrative import summarize_engine_result
 from mangpai.subjective.yongshen import assess_direction_signals
+from mangpai.subjective.juefa import analyze_juefa
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ _MODULE_DEFAULTS: Dict[str, Any] = {
     'direction': {}, 'caiming': {}, 'guanming': {}, 'hunyin': {},
     'xueli': {}, 'xiangfa_ops': {}, 'zhiye': {}, 'gongmen_wuzhi': {},
     'liuqin': {}, 'zinv': {}, 'qianyi': {}, 'xiangmao': {},
-    'zaihuo': {}, 'yingqi_subj': {}, 'narrative': '',
+    'zaihuo': {}, 'yingqi_subj': {}, 'narrative': '', 'juefa': {},
 }
 
 
@@ -872,6 +873,24 @@ class MangpaiEngine:
         # 仅 summarize，不调 LLM；render_hao_narrative 留给调用方按需触发）
         self._write(result, 'narrative', self._safe_compute(
             'narrative', summarize_engine_result, result
+        ))
+
+        # 批K（2026-10-17 用户拍板）：juefa 诀法层全参数入编排——gender 由
+        # 中文性别转 male/female（缺省/不可识别传 None，模块内跳过性别门控项）；
+        # yongshen_result=direction 总线（含 bijiao_duocai，15/17/19 前提）；
+        # shensha_result=result['shensha']（18 前提，F1 配置断路本批接合）。
+        # 置 narrative 之后：narrative 不消费 juefa，既有键序全部不动；
+        # payload 仅放 A 组精选（selectors dotted-path 'juefa.duanyu_a'）。
+        # yongshen.py:875 内部直调（仅 shangguan_jue）保持不动。
+        _jf_gender = {'男': 'male', '女': 'female', '乾': 'male', '坤': 'female',
+                      'male': 'male', 'female': 'female'}.get(
+            self.input_data.get('gender'))
+        self._write(result, 'juefa', self._safe_compute(
+            'juefa', analyze_juefa,
+            self.gans, self.zhis, self.day_gan,
+            gender=_jf_gender,
+            yongshen_result=result.get('direction') or None,
+            shensha_result=result.get('shensha') or None,
         ))
 
     def _build_summary(self, result: Dict[str, Any]) -> str:

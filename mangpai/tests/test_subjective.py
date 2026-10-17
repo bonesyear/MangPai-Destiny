@@ -30,17 +30,19 @@ class TestSchoolDefinition:
     def test_school_prompt_file(self):
         assert MANGPAI_SCHOOL.prompt == "mangpai.md"
 
-    def test_school_has_41_selectors(self):
+    def test_school_has_42_selectors(self):
         # 24 基础 + 16 领域专辑/高级技法模块（caiming/guanming/hunyin/...）
         # 修批A③：gongmen_wuzhi 摘除（is_wuzhi 98.8% 恒真零信息量），39→38
         # D6b：zinv（子女岁运应期+借腹）镜像 liuqin 进特征 JSON，38→39
         # 缺口批1：qianyi（迁移/远行 marker+应期窗）同口径追加，39→40
         # 缺口批2：xiangmao（相貌 marker 层，无判定无档位）同口径追加，40→41
-        assert len(MANGPAI_SCHOOL.selectors) == 41
+        # 批K：juefa.duanyu_a（诀法 A 组精选 dotted-path，marker 级措辞），41→42
+        assert len(MANGPAI_SCHOOL.selectors) == 42
         assert 'gongmen_wuzhi' not in MANGPAI_SCHOOL.selectors
         assert 'zinv' in MANGPAI_SCHOOL.selectors
         assert 'qianyi' in MANGPAI_SCHOOL.selectors
         assert 'xiangmao' in MANGPAI_SCHOOL.selectors
+        assert 'juefa.duanyu_a' in MANGPAI_SCHOOL.selectors
 
     def test_selectors_include_blind_fields(self):
         for field in ("binzhu", "tiyong", "zuogong", "gongliang", "muku",
@@ -154,6 +156,12 @@ class TestBuildPayload:
             "xiangfa_ops": {"all_findings": [], "locked_subjects": []},
             "narrative": "做功：制用 L1 | 正反：无做功",
             "shipaige": {"report": ""},
+            # 批K：juefa 顶层键（payload 仅经 dotted-path 放 A 组精选）
+            "juefa": {"duanyu_a": [
+                {"source": "duanyu", "id": 12, "title": "争合风流三角",
+                 "marker": "争合——感情易有多角牵扯之倾向",
+                 "evidence": "两辛争合一丙"},
+            ]},
             "summary": "日主辛巳",
         }
 

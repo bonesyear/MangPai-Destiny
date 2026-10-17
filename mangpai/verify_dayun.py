@@ -402,7 +402,7 @@ check('selectors含dayun_analysis', 'dayun_analysis' in SCHOOL.selectors)
 check('selectors含liunian_analysis', 'liunian_analysis' in SCHOOL.selectors)
 check('selectors含chang_sheng', 'chang_sheng' in SCHOOL.selectors)
 check('selectors含gongliang', 'gongliang' in SCHOOL.selectors)
-check('selectors总数=41', len(SCHOOL.selectors) == 41,
+check('selectors总数=42(批K juefa.duanyu_a)', len(SCHOOL.selectors) == 42,
       f"got {len(SCHOOL.selectors)}")
 
 payload = build_payload(res_with_dy)

@@ -131,12 +131,13 @@ class TestZeishenSingleSource:
 # ── A③ gongmen 从 selectors 摘除 ──
 
 class TestGongmenRemoved:
-    def test_selectors_40_no_gongmen(self):
+    def test_selectors_42_no_gongmen(self):
         assert 'gongmen_wuzhi' not in MANGPAI_SCHOOL.selectors
         # D6b：zinv 追加（镜像 liuqin 通道），38→39
         # 缺口批1：qianyi 追加（迁移 marker+应期窗，同口径），39→40
         # 缺口批2：xiangmao 追加（相貌 marker 层，同口径），40→41
-        assert len(MANGPAI_SCHOOL.selectors) == 41
+        # 批K：juefa.duanyu_a 追加（A 组精选 dotted-path，marker 级），41→42
+        assert len(MANGPAI_SCHOOL.selectors) == 42
 
     def test_payload_no_gongmen_result_key_kept(self):
         """payload 不含 gongmen_wuzhi；engine result 键保留（内部存档）。"""

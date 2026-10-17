@@ -17,8 +17,12 @@ juefa - 盲派诀法层·主观层（subjective）
 不做（避免重复检测，仅存诀言引用）：过河拆桥格（caiming.py 已实现分键）、
 贼神捕神（zeishen_bushen.py）。岁运引动属应期层，本模块只出原局信号与隐患标记。
 
-分层：subjective/，单向依赖 objective；不接 engine（同 yunfan/zhiye 模式，
-仅 __init__ 重导出）。置信度：中（断语为经验 heuristic，命中≠定验）。
+分层：subjective/，单向依赖 objective。批K（2026-10-17，用户拍板）起接入
+engine 编排（result['juefa']，全参数：gender/yongshen=direction/shensha），
+payload 仅经 selectors dotted-path 放 A 组精选 `juefa.duanyu_a`（marker 级措辞）；
+yongshen.py 内部直调（仅消费 shangguan_jue）保持不动。D1 两头钳门槛批K 收紧
+=年时各≥2 吉神（批J 509 例评估：76% 准确但触发面 72% 过宽）。
+置信度：中（断语为经验 heuristic，命中≠定验）。
 """
 from typing import Dict, List, Optional
 
@@ -359,7 +363,9 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
             got.append('禄')
         return got
     y_got, h_got = _ji_shen_at(0), _ji_shen_at(3)
-    if y_got and h_got:
+    # 批K 收紧（批J 509 例评估：D1 准确率 76% 但触发面 72% 过宽，用户拍板
+    # 加门槛）——年时各≥2 吉神（财/官/印/禄）方触发，原门槛=年时各≥1
+    if len(y_got) >= 2 and len(h_got) >= 2:
         emit(1, f"年柱带{'、'.join(y_got)}，时柱带{'、'.join(h_got)}，根基归宿两钳")
 
     # 2 独财 / 财多不富
@@ -554,8 +560,9 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
                 emit(17, f'财为用神（{strength}）而{"、".join(cai_hurt)}——养命源受损，贫病之象')
 
     # 18 贵人头上带刃剑（须 shensha）
-    # F1 标注：生产恒 skip——唯一生产调用方 yongshen.py:886 不传
-    # shensha_result（配置断路）；仅测试直达。接线决策留 shensha 修复批。
+    # F1 标注（批K 更新）：yongshen.py 内部直调不传 shensha_result（该路恒 skip）；
+    # 批K 起 engine 编排全参数接入（shensha_result=result['shensha']），
+    # 生产可评估——D18 非 A 组，不进 duanyu_a/payload，仅 result 存档。
     if shensha_result is None:
         skip(18, '未提供 shensha_result，不评估')
     else:
@@ -725,6 +732,45 @@ def _duanju_hits(gans, zhis, day_gan, ctx, gender):
     return hits
 
 
+# ══ A 组精选（批K：批J 509 例评估后用户拍板选择性接入生产）══
+# 收录口径（批J 结论）：判定集≥10 且准确率≥75% 的 5 条——
+#   D12 争合 94%（94 触发）、断句·配偶星多 93%（220 触发）、D6 枭神夺食/枭印
+#   重重 79%（101 触发）、D13 女命官杀弱/食伤旺 77%（44 触发）、D1 两头钳 76%
+#   （触发面 72% 过宽，本批已加严门槛=年时各≥2 吉神）。
+# 措辞红线：marker 级中性措辞（象/倾向），不出断语式硬结论；死亡联想词不入
+# （payload 出口另有 _scrub_death 统一兜底，本表自查先于之）。
+# C 组（修后再议）/D 组（不接）及其余规则一律不进 duanyu_a。
+_DUANYU_A_MARKERS: List[tuple] = [
+    ('duanyu', 1, '年时各见两吉神（财/官/印/禄）相钳——先天根基与归宿有依之象，'
+                  '富贵潜力倾向（非定断）'),
+    ('duanyu', 6, '枭印压食（或枭印重重）——福气与子女缘受损之倾向，'
+                  '留意身体与情绪（一般性提醒）'),
+    ('duanyu', 12, '争合——感情易有多角牵扯、心思不定之象'
+                   '（倾向提示，女命尤须留意）'),
+    ('duanyu', 13, '女命夫星弱而食伤旺——婚缘偏迟、过程多磨之倾向（象级提示）'),
+    ('duanju', 'spouse_many', '配偶星多——选择面广而难定之倾向（象级提示）'),
+]
+
+
+def _duanyu_a_select(duanyu_hits: List[Dict], duanju_hits: List[Dict]) -> List[Dict]:
+    """从全量命中中筛 A 组 5 条，换装 marker 级措辞（evidence 留原始 detail 备查）。"""
+    by_id = {h['id']: h for h in duanyu_hits}
+    out: List[Dict] = []
+    for source, rid, marker in _DUANYU_A_MARKERS:
+        if source == 'duanyu':
+            h = by_id.get(rid)
+            if h:
+                out.append({'source': 'duanyu', 'id': rid, 'title': h['title'],
+                            'marker': marker, 'evidence': h['detail']})
+        else:  # duanju：配偶星多（text 前缀定位，DUANJU_TABLE 常量稳定）
+            for h in duanju_hits:
+                if h['text'].startswith('配偶星多'):
+                    out.append({'source': 'duanju', 'id': rid, 'title': h['text'],
+                                'marker': marker, 'evidence': h['detail']})
+                    break
+    return out
+
+
 # ══ 字碰字 ══
 
 def _zipengzi_hits(gans, zhis) -> List[Dict]:
@@ -765,14 +811,16 @@ def analyze_juefa(
 
     返回：
       shangguan_jue / duanyu_hits / duanyu_skipped / duanju_hits /
-      zipengzi_hits / jueyan / related_verses / hit_count / summary
+      zipengzi_hits / jueyan / related_verses / duanyu_a / hit_count / summary
+      （duanyu_a=批K A 组精选 5 条 marker 级措辞，见 _DUANYU_A_MARKERS）
     """
     gans = list(gans or [])
     zhis = list(zhis or [])
     if len(gans) != 4 or len(zhis) != 4 or not day_gan:
         return {'shangguan_jue': {'matched': False}, 'duanyu_hits': [],
                 'duanyu_skipped': [], 'duanju_hits': [], 'zipengzi_hits': [],
-                'jueyan': None, 'related_verses': {}, 'hit_count': 0,
+                'jueyan': None, 'related_verses': {}, 'duanyu_a': [],
+                'hit_count': 0,
                 'summary': '输入不全，诀法未评估'}
 
     ctx = _build_ctx(gans, zhis, day_gan)
@@ -781,6 +829,7 @@ def analyze_juefa(
         gans, zhis, day_gan, ctx, gender, yongshen_result, shensha_result)
     duanju_hits = _duanju_hits(gans, zhis, day_gan, ctx, gender)
     zipengzi_hits = _zipengzi_hits(gans, zhis)
+    duanyu_a = _duanyu_a_select(duanyu_hits, duanju_hits)
 
     day_gz = gans[2] + zhis[2]
     jueyan = JINXIANG_JUEYAN.get((day_gz, zhis[1]))
@@ -811,6 +860,7 @@ def analyze_juefa(
         'zipengzi_hits': zipengzi_hits,
         'jueyan': jueyan,
         'related_verses': related,
+        'duanyu_a': duanyu_a,
         'hit_count': len(duanyu_hits) + len(duanju_hits) + len(zipengzi_hits),
         'summary': summary,
     }

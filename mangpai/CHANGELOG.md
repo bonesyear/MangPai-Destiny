@@ -1,5 +1,17 @@
 # 盲派客观层 变更记录
 
+## 2026-10-17 批K · juefa 断语 A 组选择性接入生产（批J 509 例评估后用户拍板；D1 门槛加严+duanyu_a 精选键+engine 全参数编排；yongshen 内部直调不动）
+
+| 项目 | 内容 |
+|------|------|
+| 决策依据 | 批J 对 509 案例的断语准确率评估（docs/audit-vs-originals-20261017.md 批J 节）：**A 组接入清单 5 条**=D12 争合风流三角（94%，94 触发）/断句·配偶星多搞不定（93%，220 触发）/D6 枭神夺食·枭印重重（79%，101 触发）/D13 女命官杀弱·食伤旺婚难（77%，44 触发）/D1 财官印禄两头钳（76%，但触发面 72% 过宽须加门槛）；C 组修后再议、D 组不接、断句 18 条其余/字碰字/巾箱一律不接 |
+| D1 门槛收紧 | `_duanyu_hits` 断语 1 触发条件 年时各≥1 吉神（财/官/印/禄）→ **各≥2**（`_ji_shen_at` 不动，emit 条件 `y_got and h_got` → `len(y_got)>=2 and len(h_got)>=2`），最小改；哨兵双向用例新增（各 2 吉神触发 / 各 1 吉神挡下，批K 前 D1 无既有用例） |
+| `duanyu_a` 精选键 | juefa.py 新增 `_DUANYU_A_MARKERS`（5 条 marker 级中性措辞=象/倾向，不出断语式硬结论，死亡联想词自查先于 `_scrub_death`）+`_duanyu_a_select`（从全量命中筛 A 组，evidence 留原始 detail）；`analyze_juefa` 返回增 `duanyu_a`（早退路径同形状）；其余输出（22 项/断句/字碰字/巾箱/summary/hit_count）零改动 |
+| engine 编排 | `analyze_juefa` 全参数入 `_compute_subjective_domain`（**置 narrative 之后**，narrative 不消费、既有键序全不动）：gender 男/女/乾/坤→male/female（缺省 None 模块内跳过性别门控）、yongshen_result=direction 总线（含 bijiao_duocai）、shensha_result=result['shensha']（**F1 配置断路接合**，D18 生产可评估但仍非 A 组不进 payload）；`_MODULE_DEFAULTS` 增 `'juefa': {}`；result 48→**49 键**。yongshen.py:875 内部直调（仅消费 shangguan_jue）**保持不动** |
+| payload 面 | schools.py selectors 41→**42**：增首个 dotted-path selector `juefa.duanyu_a`（只放 A 组精选，22 项全文/断句/字碰字/巾箱不进 LLM；build_payload 零改动，`_resolve` 原生支持）；prompts/mangpai.md 补消费引用+「不作硬结论」锚定（契约断言 3 消费方）；受保护文件改动=用户批准的定向接入，注释注明批K |
+| 契约/哨兵 | test_key_contract：断言 1/2 改 **dotted-path 首段归算**（部分投影=已登记；完整路径可解析性由 payload 镜像断言传递担保），payload 锁 42，基线注 engine 49=selectors 42+白名单 7；test_hfix5_compute_all：KEYS_PHASE5 尾增 juefa、KEYS_FULL_49、参数化 48→49/45→46；test_subjective/test_a_llm_redline/verify_dayun:405 计数 41→42 同步；test_juefa +7 哨兵（D1 双向/duanyu_a 只含 A 组/C 组盘为空/表序输出/marker 红线自查/engine 端到端 gender 转换+payload 隔离） |
+| 验证 | pytest **1278 passed+1xf**（1271→1278，+7 测）；verify 四件套 **420**/70/64/20 全绿；**blind vs `snapshots/LATEST`（批H/I 基线，不写基线）：heldout/trainset 三维零翻转零文本抖动**，六维 Δ 全 +0.0%（juefa 键新增未误动判定逻辑）；check_layering（66 文件无反向依赖）+check_typing_imports（190 文件 0 处）+check_credentials（P0=P1=P2=0）+check_doc_numbers 全过；README/KB 验证数字同步（1279 collected=1278+1xf） |
+
 ## 2026-10-17 G2 · 三条书证功量规则批（闭合 G1 三个不合书备案案例：副总/差例三/慈禧全落书判值；预注册先行）
 
 | 项目 | 内容 |

@@ -366,3 +366,96 @@ def test_summary_and_count():
     assert isinstance(r['summary'], str) and r['summary']
     assert r['hit_count'] == (len(r['duanyu_hits']) + len(r['duanju_hits'])
                               + len(r['zipengzi_hits']))
+
+
+# ══ 批K：D1 门槛收紧 + duanyu_a A 组精选 + engine/payload 接线 ══
+# 依据=批J 509 例准确率评估（docs/audit-vs-originals-20261017.md 批J 节）：
+# D1 准确率 76% 但触发面 72% 过宽，用户拍板加门槛=年时各≥2 吉神（原=各≥1）。
+# 注：批K 前 D1 无哨兵用例（本组为新增，非改旧例）。
+
+def test_duanyu1_gate_k_triggers_two_each():
+    """新门槛触发面：年柱 偏财干+偏财本气（2 吉神），时柱 七杀干+禄（2 吉神）。
+    甲寅戊辰庚午丙申：庚日 甲=偏财、寅本气甲=偏财、丙=七杀、申=庚禄。"""
+    r = _run('甲寅', '戊辰', '庚午', '丙申')
+    assert 1 in _ids(r)
+    h = [x for x in r['duanyu_hits'] if x['id'] == 1][0]
+    assert '两钳' in h['detail']
+    # A 组精选同步收录
+    assert 1 in [e['id'] for e in r['duanyu_a']]
+
+
+def test_duanyu1_gate_k_blocks_single_each():
+    """新门槛挡下旧门槛可触发面：年时各仅 1 吉神（旧=各≥1 会触发，批K 不触发）。
+    甲子戊辰庚午丙子：年柱仅甲偏财（子本气癸=伤官非吉神）、时柱仅丙七杀。"""
+    r = _run('甲子', '戊辰', '庚午', '丙子')
+    assert 1 not in _ids(r)
+    assert 1 not in [e['id'] for e in r['duanyu_a']]
+
+
+def test_duanyu_a_only_a_group_members():
+    """duanyu_a 只收 A 组 5 条：D10（伤官见官女命，非 A 组）触发但不进；
+    D12（争合，A 组）进。"""
+    r = _run('戊申', '甲寅', '己巳', '己巳', gender='female')
+    assert 10 in _ids(r) and 12 in _ids(r)
+    a_ids = [e['id'] for e in r['duanyu_a']]
+    assert a_ids == [12]
+    assert 10 not in a_ids
+
+
+def test_duanyu_a_multiple_hits_ordered():
+    """多条 A 组命中按 _DUANYU_A_MARKERS 表序输出。
+    乙巳辛巳丁卯己酉 女命：乙枭+己食（D6）+ 官杀全无（D13）。"""
+    r = _run('乙巳', '辛巳', '丁卯', '己酉', gender='female')
+    assert 6 in _ids(r) and 13 in _ids(r)
+    assert [e['id'] for e in r['duanyu_a']] == [6, 13]
+
+
+def test_duanyu_a_excludes_c_group():
+    """C 组规则（D4 官杀混杂，修后再议）触发也不进 duanyu_a。
+    乙酉甲申戊午庚子：官乙+杀甲并透（D4），无 A 组任何命中。"""
+    r = _run('乙酉', '甲申', '戊午', '庚子')
+    assert 4 in _ids(r)
+    assert r['duanyu_a'] == []
+
+
+def test_duanyu_a_marker_wording_safe():
+    """marker 措辞红线：象/倾向级（无断语式硬结论词），且不过 _DEATH_TERMS
+    （payload 出口 _scrub_death 之前的模块内自查；D6 枭神夺食重点）。"""
+    from mangpai.subjective import _DEATH_TERMS
+    import json as _json
+    charts = [
+        _run('甲寅', '戊辰', '庚午', '丙申'),                       # D1
+        _run('乙巳', '辛巳', '丁卯', '己酉', gender='female'),      # D6+D13
+        _run('戊申', '甲寅', '己巳', '己巳', gender='female'),      # D12
+        _run('壬寅', '壬子', '丙午', '壬辰', gender='male'),        # spouse_many
+    ]
+    n = 0
+    for r in charts:
+        for e in r['duanyu_a']:
+            n += 1
+            assert set(e) == {'source', 'id', 'title', 'marker', 'evidence'}
+            assert ('象' in e['marker']) or ('倾向' in e['marker'])
+            blob = _json.dumps(e, ensure_ascii=False)
+            assert not any(t in blob for t in _DEATH_TERMS), e
+    assert n >= 4  # 五条精选至少覆盖 4 条（D1/D6/D12/D13/spouse_many）
+
+
+def test_engine_juefa_key_and_payload_channel():
+    """engine 端到端：result 含 juefa 键；gender 男/女→female 转换生效
+    （女命官杀全无=D13 触发）；payload 只放 A 组精选 dotted-path，
+    22 项全文（juefa 顶层键）不进。"""
+    from mangpai.engine import MangpaiEngine
+    from mangpai.subjective import build_payload
+    bd = {'bazi': {'year': '甲寅', 'month': '乙卯', 'day': '甲午',
+                   'hour': '甲子'},
+          'input': {'gender': '女', 'year': 1974}}
+    res = MangpaiEngine(bd).compute_all()
+    assert 'juefa' in res
+    jf = res['juefa']
+    assert set(jf) >= {'shangguan_jue', 'duanyu_hits', 'duanyu_skipped',
+                       'duanju_hits', 'zipengzi_hits', 'duanyu_a'}
+    assert 13 in [h['id'] for h in jf['duanyu_hits']]
+    assert [e['id'] for e in jf['duanyu_a']] == [13]
+    pl = build_payload(res)
+    assert 'juefa' not in pl
+    assert pl.get('juefa.duanyu_a') == jf['duanyu_a']

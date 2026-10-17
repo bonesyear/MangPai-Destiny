@@ -18,6 +18,8 @@ selectors 残留 engine 不再产出的键 → 死键；payload 键无消费方 
    （特征 JSON 直喂）或 RESERVED_KEYS（预留，供未来扩展）。
 
 实测基线（2026-09-18，hfix4c 快照口径）：engine 48 / selectors 41 / payload 41。
+批K（2026-10-17，juefa A 组接入）：engine 49 / selectors 42 / payload 42
+（engine +result['juefa']；selectors +dotted-path 'juefa.duanyu_a' 仅放 A 组精选）。
 """
 import re
 from pathlib import Path
@@ -96,32 +98,38 @@ def _static_consumer_hit(key: str) -> bool:
 
 
 def test_engine_keys_covered_by_selectors(engine_result):
-    """断言 1：engine 产出键 = selectors 登记键 ∪ 内部白名单（集合相等）。"""
+    """断言 1：engine 产出键 = selectors 登记键 ∪ 内部白名单（集合相等）。
+    dotted-path selector（批K 'juefa.duanyu_a'）按首段归算其顶层引擎键
+    （部分投影=已登记，非漏登记）。"""
     engine_keys = set(engine_result.keys())
     selectors = set(MANGPAI_SCHOOL.selectors)
-    uncovered = engine_keys - selectors - set(INTERNAL_ENGINE_KEYS)
+    covered = {s.split('.')[0] for s in selectors}
+    uncovered = engine_keys - covered - set(INTERNAL_ENGINE_KEYS)
     assert not uncovered, (
         f'engine 产出键未登记 selectors 且不在内部白名单（漏登记？）: {sorted(uncovered)}')
     stale_whitelist = set(INTERNAL_ENGINE_KEYS) - engine_keys
     assert not stale_whitelist, (
         f'内部白名单键 engine 已不再产出（白名单腐化）: {sorted(stale_whitelist)}')
-    leaked = set(INTERNAL_ENGINE_KEYS) & selectors
+    leaked = set(INTERNAL_ENGINE_KEYS) & covered
     assert not leaked, f'内部白名单键被同时登记进 selectors（归类矛盾）: {sorted(leaked)}'
 
 
 def test_selectors_exist_in_engine(engine_result):
-    """断言 2：selectors 登记键 engine 全量供给下实际产出（防死键）。"""
+    """断言 2：selectors 登记键 engine 全量供给下实际产出（防死键）。
+    dotted-path 按首段核 engine 顶层键；完整路径可解析性由
+    test_payload_mirrors_selectors 传递担保（build_payload 只写可解析路径）。"""
     engine_keys = set(engine_result.keys())
-    dead = set(MANGPAI_SCHOOL.selectors) - engine_keys
+    dead = {s for s in MANGPAI_SCHOOL.selectors
+            if s.split('.')[0] not in engine_keys}
     assert not dead, f'selectors 登记键 engine 不产出（死键）: {sorted(dead)}'
     assert len(MANGPAI_SCHOOL.selectors) == len(set(MANGPAI_SCHOOL.selectors)), (
         'selectors 存在重复登记')
 
 
 def test_payload_mirrors_selectors(payload):
-    """payload 键集 = selectors 键集（全量供给下无缺漏），键数锁定 41。"""
+    """payload 键集 = selectors 键集（全量供给下无缺漏），键数锁定 42（批K +1）。"""
     assert set(payload.keys()) == set(MANGPAI_SCHOOL.selectors)
-    assert len(payload) == 41
+    assert len(payload) == 42
 
 
 def test_payload_keys_have_consumer(payload):

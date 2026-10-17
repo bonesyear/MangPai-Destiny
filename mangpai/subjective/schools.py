@@ -41,6 +41,9 @@ MANGPAI_SCHOOL: School = School(
                # 缺口批2：xiangmao（相貌 marker 层，无判定无档位）同口径追加
                # （N1 七维批起进叙述维，L2 禁「美/丑/帅」结论词）。
                "liuqin", "zinv", "qianyi", "xiangmao", "zaihuo", "zeishen_bushen", "xiangfa_ops",
-               "narrative", "shipaige"),
+               # 批K（2026-10-17 用户拍板·juefa 断语 A 组选择性接入生产）：
+               # dotted-path 只放 A 组精选 duanyu_a（5 条 marker 级措辞），
+               # 断语 22 项全文/断句/字碰字/巾箱一律不进 payload。
+               "narrative", "shipaige", "juefa.duanyu_a"),
     desc="盲派宾主体用做功体系，重象法口诀。《段氏理象学》《盲师断命秘诀》",
 )
