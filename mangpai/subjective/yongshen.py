@@ -47,7 +47,7 @@ from typing import Dict, List, Optional, Set
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE,
-    LIU_CHONG, XING_PAIRS, SAN_HE, BAN_HE, LIU_HAI, LU,
+    LIU_CHONG, XING_PAIRS, SAN_HE, BAN_HE, LIU_HAI, LIU_HE, LU, TOMB_MAP,
 )
 from mangpai.objective.shishen import wx_cat as _wx_cat
 from mangpai.objective.zihe import detect_zihe
@@ -92,20 +92,34 @@ def _pos_main_wx(pos: str, gans: List[str], zhis: List[str]) -> str:
 def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
     """日主根扶状态（段氏22期从格四规则之机械口径）。
 
-    根=地支藏干（含余气——例5「辰中癸水」余气算根）含日主五行；
+    根=地支藏干（含余气——例5「辰中癸水」余气算根）含日主五行；**比肩余气
+    根不作依托**（批N2-N4：22期例2「天干比肩再多也无用」推及支藏——qi40
+    丑中辛余气犯众水自败、董竹君 申/寅中戊余气不托，书俱判从；劫财（刃系）
+    余气作根——li263「丁羊刃有根而不从」、li131 两辰中乙「身弱不从」）。
     扶（印）明现=透干/本气/中气；印根=地支藏干**本气/中气**含印五行
     （余气假根不算——例1 己印坐寅中戊余气书判「印也无根」、例2 辰印
     被旺木穿坏书判从财，与日主根计余气[例5]为书内两套并存口径）。
     根被坏（「强有力邻支冲掉 / 合会局转化失原性」，例3 巳刑寅+寅午半会）：
       - 双夹冲：根支左右两邻支俱冲之（例4 三戌冲辰方坏；例5 一戌紧贴
         一戌不贴则冲不坏——单夹冲不算坏）；
-      - 单点刑/穿：根支被邻支刑/穿（例2 卯辰穿坏辰、例3 巳刑寅）；
+      - 单点刑/穿：根支被邻支刑/穿（例2 卯辰穿坏辰、例3 巳刑寅）；刑合相兼
+        （刑穿对同时为六合——巳申）者以合论不判坏（批N2-N4，li002「日主有
+        巳印不从…巳火被合，合坏用神为病」——合绊为病非根坏）；
+      - 日支坐本气强根（日支本气=日主五行）不被单点刑/穿/单冲判坏（批N2-N4，
+        li128「日主坐强根，此造不从…戌根原自己的」；qi03 丁坐巳被亥冲书仍
+        「实际不是」从）；
+      - 非月令非日支本气之根被邻支紧贴单冲即坏（批N2-N4，「强有力邻支冲掉」
+        zhenbao:715——b67-建筑 时支酉禄被日支卯单冲，书判从财；月令之根
+        气固须双夹——例5 一贴一不贴冲不坏）；
+      - 土冲变虚（批N2-N4，限日主五行为土）：土日主之土根被邻支土单冲即虚
+        （qi19「两土逢冲…土冲变虚，对戊土之根来说则等于根被冲坏，戊土无所
+        依托」）；他五行日主之土支根不受此虚（例5 壬水 辰中癸单冲不坏）；
       - 合会转化：根支参与三合/半合且局五行 ≠ 日主五行（失原性）。
     根远近：唯年支根为「根远」（「年支根远…根远者日主无法依托，往往会从」）。
 
     Returns: {'roots': [int], 'roots_broken': bool, 'far_root_only': bool,
               'has_yin': bool, 'yin_rooted': bool, 'yin_root_broken': bool,
-              'yue_broken': bool}
+              'yue_broken': bool, 'benqi_root_unbroken': bool}
     """
     dw = GAN_WX.get(day_gan, '')
     yin = _yin_wx(dw)
@@ -124,7 +138,26 @@ def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
                 return True
         return False
 
-    roots = [i for i in range(4) if _has_wx_cang(i, dw)]
+    # 批N2-N4：比肩余气根不作依托（22期例2「天干比肩再多也无用」推及支藏），
+    # 劫财（刃系）余气仍作根；本气根另记（conc≥7 粗闸救应口径，批N2-N1）。
+    roots: List[int] = []
+    benqi_roots: List[int] = []
+    jiu_roots: List[int] = []   # 粗闸救应根：本气（禄刃）+劫财中/余气（批N2-N1）
+    for i in range(4):
+        if i >= len(zhis) or not zhis[i]:
+            continue
+        for idx, (cg, _q) in enumerate(get_canggan_mangpai(zhis[i])):
+            if GAN_WX.get(cg, '') != dw:
+                continue
+            same_yy = (cg in _YANG_GANS) == (day_gan in _YANG_GANS)
+            if idx >= 2 and same_yy:
+                break  # 比肩余气非根（qi40 丑中辛、董竹君 申中戊，书俱判从）
+            roots.append(i)
+            if idx == 0:
+                benqi_roots.append(i)
+            if idx == 0 or not same_yy:
+                jiu_roots.append(i)  # 比肩中气不救（阎锡山 未中乙，从杀不动）
+            break
     yin_roots = [i for i in range(4) if _has_wx_cang(i, yin, max_idx=1)]
     # 印明现（透干/本气/中气）
     has_yin = False
@@ -151,7 +184,9 @@ def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
             (frozenset((a, b)) in pairs) or (a + b in pairs) or (b + a in pairs)
 
     def _broken(i: int) -> bool:
-        """i 支被坏：双夹冲 / 单点刑穿 / 合会转化（局五行≠日主五行）。"""
+        """i 支被坏：双夹冲 / 土冲变虚(限土日主) / 单点刑穿(刑合相兼以合论) /
+        非月令单冲 / 湿土晦火 / 合会转化（局五行≠日主五行）。
+        日支坐本气强根者单点刑/穿/单冲俱不判坏（批N2-N4）。"""
         if i >= len(zhis) or not zhis[i]:
             return False
         z = zhis[i]
@@ -160,10 +195,37 @@ def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
         chong_hit = sum(1 for w in neighbors if _pair_hit(z, w, LIU_CHONG))
         if chong_hit >= 2:
             return True
-        # 单点刑/穿（邻支）
-        for w in neighbors:
-            if _pair_hit(z, w, XING_PAIRS) or _pair_hit(z, w, LIU_HAI):
-                return True
+        # 土冲变虚（批N2-N4，限日主五行为土、限丑未相冲）：土日主之土根被邻支
+        # 丑未单冲即虚——qi19「两土逢冲…土冲变虚，对戊土之根来说则等于根被冲坏，
+        # 戊土无所依托，以从格看」；辰戌冲为冲开墓库之象不判虚（cj-富财墓
+        # 「财墓喜冲发大财」——辰戌冲开财库反主大发，与丑未冲虚书内两读，
+        # 各从书锚）；他五行日主之土支根不受此虚（例5 壬水 辰中癸单冲不坏）。
+        if dw == '土' and z in ('丑', '未') \
+                and any(w in ('丑', '未') and _pair_hit(z, w, LIU_CHONG)
+                        for w in neighbors):
+            return True
+        # 日支坐本气强根（日支本气=日主五行）：单点刑/穿/单冲俱不判坏
+        # （li128「日主坐强根，此造不从…戌根原自己的」；qi03 丁坐巳被亥冲书仍不从）。
+        day_benqi = (i == 2 and ZHI_WX.get(z) == dw)
+        if not day_benqi:
+            # 单点刑/穿（邻支）；刑合相兼（刑穿对同时为六合——巳申）者以合论
+            # 不判坏（li002「日主有巳印不从…巳火被合，合坏用神为病」——合绊
+            # 为病非根坏；批N2-N4）。
+            for w in neighbors:
+                if (_pair_hit(z, w, XING_PAIRS) or _pair_hit(z, w, LIU_HAI)) \
+                        and not _pair_hit(z, w, LIU_HE):
+                    return True
+            # 非月令之根被主位相关邻支紧贴单冲即坏（「强有力邻支冲掉」
+            # zhenbao:715——b67-建筑 时支酉禄被日支卯单冲，书判从财；月令之根
+            # 植势须双夹——例5 一贴一不贴冲不坏；批N2-N4）。主位相关=根支在
+            # 日/时或冲支在日/时；宾位（年月）互冲力不及不判坏——cj-1395
+            # 卯年根被酉月冲，书仍「旺杀入墓墓不开…不当官」（身弱扶抑框架）。
+            if i != 1:
+                for _j in (i - 1, i + 1):
+                    if 0 <= _j < len(zhis) and zhis[_j] \
+                            and _pair_hit(z, zhis[_j], LIU_CHONG) \
+                            and (i in (2, 3) or _j in (2, 3)):
+                        return True
         # 晦（邻支湿土晦火——22期例6「丙火之根巳远隔无力，且被丑土晦尽，
         # 无法帮身」zhenbao:739-743；例3「辰土晦火之故」）：丑/辰晦巳/午，
         # 火根失其性不能帮身，视同根被坏（批6 P0-1 补此第四式）。
@@ -193,6 +255,10 @@ def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
         'roots': roots,
         'roots_broken': bool(roots) and all(_broken(i) for i in roots),
         'roots_double_chong': bool(roots) and all(_double_chong(i) for i in roots),
+        'benqi_root_unbroken': bool(benqi_roots)
+            and not all(_broken(i) for i in benqi_roots),
+        'jiu_root_unbroken': bool(jiu_roots)
+            and not all(_broken(i) for i in jiu_roots),
         'far_root_only': roots == [0],
         'has_yin': has_yin,
         'yin_rooted': bool(yin_roots),
@@ -210,10 +276,20 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
       从弱侧（selfc≤3）：①日主无根无扶者从；③无根有印而印无根者从；
         ④无根印有根而印根被坏者从；②有根（俱被坏）无生扶者从；
         唯年支根远且无扶者从（「根远者日主无法依托，往往会从」）。
-      从强侧/从旺从禄（selfc≥5 且 conc≤3）：月令为异党而月令被坏
-        （双夹冲/邻支刑穿/合会转化入异局）——月令不能拮抗，从旺论
-        （从禄格例：丁未壬寅己巳庚午，月令寅官被巳刑坏，书判从禄格，
-        壬水与庚金为忌神）。
+      从强侧/从旺从禄（批N2 修3 得令成势三径）：A 径 raw 自党≥6 势成即从；
+        B 径 合会化势抬升至≥6（化神∈自党方计——li263走私 寅午戌化火、qi32
+        申子化水、洪秀全 酉丑化金，书俱判从强/从禄）且须得令；C 径 化势后
+        自党=5、月令自党、conc≤3（conc≤2→≤3）且月令为日主之禄（qi35 卯禄月）
+        或阳刃+三合全会化自党（走私 午刃+寅午戌化火）；两停（selfc==conc≥4）
+        而月令为日主之禄且自党合会化势者从禄（b67-制例三）；additive 路径
+        （selfc≥5 且 conc≤3）月令为异党而月令被坏（双夹冲/邻支刑穿/合会转化
+        入异局）——月令不能拮抗，从旺论（从禄格例：丁未壬寅己巳庚午，月令
+        寅官被巳刑坏，书判从禄格，壬水与庚金为忌神）。以上从强侧诸径统一过
+        「异党透干得墓库根≥2（两库）」依托闸（批N2 修2/修6——ans29「水得
+        两库而不能从」；本气禄根另入 additive 依托，主位阳刃根不阻断——
+        zhenbao-09 乞丐 丙得时支午刃书判从强）。印月入 B 径不入 C 径（ans37b
+        与 ans37a 一字差同构异判、li054 掌兵权大贵 书判扶抑贵——5:3 印月禄
+        在局段氏裁决不一，残误备案，从强侧宁缺勿滥）。
 
     Returns: '身强'|'身弱'|'中和'|'从强'|'从弱'|'不明'
     """
@@ -234,8 +310,96 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
     # conc=6）旧被 conc>=6 粗闸抢跑误判从弱，书「乙木印星根在亥，印星有根，
     # 故不能从」「以身弱看」（zhenbao:744-747）。
     st = _cong_gen_fu_state(day_gan, gans, zhis)
-    if selfc >= 6 or (selfc >= 5 and yue_self and conc <= 2):
-        return '从强'
+    # ── 批N2 修3：从强侧同用合会化势计数——仅化神∈自党之局替换支五行（化入
+    # 自党方增势；化神∈异党者不作自党减员——ans33 巳酉半合金，巳仍计火，
+    # 书「此造是从强格」；异党成局另入 yidang_hua 作「对方有势」阻断）。
+    # 重支按位枚举（qi32 两申俱化水）。化势例：li263走私 寅午戌化火 4:4→5:3
+    # （书「从强」）、qi32 申子化水 4:4→6:2（书「从禄格…日禄归时」）。
+    # conc≤2→≤3（洪秀全/qi35/ans37b 均 5:3 月令自党，书仍判从强）。
+    zhi_wx_q = [ZHI_WX.get(z, '') for z in zhis]
+    for _he, _wx in SAN_HE.items():
+        if _wx in self_wx and all(p in zhis for p in _he):
+            for _i, _z in enumerate(zhis):
+                if _z in _he:
+                    zhi_wx_q[_i] = _wx
+    for _he, _wx in BAN_HE.items():
+        if _wx in self_wx and _he[0] in zhis and _he[1] in zhis:
+            for _i, _z in enumerate(zhis):
+                if _z in _he:
+                    zhi_wx_q[_i] = _wx
+    selfc_q = sum(1 for g in gans if GAN_WX.get(g) in self_wx) + \
+              sum(1 for w in zhi_wx_q if w in self_wx)
+    conc_q = 8 - selfc_q
+    yue_self_q = len(zhi_wx_q) > 1 and zhi_wx_q[1] in self_wx
+    # ── 批N2 修2+修6：异党依托统一为「异党透干得墓库根≥2（两库）」——ans29
+    # 「水得两库而不能从，以身旺劫印为忌神看」；本气根/刃不阻断（洪秀全 甲得卯、
+    # zhenbao-09 丙得午刃、制例三 甲得卯，书俱判从强/从禄）。旧以异党本气根为
+    # 依托系误读乞丐造书判（勘误：书明文「此造从强」trainset:111，非「比劫夺财
+    # 身强局」）。墓库口径 TOMB_MAP（理象学:2035）。
+    yidang_ku2 = any(
+        GAN_WX.get(g, '') not in self_wx
+        and sum(1 for z in zhis if GAN_WX.get(g, '') in TOMB_MAP.get(z, [])) >= 2
+        for i, g in enumerate(gans) if g and i != 2
+    )
+    # ── 批N2 修3：从强粗闸 = 得令成势（专旺经典口径），三径：
+    #   A 径：自党主气(raw)≥6 势成即从（不另要求得令——庚乙庚乙 阳刃包局书判从强）；
+    #   B 径：化势抬升至≥6（raw<6≤selfc_q）者须得令（洪秀全 酉丑化金 5→6 子禄月、
+    #     qi32 申子化水 4→6 亥月+时干甲干禄，书「从禄格…以时干甲木为干禄，
+    #     日禄归时」）；阳刃月者更须三合全会化自党（岳飞 甲刃卯月仅卯未半合，
+    #     势不成，阳刃格用制不入从——书「子为忌神」乃身强扶抑框架）；
+    #   C 径：自党=5（化势后）月令自党且 conc≤3 且得令。
+    # 得令口径：禄月（qi35 卯禄月）；阳刃月须三合全会化自党（li263走私 午刃+
+    #   寅午戌化火——化刃成局方从）；印月须月令印未被刑（康熙 寅印被巳刑——
+    #   身强贵；申亥穿 qi32 书读作「邻亥子泄掉」不阻）且日主得禄于支或时干透
+    #   比肩（日禄归时——qi32；qi29 印月无禄、李嘉诚 印月无禄刃俱不入）；
+    #   **印月支径仅入 B 径（化势抬升），不入 C 径**——5:3 印月禄在局者段氏
+    #   裁决不一（ans37b 亥月寅禄书判从强 vs ans37a 同盘时支一字差/li054掌兵权
+    #   大贵/富丑运发迹 书俱扶抑贵富——从格判不可机械分离，残误备案），从强
+    #   侧宁缺勿滥（批N1 判出率主源在从强侧抢跑）。三条均另须异党无合会化势
+    #   （异党成合会局=对方有势、非「一方成势」——巴菲特 寅午化火财局，身强
+    #   做功非从）。
+    # 计数成势而不得令者不入（蒋介石 戌月非印——身强正格，防 5:3 粗闸泛化）。
+    _REN = {'甲': '卯', '丙': '午', '戊': '午', '庚': '酉', '壬': '子'}
+    lu0, ren0 = LU.get(day_gan, ''), _REN.get(day_gan, '')
+
+    def _huashi_of(party_self: bool) -> bool:
+        """存在合会局（三合/半合）且化神 ∈（party_self=True）/ ∉ 自党。"""
+        for _he, _wx in SAN_HE.items():
+            if all(p in zhis for p in _he) and (_wx in self_wx) == party_self:
+                return True
+        for _he, _wx in BAN_HE.items():
+            if _he[0] in zhis and _he[1] in zhis and (_wx in self_wx) == party_self:
+                return True
+        return False
+
+    def _sanhe_quan_self() -> bool:
+        """三合全会且化神∈自党（阳刃月「化刃成局」门槛——走私 寅午戌化火）。"""
+        return any(all(p in zhis for p in _he) and _wx in self_wx
+                   for _he, _wx in SAN_HE.items())
+
+    yidang_hua = _huashi_of(False)
+    z1 = zhis[1]
+    yang_ren_yue = bool(ren0) and z1 == ren0    # 阳刃月（甲卯/丙午/戊午/庚酉/壬子）
+    if z1 == lu0:
+        de_ling = not yidang_hua                                   # 禄月
+    elif yang_ren_yue:
+        de_ling = _sanhe_quan_self() and not yidang_hua            # 阳刃月须三合化自党
+    elif ZHI_WX.get(z1, '') == yin:                                # 印月（仅 B 径用）
+        _z1_xing = any(0 <= _j < len(zhis) and zhis[_j]
+                       and ((z1, zhis[_j]) in XING_PAIRS or (zhis[_j], z1) in XING_PAIRS)
+                       for _j in (0, 2))
+        gan_lu = len(gans) == 4 and gans[3] == day_gan   # 时干透比肩=日禄归时
+        de_ling = not _z1_xing and (lu0 in zhis or gan_lu) and not yidang_hua
+    else:
+        de_ling = False
+    if selfc >= 6 and not yidang_ku2:
+        return '从强'                                              # A 径：raw 势成
+    if selfc_q >= 6 and selfc < 6 and de_ling and not yidang_ku2 \
+            and (not yang_ren_yue or _sanhe_quan_self()):
+        return '从强'                                              # B 径：化势成势须得令
+    if selfc_q >= 5 and yue_self_q and conc_q <= 3 and not yidang_ku2 \
+            and (z1 == lu0 or yang_ren_yue) and de_ling:
+        return '从强'                                              # C 径：5:3 禄刃月得令
     if conc >= 6 or (conc >= 5 and not yue_self and selfc <= 2):
         # 印有根且印根不被坏者印能扶身、不能从（22期例7）——落下方细则路径
         # 判身弱。印须透干明现方有扶身之力（例7 乙印透干；藏干印不作救，
@@ -244,7 +408,22 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
                     for i, g in enumerate(gans))
         yin_jiu = bool(st) and yin_tou and st['yin_rooted'] \
             and not st['yin_root_broken'] and not st.get('day_zihe')
-        if not yin_jiu:
+        # 批N2 修1：日主自身有未坏之根者不能从（zhenbao:714 规则②「有根…根
+        # 被坏掉者从」逆命题——li004「身弱有禄不能从」、li131 两辰中乙劫财余气
+        # 根「身弱不从」、li263「丁羊刃有根而不从」、li139「亥未拱禄不从」）。
+        # 救应根=本气根（禄刃）+劫财中/余气根；比肩中/余气根不救（例2「天干
+        # 比肩再多也无用」推及支藏——阎锡山 未中乙比肩中气不碍从杀）。
+        # conc≥7（日主独存）者劫财余气根亦不救（ans06 戌中丁余气难支，书判从财；
+        # qi40恋爱失败 巳中庚余气同），唯本气根（禄刃）未坏仍救。
+        if conc >= 7:
+            gen_jiu = bool(st) and st.get('benqi_root_unbroken')
+        else:
+            gen_jiu = bool(st) and st.get('jiu_root_unbroken')
+        # 藤萝系甲：乙日见甲透干者系甲有依、不从（li208「乙见甲，为藤萝系甲
+        # 而不从」）。
+        tengluo = day_gan == '乙' and any(
+            i != 2 and g == '甲' for i, g in enumerate(gans))
+        if not yin_jiu and not gen_jiu and not tengluo:
             return '从弱'
     base = '中和' if abs(selfc - conc) <= 1 else ('身强' if selfc > conc else '身弱')
     # ── 22期从格细则（additive）──
@@ -286,11 +465,28 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
             n = sum(1 for g in gans if GAN_WX.get(g) == wx) + \
                 sum(1 for w in zhi_wx_eff if w == wx)
             yidang_shi = max(yidang_shi, n)
+    # ── 批N2 修3：两停从禄——selfc==conc 两停、月令为日主之禄且**自党合会
+    # 化势**者，从禄论（b67-制例三 己日午月 4:4+午戌半合化火印，书「我认为是
+    # 从禄格，食神酉为病神」；两停无化势者非从——b67-抢劫 乙日卯月建禄两停，
+    # 仍按扶抑）。
+    if selfc == conc and selfc >= 4 and yue_self and LU.get(day_gan) == zhis[1] \
+            and _huashi_of(True) and not yidang_ku2:
+        return '从强'
     if selfc <= 4 and yidang_shi >= 3:
         # 从弱侧四规则 + 根远（例2「天干比肩再多也无用」——从格看根气，
         # 不数天干比劫，故门槛取 selfc≤4 而非计数强弱势）
         # G9（48期例2）：日主自合柱者不受印生——印扶视同失效（有印如无印），
         # 印之根扶一并失效（己坐亥自合不受丁火之生，从官）。
+        # 批N2 修7 备案（书内两套口径未裁，现依 zhenbao:747 例7「印星有根，
+        # 故不能从」口径，逻辑不动）：li214李敖/qi50因夫离职 印透有根书仍判
+        # 从儿——与例7冲突；又 li115「时透己印紧贴生身，不从」/li202「乙印
+        # 在主的位置，不从」（印透无根作扶）与 22期例1「印也无根，故八字作
+        # 从财格看」（印透无根不扶，zhenbao:729-731）同构异判；又 ans37b
+        # 亥月寅禄书判「后造从强」与 ans37a（同盘时支一字差）/li054掌兵权大贵
+        # /富丑运发迹（书俱扶抑贵富）5:3 印月禄在局裁决不一（修3 印月支径
+        # 已撤出 C 径，ans37b 残误）；又 qi37曹锟「水伤食得势」（从势读法）
+        # 与 li131/li263 劫财中/余气根「不从不」（修1 救应根口径）两读——
+        # 俱备案待裁。
         no_yinfu = bool(st.get('day_zihe'))
         has_yin_eff = st['has_yin'] and not no_yinfu
         yin_rooted_eff = st['yin_rooted'] and not no_yinfu
@@ -309,16 +505,21 @@ def classify_strength(day_gan: str, gans: List[str], zhis: List[str]) -> str:
             if st['far_root_only'] and not has_yin_eff:
                 return '从弱'                      # 根远难依托
     elif selfc >= 5 and conc <= 3 and not yue_self and st['yue_broken']:
-        # 从旺/从禄：月令异党被坏（不能拮抗）且异党天干俱无本气根（无所依托）。
-        # 反例（乞丐 壬子癸卯壬子丙午）：月令卯被子刑似破，然异党丙火根在午
-        # （本气刃根）有所依托，身强不论从——书判比劫夺财身强局。
-        self_set = {dw, yin}
-        yidang_rooted = any(
-            GAN_WX.get(g, '') not in self_set and ZHI_WX.get(z, '') == GAN_WX.get(g, '')
+        # 从旺/从禄：月令异党被坏（不能拮抗）且异党无依托。依托=异党透干得
+        # 本气根（禄——qi02「亥运忌神癸水通根…家业破尽」运岁反推原局得根破从；
+        # 宾位刃根同论）或墓库根≥2（两库，ans29「水得两库而不能从」）；
+        # **主位（日/时支）阳刃根不阻断**——zhenbao-09 乞丐 壬子癸卯壬子丙午，
+        # 异党丙火得时支午刃（门户之位与日主相缠，不作异党远援），书明文
+        # 「此造从强」trainset:111（批N2 修6 勘误：旧注「书判比劫夺财身强局」
+        # 系误读）；宾位刃根为远援有力仍依托（zhenbao-23b 甲得卯刃，不入从）。
+        yidang_lu = any(
+            GAN_WX.get(g, '') not in self_wx
+            and ZHI_WX.get(z, '') == GAN_WX.get(g, '')
+            and not (z == _REN.get(g, '') and zi in (2, 3))
             for i, g in enumerate(gans) if g and i != 2
-            for z in zhis
+            for zi, z in enumerate(zhis)
         )
-        if not yidang_rooted:
+        if not (yidang_lu or yidang_ku2):
             return '从强'                          # 从旺/从禄（月令异党被坏且异党无依托）
     return base
 
@@ -492,7 +693,16 @@ def detect_bijiao_duocai(
     # R1a：身强须财孤（明现≤1柱）方可夺；财明现≥2柱为财有众，比劫夺之
     # 不动（「身旺财旺…发财」，例134），其制财动作归「制财得财」财命域。
     # 从弱财为顺势，不论旺弱，比劫逆势破格即凶（第8/1期），不在此限。
-    detected = bool(hit_descs) and (
+    # 破从夺财（批N2-N6 修6 下游闭环）：从强财为忌神——忌财得本气根且孤
+    # （明现≤1柱）、被明现≥2柱之自党比劫冲战者，忌神得根未净=破从凶
+    # （zhenbao-09 乞丐造：从强而午财得刃孤悬，双子劫冲午财——书「财在门户，
+    # 出门见财…丙午财运讨饭」贫；qi02-家业破尽「忌神癸水通根，家业破尽而亡」
+    # 同法理——原局忌财得根即破从之柄）。忌财虚透无根/无冲战者不破
+    # （ans30 壬财虚透丁合去之、qi30 巳财无亥冲），不封顶。
+    pocong = strength == '从强' and cai_pillars <= 1 and bijiao_pillars >= 2 \
+        and any(h.startswith('冲') for h in hit_descs) \
+        and any(ZHI_WX.get(z, '') == caiwx for z in zhis if z)
+    detected = pocong or bool(hit_descs) and (
         (strength == '身强' and cai_pillars <= 1) or strength == '从弱'
     )
     severity = None
@@ -504,9 +714,14 @@ def detect_bijiao_duocai(
         # 制财即忌神克用神=夺财破财凶。从弱财旺为顺势之常，不以财弱为门槛（比劫
         # 逆势破格即凶，如第8/1期）。蒋介石印制财（功神=印非比劫）不在此列。
         sz = '清家荡产/贫' if severe else '破财/小康下'
-        reason = (f'比劫夺财·破财：{strength}财为用神，{duocai_hits}处比劫制财'
-                  f'（比劫{bijiao_pillars}柱），'
-                  f'段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（{sz}）')
+        if pocong:
+            reason = (f'破从夺财·破从凶：从强财（忌神）得本气根而孤（{cai_pillars}柱），'
+                      f'自党比劫{bijiao_pillars}柱冲战未净——忌神得根=破从'
+                      f'（第9期乞丐「丙午财运讨饭」、qi02「忌神通根家业破尽」；{sz}）')
+        else:
+            reason = (f'比劫夺财·破财：{strength}财为用神，{duocai_hits}处比劫制财'
+                      f'（比劫{bijiao_pillars}柱），'
+                      f'段氏「制财得财」以功神非比劫为前提，功神=比劫即夺财凶（{sz}）')
     return {
         'detected': detected, 'severity': severity, 'strength': strength,
         'cai_pillars': cai_pillars, 'bijiao_pillars': bijiao_pillars,
@@ -551,14 +766,25 @@ def classify_cong_target(
                sum(1 for z in zhis if ZHI_WX.get(z) == wx)
 
     if strength == '从弱':
-        # 异党最大五行为所从（ties 取计数序先至者——金木水火土）
-        best_wx, best_n = '', 0
-        for wx in ('金', '木', '水', '火', '土'):
-            if wx in self_set:
-                continue
-            n = _count(wx)
-            if n > best_n:
-                best_wx, best_n = wx, n
+        # 批N2 修5：伤食生财线路成立时财优先（做功线路定所从——食伤计数≥
+        # 财计数≥2 且财有本气根者，所从为财不论食伤）：ans06 土3金2 书「以土
+        # 泄火生财作用神」从财、qi27厅级 木4火2 书「日主无依必从财」、li211
+        # 火土3:3 tie 书「现作从财说」；反例守卫 li209 木3火2 但火无本气根，
+        # 书仍「从儿格喜用财」（所从为儿）。
+        cai_wx0 = WX_KE.get(dw, '')
+        shi_wx0 = WX_SHENG.get(dw, '')
+        if cai_wx0 and shi_wx0 and _count(shi_wx0) >= _count(cai_wx0) >= 2 \
+                and any(ZHI_WX.get(z, '') == cai_wx0 for z in zhis if z):
+            best_wx, best_n = cai_wx0, _count(cai_wx0)
+        else:
+            # 异党最大五行为所从（ties 取计数序先至者——金木水火土）
+            best_wx, best_n = '', 0
+            for wx in ('金', '木', '水', '火', '土'):
+                if wx in self_set:
+                    continue
+                n = _count(wx)
+                if n > best_n:
+                    best_wx, best_n = wx, n
         cat = _wx_cat(dw, best_wx) if best_wx else ''
         label = {'财': '从财', '官杀': '从官杀', '食伤': '从儿', '印': '从印'}.get(cat, '从弱')
         out.update({
