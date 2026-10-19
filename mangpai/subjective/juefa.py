@@ -22,6 +22,11 @@ engine 编排（result['juefa']，全参数：gender/yongshen=direction/shensha�
 payload 仅经 selectors dotted-path 放 A 组精选 `juefa.duanyu_a`（marker 级措辞）；
 yongshen.py 内部直调（仅消费 shangguan_jue）保持不动。D1 两头钳门槛批K 收紧
 =年时各≥2 吉神（批J 509 例评估：76% 准确但触发面 72% 过宽）。
+批L（2026-10-19）C 组豁免修复：D2b 财多不富加从财格/比劫明现双豁免
+（gaoji:20067-20070）；财库族 4 条（D3a+断句3条）断向改应期提示
+（理象学:8857-8858、chuji:2259/2269、gaoji:20111-20114）；D5a 伤官见官加
+伤官去官格豁免（官星被合去 zhongji:3732，或身弱/从强官为忌
+gaoji:1135-1136、shouke:850）。
 置信度：中（断语为经验 heuristic，命中≠定验）。
 """
 from typing import Dict, List, Optional
@@ -373,7 +378,21 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
     if cai_n == 1:
         emit(2, '财星独一位（含藏干仅1），清纯为我所专，主聚财')
     elif cai_n >= 3:
-        emit(2, f'财星{cai_n}重多杂，财多不富，需比劫助身担财或成从财格')
+        # 批L 豁免（批J 509 例评估：旧判「财多不富」反向率 68%）——书义本有
+        # 豁免：「需日主强旺（比劫助身）方能担财，或构成特殊格局（如从财）方
+        # 能大富」（gaoji:20067-20070；口诀「财星叠见反不富，比劫相助方为
+        # 良」gaoji:20063-20065）。
+        # 从财格真读 direction 总线 cong_target（G5 从格所从分类，D19 式
+        # 不读内容之鉴在前）；比劫明现=透干/支本气（count 默认口径）。
+        _cong2 = (yongshen_result or {}).get('cong_target') or {}
+        if _cong2.get('is_cong') and _cong2.get('label') == '从财':
+            emit(2, f'财星{cai_n}重成势、日主从之（从财格）——格局特殊豁免，'
+                    f'从财反主大富')
+        elif c(bijiao) >= 1:
+            emit(2, f'财星{cai_n}重而比劫明现（{c(bijiao)}处）——比劫助身可担财，'
+                    f'财多不富之忌有解')
+        else:
+            emit(2, f'财星{cai_n}重多杂，财多不富，需比劫助身担财或成从财格')
 
     # 3 财库（财五行之墓在局；逢三合/刑冲为库动）
     day_wx = GAN_WX.get(day_gan, '')
@@ -390,8 +409,15 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
             open_by.append('冲开库')
         if _zhi_rel(zhis, ku, XING_PAIRS):
             open_by.append('刑开库')
+        # 批L（批J：库动发财断向在静态原局 58% 反向，书义重应期——书例库动
+        # 发财应在「大运甲子流年丙寅，寅午戌三合财库被合动…发财三百余万」，
+        # gaoji:20111-20114）——断向改应期提示，原局不坐实发财。
         detail = f'{cai_wx}财之库（{ku}）在局，主存钱守成'
-        detail += '；' + '，'.join(open_by) + '，库动财源涌' if open_by else '；库门未动，待岁运三合刑冲'
+        if open_by:
+            detail += ('；' + '，'.join(open_by) + '，库动——财之出入应期在'
+                       '岁运引动（应期提示，原局不坐实发财）')
+        else:
+            detail += '；库门未动——财库待刑冲/三合岁运引动（应期提示）'
         emit(3, detail)
 
     # 4 官杀混杂（官与杀并见，透干或支本气）
@@ -412,7 +438,30 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
     guansha_all = c(guansha, full_hidden=True)
     shishang_all = c(shishang, full_hidden=True)
     if sg_tou and zg_tou:
-        emit(5, '伤官见官（同透）：无财印通关则叛逆官非、事业挫折（五行伤官诀例外者另判）')
+        # 批L 豁免（批J：3:3 反向，反例=朱元璋/雍正/伤官去官官员）——伤官
+        # 去官格不以「为祸百端」论：「伤官去官：官星为忌，伤官有力去之，去
+        # 忌得喜，反得官贵」（gaoji:1135-1136）；「格局成立的条件是官星作
+        # 忌神，不管日主旺衰如何」（shouke:850）；朱元璋「伤官去官，天地全
+        # 去，故官必大极」（shouke:2146）。豁免两路：
+        # 一、官星被合去——透干正官被局中他干合去（日主自合官亦计，
+        #     「壬午自合合去壬…为伤官去官格」zhongji:3732）；
+        # 二、官为忌神——真读 direction 总线 strength（N1 或 bijiao_duocai
+        #     皆可取，扶抑口径身弱/从强则官为忌，伤官克官=去忌得喜）。
+        _guan_he_qu = any(
+            ctx['ss'][_PILLARS[i]] == '正官' and
+            TIAN_GAN_HE.get(g, '') in [x for j, x in enumerate(gans) if j != i]
+            for i, g in enumerate(gans))
+        _n1_5 = (yongshen_result or {}).get('shangguan_jianguan') or {}
+        _st5 = _n1_5.get('strength') or \
+            ((yongshen_result or {}).get('bijiao_duocai') or {}).get('strength', '')
+        if _guan_he_qu:
+            emit(5, '伤官见官（同透）而官星被合去——伤官去官格，去官反主贵'
+                    '（不论日主旺衰）')
+        elif _st5 in ('身弱', '从强'):
+            emit(5, f'伤官见官（同透），{_st5}官为忌神——伤官去官格，'
+                    f'伤官有力去官反主贵')
+        else:
+            emit(5, '伤官见官（同透）：无财印通关则叛逆官非、事业挫折（五行伤官诀例外者另判）')
     elif shishang_all >= 3 and guansha_all == 0:
         emit(5, f'食伤{shishang_all}重而全局无一点官星（含藏干），伤官伤尽，反主才华超群')
 
@@ -684,15 +733,23 @@ def _duanju_hits(gans, zhis, day_gan, ctx, gender):
                     emit('jie_xia_guan', f'劫财{g}合官{g2}——权力属他人（别人是一把手）')
 
     # 财运：财库喜刑冲 / 坐下财库须刑冲 / 闭了财库破财
+    # 批L：静态断向（库开发财/库闭破财）批J 评估反向 36-52%，书义重应期——
+    # 「坐下财库一定要开才有用，如果库不开，则是墓」（理象学:8857-8858）、
+    # 「地支坐库喜刑冲，不制不贵」（chuji:2259）、「财官临库喜刑冲，冲了刑了
+    # 才是自己的，不冲不刑不能用」（chuji:2269）——一律改应期提示中性措辞，
+    # 原局不坐实发财/破财。
     ku_list = [z for z in _tomb_of(cai_wx) if z in zhis]
     if ku_list:
         ku = ku_list[0]
         if _zhi_rel(zhis, ku, XING_PAIRS) or _zhi_rel(zhis, ku, LIU_CHONG):
-            emit('caiku_xichong', f'财库{ku}逢刑冲，库开发财的命')
+            emit('caiku_xichong', f'财库{ku}逢刑冲而动——财之出入应期看岁运引动，'
+                                  f'原局不坐实发财（应期提示）')
         if zhis[2] == ku and not (_zhi_rel(zhis, ku, XING_PAIRS) or _zhi_rel(zhis, ku, LIU_CHONG)):
-            emit('day_caiku', f'日支坐财库{ku}而无刑冲，库闭难大发，待岁运刑冲')
+            emit('day_caiku', f'日支坐财库{ku}未逢刑冲——财库待刑冲岁运引动方开'
+                              f'（应期提示，原局不坐实难发）')
         if _zhi_rel(zhis, ku, LIU_HE):
-            emit('caiku_bi', f'财库{ku}被{"、".join(_zhi_rel(zhis, ku, LIU_HE))}合闭——破财')
+            emit('caiku_bi', f'财库{ku}被{"、".join(_zhi_rel(zhis, ku, LIU_HE))}合闭——'
+                             f'财难取用，逢冲开之岁运方得（应期提示，原局不坐实破财）')
 
     # 牢狱：食神入墓 / 伤官合官
     shi_wx = WX_SHENG.get(day_wx, '')
@@ -739,7 +796,9 @@ def _duanju_hits(gans, zhis, day_gan, ctx, gender):
 #   （触发面 72% 过宽，本批已加严门槛=年时各≥2 吉神）。
 # 措辞红线：marker 级中性措辞（象/倾向），不出断语式硬结论；死亡联想词不入
 # （payload 出口另有 _scrub_death 统一兜底，本表自查先于之）。
-# C 组（修后再议）/D 组（不接）及其余规则一律不进 duanyu_a。
+# C 组批L（2026-10-19）已修复并复测：D2b 60%/D5a 80%（判定集 5<10）/财库族
+# 全中性（判定集 0）——均不达 75%∧判定≥10 线，与 D 组（不接）及其余规则
+# 一律不进 duanyu_a（复测明细见 docs/audit-vs-originals-20261017.md 批L 节）。
 _DUANYU_A_MARKERS: List[tuple] = [
     ('duanyu', 1, '年时各见两吉神（财/官/印/禄）相钳——先天根基与归宿有依之象，'
                   '富贵潜力倾向（非定断）'),

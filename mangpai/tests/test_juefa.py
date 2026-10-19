@@ -459,3 +459,100 @@ def test_engine_juefa_key_and_payload_channel():
     pl = build_payload(res)
     assert 'juefa' not in pl
     assert pl.get('juefa.duanyu_a') == jf['duanyu_a']
+
+
+# ══ 批L：C 组豁免修复（依据=批J 509 例评估诊断，docs/audit-vs-originals-20261017.md）══
+# D2b 财多不富：书义本有豁免「需日主强旺（比劫助身）方能担财，或构成特殊格局
+# （如从财）方能大富」（gaoji:20067-20070；口诀「财星叠见反不富，比劫相助方为良」
+# gaoji:20063-20065）。豁免=从财格（direction 总线 cong_target 真读）或比劫明现。
+# D5a 伤官见官：伤官去官格不以「为祸」论（gaoji:1135-1136「官星为忌，伤官有力
+# 去之，去忌得喜，反得官贵」；shouke:850「格局成立的条件是官星作忌神，不管日主
+# 旺衰如何」；shouke:2146 朱元璋「伤官去官，天地全去，故官必大极」）。
+# 财库族：静态断向改应期提示（理象学:8857-8858「坐下财库一定要开才有用」；
+# chuji:2259/2269；书例库动发财应在甲子运丙寅年=岁运，gaoji:20111-20114）。
+
+def test_duanyu2b_cong_cai_exemption():
+    """从财格豁免：财≥3 + direction 总线 cong_target=从财 → 改判从财反主大富，
+    不出「需比劫助身担财」原断向（gaoji:20069 格局特殊豁免）。
+    甲寅乙亥庚辰壬午：庚日木财 甲+乙+寅甲+亥甲+辰乙=5 重，无比劫。"""
+    ys = {'cong_target': {'is_cong': True, 'label': '从财', 'suo_cong_wx': '木',
+                          'ji_wx': [], 'detail': ''}}
+    r = _run('甲寅', '乙亥', '庚辰', '壬午', yongshen_result=ys)
+    d = [h for h in r['duanyu_hits'] if h['id'] == 2][0]['detail']
+    assert '从财格' in d and '需比劫助身担财' not in d
+
+
+def test_duanyu2b_bijiao_exemption():
+    """比劫明现豁免：财≥3 且比劫透干/本气 → 比劫助身可担财，不出原断向
+    （gaoji:20069 比劫助身豁免；无 yongshen_result 亦生效=本地判据）。
+    甲寅己巳甲戌戊辰：甲日土财 己+戊+辰戊+巳戊+戌戊+辰戊≥3，年干甲比肩明现。"""
+    r = _run('甲寅', '己巳', '甲戌', '戊辰')
+    d = [h for h in r['duanyu_hits'] if h['id'] == 2][0]['detail']
+    assert '比劫助身可担财' in d and '需比劫助身担财' not in d
+
+
+def test_duanyu2b_original_still_fires():
+    """原条件仍触发（双向哨兵）：财≥3、无比劫、非从财 → 维持「财多不富需比助」。
+    甲寅乙亥庚辰壬午：财5重，庚日无比劫（申辛俱无），无 yongshen_result。"""
+    r = _run('甲寅', '乙亥', '庚辰', '壬午')
+    d = [h for h in r['duanyu_hits'] if h['id'] == 2][0]['detail']
+    assert '财多不富' in d and '需比劫助身担财' in d
+
+
+def test_duanyu5a_guan_he_qu_exemption():
+    """官星被合去豁免（朱元璋型）：伤官+正官同透而官被合（日主自合官亦计，
+    zhongji:3732「壬午自合合去壬…为伤官去官格」）→ 改判伤官去官格，不出
+    「叛逆官非」断向。戊辰壬戌丁丑丁未：戊伤官透+壬正官透，丁壬合（日主+时干）。"""
+    r = _run('戊辰', '壬戌', '丁丑', '丁未')
+    d = [h for h in r['duanyu_hits'] if h['id'] == 5][0]['detail']
+    assert '去官' in d and '叛逆官非' not in d
+
+
+def test_duanyu5a_guan_ji_exemption():
+    """官为忌神豁免：伤官+正官同透无合去 + direction 总线 strength=身弱/从强
+    （扶抑口径官为忌，gaoji:1135 去忌得喜）→ 改判伤官去官格。
+    癸酉己未丙辰庚寅：己伤官透+癸正官透，戊甲俱无=无合去。"""
+    ys = {'shangguan_jianguan': {'strength': '身弱'}}
+    r = _run('癸酉', '己未', '丙辰', '庚寅', yongshen_result=ys)
+    d = [h for h in r['duanyu_hits'] if h['id'] == 5][0]['detail']
+    assert '去官' in d and '叛逆官非' not in d
+    ys2 = {'shangguan_jianguan': {'strength': '从强'}}
+    r2 = _run('癸酉', '己未', '丙辰', '庚寅', yongshen_result=ys2)
+    d2 = [h for h in r2['duanyu_hits'] if h['id'] == 5][0]['detail']
+    assert '去官' in d2 and '叛逆官非' not in d2
+
+
+def test_duanyu5a_original_still_fires():
+    """原条件仍触发（双向哨兵）：伤官+正官同透、无合去、strength 身强（官为用）
+    或未传 yongshen_result → 维持「伤官见官为祸」断向（癸酉己未丙辰庚寅）。"""
+    ys = {'shangguan_jianguan': {'strength': '身强'}}
+    r = _run('癸酉', '己未', '丙辰', '庚寅', yongshen_result=ys)
+    d = [h for h in r['duanyu_hits'] if h['id'] == 5][0]['detail']
+    assert '叛逆官非' in d
+    r2 = _run('癸酉', '己未', '丙辰', '庚寅')
+    d2 = [h for h in r2['duanyu_hits'] if h['id'] == 5][0]['detail']
+    assert '叛逆官非' in d2
+
+
+def test_duanyu3_caiku_timing_wording():
+    """D3a 财库断向改应期提示：库动不再断「财源涌」，改「应期在岁运引动」；
+    规则仍命中（id=3 在 hits）。壬戌壬戌壬戌丙午（书例三戌火库+午会库）。"""
+    r = _run('壬戌', '壬戌', '壬戌', '丙午')
+    assert 3 in _ids(r)
+    d = [h for h in r['duanyu_hits'] if h['id'] == 3][0]['detail']
+    assert '库动' in d and '应期' in d and '财源涌' not in d
+
+
+def test_duanju_caiku_family_timing_wording():
+    """断句财库三条改应期提示（规则仍命中、措辞中性）：
+    caiku_xichong 不再断「发财的命」；day_caiku 不再断「难大发」；
+    caiku_bi 不再断「破财」，改「逢冲开之岁运方得」。"""
+    r = _run('壬戌', '甲辰', '壬寅', '丙午')   # 火库戌逢辰冲
+    d = [h['detail'] for h in r['duanju_hits'] if h['text'] == '财库喜刑，发财的命'][0]
+    assert '发财的命' not in d and '应期' in d
+    r2 = _run('壬子', '癸亥', '壬戌', '丙午')  # 日支戌=火库，亥与戌无刑冲合（库静）
+    d2 = [h['detail'] for h in r2['duanju_hits'] if h['text'] == '坐下财库，必须刑冲'][0]
+    assert '难大发' not in d2 and '应期' in d2
+    r3 = _run('壬戌', '癸卯', '壬寅', '丙午')  # 火库戌被卯合闭
+    d3 = [h['detail'] for h in r3['duanju_hits'] if h['text'] == '闭了财库，破财'][0]
+    assert '——破财' not in d3 and '逢冲开之岁运方得' in d3
