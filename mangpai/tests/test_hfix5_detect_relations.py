@@ -486,7 +486,7 @@ def test_collect_raw_facts_entombed_gan():
     # 丙（日干）坐戌（火墓）-> day 柱入墓
     facts = _collect_raw_facts('丙', ['甲', '乙', '丙', '丁'], ['辰', '卯', '戌', '丑'], None)
     assert facts['entombed_gan_pillars'] == {'day'}
-    # 戊寄戌（《五行精纪》严格墓位）-> 戊日坐戌同样 day 柱入墓
+    # 戊墓戌（段氏火土同宫，理象学:2026/2035）-> 戊日坐戌同样 day 柱入墓
     facts = _collect_raw_facts('戊', ['甲', '乙', '戊', '丙'], ['辰', '卯', '戌', '午'], None)
     assert facts['entombed_gan_pillars'] == {'day'}
 

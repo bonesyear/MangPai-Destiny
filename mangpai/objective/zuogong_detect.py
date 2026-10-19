@@ -1061,7 +1061,8 @@ def _collect_raw_facts(day_gan: str, gans: List[str], zhis: List[str],
                     day_weak_zhis.add(z)
 
     # 天干入墓（M4）：天干坐于自身墓库地支 -> 做事能力受限
-    # 墓位依 muku.is_gan_entombed（《五行精纪》戊寄戌、己寄辰，严格区分戊/己墓位）
+    # 墓位依 muku.is_gan_entombed（己墓辰=《五行精纪》:756/2284 水土同库，
+    # 戊墓戌=段氏理象学:2026/2035 火土同宫，2026-10-19 裁双轨分域）
     entombed_gan_pillars: Set[str] = set()
     for i, g in enumerate(gans):
         z = zhis[i]
