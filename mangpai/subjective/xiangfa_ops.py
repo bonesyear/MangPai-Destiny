@@ -8,8 +8,11 @@ xiangfa_ops - 盲派象法操作层·主观层（subjective）
 
 象法七原则（段氏第七章）：
   1. 共象：两类及以上象（干支/宫位/十神/神煞）指向同一事物 -> 锁定（取象定论）。
-  2. 合象：天干合/地支合产生**新象**（合双方之十神组合 + 合化之气）。
-  3. 化象：合化成功后的**新象**（化气五行之象 + 杀印相生化象）。
+  2. 合象：天干合/地支合产生**新象**（合双方之十神组合 + 合化之气 + 合象定义
+     组合库：相合双方互用对方的象、一方定义另一方性质——劫财合财/食神合印/
+     伤官合印/伤官合杀/官杀合身，中级:2204-2212、高级:8193-8225）。
+  3. 化象：合化成功后的**新象**（化气五行之象 + 杀印相生化象 + 三合成势——
+     「如生、三合局、半合局都是一种转化」中级:2276-2278，批P2 归正自合象移入）。
   4. 墓象：入墓/开库之物象变化（财入库=守财、官入库=封存/狱象；开库=墓物复出）。
   5. 制象：制住了才有象（制官得官、制财得财）；主制宾=得，宾制主=失/被制。
   6. 带象（带帽）：天干（帽）+地支藏干（身）十神组合产生复合象（印带官帽、财带官帽…）。
@@ -375,6 +378,31 @@ def gongxiang(
 
 # ───────────────────── 2. 合象 ─────────────────────
 
+# ── 合象定义组合库（批P2 补，批4 审计「最重要遗漏」）──
+# 书口径（中级:2204-2212）：「合象的第二种情形是：天干五合与地支六合，相合的
+# 双方可以互用对方的象……一方能定义另一方的性质与特征，如"劫财合财"，能表示此
+# 财的性质，是"劫取而得到的财"；"食神合印"印是学问，食神是思想，可表示是一种
+# 思想性的学问，即为"学术"；如是"伤官合印"，伤官是技艺或艺术，那可能就是表示
+# "技能"或"技艺"了」（八字原局中有的合才能适用）。
+# 高级:8193-8225 口诀一「劫财合财定财性，食神合印学术专。伤官合杀权柄握」+
+# 五组明文（增伤官合杀=权柄、官杀合身=日主追求官职/管理/约束）。
+# marker 级措辞（象/倾向），不改 locked/计分；适用面=原局天干五合/地支六合/暗合
+# （半合属三合成势家族、书归化象「转化」，不入互用定义）。
+# (甲,乙)=(劫财,正偏财)：劫财合财；(食神,印)/(伤官,印)；(伤官,七杀)；(日主,官杀)
+_HEXIANG_DEF_RULES = (
+    (frozenset({'劫财'}), frozenset({'正财', '偏财'}), '劫财合财',
+     '财被劫财定义其性——劫取而得之财之象（非正常劳动所得/意外/投机/赌博之财）'),
+    (frozenset({'食神'}), frozenset({'正印', '偏印'}), '食神合印',
+     '印为学问、食神为思想——思想性的学问=学术之象（单位主学校/研究机构/文化部门）'),
+    (frozenset({'伤官'}), frozenset({'正印', '偏印'}), '伤官合印',
+     '伤官为技艺/艺术——技术性、艺术性技艺之象'),
+    (frozenset({'伤官'}), frozenset({'七杀'}), '伤官合杀',
+     '伤官得权柄之象（具管理权力、制服官非之性）'),
+    (frozenset({'日主'}), frozenset({'正官', '七杀'}), '官杀合身',
+     '日主合官杀——追求官职/管理/约束之象'),
+)
+
+
 def hexiang(
     day_gan: str,
     gans: List[str],
@@ -384,10 +412,14 @@ def hexiang(
     """合象原则：天干合/地支合产生新象。
 
     天干五合 -> 合化气之象 + 合双方十神组合之象（日干合财=合财象、合官=合官象）；
-    地支六合 -> 合化/闭气之新象；三合局 -> 成势之象。
+    地支六合 -> 合化/闭气之新象；互用定义 -> 合象定义组合库（_HEXIANG_DEF_RULES，
+    marker 级）。三合局不归合象——批4 归错原则归正：中级:2276-2278 化象原则
+    「如生、三合局、半合局都是一种转化」，三合成势属化象「转化」非合象互用，
+    移入 huaxiang（半合兼作合制动作 [_HE_CONTROL]，书亦归转化——定义库不适用，
+    记录暂留本支，备案）。
 
     Returns:
-        合象记录列表。
+        合象记录列表（含 hexiang_defs 键=命中之合象定义组合，marker 级）。
     """
     findings: List[Dict] = []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
@@ -395,6 +427,31 @@ def hexiang(
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
     day_wx = GAN_WX.get(day_gan, '')
+
+    def _end_ss(pos: str, allow_zhongqi: bool) -> Set[str]:
+        """合一端之十神集合（干端=该干十神；支端=本气，暗合含中气——暗合者，
+        支中藏干相合，当事人即藏干本气+中气）；日干位记 {'日主'}。"""
+        pk = _pos_pillar(pos)
+        if pk not in PILLAR_KEYS:
+            return set()
+        i = PILLAR_KEYS.index(pk)
+        if pos == 'day_gan':
+            return {'日主'}
+        if pos.endswith('_gan'):
+            ss = _compute_shishen(day_gan, gans[i])
+            return {ss} if ss else set()
+        cg = get_canggan_mangpai(zhis[i])
+        if not cg:
+            return set()
+        n = 2 if allow_zhongqi else 1
+        return {s for s in (_compute_shishen(day_gan, g) for g, _ in cg[:n]) if s}
+
+    def _match_defs(f_set: Set[str], t_set: Set[str]) -> List[str]:
+        out: List[str] = []
+        for sa, sb, name, dtext in _HEXIANG_DEF_RULES:
+            if (f_set & sa and t_set & sb) or (f_set & sb and t_set & sa):
+                out.append(f'{name}：{dtext}')
+        return out
 
     for a in wa:
         t = a.get('type', '')
@@ -422,6 +479,10 @@ def hexiang(
                 'locked': True,
                 'desc': f'{a.get("desc", "")}，产生{subject}之合象',
             })
+            defs = _match_defs(_end_ss(from_pos, False), _end_ss(to_pos, False))
+            if defs:
+                findings[-1]['hexiang_defs'] = defs
+                findings[-1]['desc'] += '；合象定义：' + '；'.join(defs)
         elif t in ('地支合', '暗合', '半合'):
             findings.append({
                 'principle': '合象',
@@ -433,17 +494,49 @@ def hexiang(
                 'locked': True,
                 'desc': f'{a.get("desc", "")}，地支合产生合绊/合制新象',
             })
-        elif t == '三合局':
-            findings.append({
-                'principle': '合象',
-                'subject': '三合成势',
-                'domain': '',
-                'pillar': '',
-                'pos': a.get('to_pos', ''),
-                'evidence': [a.get('desc', '')],
-                'locked': True,
-                'desc': f'{a.get("desc", "")}，三合成势产生成局之象',
-            })
+            if t != '半合':  # 半合属三合成势家族（书归化象转化），不入互用定义
+                defs = _match_defs(_end_ss(a.get('from_pos', ''), t == '暗合'),
+                                   _end_ss(a.get('to_pos', ''), t == '暗合'))
+                if defs:
+                    findings[-1]['hexiang_defs'] = defs
+                    findings[-1]['desc'] += '；合象定义：' + '；'.join(defs)
+        # （三合局分支已移入 huaxiang——批4 归错原则：中级:2276-2278 三合成势
+        #  属化象「转化」非合象互用）
+
+    # 非做功五合补扫：劫财合财/食神合印等非日干合且非合制之合，做功层不载
+    # （zuogong_detect 非日干合只检合制「一方官杀另一方食伤/比劫」），而合象
+    # 互用属象法层（书「原局中有的合才能适用」）——直扫原局天干五合，wa 已载
+    # 之合（日干合/合制）不重复出记录。marker 级：locked=False 不入取象定论。
+    _wa_he_pairs: Set[frozenset] = set()
+    for a in wa:
+        if a.get('type') == '天干合':
+            _wa_he_pairs.add(frozenset({a.get('from_pos', ''), a.get('to_pos', '')}))
+    for i in range(4):
+        for j in range(i + 1, 4):
+            gi, gj = gans[i], gans[j]
+            if not gi or not gj or TIAN_GAN_HE.get(gi) != gj:
+                continue
+            pos_i, pos_j = f'{PILLAR_KEYS[i]}_gan', f'{PILLAR_KEYS[j]}_gan'
+            if frozenset({pos_i, pos_j}) in _wa_he_pairs:
+                continue
+            f_set = {'日主'} if PILLAR_KEYS[i] == 'day' else (
+                {s for s in [_compute_shishen(day_gan, gi)] if s})
+            t_set = {'日主'} if PILLAR_KEYS[j] == 'day' else (
+                {s for s in [_compute_shishen(day_gan, gj)] if s})
+            defs = _match_defs(f_set, t_set)
+            if defs:
+                findings.append({
+                    'principle': '合象',
+                    'subject': f'{defs[0].split("：")[0]}（合象定义）',
+                    'domain': '',
+                    'pillar': '',
+                    'pos': '',
+                    'kind': '合象定义',
+                    'hexiang_defs': defs,
+                    'evidence': [f'{gi}{gj}合（{PILLAR_NAMES_CN[i]}干×{PILLAR_NAMES_CN[j]}干，非做功五合）'],
+                    'locked': False,
+                    'desc': f'{gi}{gj}合，合象定义：' + '；'.join(defs),
+                })
     return findings
 
 
@@ -458,7 +551,10 @@ def huaxiang(
     """化象原则：合化成功后的新象。
 
     天干合化（type='合化'）-> 化气五行之象（如甲己化土=中央/信用/地产之象）；
-    杀印相生（type='杀印相生'）-> 化杀为印、化印为身之化象（印权）。
+    杀印相生（type='杀印相生'）-> 化杀为印、化印为身之化象（印权）；
+    三合局（type='三合局'）-> 三合成势之转化象（批P2 归正自 hexiang 移入——
+    中级:2276-2278 化象原则「如生、三合局、半合局都是一种转化」，三合成势
+    属化象「转化」非合象互用）。
 
     Returns:
         化象记录列表。
@@ -500,6 +596,18 @@ def huaxiang(
                 'evidence': [a.get('desc', '')],
                 'locked': True,
                 'desc': f'{a.get("desc", "")}，化杀为印、化印为身，产生印权之化象',
+            })
+        elif t == '三合局':
+            # 三合成势=会合转化出新局之象（批P2 归正，自 hexiang 移入）
+            findings.append({
+                'principle': '化象',
+                'subject': '三合成势',
+                'domain': '',
+                'pillar': '',
+                'pos': a.get('to_pos', ''),
+                'evidence': [a.get('desc', '')],
+                'locked': True,
+                'desc': f'{a.get("desc", "")}，三合成势转化出成局之象',
             })
 
     # ④ 五行相生化象（生克化象）：两五行相生，化出行业之复合象。

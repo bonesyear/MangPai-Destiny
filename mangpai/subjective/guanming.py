@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional, Set
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
     LU, CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars, TOMB_MAP,
+    TIAN_GAN_HE, LIU_HE,
 )
 from mangpai.objective.bazi_calc import get_kong_wang
 from mangpai.objective.canggan import get_canggan_mangpai
@@ -114,6 +115,10 @@ def classify_guanming_combo(
       - 印配比禄（比劫制印库=制印得权，章首列目 zhongji:3678-3679）
     书规则三（zhongji:3683-3684）：做功须有主位的字，纯宾位（年月互制）
       不立官命。
+    书规则二（zhongji:3681-3682，批P2）：官杀及印星必须有根，虚透当名气看——
+      落地为 marker（details 存证，不翻转判定；硬门槛版经 blind_eval 逐案归因
+      被书例否决：8 例翻转全变差零收益，书注「大运落实时也易当官」:3696 属岁
+      运域）。
     生用化用：
       - 印化官杀（杀印相生，detect_relations type='杀印相生'）
       - 官禄格（印生禄、禄在主位，zhongji:3969）
@@ -649,6 +654,37 @@ def classify_guanming_combo(
     if xiangfa_only and not combos and not shengyong_core:
         details.append(
             f'象法类（{"/".join(xiangfa_only)}）单独无做功组合佐证，不立官命（G4）')
+    # ── 书规则二 marker（批P2，zhongji:3681-3682「官命的官杀及印星不管如何做功，
+    #    都必须有根。官杀虚当名气看」；gaoji:11114 同）——官杀/印星虚透无根时记
+    #    marker 存证，不翻转 is_guanming。批P2 影响面评估（blind_eval 逐案归因）：
+    #    硬门槛版翻转官命 8 例全部变差（周恩来/袁世凯/李世民/cj-尚书/厅级/校长/
+    #    li002 处长/qi02 普通干部——书断语皆「是」而官杀四支藏干全无根），收窄版
+    #    「虚透+无其他官杀根」恰覆盖此 8 例、再收窄（去杀族豁免+印化官杀只验印根）
+    #    仍残留厅级/校长 2 例且零收益——书例自身多虚透立官（书注「官杀虚透，大运
+    #    落实时，也易当官」zhongji:3696，岁运落实域），机械硬门槛与书例冲突，按
+    #    数据撤回计分维改动，落地为 marker。根口径=四支藏干（本气/中气/余气）见同
+    #    五行（段氏「坐墓地为通根得气」理象学:2036-2037，余气墓库亦算根——曾国藩
+    #    辰中癸余气杀/朱镕基辰库印锚），比 detect_guansha_yougen 修饰用的本气+中
+    #    气口径宽。
+    def _wx_rooted(wx: str) -> bool:
+        if not wx:
+            return False
+        for i in range(4):
+            if ZHI_WX.get(zhis[i]) == wx:
+                return True
+            if any(GAN_WX.get(cg) == wx for cg, _ in get_canggan_mangpai(zhis[i])):
+                return True
+        return False
+
+    if combos or shengyong_core:
+        if guan_wx and has_guansha and not _wx_rooted(guan_wx):
+            details.append(
+                '官杀虚透无根——虚透当名气看（规则二 marker，zhongji:3681-3682；'
+                '书注：大运落实时亦易当官，zhongji:3696，属岁运域不翻转判定）')
+        elif yin_wx and has_yin and not _wx_rooted(yin_wx):
+            details.append(
+                '印星虚透无根——虚透当名气看（规则二 marker，zhongji:3681-3682；'
+                '去印得权族[贼捕制印等]以印虚透被制为定义性前提，不在此限）')
     # 印类 combo（财制印/印制伤食/伤食制印/印配比禄/贼捕制印及合制变体）以印主权力，
     # 书明文无官杀亦可立官命（reg67-印制伤食市长「四柱无官，印主权力，所以
     # 此造是个官员」；cj-5536 元朝丞相掌重权一品；cj-处级-5「财星制印的格局，
@@ -780,6 +816,9 @@ def classify_hangye_xiang(
       组合做功，一般与公安部门的官」——以官命为前提（is_guanming），字
       须实际参与做功（非辅助动作两端），存在不计；四字组合（公安）优先
       于申酉两字（检察/法院/法律）。
+    批P2 补规则五残余（zhongji:3693-3695）：食神合印（佩印）→ 思想文化性
+      行业——食神×印（正印/偏印）之天干五合/地支六合（支取本气），直扫原局
+      合对（非合制之合做功层不载），同以官命为前提。
 
     Returns:
         {'primary': str, 'by_combo': [str], 'by_ganxiang': str,
@@ -849,6 +888,34 @@ def classify_hangye_xiang(
         elif {'申', '酉'} <= (acted & in_ju):
             by_zhixiang = '检察/法院/法律（申酉两字做功）'
 
+    # ── 规则五残余（批P2 补，zhongji:3693-3695「食神合印（佩印）为做带有思想
+    #    文化性的行业」——批1 审计：模块只映射了同条的羊刃七杀→执法/军队
+    #    （劫刃制官杀 combo_hangye 既有），漏了此条）──
+    # 食神×印（正印/偏印）之合：天干五合/地支六合（支取本气）。非日干合且非合
+    # 制之合做功层不载（zuogong_detect 非日干合只检官杀×食伤/比劫），直扫原局
+    # 合对；与规则四支象通道同口径，以官命为前提。
+    if combo_result.get('is_guanming') and len(gans or []) == 4 and len(zhis or []) == 4:
+        _ss_pairs: List[tuple] = []
+        for _i in range(4):
+            for _j in range(_i + 1, 4):
+                _gi, _gj = gans[_i], gans[_j]
+                if _gi and _gj and TIAN_GAN_HE.get(_gi) == _gj:
+                    _si = '日主' if PILLAR_KEYS[_i] == 'day' else _compute_shishen(day_gan, _gi)
+                    _sj = '日主' if PILLAR_KEYS[_j] == 'day' else _compute_shishen(day_gan, _gj)
+                    _ss_pairs.append(({_si} - {''}, {_sj} - {''}))
+        for _i in range(4):
+            for _j in range(_i + 1, 4):
+                _zi, _zj = zhis[_i], zhis[_j]
+                if (_zi, _zj) in LIU_HE or (_zj, _zi) in LIU_HE:
+                    _ci, _cj = get_canggan_mangpai(_zi), get_canggan_mangpai(_zj)
+                    _si = _compute_shishen(day_gan, _ci[0][0]) if _ci else ''
+                    _sj = _compute_shishen(day_gan, _cj[0][0]) if _cj else ''
+                    _ss_pairs.append(({_si} - {''}, {_sj} - {''}))
+        if any(('食神' in _f and _t & {'正印', '偏印'})
+               or ('食神' in _t and _f & {'正印', '偏印'})
+               for _f, _t in _ss_pairs):
+            by_combo.append('思想文化性行业（食神合印佩印）')
+
     # 官杀所在柱天干象细化
     day_wx = GAN_WX.get(day_gan, '')
     guan_wx = WX_KE_ME.get(day_wx, '')
@@ -864,6 +931,8 @@ def classify_hangye_xiang(
     details = []
     if by_combo:
         details.append('做功组合定行业：' + '、'.join(by_combo))
+    if any('食神合印' in h for h in by_combo):
+        details.append('食神合印（佩印）→ 思想文化性行业（zhongji:3693-3695 规则五）')
     if by_zhixiang:
         details.append(f'支象定行业：{by_zhixiang}（中级:3685-3687）')
     if by_ganxiang:

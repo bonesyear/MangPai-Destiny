@@ -23,7 +23,7 @@
 | 职业 | 41✅/12⚠️/32❌ = **48.24%** (n=85) | 24✅ = **46.15%** (n=52) |
 
 （T-教授 财 +2 全预注册（教授/邢铭芬，贫穷命 ❌→⚠️ 改善非✅），M3 噪声带内，CI 下界 44.8%→46.6%。P4 职 +1 全预注册（gj-警察墓库），M3 噪声带内。P3 财 +2 全预注册，M3 噪声带内、CI 下界 43.1%→44.8%）
-- **验证口径**：`verify_mangpai.py` 420 项 + `pytest mangpai/tests/` 1342 collected（**1341 passed+1 xfailed，批O 应期体系补全批 2026-10-20 实测**；旧记 批N2 从格判定修复批 1313+1xf；旧记 批L juefa C组豁免修复批 1286+1xf、批K juefa断语A组接入批 1278+1xf、L2校验器应期/婚姻维零校验+豁免收窄批 1271+1xf、功量三书证规则批 G2 1266+1xf、校验器修批F·校准敏感区收口 1264+1xf、方向性bug修复批·上游模块+校验器红1-4 批 1207+1xf、github description 闸门批 1173+1xf、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129+1xf、S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）+ `scripts/check_credentials.py`（脱敏脱密：凭证/隐私/本机路径，pre-commit 同源）+ `scripts/check_doc_numbers.py`（文档数字闸门：README/KB 权威声明位 vs 实测，非 pre-commit 默认项，改测试/模块数后手动跑）（旧 853 口径 2026-07-17 起作废）。
+- **验证口径**：`verify_mangpai.py` 420 项 + `pytest mangpai/tests/` 1382 collected（**1381 passed+1 xfailed，批P2 hunyin星众坏（zhenbao-23b）修复批 2026-10-20 实测**；旧记 批P1 审计遗漏补全并行批 1378+1xf、批O 应期体系补全批 1341+1xf、批N2 从格判定修复批 1313+1xf；旧记 批L juefa C组豁免修复批 1286+1xf、批K juefa断语A组接入批 1278+1xf、L2校验器应期/婚姻维零校验+豁免收窄批 1271+1xf、功量三书证规则批 G2 1266+1xf、校验器修批F·校准敏感区收口 1264+1xf、方向性bug修复批·上游模块+校验器红1-4 批 1207+1xf、github description 闸门批 1173+1xf、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129+1xf、S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）+ `scripts/check_credentials.py`（脱敏脱密：凭证/隐私/本机路径，pre-commit 同源）+ `scripts/check_doc_numbers.py`（文档数字闸门：README/KB 权威声明位 vs 实测，非 pre-commit 默认项，改测试/模块数后手动跑）（旧 853 口径 2026-07-17 起作废）。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
 - **十批全模块审计已收官**（2026-08-17）：P0=96/P1=245/P2=259，修复批次 F0-F19 已批准（见 `docs/audit-progress-20260816.md`）；审计勘误本文件记录见 §10。
 
@@ -512,7 +512,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 |---|---|
 | `mangpai/verify_mangpai.py` | 420 项自洽检查（唯一版） |
 | `mangpai/verify_dayun.py` / `verify_layer1.py` / `verify_layer3_checkpoint.py` | 70 大运 / 64 基础 / 20 方向检查点 |
-| `python3 -m pytest mangpai/tests/ -q` | 1342 collected（**1341 passed+1 xfailed，批O 应期体系补全批 2026-10-20 实测**；旧记 批N2 从格判定修复批 1313+1xf；旧记 批L juefa C组豁免修复批 1286+1xf、批K juefa断语A组接入批 1278+1xf、L2校验器应期/婚姻维零校验+豁免收窄批 1271、功量三书证规则批 G2 1266、校验器修批F·校准敏感区收口 1264、方向性bug修复批·红1-4 批 1207、github description 闸门批 1173、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129、T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
+| `python3 -m pytest mangpai/tests/ -q` | 1382 collected（**1381 passed+1 xfailed，批P2 hunyin星众坏（zhenbao-23b）修复批 2026-10-20 实测**；旧记 批P1 审计遗漏补全并行批 1378、批O 应期体系补全批 1341、批N2 从格判定修复批 1313；旧记 批L juefa C组豁免修复批 1286、批K juefa断语A组接入批 1278、L2校验器应期/婚姻维零校验+豁免收窄批 1271、功量三书证规则批 G2 1266、校验器修批F·校准敏感区收口 1264、方向性bug修复批·红1-4 批 1207、github description 闸门批 1173、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129、T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
 | `scripts/check_layering.py` / `scripts/check_typing_imports.py` | 分层单向依赖守护（H-fix-4c 入库，`--graph` 出依赖图）/ typing-import 崩溃面守护（H-fix-1 配套） |
 | `scripts/check_credentials.py` | **脱敏脱密闸门**（2026-09-19 入库）：P0 凭证 / P1 隐私 → 阻止，P2 本机路径 → 警告；默认扫暂存区**新增行**（存量不干扰），`--all` 全量审计，输出打码含断言；与 `.git/hooks/pre-commit` 同源（`scripts/install_git_hooks.sh` 安装，clone 后须跑一次） |
 | `scripts/check_doc_numbers.py` | **文档数字闸门**（2026-09-19 入库）：README/KB 权威声明位（首行/验证表/架构表/验证口径行/本表 pytest 行）模块数与 pytest 数字 vs 实测（`pytest --collect-only` ~0.5s + 分层口径计数：foundation/objective 递归、subjective 只算顶层），漂移即退出码 1；`--quiet`/`--json`；`--github`=opt-in 联网追加核对 GitHub 仓库 description 数字声明（2026-09-25 入库：`MANGPAI_GITHUB_REPO` 默认 bonesyear/MangPai-Destiny、`GITHUB_TOKEN` 可选、public 仓库匿名可读；不一致/提取不到数字/网络失败均退 1 报明原因防假-green；默认关闭、不带开关时离线行为逐字节不变）；verify 四件套=低频项跳过（总数运行期动态累计，静态解析不可靠）；**非 pre-commit 默认项**，改了测试/模块数后手动跑 → 常驻闸门六件套（分层/typing/键契约/防假-green/脱敏/文档数字） |
@@ -530,7 +530,7 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 **标准验证六件套**（每批落地前必跑）：
 ```bash
 python3 mangpai/verify_mangpai.py                 # 420 全绿
-python3 -m pytest mangpai/tests/ -q               # 1342 collected（1341 passed+1 xfailed，批O 应期体系补全批 2026-10-20 实测）
+python3 -m pytest mangpai/tests/ -q               # 1382 collected（1381 passed+1 xfailed，批P2 hunyin星众坏修复批 2026-10-20 实测）
 python3 mangpai/tests/heldout/blind_eval.py --out snapshots/<批>.json --note "<验证状态>" --baseline latest
 PYTHONHASHSEED=0 python3 mangpai/tests/heldout/blind_eval.py --out /tmp/seed0.json  # 与默认 seed 逐字节一致
 python3 mangpai/tests/backtest/regression67.py    # 0 回归

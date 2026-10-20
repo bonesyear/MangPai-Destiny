@@ -135,3 +135,56 @@ def test_e_shishen_zhi_sha_no_double_count():
     score, ev = _lawyer(['丙', '戊', '丁', '辛'], ['午', '戌', '亥', '酉'])
     assert any('伤官制官' in e for e in ev)
     assert not any('执法监督' in e for e in ev)
+
+
+# ── 批P2：7.3 关键组合明文补漏 + 公门文官 marker（批1 zhiye 审计遗漏）──
+# 书证：医生土金食伤带印=制药/内科（gaoji:10806 关键组合五 + 口诀三
+#   gaoji:10837「土金带印制药寻」）；教师火土财星做功=教师·土主讲台
+#   （gaoji:10872「火土财星做功：亦可能为教师（土主讲台）」）；公门文官组
+#   （gaoji:11601-11603「寅木：为公门、官府、机关单位…若做功有力，多主在
+#   政府部门工作」+ :11604-11605「印星配官杀…多在公家单位任职」）——公门
+#   文官 marker 级不加分（七桶无公门文官类目；corro 堆叠虚高致 fp/fn 倒置
+#   之 K3 职业批1 教训），输出于 gongmen_markers 键。
+
+
+def test_p2_doctor_tujin_ss_daiyin():
+    """土金食伤带印=制药/内科（marker 级不加分，blind_eval 归因撤分留象）：
+    丙日（土食伤）己戊食伤明现+乙卯印 → doctor evidence 出象。"""
+    r = _run('丙', ['乙', '己', '丙', '戊'], ['卯', '丑', '午', '辰'])
+    assert any('土金食伤带印' in ln for ln in r['evidence']['doctor'])
+
+
+def test_p2_doctor_tujin_negative():
+    """非土金食伤不触此条（甲日火食伤：丁巳午食伤+乙卯印）。"""
+    r = _run('甲', ['乙', '丁', '甲', '丙'], ['卯', '巳', '午', '寅'])
+    assert not any('土金食伤带印' in ln for ln in r['evidence']['doctor'])
+
+
+def test_p2_teacher_huotu_cai_zuogong():
+    """火土财星做功=教师·土主讲台（marker 级不加分，blind_eval 归因撤分留象）：
+    壬日火财，子午冲财主气做功 → teacher evidence 出象。"""
+    r = _run('壬', ['丁', '甲', '壬', '丙'], ['子', '寅', '午', '申'])
+    assert any('火土财星做功' in ln for ln in r['evidence']['teacher'])
+
+
+def test_p2_teacher_huotu_negative():
+    """水财做功不触此条（戊日癸财，戊癸合财做功但财五行属水）。"""
+    r = _run('戊', ['癸', '甲', '戊', '壬'], ['子', '寅', '午', '申'])
+    assert not any('火土财星做功' in ln for ln in r['evidence']['teacher'])
+
+
+def test_p2_gongmen_markers():
+    """寅做功有力（寅申冲）→「寅为公门」marker；印主气(亥)+官杀主气(申庚)
+    并见 →「印配官杀」marker。marker 级不计分（scores 不含公门键）。"""
+    r = _run('甲', ['丙', '庚', '甲', '戊'], ['寅', '申', '巳', '亥'])
+    gm = r.get('gongmen_markers') or []
+    assert any('寅为公门' in m for m in gm)
+    assert any('印配官杀' in m for m in gm)
+    assert 'gongmen' not in r['scores']
+
+
+def test_p2_gongmen_yin_absent():
+    """局无寅 → 不出「寅为公门」marker。"""
+    r = _run('甲', ['丙', '庚', '甲', '戊'], ['巳', '申', '午', '亥'])
+    gm = r.get('gongmen_markers') or []
+    assert not any('寅为公门' in m for m in gm)

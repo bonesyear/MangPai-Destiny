@@ -129,3 +129,60 @@ def test_e_zhixiang_requires_guanming_premise():
                               {'is_guanming': False, 'zhiyong_combos': [],
                                'shengyong_huayong': []})
     assert r['by_zhixiang'] == ''
+
+
+# ── 批P2：规则五残余 食神合印行业（zhongji:3693-3695「食神合印（佩印）为做
+#    带有思想文化性的行业」——批1 审计：模块只映射了同条的羊刃七杀→执法/军队，
+#    漏了这条）+ 规则二 官杀印星必须有根硬门槛（zhongji:3681-3682「官命的官杀
+#    及印星不管如何做功，都必须有根。官杀虚当名气看」；gaoji:11114 同）──
+
+def test_p2_shishen_heyin_hangye():
+    """丁日甲己合=正印(甲)×食神(己)（佩印），官命前提下出思想文化性行业。
+    （甲己合非日干合且非合制，做功层不载——本通道直扫原局天干五合。）"""
+    r = classify_hangye_xiang('丁', ['甲', '丙', '丁', '己'], ['寅', '卯', '巳', '午'],
+                              dict(_COMBO_GUAN))
+    assert any('思想文化' in h for h in r['by_combo'])
+
+
+def test_p2_shishen_heyin_requires_guanming():
+    """同规则四支象通道口径：非官命（is_guanming=False）不出此象。"""
+    r = classify_hangye_xiang('丁', ['甲', '丙', '丁', '己'], ['寅', '卯', '巳', '午'],
+                              {'is_guanming': False, 'zhiyong_combos': [],
+                               'shengyong_huayong': []})
+    assert not any('思想文化' in h for h in r['by_combo'])
+
+
+def test_p2_shishen_heyin_negative_pair():
+    """甲己合但非食神×印（甲日：甲=比肩、己=正财，比肩合财）不出此象。"""
+    r = classify_hangye_xiang('甲', ['甲', '丙', '甲', '己'], ['寅', '卯', '巳', '午'],
+                              dict(_COMBO_GUAN))
+    assert not any('思想文化' in h for h in r['by_combo'])
+
+
+class TestRule2MarkerP2:
+    """规则二（zhongji:3681-3682「官杀及印星必须有根，虚透当名气看」）批P2 落地
+    为 marker（details 存证，不翻转判定）——硬门槛版经 blind_eval 逐案归因被书
+    例否决（虚透立官书例 8 例：周恩来/袁世凯/李世民/尚书/厅级/校长/处长/普通
+    干部，翻转全变差零收益；书注「大运落实时也易当官」:3696 属岁运域）。
+    根口径=四支藏干（本气/中气/余气）见同五行。"""
+
+    def test_xutou_guan_marker(self):
+        # 庚辛甲乙/午寅卯未：官杀庚辛双透而四支藏干无金 → marker 存证，判定不翻
+        # （书例城建处长/袁世凯同型皆虚透立官，硬门槛被数据否决）
+        c = classify_guanming_combo('甲', ['庚', '辛', '甲', '乙'], ['午', '寅', '卯', '未'])
+        assert c['is_guanming'] is True
+        assert any('官杀虚透无根' in x and '当名气看' in x for x in c['details'])
+
+    def test_yougen_guan_no_marker(self):
+        # 同造官杀落地（申=杀本气根）→ 不立 marker
+        c = classify_guanming_combo('甲', ['庚', '辛', '甲', '乙'], ['申', '寅', '卯', '午'])
+        assert c['is_guanming'] is True
+        assert not any('虚透无根' in x for x in c['details'])
+
+    def test_xutou_yin_marker_zeibu_anchor(self):
+        # cj-书记（癸巳丁巳甲戌己巳）：癸水印虚透无根（四支无水）→ 印 marker
+        # 存证；贼捕制印=去印得权族（印虚透被制为定义性前提），判定不翻仍立官
+        c = classify_guanming_combo('甲', ['癸', '丁', '甲', '己'], ['巳', '巳', '戌', '巳'])
+        assert '贼捕制印' in c['zhiyong_combos']
+        assert c['is_guanming'] is True
+        assert any('印星虚透无根' in x for x in c['details'])

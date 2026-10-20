@@ -167,3 +167,172 @@ def test_e_hecai_zuozhi_buwang_still_suppressed():
     cv = classify_caifu_view('甲', g, z)
     lv = assess_caiming_level('甲', g, z, dict(_GL2), cv, direction_signals={})
     assert lv['tier'] == '小康'
+
+
+# ── 批P1：财命遗漏规则补全哨兵（批1 审计遗漏清单 caiming 节，书例行号均
+#    经 sed 复核 docs/duan-books/ 原文）──
+
+from mangpai.subjective.caiming import classify_qucai_method
+
+
+class TestLuDangcaiTiaojian:
+    """条目1：禄当财成立条件（zhongji:2603-2607「命中占禄，无伤食泄时，或八字
+    无财时，禄可以当财看…禄是现成之福，其条件是印生禄…（注：以禄当财，喜印，
+    忌伤食劫财）」）——旧码仅「无财+见禄」一腿。"""
+
+    def test_book_anchor_yin_sheng_lu(self):
+        # 书例 zhongji:2610-2614 乾：癸丁丁丙/卯巳巳午——书判「故为印生禄，
+        # 以禄当财，享受之命」（无财+禄午居时+卯印本气；巳中戊中气伤食泄禄
+        # 不挡「无财」腿——书以「或」并联两腿）
+        v = classify_caifu_view('丁', ['癸', '丁', '丁', '丙'], ['卯', '巳', '巳', '午'])
+        assert '禄神当财' in v['views']
+        assert any('印生禄' in d for d in v['details'])
+
+    def test_leg_a_cai_present_no_shishang(self):
+        # (a)腿：占禄无伤食泄时，有财亦禄当财（zhongji:2603「命中占禄，无伤食
+        # 泄时」与「无财」或并联）。辛日禄酉（酉独气，无食伤中气）；财木乙/卯
+        # 明现；局无水（食伤）——旧码漏检此腿
+        v = classify_caifu_view('辛', ['戊', '己', '辛', '乙'], ['戌', '丑', '酉', '卯'])
+        assert v['has_cai'] and v['has_lu'] and not v['has_shishang']
+        assert '禄神当财' in v['views']
+
+    def test_fanju_shishang_xie_lu(self):
+        # 反例不误伤：忌伤食泄禄（zhongji:2607）——李嘉诚（戊辰己未庚午丁亥）
+        # 己禄午居主位，但亥水食伤本气明现泄禄、局有财（未中乙中气）——
+        # (a)腿被伤食泄禄排除、(b)腿被有财排除，禄不当财（旧码本不命中，锁回归）
+        v = classify_caifu_view('庚', ['戊', '己', '庚', '丁'], ['辰', '未', '午', '亥'])
+        assert v['has_cai'] and v['has_lu'] and v['has_shishang']
+        assert '禄神当财' not in v['views']
+
+
+class TestLuZhiCaiFacai:
+    """条目2：「以禄当财富时，禄神制财星可发财」（zhongji:2637；同页闲注
+    「禄神合财或制财都为得财」）。"""
+
+    def test_lu_zhi_cai_hit(self):
+        # 辛日禄酉居日支，酉冲时支卯财（卯酉冲，禄制财）→ 禄得财发财信号
+        v = classify_caifu_view('辛', ['戊', '己', '辛', '乙'], ['戌', '丑', '酉', '卯'])
+        assert '禄神当财' in v['views']
+        assert v.get('lu_zhi_cai') is True
+        assert any('禄' in d and '财' in d and '发财' in d for d in v['details'])
+
+    def test_no_cai_no_lu_zhi_cai(self):
+        # 反例：无财局（书例癸丁丁丙造）禄当财而无财可制/合 -> 不命中
+        v = classify_caifu_view('丁', ['癸', '丁', '丁', '丙'], ['卯', '巳', '巳', '午'])
+        assert '禄神当财' in v['views']
+        assert not v.get('lu_zhi_cai')
+
+
+class TestGuanshaDaixiang:
+    """条目3：官杀带财象（官杀当财第三式，zhongji:2819-2820「还有种情况是干财
+    支官（或者杀），为官杀带财象，官杀可统财」）。"""
+
+    def test_book_anchor_xinhai_daixiang(self):
+        # 书例 zhongji:2823-2828 乾：丙庚丁辛/午寅亥亥——时柱辛亥=干财支官
+        # （闲注「辛亥带象」）；财2官2平数，统两式不立，唯带财象命中
+        v = classify_caifu_view('丁', ['丙', '庚', '丁', '辛'], ['午', '寅', '亥', '亥'])
+        assert any('带财象' in x for x in v['views'])
+        assert '财统官' not in v['views'] and '官统财（官杀当财）' not in v['views']
+
+    def test_fanju_guan_gan_cai_zhi(self):
+        # 反例：干官支财（壬申：壬官/申财）非「干财支官」-> 带财象不命中
+        v = classify_caifu_view('丁', ['壬', '辛', '丁', '庚'], ['申', '寅', '亥', '午'])
+        assert not any('带财象' in x for x in v['views'])
+
+
+class TestYangzhuShashenDangcai:
+    """条目4：阳日主七杀当财（gaoji:10021-10022「阳日主，七杀当财富：如戊土
+    日主见甲木七杀，常以七杀为财富目标」；旁证 zhongji:752「戊土长生在寅，
+    杀当财看。因为没有印，有印当权看」）。"""
+
+    def test_book_anchor_wu_jiayin(self):
+        # 书例 zhongji:751-753 乾：丁甲戊甲/酉辰辰寅——戊阳日主，甲杀双透
+        # +寅杀本气；丁印虚透无本气根（书判「没有印」）-> 杀当财看
+        v = classify_caifu_view('戊', ['丁', '甲', '戊', '甲'], ['酉', '辰', '辰', '寅'])
+        assert any('七杀当财' in x for x in v['views'])
+
+    def test_fanju_yin_rooted(self):
+        # 反例：印有本气根（午火印本气+丙透，化杀有力）-> 当权看，不立杀当财
+        v = classify_caifu_view('戊', ['甲', '丙', '戊', '庚'], ['寅', '午', '辰', '申'])
+        assert not any('七杀当财' in x for x in v['views'])
+
+    def test_fanju_yin_day_master(self):
+        # 反例：阴日主（乙见辛杀双透）不立此式（书限「阳日主」）
+        v = classify_caifu_view('乙', ['丁', '辛', '乙', '辛'], ['酉', '丑', '巳', '酉'])
+        assert not any('七杀当财' in x for x in v['views'])
+
+
+class TestXutouHecai:
+    """条目5：财星虚透合财→财虚主才能，不主财富（理象学:6682-6684「身强或
+    身弱，遇财星虚透合财时，要看此财代表什么，若无所指代，财虚主才能，不
+    主财富」）。"""
+
+    def test_xutou_hecai_blocker(self):
+        # 财虚透（癸透月干、支无本/中气财根）+日主戊癸合财做功 -> 阻因在档
+        prom = [{'比劫': 'benqi'}, {'财': 'gan'}, {'比劫': 'gan'}, {'印': 'benqi'}]
+        wa = [{'type': '天干合', 'from_pos': 'month_gan', 'to_pos': 'day_gan'}]
+        r = _assess_caixing_path('戊', ['甲', '癸', '戊', '丙'],
+                                 ['寅', '酉', '午', '巳'], prom, wa, None)
+        assert r['xutou_hecai'] is True
+        assert any('虚透' in b and '才能' in b for b in r['blockers'])
+
+    def test_rooted_cai_not_xutou(self):
+        # 反例：财有支根（时支子本气财）合财 -> 非虚透（理象学:6686 例一
+        # 庚丙壬丁/子戌申未「身强财旺，合财可发财」之属，不记阻）
+        prom = [{'比劫': 'benqi'}, {'财': 'gan'}, {'比劫': 'gan'}, {'财': 'benqi'}]
+        wa = [{'type': '天干合', 'from_pos': 'month_gan', 'to_pos': 'day_gan'}]
+        r = _assess_caixing_path('戊', ['甲', '癸', '戊', '丙'],
+                                 ['寅', '酉', '午', '子'], prom, wa, None)
+        assert r['xutou_hecai'] is False
+        assert not any('虚透' in b for b in r['blockers'])
+
+    def test_xutou_without_hecai_not_blocked(self):
+        # 反例：财虚透但无合财做功 -> 书的前提（「虚透合财时」）不成立，不记阻
+        prom = [{'比劫': 'benqi'}, {'财': 'gan'}, {'比劫': 'gan'}, {'印': 'benqi'}]
+        r = _assess_caixing_path('戊', ['甲', '癸', '戊', '丙'],
+                                 ['寅', '酉', '午', '巳'], prom, [], None)
+        assert r['xutou_hecai'] is False
+
+    def test_ku_zhongqi_root_not_xutou(self):
+        # 反例（库根非虚）：透干财通根库中气（辛丑柱——丑中辛中气=财之库根）。
+        # prom 每柱每类只留最高气位（透干财掩盖同柱中气财根），根判须直扫藏干；
+        # 书锚 reg67-癸巳管财官（辛丑辛卯丙寅癸巳）「丑是财库…可以肯定，他是
+        # 个管理财的官」——库根之财不当虚看
+        prom = [{'财': 'gan', '食伤': 'benqi'}, {'印': 'benqi'}, {'比劫': 'gan'}, {'官杀': 'gan'}]
+        wa = [{'type': '天干合', 'from_pos': 'year_gan', 'to_pos': 'day_gan'}]
+        r = _assess_caixing_path('丙', ['辛', '辛', '丙', '癸'],
+                                 ['丑', '卯', '寅', '巳'], prom, wa, None)
+        assert r['xutou_hecai'] is False
+
+
+class TestShengyongSanshi:
+    """条目6：生用三式细分（理象学:6553-6559「其一是财在主位，由宾位之食伤
+    生之为功，这种情形一般是自己做生意取财；其二是主位的食神去生宾位的财，
+    也为做功，主我的智力头脑为他人服务，做经理人之类的职业；其三是原局伤食
+    旺相，生财为用，谓秀气发越」）——批1窄化补全：经营旧仅财星+合/制财、
+    工薪旧仅制官得官，生用宾主两式无路径。"""
+
+    def test_shishi1_bin_ss_sheng_zhu_cai(self):
+        # 式一：宾位食伤（壬月干/子月支本气）生主位财（寅日支）-> 自己做生意
+        qm = classify_qucai_method('庚', ['丙', '壬', '庚', '丁'], ['午', '子', '寅', '亥'])
+        assert '经营' in qm['methods']
+        assert any('自己做生意' in d for d in qm['details'])
+
+    def test_shishi2_zhu_ss_sheng_bin_cai(self):
+        # 式二：主位食伤（壬时干）生宾位财（甲乙寅卯在年月）-> 经理人（工薪，
+        # 旧码此局无制官得官动作、工薪不立——哨兵先红）
+        qm = classify_qucai_method('庚', ['甲', '乙', '庚', '壬'], ['寅', '卯', '辰', '巳'])
+        assert '工薪' in qm['methods']
+        assert any('经理人' in d for d in qm['details'])
+
+    def test_shishi3_xiuqi_fayue(self):
+        # 式三：伤食旺相（壬/子/亥三位明现）生财为用 -> 秀气发越（智力在档）
+        qm = classify_qucai_method('庚', ['丙', '壬', '庚', '丁'], ['午', '子', '寅', '亥'])
+        assert '智力' in qm['methods']
+        assert any('秀气发越' in d for d in qm['details'])
+
+    def test_fanju_no_ss_shengcai(self):
+        # 反例：无食伤生财做功 -> 三式俱不命中（工薪不因生用误增）
+        qm = classify_qucai_method('庚', ['甲', '丙', '庚', '戊'], ['寅', '午', '辰', '戌'])
+        assert not any('自己做生意' in d or '经理人' in d or '秀气发越' in d
+                       for d in qm['details'])

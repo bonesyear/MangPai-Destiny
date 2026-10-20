@@ -276,6 +276,45 @@ def _gong_actions(wa: List[Dict], zhis: List[str]) -> tuple:
     return adv, he
 
 
+_ZHONGHUAI_TYPES = ('冲', '穿', '刑', '破')
+
+
+def _star_zhonghuai(day_gan: str, zhis: List[str], gender: str,
+                    swx: str, wa: List[Dict], day_idx: int) -> List[tuple]:
+    """配偶星支被众坏：同一星支被 ≥2 个非本党支以冲/穿/刑/破环攻（按柱去重）。
+
+    zhenbao:769-770「更主要的是卯木被两子破，卯木先被年上子破，然后才让日主
+    自已破，故找的妻是破货」——破/穿/刑众击是「坏」非「制去」。
+    不计两项：宫星制去交互（另一端=日支，4294 子冲午=制忌神得吉，非坏）；
+    本党相攻（4504 戌破未同燥土党，不论坏）。日支自坐星支不查（宫罚已覆盖）。
+    返回 [(星支, [攻方支...])...]。
+    """
+    out: List[tuple] = []
+    day_key = PILLAR_KEYS[day_idx]
+    for i, z in enumerate(zhis):
+        if i == day_idx or not _is_star_zhi(day_gan, z, gender, swx):
+            continue
+        my_party = _zhi_party(z)
+        attackers: Dict[str, str] = {}
+        for a in wa or []:
+            if a.get('type') not in _ZHONGHUAI_TYPES:
+                continue
+            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            key = f'{PILLAR_KEYS[i]}_zhi'
+            other = tp if fp == key else (fp if tp == key else '')
+            ok = other.split('_')[0]
+            if not other.endswith('_zhi') or ok not in PILLAR_KEYS \
+                    or ok in (PILLAR_KEYS[i], day_key):
+                continue
+            oz = zhis[PILLAR_KEYS.index(ok)]
+            if _zhi_party(oz) == my_party:
+                continue
+            attackers[ok] = oz
+        if len(attackers) >= 2:
+            out.append((z, sorted(attackers.values())))
+    return out
+
+
 # ───────────────────── 1. 婚姻好坏 ─────────────────────
 
 # 宫/星加权（M3）：源文《盲派中级命理学》第十章第一节「看婚姻的好坏，应以
@@ -290,6 +329,7 @@ _STAR_IN_GONG_W = 1.0     # 配偶星居婚姻宫（得位）
 _STAR_ABSENT_W = -1.0     # 配偶星不明现
 _ZHENG_HE_W = -1.0        # 争合（比劫争夫/争妻，第三者之象）
 _STAR_MIXED_W = -1.0      # 星杂透多现（正偏混杂）
+_STAR_ZHONGHUAI_W = -1.0  # 星被众坏（≥2 非本党支刑穿冲破，zhenbao:770 两子破卯）
 # 阈值：好须宫星俱善（≥2.0）；差为净负分（<0，宫坏为主即落差）；其间为平。
 _QUALITY_GOOD_MIN = 2.0
 
@@ -367,8 +407,18 @@ def classify_hunyin_quality(
     star_adv = [(t, oz, a) for t, oz, a in adv if _is_star_zhi(day_gan, oz, gender, swx)]
     nonstar_adv = [(t, oz, a) for t, oz, a in adv
                    if not _is_star_zhi(day_gan, oz, gender, swx)]
+    # 星被众坏=星坏婚差（zhenbao:769-770「卯木被两子破…故找的妻是破货」）：
+    # 众坏非制去——两个「制去得吉」分支不加分，并出负向信号（星为辅档 -1.0）。
+    # 星在对方党者豁免（制忌神语境，4294 午被丑穿仅损官贵不损婚）。
+    opp_party = 'zao' if dang == 'shi' else ('shi' if dang == 'zao' else '')
+    star_broken = [(sz, atks) for sz, atks
+                   in _star_zhonghuai(day_gan, zhis, gender, swx, wa, day_idx)
+                   if not (opp_party and _zhi_party(sz) == opp_party)]
+    for sz, atks in star_broken:
+        signals.append(f'配偶星({sz})被{"、".join(atks)}众坏（众坏非制去），星坏婚差')
+        score += _STAR_ZHONGHUAI_W
     gong_good = False
-    if star_adv and dang:
+    if star_adv and dang and not star_broken:
         gong_dang = _zhi_party(day_zhi)
         star_dangs = {_zhi_party(oz) for _t, oz, _a in star_adv}
         if gong_dang == dang and dang not in star_dangs \

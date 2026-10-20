@@ -414,6 +414,16 @@ def _score_doctor(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     if _action_between_cats(wa, day_gan, gans, zhis, '食伤', '印', {'天干合', '地支合', '半合'}):
         score += 1
         ev.append('食神合印（中医/药）')
+    # 土金食伤带印（批P2 补，7.3 医生关键组合五 gaoji:10806「土金食伤带印：
+    # 制药或内科」+口诀三 gaoji:10837「土金带印制药寻」）：食伤五行属土/金
+    # （火日主土食伤/土日主金食伤）且印星明现——土金主药石制剂，印=药/单位。
+    # marker 级不加分（批P2 blind_eval 归因：+1 版在阈值 6 边际翻转 6 例全变差
+    # 零收益——梁启超A/经济博士生/普金/杰克逊/保镖/木匠，组合明文为弱信号共现
+    # 非成象条件，撤分留象）。
+    _ss_wx_d = WX_SHENG.get(GAN_WX.get(day_gan, ''), '')
+    if _ss_wx_d in ('土', '金') and _has_cat(day_gan, gans, zhis, '食伤') \
+            and _has_cat(day_gan, gans, zhis, '印'):
+        ev.append('土金食伤带印（制药/内科之象，土金主药石配印为药）')
     # 辰丑库（医院象，须金在局方取丑=金库/辰=药库）
     if jin and '丑' in zhis:
         score += 1
@@ -451,6 +461,22 @@ def _score_teacher(day_gan, gans, zhis, wa, ss=None) -> Tuple[int, List[str]]:
     if _action_between_cats(wa, day_gan, gans, zhis, '财', '印', {'天干合'}):
         score += 1
         ev.append('财星虚透合印（才华换知识）')
+    # 火土财星做功（批P2 补，7.3 教师关键组合五 gaoji:10872「火土财星做功：
+    # 亦可能为教师（土主讲台）」）：财星五行属火/土（水日主火财/木日主土财）
+    # 且财星主气参与做功（非辅助动作当事人）——土=讲台、火=文明光彩，教职之象。
+    # marker 级不加分（批P2 blind_eval 归因：+1 版在阈值 6 边际翻转 6 例全变差
+    # 零收益——巴菲特/合例一富命/种地/纺织/li154/财税所长，弱信号共现非成象
+    # 条件，撤分留象）。
+    _cai_wx_t = WX_KE.get(GAN_WX.get(day_gan, ''), '')
+    if _cai_wx_t in ('火', '土'):
+        for _a in wa:
+            if _a.get('auxiliary') or (_a.get('type') not in _HE_TYPES
+                                       and _a.get('type') not in _ZHI_TYPES):
+                continue
+            _fa_t, _ta_t = _action_main_qi(_a, day_gan, gans, zhis)
+            if '财' in _fa_t or '财' in _ta_t:
+                ev.append('火土财星做功（土主讲台，亦主教师之象）')
+                break
     # 金水伤官见印库（理科）
     if (_has_cat(day_gan, gans, zhis, '食伤') and cnt.get('金', 0) and cnt.get('水', 0)
             and _has_cat(day_gan, gans, zhis, '印')):
@@ -1330,6 +1356,7 @@ def classify_zhiye(
           'primary': str, 'primary_label': str, 'desc': str,
           'hint_bucket': str, 'hint_label': str,  # 未分类时的最高分桶提示
           'base_career': {...},                    # M2 基础职业类目命中（laborer/unemployed）
+          'gongmen_markers': [str],                # 公门文官 marker（批P2，不加分）
         }
     """
     if is_pillars(day_gan):
@@ -1635,6 +1662,35 @@ def classify_zhiye(
             evidence['accountant'] = evidence.get('accountant', []) + [
                 '从强金财为忌被制（金=金融，财非我财，金融机构管公家钱）']
 
+    # ── 公门文官组（批P2 补，批1 zhiye 审计遗漏；marker 级不加分）──
+    # 寅为公门（gaoji:11601-11603「寅木：为公门、官府、机关单位。甲寅、丙寅、
+    # 戊寅等柱，若做功有力，多主在政府部门工作」）：寅在局且寅柱参与非辅助做功
+    # 动作（书「若做功有力」限定，存在不计；寅支动作或甲寅/丙寅/戊寅柱干动作
+    # 皆算，柱级口径同书）。印配官杀（gaoji:11604-11605「印星为单位，官杀为
+    # 职务，二者结合，多在公家单位任职」）：印主气与官杀主气并见。
+    # 七桶无公门文官类目（书之公门文官=政府机关文职，非律令执法/非教职），
+    # 只出象法标记不加权（弱信号堆叠曾致 military/lawyer fp/fn 倒置——K3 职业
+    # 批1 corro 封顶教训），输出于 gongmen_markers 键。
+    gongmen_markers: List[str] = []
+
+    def _pos_zhi_gm(pos: str) -> str:
+        _i = _pos_idx(pos)
+        return zhis[_i] if _i >= 0 else ''
+
+    if '寅' in zhis and any(
+            not _a.get('auxiliary')
+            and (_a.get('type') in _HE_TYPES or _a.get('type') in _ZHI_TYPES)
+            and '寅' in (_pos_zhi_gm(_a.get('from_pos', '')),
+                         _pos_zhi_gm(_a.get('to_pos', '')))
+            for _a in wa):
+        gongmen_markers.append(
+            '寅为公门（官府/机关单位之象，寅柱做功有力，gaoji:11601-11603）')
+    _n_yin_mq = sum(1 for i in range(4)
+                    if '印' in _main_qi_cats(day_gan, gans, zhis, i))
+    if _n_yin_mq >= 1 and _n_gs_main >= 1:
+        gongmen_markers.append(
+            '印配官杀（印=单位+官杀=职务，多在公家单位任职，gaoji:11604-11605）')
+
     # 多象定一象：取最高分。同分决胜（K3，段氏 7.3 总则「先定取财方式：先断其
     # 属于经营、风险、智力、体力、工薪中哪一类…再精确定位」+ 引言「象法为宗」）：
     #   非常规象（performer/military，桃花/羊刃神煞驱动，象法最切）> 取财方式层
@@ -1687,6 +1743,7 @@ def classify_zhiye(
         'evidence': evidence,
         'liushi_hints': liushi_hints,
         'xiangfa_corroborate': corroborate,
+        'gongmen_markers': gongmen_markers,  # 公门文官 marker（批P2，不加分）
         'primary': primary,
         'primary_label': primary_label,
         'hint_bucket': hint_bucket,      # 未分类时的最高分桶提示（M2）

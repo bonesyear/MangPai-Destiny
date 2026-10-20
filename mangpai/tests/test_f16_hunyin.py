@@ -77,6 +77,39 @@ class TestGongFengChuanBiLi:
         assert _q(['己', '丙', '壬', '己'], ['丑', '寅', '午', '酉'], '女') == '差'
 
 
+class TestStarZhonghuai:
+    """星被众坏=星坏婚差（zhenbao:769-770「更主要的是卯木被两子破，卯木先被
+    年上子破，然后才让日主自已破，故找的妻是破货」）：同一配偶星支被 ≥2 个
+    非本党支以冲/穿/刑/破环攻（宫星制去交互、本党相攻不计）→ 众坏非制去，
+    「制去得吉」分支不加分且出负向信号。穿/刑/破是「坏」不是「制去」。"""
+
+    def test_zhenbao_23b_liang_zi_po_mao(self):
+        # 乾 壬癸壬甲/子卯子辰（calib zhenbao-23b 金标婚姻=差「找二婚妻·破货」）：
+        # 无财以伤官卯为妻（替代规则不动），卯被年支子刑+时支辰穿=众坏→差
+        # （批6 后误读为「宫制去夫妻星忌神」+2.0 判好）
+        r = classify_hunyin_quality('壬', ['壬', '癸', '壬', '甲'],
+                                    ['子', '卯', '子', '辰'], '男')
+        assert r['quality'] == '差'
+        assert any('众坏' in s for s in r['signals'])
+
+    def test_4294_single_attack_still_hao(self):
+        # 单攻不坏对照（4294 吉例守门）：午星仅被丑单穿（子宫冲午=宫星制去
+        # 交互不计），不构成众坏仍判好——书闲注「但丑午穿，所以不为官」
+        # 仅损官贵不损婚（zhongji:4294-4297）
+        r = classify_hunyin_quality('庚', ['癸', '庚', '庚', '壬'],
+                                    ['丑', '申', '子', '午'], '女')
+        assert r['quality'] == '好'
+        assert not any('众坏' in s for s in r['signals'])
+
+    def test_4504_bendang_po_bu_suan_huai(self):
+        # 本党相攻不论坏对照（4504 吉例守门）：未星被戌破×2 但戌未同属燥土
+        # 本党，不构成众坏，未穿去子宫忌神仍判好（zhongji:4504/4340）
+        r = classify_hunyin_quality('甲', ['乙', '丙', '甲', '甲'],
+                                    ['未', '戌', '子', '戌'], '男')
+        assert r['quality'] == '好'
+        assert not any('众坏' in s for s in r['signals'])
+
+
 class TestShuizhongLaoyue:
     """水中捞月三要素（P0-2）。"""
 

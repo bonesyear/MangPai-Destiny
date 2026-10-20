@@ -8,12 +8,17 @@ caiming - 盲派财命定性·主观层（subjective）
 
 财富看法五式（第一节）：
   1. 财星当财：财星明现，常规财富（最基础）。
-  2. 禄神当财：局无财星（或财弱）而见禄 -> 禄=身体力行，体力/工薪取财。
-     禄是日主的身体、临官位，禄当财即用身体劳动换财。
+  2. 禄神当财（zhongji:2603-2607「命中占禄，无伤食泄时，或八字无财时，禄
+     可以当财看…其条件是印生禄…以禄当财，喜印，忌伤食劫财」）两腿或并联：
+     (a) 占禄而无伤食泄禄（不论有财）；(b) 八字无财而占禄。印生禄=现成之福
+     主享受；无印者禄为身体，辛苦求财（体力/工薪）。以禄当财时禄神制/合
+     财星可发财（zhongji:2637）。
   3. 伤食当财：局无财星而有食伤 -> 食伤=技术/智力，智力取财（食伤生财之源）。
-  4. 官杀当财两式（源文2817-2819：官多财少->财统官，财多官少->官统财，二者皆官杀当财）：
-       财统官--官杀多而财少，财统御官，官杀当财（七杀当财，量级高于财当财）；
-       官统财--财多而官杀少，官统御财，官杀当财（七杀当财，量级高于财当财）。
+  4. 官杀当财四式：财统官/官统财两式（源文2817-2819：官多财少->财统官，
+     财多官少->官统财，二者皆官杀当财，七杀当财量级高于财当财）；
+     官杀带财象（zhongji:2820「干财支官（或者杀），为官杀带财象，官杀可
+     统财」）；阳日主七杀当财（gaoji:10021-10022，印无本气根方立——
+     「有印当权看」zhongji:752）。
   5. 过河拆桥：主位（日支或时支）财生宾位官杀，宾官又被宾字合/制 -> 发大财
      结构（zhongji:2976-2978「这种结构是发大财的」，全节6例皆发财，无破财
      变体）。结构成立即富格，制尽程度只影响量级（制尽净制=巨富路径，制不尽
@@ -22,17 +27,21 @@ caiming - 盲派财命定性·主观层（subjective）
      与之互斥，不并存。
 
 取财五法（第二节）：经营 / 风险 / 智力 / 体力 / 工薪
-  - 经营：财星明现 + 合财/制财做功，商人经营取财；
+  - 经营：财星明现 + 合财/制财做功，商人经营取财；或生用式一（财在主位，
+    由宾位食伤生之，自己做生意取财，理象学:6553-6555）；
   - 风险：七杀当财 / 劫刃羊刃取财，风险求财（投机/武职/偏门）；
-  - 智力：食伤当财 / 食伤生财，技术智力取财；
+  - 智力：食伤当财 / 食伤生财，技术智力取财；伤食旺相生财为用=秀气发越
+    （生用式三，理象学:6557-6559）；
   - 体力：禄神当财，身体力行体力取财；
-  - 工薪：官杀/印星 + 制官得官/印，正当职业工薪取财。
+  - 工薪：官杀/印星 + 制官得官/印，正当职业工薪取财；或生用式二（主位食神
+    生宾位之财，智力头脑为他人服务，经理人之类，理象学:6555-6557）。
 
 贫富三要素（M2 财星源头/路径检测，段氏「八字有财，伤食是其原神」）：
   1. 财星是否有原神：食伤明现生财=有源头；无原神且财不在主位（日/时）=浮财
      （虚透不聚）-> 层级降一阶；
   2. 生财路径是否畅通：明现财星被紧贴合绊（受害方口径同 yongshen R3）或
      财星本气支入墓未开 -> 各降一阶（官杀当财/制不尽当财路径不适用）；
+     财星虚透而合财者，财虚主才能、不主财富（理象学:6682-6684）-> 同记阻因；
   3. 制财得财：过河拆桥（结构成立即富格，制尽/制不尽只影响量级——
      zhongji:2976-2978，无破财变体），与浮财/阻通同汇入 level.blockers；
      tier 输出扩展为「档位 + 生财路径(path) + 阻因(blockers)」三件套。
@@ -380,6 +389,9 @@ def _assess_caixing_path(
       - 透干财之五合绊仅判年×月（他干紧贴互绊）；日干合财为日主合财得财
         （合财格），不论绊（同 R3 口径）。
       - 冲/穿做功参与抑制：财方已入局交战者未「失去原性」，不论绊（同 R3）。
+      - 财星虚透合财（理象学:6682-6684「身强或身弱，遇财星虚透合财时，要看
+        此财代表什么，若无所指代，财虚主才能，不主财富」）：财透干而地支
+        无本/中气财根（虚透）且合财做功在档者，财虚不主财富，记阻因。
 
     Returns:
         {
@@ -388,12 +400,13 @@ def _assess_caixing_path(
           'fucai': bool,          # 浮财：有明现财但无原神且不在主位
           'heban': [str],         # 财星被合绊明细
           'rumu': [str],          # 财星入墓未开明细
-          'blockers': [str],      # 阻因汇总（浮财/合绊/入墓）
+          'xutou_hecai': bool,    # 财星虚透合财（财虚主才能不主财富）
+          'blockers': [str],      # 阻因汇总（浮财/合绊/入墓/虚透合财）
         }
     """
     out: Dict = {'has_yuanshen': False, 'zhuwei_cai': False, 'fucai': False,
                  'heban': [], 'rumu': [], 'hecai_work': False, 'blockers': [],
-                 'rumu_bankai': False, 'cai_zhonggong': []}
+                 'rumu_bankai': False, 'cai_zhonggong': [], 'xutou_hecai': False}
     day_wx = GAN_WX.get(day_gan, '')
     cai_wx = WX_KE.get(day_wx, '')
     if not cai_wx or len(gans) != 4 or len(zhis) != 4:
@@ -553,6 +566,24 @@ def _assess_caixing_path(
     except Exception as e:
         _logger.warning('日主自合读取失败，G9 合财做功跳过: %s', e, exc_info=True)
 
+    # 财星虚透合财（理象学:6682-6684「身强或身弱，遇财星虚透合财时，要看此财
+    # 代表什么，若无所指代，财虚主才能，不主财富」）：财透干而地支无本/中气
+    # 财根（虚透）且合财做功在档者，财虚不主财富（主才能）——合财升档通道不
+    # 适用，记阻因（assess_caiming_level 封顶小康口径同浮财/合绊/入墓）。
+    # 根判直扫地支本/中气藏干（不走 prom——prom 每柱每类只留最高气位，透干财
+    # 会掩盖同柱中气财根）；库中气财（丑中辛/未中乙/辰中癸）为财之库根，有根
+    # 即非虚（reg67-癸巳管财官书明文「丑是财库…可以肯定，他是个管理财的官」
+    # ——库根之财不当虚看）；余气根微弱不论（同明现口径）。
+    if mingxian_gan and out['hecai_work']:
+        _cai_rooted = any(
+            ZHI_WX.get(z, '') == cai_wx or any(
+                GAN_WX.get(cg, '') == cai_wx
+                for _i2, (cg, _q2) in enumerate(get_canggan_mangpai(z)) if _i2 <= 1)
+            for z in zhis if z)
+        if not _cai_rooted:
+            out['xutou_hecai'] = True
+            out['blockers'].append('财星虚透而合财，财虚主才能、不主财富（理象学:6682-6684）')
+
     # 财星本气支入墓未开（开库则墓中财复出，不论阻；戌冲/刑开则不入墓，
     # muku.is_entomb 已特判）
     mu = _ensure_muku(gans, zhis, muku_result)
@@ -611,10 +642,12 @@ def classify_caifu_view(
 
     判定序（段氏第一节口径）：
       1. 财星明现 -> 财星当财（基础）；
-      2. 局无财星而见禄 -> 禄神当财（体力/工薪）；
+      2. 禄神当财两腿「或」并联（zhongji:2603-2607）：(a) 占禄无伤食泄禄；
+         (b) 局无财而占禄 -> 体力/工薪；印生禄主享受，忌伤食劫财；
       3. 局无财星而有食伤 -> 伤食当财（技术/智力）；
-      4. 官杀当财两式：官杀多（≥2位）且制官杀成立 ->
-         财统官（官杀>财）/ 官统财（财>官杀），二者皆官杀当财；
+      4. 官杀当财：官杀多（≥2位）且制官杀成立 -> 财统官（官杀>财）/官统财
+         （财>官杀）；官杀带财象（干财支官，zhongji:2820）；阳日主七杀当财
+         （印无本气根，gaoji:10021/zhongji:752）；
       5. 过河拆桥：主位财生宾官、宾官被宾字合/制 -> 结构成立即富格
          （zhongji:2976-2978「这种结构是发大财的」）；制尽（净制）为巨富路径，
          制不尽量级减等（封顶富），只影响量级不翻方向；与官统财/财统官互斥
@@ -634,6 +667,7 @@ def classify_caifu_view(
           'guohe_chaiqiao': bool,    # 过河拆桥
           'guohe_chaiqiao_type': str|None,  # '富格'（结构成立即富格）/None
           'guohe_zhi_jin': bool,     # 制尽净制（巨富路径）；False=制不尽（量级减等）
+          'lu_zhi_cai': bool,        # 禄神制/合财星（zhongji:2637 以禄当财时禄得财主发财）
           'details': [str],          # 各看法依据
         }
     """
@@ -722,12 +756,56 @@ def classify_caifu_view(
         views.append('财星当财')
         details.append(f'局有财星（{cai_count}位），财星明现当财')
 
-    # 2. 禄神当财（局无财星，见禄）——段氏「八字无财时，禄可以当财看」
-    # （《中级》禄神当财节；第4期「此造八字无财…以禄当财」）。财弱（1位）
-    # 不在此列——财在则以财论，禄为辅助（防李嘉诚类巨富局误挂禄财下浮）。
-    if has_lu and not has_cai:
+    # 2. 禄神当财——zhongji:2603-2607「命中占禄，无伤食泄时，或八字无财时，
+    # 禄可以当财看…禄是现成之福，其条件是印生禄。禄也为身体，表辛苦之意，
+    # 以禄取财，辛苦求财。（注：以禄当财，喜印，忌伤食劫财。）」两腿「或」
+    # 并联（旧码仅 (b) 一腿，批P1 补全）：
+    #   (a) 命中占禄而无伤食泄禄（不论有财与否）——伤食泄禄为忌（:2607），
+    #     泄禄则禄不归财（转伤食当财路径），此腿以无伤食泄为件；
+    #   (b) 八字无财而占禄——书以「或」并联，伤食在局不挡此腿（伤食当财
+    #     并见，书例癸丁丁丙/卯巳巳午造两看共存）。
+    # 印生禄=「现成之福」享受之命标记（印星明现即生禄——印五行必生日主/禄
+    # 五行；zhongji:2610-2614 卯印生巳午禄「故为印生禄，以禄当财，享受之
+    # 命」）；无印者禄为身体，辛苦求财。（有财局挂禄神当财之量级下浮风险，
+    # 由 assess_caiming_level 下浮支「无财方论禄/伤食量级有限」闸收口——
+    # 财在则以财论，禄为辅助，李嘉诚类巨富局不误下浮。）
+    has_yin_mx = any('印' in p and p['印'] in _MINGXIAN for p in prom)
+    if has_lu and (not has_shishang or not has_cai):
         views.append('禄神当财')
-        details.append('禄=身体力行，禄当财主体力/工薪取财')
+        if has_yin_mx:
+            details.append('印生禄，禄是现成之福，以禄当财主享受（zhongji:2605-2614）')
+        else:
+            details.append('禄=身体力行，禄当财主体力/工薪取财（无印生禄，辛苦求财）')
+
+    # 2b. 禄神制财星可发财（zhongji:2637「以禄当财富时，禄神制财星可发财」+
+    # 同页闲注「禄神合财或制财都为得财」）：禄当财在档且局有明财，日主之禄支
+    # 以制（冲/克/穿/刑/破，禄为施制方）或合（合用对称，两端皆试）动作作用于
+    # 明现财位者，为禄得财发财信号（书例「癸卯运财星合禄，发财十年」——岁运
+    # 财星来合/制禄同此理）。定性信号，不进上浮链。
+    lu_zhi_cai = False
+    if '禄神当财' in views and has_cai and day_lu_zhi:
+        lu_pos = {f'{PILLAR_KEYS[i]}_zhi' for i, z in enumerate(zhis)
+                  if z and z == day_lu_zhi}
+        for a in wa:
+            if a.get('auxiliary'):
+                continue
+            t = a.get('type', '')
+            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            if t in _ZHI_CONTROL and fp in lu_pos:
+                pk_t = _pos_pillar(tp)
+                if pk_t in PILLAR_KEYS and '财' in prom[PILLAR_KEYS.index(pk_t)] \
+                        and prom[PILLAR_KEYS.index(pk_t)]['财'] in _MINGXIAN:
+                    lu_zhi_cai = True
+                    break
+            if t in _HE_CONTROL and (fp in lu_pos or tp in lu_pos):
+                other = tp if fp in lu_pos else fp
+                pk_o = _pos_pillar(other)
+                if pk_o in PILLAR_KEYS and '财' in prom[PILLAR_KEYS.index(pk_o)] \
+                        and prom[PILLAR_KEYS.index(pk_o)]['财'] in _MINGXIAN:
+                    lu_zhi_cai = True
+                    break
+    if lu_zhi_cai:
+        details.append('禄神制/合财星，以禄当财时禄得财，主发财（zhongji:2637）')
 
     # 3. 伤食当财（局无财星，有食伤）
     if has_shishang and not has_cai:
@@ -771,6 +849,43 @@ def classify_caifu_view(
         elif cai_count > guan_count and zhi_guan_controlled:
             views.append('官统财（官杀当财）')
             details.append(f'财多（{cai_count}位）而官杀少（{guan_count}位），官统财，官杀当财（七杀当财量级高）')
+
+    # 4b. 官杀带财象（官杀当财第三式，zhongji:2819-2820「还有种情况是干财支官
+    # （或者杀），为官杀带财象，官杀可统财」）：单柱天干为财、地支本气为官杀
+    # （财生官同柱自坐，财官相连之极），官杀带财象可统财——官杀当财看。书例
+    # zhongji:2823-2828 丙庚丁辛/午寅亥亥造时柱辛亥带象（闲注「辛亥带象」）。
+    # 定性补全：view 名不带「统」字——不入 gongliang 统摄层功（gongliang 7c
+    # 以「统」字取财统官/官统财两式计层），量级归口留待书例校准。
+    _guan_wx = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '')
+    if _cai_wx and _guan_wx:
+        _daixiang = [PILLAR_NAMES_CN[i] for i in range(4)
+                     if gans[i] and zhis[i]
+                     and GAN_WX.get(gans[i]) == _cai_wx
+                     and ZHI_WX.get(zhis[i]) == _guan_wx]
+        if _daixiang:
+            views.append('官杀带财象（官杀当财）')
+            details.append('干财支官（' + '、'.join(_daixiang) + '），'
+                           '官杀带财象，官杀可统财（zhongji:2820）')
+
+    # 4c. 阳日主七杀当财（gaoji:10021-10022「阳日主，七杀当财富：如戊土日主
+    # 见甲木七杀，常以七杀为财富目标」；旁证 zhongji:752 丁甲戊甲/酉辰辰寅造
+    # 「戊土长生在寅，杀当财看。因为没有印，有印当权看」）：阳日主（甲丙戊
+    # 庚壬）七杀明现（透干/支本气）且印无本气根者，杀当财看（丁甲戊甲造丁印
+    # 虚透无根，书判「没有印」）；印有本气根（化杀有力）则当权看（guanming
+    # 口径），不立此式。定性补全——量级仍须制/合/化做功拉入主位方为我所得
+    # （gaoji:10028-10029「需做功方能获取」），不入上浮链。
+    if day_gan in ('甲', '丙', '戊', '庚', '壬'):
+        _sha_mx = any(g and _compute_shishen(day_gan, g) == '七杀' for g in gans) \
+            or any(z and _compute_shishen(day_gan, get_canggan_mangpai(z)[0][0]) == '七杀'
+                   for z in zhis)
+        _yin_wx4c = next((k for k, v in WX_SHENG.items()
+                          if v == GAN_WX.get(day_gan, '')), '')
+        _yin_rooted = bool(_yin_wx4c) and any(
+            z and ZHI_WX.get(z, '') == _yin_wx4c for z in zhis)
+        if _sha_mx and not _yin_rooted:
+            views.append('七杀当财（阳日主）')
+            details.append('阳日主七杀明现而印无本气根（有印当权看），杀当财看——'
+                           '常以七杀为财富目标（gaoji:10021；zhongji:752）')
 
     # 5. 过河拆桥（结构成立即富格；制尽=巨富路径 / 制不尽=量级减等，只影响
     # 量级不翻方向——zhongji:2976-2978「这种结构是发大财的」，全节无破财变体。
@@ -829,6 +944,7 @@ def classify_caifu_view(
         'guohe_chaiqiao': bool(guohe),
         'guohe_chaiqiao_type': guohe_type,  # '富格'（结构成立即富格）/None
         'guohe_zhi_jin': bool(guohe.get('zhi_jin')) if guohe else False,
+        'lu_zhi_cai': lu_zhi_cai,            # 禄神制/合财星主发财（zhongji:2637）
         'caiku': caiku,                      # 财库开闭记录（消费 muku）
         'has_open_caiku': has_open_caiku,    # 开财库（发财）信号
         'caixing_path': caixing_path,        # 财星源头/路径（原神/主位/合绊/入墓）
@@ -1115,10 +1231,13 @@ def classify_qucai_method(
 
     依据「什么当财」+「做功方式」定主取财方法：
       - 体力：禄神当财 -> 禄=身体力行；
-      - 智力：伤食当财 / 食伤生财 -> 技术/智力；
-      - 经营：财星当财 + 合财/制财做功 -> 商人经营；
+      - 智力：伤食当财 / 食伤生财 -> 技术/智力；伤食旺相生财=秀气发越
+        （生用式三，理象学:6557-6559）；
+      - 经营：财星当财 + 合财/制财做功 -> 商人经营；宾位食伤生主位财 ->
+        自己做生意（生用式一，理象学:6553-6555）；
       - 风险：官杀当财 / 劫刃羊刃取财 -> 风险求财（投机/武职）；
-      - 工薪：官杀/印 + 制官得官/印 -> 正当职业工薪。
+      - 工薪：官杀/印 + 制官得官/印 -> 正当职业工薪；主位食神生宾位财 ->
+        经理人（生用式二，理象学:6555-6557）。
     多重命中并列，标主取。
 
     Returns:
@@ -1238,6 +1357,41 @@ def classify_qucai_method(
     if zhi_guan_for_gong and '官统财（官杀当财）' not in views and '财统官' not in views and '工薪' not in methods:
         methods.append('工薪')
         details.append('制官得官，正当职业工薪取财')
+
+    # 生用三式细分（理象学:6553-6559「生用是指伤食生财组合：其一是财在主位，
+    # 由宾位之食伤生之为功，这种情形一般是自己做生意取财；其二是主位的食神
+    # 去生宾位的财，也为做功，主我的智力头脑为他人服务，做经理人之类的职业；
+    # 其三是原局伤食旺相，生财为用，谓秀气发越」）——批1窄化补全：经营旧仅
+    # 「财星明现+合/制财」、工薪旧仅「制官得官」，生用宾主两式无路径。
+    # 食伤动作 to_pos=食伤所在位（zuogong_detect 生用扫描契约）。
+    prom_qm = _cat_prominence(day_gan, gans, zhis)
+    cai_mx_pillars = {i for i, p in enumerate(prom_qm)
+                      if '财' in p and p['财'] in _MINGXIAN}
+    ss_mx_cnt = sum(1 for p in prom_qm if '食伤' in p and p['食伤'] in _MINGXIAN)
+    _sy1 = _sy2 = False
+    for a in wa:
+        if a.get('type') != '食伤' or '生财' not in str(a.get('subtype', '')):
+            continue
+        if a.get('auxiliary'):
+            continue  # 年干远泄力弱不做主功（M4 口径），不证宾主生用
+        ss_pk = _pos_pillar(a.get('to_pos', ''))
+        if ss_pk not in PILLAR_KEYS:
+            continue
+        if ss_pk in ('year', 'month') and cai_mx_pillars & {2, 3}:
+            _sy1 = True   # 式一：宾位食伤生主位财
+        if ss_pk in ('day', 'hour') and cai_mx_pillars & {0, 1}:
+            _sy2 = True   # 式二：主位食伤生宾位财
+    if _sy1:
+        if '经营' not in methods:
+            methods.append('经营')
+        details.append('宾位食伤生主位之财，自己做生意取财（生用式一，理象学:6553-6555）')
+    if _sy2:
+        if '工薪' not in methods:
+            methods.append('工薪')
+        details.append('主位食神生宾位之财，智力头脑为他人服务，经理人之类'
+                       '（生用式二，理象学:6555-6557）')
+    if ss_mx_cnt >= 2 and shishang_sheng_cai:
+        details.append('伤食旺相，生财为用，秀气发越（生用式三，理象学:6557-6559）')
 
     if not methods:
         methods.append('未明')
@@ -1620,7 +1774,12 @@ def assess_caiming_level(
     # 「开库的同时将库中的伤官与财星全制服了，所以能成巨富」）——gongliang 制库门
     # 修复后奥纳西斯基阶 2->4，elif 落入此下浮 巨富->富 误降（批 F6 红线：巨富
     # 三锚不得降）。制库得财在档者免此下浮。
-    elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin and not has_zhiku:
+    # 「下浮（禄/食伤当财量级有限）」以「无财局、禄/伤食为财源」为前提
+    # （zhongji:2603-2607：财在则以财论，禄为辅助）——批P1 禄当财 (a) 腿
+    # 补全后「有财+占禄+无伤食泄」局亦挂禄神当财（禄为辅助财源），纵无官杀
+    # 当财/制不尽/制库在档亦不按禄财路径下浮（李嘉诚类巨富局不误降）。
+    elif has_lu_or_shishang and tier_idx > 1 and not cong_cai_pin and not has_zhiku \
+            and not (caifu_view or {}).get('has_cai'):
         tier_idx -= 1
         adjust = '下浮（禄/食伤当财量级有限）'
     # A13-b（K3-294批5）：从强格官杀藏月令墓库、自党成势制之不净——「官杀
@@ -1716,9 +1875,12 @@ def assess_caiming_level(
     # 下方升档跳过（不叠加巨富）。
     _qm_methods = (qucai_method or {}).get('methods') or []
     jingying = bool(cxp.get('hecai_work')) or ('经营' in _qm_methods)
+    # 虚透合财（理象学:6682-6684 财虚主才能不主财富）不入此校准——合财升档
+    # 通道对虚透财不适用（下方 blocked 链同口径封顶小康）。
     solid_caishang = bool('财星当财' in views and cxp.get('has_yuanshen')
                           and cxp.get('zhuwei_cai') and jingying
-                          and not shenruo_caiwang and not ds_xiong)
+                          and not shenruo_caiwang and not ds_xiong
+                          and not cxp.get('xutou_hecai'))
     floor_applied = False
     if (solid_caishang and tier_idx < 3
             and not (has_guancai or has_zhibujin or cong_ge or cong_cai_pin)):
@@ -1728,7 +1890,8 @@ def assess_caiming_level(
             '基阶校准（财星当财·经营带原神+主位，基阶不落下富）'
     fucai_capped = False
     if not (has_guancai or has_zhibujin or cong_ge) and '财星当财' in views:
-        blocked = bool(cxp.get('fucai') or cxp.get('heban') or cxp.get('rumu'))
+        blocked = bool(cxp.get('fucai') or cxp.get('heban') or cxp.get('rumu')
+                       or cxp.get('xutou_hecai'))
         cai_reachable = bool(cxp.get('zhuwei_cai') or cxp.get('hecai_work'))
         if (not blocked and not ds_xiong and not shenruo_caiwang
                 and cxp.get('has_yuanshen') and cai_reachable
@@ -1747,7 +1910,8 @@ def assess_caiming_level(
             fucai_capped = True
             why = ('财星无原神且不在主位，浮财无源' if cxp.get('fucai')
                    else '财星被合绊，生财路径阻断' if cxp.get('heban')
-                   else '财星入墓未开，财被收藏难取')
+                   else '财星入墓未开，财被收藏难取' if cxp.get('rumu')
+                   else '财星虚透合财，财虚主才能不主财富')
             cap_txt = '制库在档，库财自足，落富' if has_zhiku else '封顶小康'
             adjust = (adjust + '；' if adjust != '持平' else '') + f'下浮（{why}，{cap_txt}）'
     # 浮财/阻通降档后富档跟随（同凶向下浮口径：降档仍标高富档则自相矛盾）
