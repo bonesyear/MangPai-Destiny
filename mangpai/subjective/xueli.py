@@ -10,9 +10,13 @@ xueli - 盲派学历专辑·主观层（subjective）
   1. 学历之神 vs 破坏之神：
        学历之神=官杀+印+食神（官杀主科名纪律、印主学问、食神主科甲才华）；
        破坏之神=财+伤官+比劫（zhongji:5397；财坏印、伤官不守规矩、比劫好动不思学习）。
-  2. 学历高低：印食旺且不被坏 -> 高学历；财/伤官/比劫坏之 -> 低学历；印食受克中断 -> 中断；
-       杀制伤官/合杀（杀配伤官/合杀为用）-> 高学历（官杀亦学历之神）。
-  3. 文理行业：文科=印/食神/木火旺（主文）；理科=伤官/七杀/金水旺（主理）。
+  2. 学历高低：印食旺且不被坏 -> 高学历；财/伤官/比劫坏之 -> 低学历；
+       伤官太旺无印制服 -> 中断（zhongji:5557-5558，书唯一中断机制；八字有官
+       主后补文凭）；杀制伤官/合杀（杀配伤官/合杀为用）-> 高学历（官杀亦学历之神）；
+       食神库制印做功 -> 定有学历（zhongji:5415）。
+  3. 文理行业：文科=印/食神/木火旺（主文）；理科=伤官/七杀/金水旺（主理）；
+       细分（zhongji:5410-5412）：庚申戌亥=数学、申子辰=化学、申酉加丑=法律、
+       寅卯配火=中文、食神=中文或外语、官杀=理科。
 
 消费关系：
   - objective.zuogong_detect.detect_relations（财坏印、枭夺食、印食受克关系）
@@ -80,6 +84,10 @@ def _mingxian_cats(day_gan: str, gans: List[str], zhis: List[str]) -> List[Set[s
 
 # 合用动作类型（对称关系，from/to 无方向语义）
 _HE_CONTROL: Set[str] = {'天干合', '地支合', '暗合', '半合'}
+
+# 五行墓库（食神库制印用，zhongji:5415；与 zaihuo._tomb_zhis_of_wx 同口径，
+# 土墓取辰——批D 备案口径）
+_TOMB_OF_WX = {'木': '未', '火': '戌', '金': '丑', '水': '辰', '土': '辰'}
 
 
 def _pos_pillar(pos: str) -> str:
@@ -265,11 +273,16 @@ def classify_xueli_level(
     day_gan: str, gans: List[str], zhis: List[str],
     relations: Optional[Dict] = None,
 ) -> Dict:
-    """学历高低：印食旺且不被坏 -> 高；财/伤官/比劫坏之 -> 低；印食受克中断 -> 中断；
-    杀制伤官/合杀（杀配伤官/合杀为用，官杀亦学历之神）-> 高。
+    """学历高低：印食旺且不被坏 -> 高；财/伤官/比劫坏之 -> 低；
+    伤官太旺无印制服 -> 中断（zhongji:5557-5558，书唯一中断机制，有官主
+    后补文凭）；杀制伤官/合杀（杀配伤官/合杀为用，官杀亦学历之神）-> 高；
+    食神库制印做功 -> 定有学历（zhongji:5415）。
 
     Returns:
-        {'level': '高'|'中'|'低'|'中断', 'signals': [str]}
+        {'level': '高'|'中'|'低'|'中断', 'signals': [str],
+         'score': int,
+         'shi_ku_zhi_yin': bool,  # 食神库制印做功（zhongji:5415）
+         'houbu_wenping': bool}   # 中断有官，主后补文凭（zhongji:5558）
     """
     if is_pillars(day_gan):
         p = day_gan
@@ -279,7 +292,8 @@ def classify_xueli_level(
     gans = gans or []
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
-        return {'level': '中', 'signals': ['四柱不全']}
+        return {'level': '中', 'signals': ['四柱不全'], 'score': 0,
+                'shi_ku_zhi_yin': False, 'houbu_wenping': False}
 
     shen = classify_xueli_shen(day_gan, gans, zhis, relations)
     rel = _ensure_relations(day_gan, gans, zhis, relations)
@@ -375,17 +389,52 @@ def classify_xueli_level(
     if he_sha:
         signals.append('伤官合杀（合杀为用），杀配伤官主高学历')
 
-    if he_sha:
+    # 食神库制印做功，定有学历（zhongji:5415「食神主脑子，印主学历，食神库
+    # 制印做功，定有学历」）：食神明现 + 印明现 + 食神五行之墓库支在局。
+    shi_wx = WX_SHENG.get(day_wx, '')
+    shi_tomb = _TOMB_OF_WX.get(shi_wx, '')
+    shi_ku_zhi_yin = bool(shi and yin >= 1 and shi_tomb and shi_tomb in zhis)
+    if shi_ku_zhi_yin:
+        signals.append(f'食神库（{shi_tomb}）制印做功，定有学历（zhongji:5415）')
+
+    # 伤官太旺无印制服 -> 中途中断（zhongji:5557-5558「伤官太旺，无印制服…
+    # 中途中断学历」——书唯一中断机制；批2 审计：旧「财坏印≥2→中断」张冠李戴，
+    # 财坏印主学历受损（低档）非中断，按书改正）。八字有官 -> 主后补文凭
+    # （:5558「后补一个文凭。八字有官，所以会后补文凭」）。
+    # 「太旺」阈值=工程化启发（书无定量）：明现伤官≥2。
+    # 豁免（zhongji:5522-5523 例14「乙庚合，合杀有功，反而论吉。伤官主聪明，
+    # 制局中官星，也为有功」）：合动作两端明现十神含官杀（合杀/合官有功）
+    # 则伤官有制化，不判中断——书例14 伤官三位无印仍判高之锚。
+    he_guan_sha = False
+    if shang >= 2 and yin == 0:
+        for a in (rel.get('work_actions') or []):
+            if a.get('type') not in _HE_CONTROL:
+                continue
+            fss = _pos_mingxian_shishen(day_gan, gans, zhis, a.get('from_pos', ''))
+            tss = _pos_mingxian_shishen(day_gan, gans, zhis, a.get('to_pos', ''))
+            if (fss | tss) & {'正官', '七杀'}:
+                he_guan_sha = True
+                break
+    shang_zhongduan = shang >= 2 and yin == 0 and not he_guan_sha
+    houbu_wenping = bool(shang_zhongduan and guan >= 1)
+    if shang_zhongduan:
+        signals.append(f'伤官太旺（{shang}位）无印制服，中途中断学历（zhongji:5557）')
+        if houbu_wenping:
+            signals.append('八字有官，主后补文凭（zhongji:5558）')
+
+    if he_sha or shi_ku_zhi_yin:
         level = '高'
+    elif shang_zhongduan:
+        level = '中断'
     elif score >= 3:
         level = '高'
     elif score <= 0 and (cai_huai_yin or shang_deduct or bijie_deduct or (yin == 0 and cai >= 2)):
         level = '低'
-    elif cai_huai_yin and cai >= 2 and yin >= 1 and cai >= yin:
-        level = '中断'
     else:
         level = '中'
-    return {'level': level, 'signals': signals, 'score': score}
+    return {'level': level, 'signals': signals, 'score': score,
+            'shi_ku_zhi_yin': shi_ku_zhi_yin,
+            'houbu_wenping': houbu_wenping}
 
 
 # ───────────────────── 3. 文理行业 ─────────────────────
@@ -394,9 +443,12 @@ def classify_wenli(
     day_gan: str, gans: List[str], zhis: List[str],
 ) -> Dict:
     """文理行业：文科=印/食神/木火旺；理科=伤官/七杀/金水旺。
+    细分（zhongji:5410-5412）：庚/申/戌/亥为数学、申子辰结合主化学、
+    申酉金加丑主法律、寅卯配火主中文、食神为中文或外语、官杀主理科。
 
     Returns:
-        {'direction': '文'|'理'|'文理兼', 'signals': [str]}
+        {'direction': '文'|'理'|'文理兼', 'signals': [str],
+         'xifen': [str]}   # 文理细分 marker（zhongji:5410-5412）
     """
     if is_pillars(day_gan):
         p = day_gan
@@ -406,7 +458,7 @@ def classify_wenli(
     gans = gans or []
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
-        return {'direction': '文理兼', 'signals': ['四柱不全']}
+        return {'direction': '文理兼', 'signals': ['四柱不全'], 'xifen': []}
 
     prom = _mingxian_cats(day_gan, gans, zhis)
     # 木火(文) vs 金水(理) 计数
@@ -444,6 +496,27 @@ def classify_wenli(
         signals.append('伤官/七杀现，偏理科')
     signals.append(f'木火(文){wen_count}位、金水(理){li_count}位')
 
+    # 文理细分（zhongji:5410-5412「细分：庚、申、戌、亥为数学；申子辰结合
+    # 主化学；申酉金加丑主法律；寅卯配火主中文；食神为中文或外语；官杀主
+    # 理科」）——marker 级随行，不改 direction 判定。
+    xifen: List[str] = []
+    all_z = {z for z in zhis if z}
+    if '庚' in gans or all_z & {'申', '戌', '亥'}:
+        xifen.append('庚/申/戌/亥见，数学之象（zhongji:5410）')
+    if {'申', '子', '辰'} <= all_z:
+        xifen.append('申子辰结合，化学之象（zhongji:5410）')
+    if {'申', '酉', '丑'} <= all_z:
+        xifen.append('申酉金加丑，法律之象（zhongji:5411）')
+    has_fire = any(GAN_WX.get(g) == '火' for g in gans if g) or \
+               any(ZHI_WX.get(z) == '火' for z in zhis if z)
+    if all_z & {'寅', '卯'} and has_fire:
+        xifen.append('寅卯配火，中文之象（zhongji:5411）')
+    per_ss = _pillar_mingxian_shishen(day_gan, gans, zhis)
+    if any('食神' in s for s in per_ss):
+        xifen.append('食神现，主中文或外语（zhongji:5411）')
+    if any(s & {'正官', '七杀'} for s in per_ss):
+        xifen.append('官杀现，主理科（zhongji:5412）')
+
     if wen_count > li_count and (has_yin_shi or not has_shang_sha):
         direction = '文'
     elif li_count > wen_count and (has_shang_sha or not has_yin_shi):
@@ -452,7 +525,7 @@ def classify_wenli(
         direction = '文理兼'
     else:
         direction = '文' if has_yin_shi else '理'
-    return {'direction': direction, 'signals': signals}
+    return {'direction': direction, 'signals': signals, 'xifen': xifen}
 
 
 # ───────────────────── 聚合 ─────────────────────

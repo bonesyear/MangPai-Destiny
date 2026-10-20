@@ -181,3 +181,25 @@ def test_youlie_hour_jishen_leg():
     # 甲日身强（天干四甲+丑土培根）：时柱甲子=比肩+正印皆忌神
     r = detect_zixi_youlie('甲', list('甲甲甲甲'), list('丑丑丑子'), gender='男')
     assert any('时柱为忌神' in l for l in r['lie'])
+
+
+# ── 批Q1：过房 marker（shouke:428 子卯刑过房；yanjiu:12050-12053 乔布斯互证）──
+# 分工：zinv 过房=命主之子女过继他人（子女域）；liuqin 弃养域=命主被父母
+#       弃养（食伤重现换门楼/时柱伏吟送出去），两域分属不重复。
+
+from mangpai.subjective.zinv import detect_guofang  # noqa: F401  （键路径主力，函数备用）
+
+
+def test_guofang_zimao_xing_shouke428():
+    """shouke:428 书例 乾 己丑丁丑乙卯丙子：日支卯、时支子互刑 → 有子必为过房。"""
+    r = _run('己丑丁丑乙卯丙子', '男')
+    assert r['guofang']['is_guofang'] is True
+    assert '过房' in r['guofang']['desc']
+    assert '过房' in r['summary'] or '过继' in r['summary']
+
+
+def test_guofang_guard_no_zimao():
+    """反例：无子卯并见（申寅午亥）→ 不录过房；schema 含 guofang 键。"""
+    r = _run('甲申丙寅甲午乙亥', '男')
+    assert r['guofang']['is_guofang'] is False
+    assert set(r) >= {'zixi_yingqi_dezi', 'zixi_yingqi_sunzi', 'jiefu', 'guofang', 'summary'}

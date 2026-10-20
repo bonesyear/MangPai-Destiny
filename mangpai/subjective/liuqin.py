@@ -31,6 +31,10 @@ liuqin - 盲派六亲专辑·主观层（subjective）
   - subjective.xiangfa_ops.huanxiang（制尽换象，子息性别转换互证）
 
 分层位置：subjective/，单向依赖 objective。本模块不反向依赖 engine。
+批Q1 补全（marker 级只读信号，不进既有判定链）：劫财羊刃两头钳
+  （gaoji:14547+案例八:14630-14641）、比劫主宾位情谊（gaoji:14652）、
+  弃养域补两 marker——食伤重现换门楼主过继（gaoji:13878+案例十七:13885-13897）、
+  时柱伏吟送出去（gaoji:13921-13931 案例十九）。
 已知争议：时辰定数法为盲师口传启发式（口诀量化，非精确计数）；性别换象
           阈值为「刑冲穿合任一即换」段氏主流口径；父母变法各师口传有细微差异。
 置信度：中
@@ -373,13 +377,21 @@ def detect_parent_qiyang(
     day_gan: str, gans: List[str], zhis: List[str],
     relations: Optional[Dict] = None,
 ) -> Dict:
-    """父母弃养标志（口诀四）。
+    """父母弃养标志（口诀四，gaoji:13878「父母弃养有因由，年月食伤入墓囚。
+    财星被坏家贫贱，印星破损失庇庥。日时见合迎新主，食伤重现换门楼。
+    年柱偏财多养子，送人抱养命里求。」）。
 
-    四标志：
+    六标志：
       1. 年月食伤入墓：食伤在年月入墓或被合绊。
       2. 财印被坏：年月财星/印星被破坏（家境赤贫）。
       3. 年柱偏财：年柱干支皆偏财（养子象）。
       4. 日时见合迎新主：日时柱见天干五合（丁壬/乙庚等）。
+      5. 食伤重现换门楼（批Q1 补，:13878 口诀+案例十七 :13885-13897
+         癸巳癸亥庚辰壬午「月令亥水食神入日支辰墓…时上又见壬午食神，
+         主过继」）：年月食伤其五行被局中墓库支收 + 时柱再现食伤 → 主过继。
+      6. 时柱伏吟送出去（批Q1 补，案例十九 :13921-13931 壬寅庚戌癸卯癸丑
+         「时上癸水伏吟，代表送出去」）：食伤受困（年月食伤入墓/食伤柱被
+         合绊，弃养结构在场）+ 时柱干/支与年月日柱伏吟 → 送出去作养儿之象。
 
     Returns:
         {'is_qiyang': bool, 'markers': [str], 'desc': str}
@@ -428,6 +440,45 @@ def detect_parent_qiyang(
         if any(p.split('_')[0] in ('day', 'hour') for p in (fp, tp)):
             markers.append('日时见天干合（迎新主、换门楼）')
             break
+
+    # 5. 食伤重现换门楼（批Q1 补）：年月食伤其五行被局中墓库支收（入墓）
+    #    + 时柱再现食伤 → 主过继（gaoji:13878 口诀；案例十七 :13885-13897
+    #    月令亥水食神入日支辰墓、时上又见壬午食神）
+    day_wx_qy = GAN_WX.get(day_gan, '')
+    shishang_wx = WX_SHENG.get(day_wx_qy, '')
+    ym_ss_tomb = False
+    for i in (0, 1):
+        if _pillar_has_cat(day_gan, gans[i], zhis[i], '食伤'):
+            if shishang_wx and any(z and shishang_wx in TOMB_MAP.get(z, [])
+                                   for z in zhis):
+                ym_ss_tomb = True
+                break
+    if ym_ss_tomb and _pillar_has_cat(day_gan, gans[3], zhis[3], '食伤'):
+        markers.append('年月食伤入墓、时柱重现食伤（食伤重现换门楼），主过继'
+                       '（gaoji:13878/13885-13897）')
+
+    # 6. 时柱伏吟送出去（批Q1 补）：食伤受困（年月食伤入墓 或 食伤柱被合绊，
+    #    弃养结构在场）或弃养基础标志已录 + 时柱干/支与年月日柱伏吟 → 送出去
+    #    作养儿之象（案例十九 :13921-13931 卯戌合绊食神（日支卯）、时上癸水
+    #    伏吟「代表送出去」——其弃养结构不在既有四标志覆盖内，故门控取书
+    #    结构本体：食伤受困）
+    ss_kun = bool(markers) or ym_ss_tomb
+    if not ss_kun:
+        for i in range(4):
+            if _pillar_has_cat(day_gan, gans[i], zhis[i], '食伤') and any(
+                    k in ('地支合', '半合', '三合局', '暗合')
+                    for k in _attacked_kinds_on_pillar(wa, i)):
+                ss_kun = True
+                break
+    if ss_kun:
+        fuyin: List[str] = []
+        for i in (0, 1, 2):
+            if gans[3] and gans[3] == gans[i]:
+                fuyin.append(f'时干{gans[3]}={PILLAR_NAMES_CN[i]}干')
+            if zhis[3] and zhis[3] == zhis[i]:
+                fuyin.append(f'时支{zhis[3]}={PILLAR_NAMES_CN[i]}支')
+        if fuyin:
+            markers.append(f'{"、".join(fuyin)}伏吟，送出去作养儿之象（gaoji:13921-13931）')
 
     is_qiyang = bool(markers)
     return {
@@ -851,6 +902,62 @@ def detect_xiongdi_keshun(
     }
 
 
+# ───────────────────── 4b. 批Q1 补全 marker（只读信号，不进既有判定链）─────────────────────
+
+def detect_liangtouqian(
+    day_gan: str, gans: List[str], zhis: List[str],
+) -> Dict:
+    """劫财羊刃两头钳（克损诀尾句，gaoji:14547「劫财羊刃两头钳，兄弟姐妹难团圆」）。
+
+    钳=月时两柱夹日主：月干+时干同见劫财（案例八 gaoji:14630-14641
+    丁丑乙巳甲子乙丑「月干乙木劫财，时干乙木劫财，劫财两头钳…兄弟姐妹
+    互不来往」），或月支+时支同坐羊刃。marker 级，不进 detect_xiongdi_keshun
+    克损判定链。
+
+    Returns:
+        {'is_liangtouqian': bool, 'markers': [str]}
+    """
+    markers: List[str] = []
+    if len(gans) == 4 and len(zhis) == 4 and day_gan:
+        yg, sg = gans[1], gans[3]
+        if yg and sg and _compute_shishen(day_gan, yg) == '劫财' \
+                and _compute_shishen(day_gan, sg) == '劫财':
+            markers.append(f'月干{yg}、时干{sg}劫财两头钳（夹克日主），'
+                           f'兄弟姐妹难团圆（gaoji:14547/14630-14641）')
+        yr_zhis = set((compute_shensha_ext(day_gan, zhis).get('羊刃') or {}).get('zhi_all') or [])
+        if zhis[1] and zhis[1] in yr_zhis and zhis[3] and zhis[3] in yr_zhis:
+            markers.append(f'月支{zhis[1]}、时支{zhis[3]}羊刃两头钳（夹克日主），'
+                           f'兄弟姐妹难团圆（gaoji:14547）')
+    return {'is_liangtouqian': bool(markers), 'markers': markers}
+
+
+def infer_bijie_zhubin_qingyi(
+    day_gan: str, gans: List[str], zhis: List[str],
+) -> Dict:
+    """比劫主宾位情谊（情谊诀，gaoji:14652「比劫入主位（日时），兄弟助我；
+    比劫落宾位（年月），我助兄弟」）。
+
+    主位=日/时柱，宾位=年/月柱；柱含比劫（透干或支本/中气）即录，日柱只查
+    日支（日干=日主自身不算比劫）。marker 级，不进 classify_xiongdi_qingyi
+    判定（verdict 不动）。
+
+    Returns:
+        {'markers': [str]}
+    """
+    markers: List[str] = []
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        return {'markers': markers}
+    for i in (0, 1):
+        if _pillar_has_cat(day_gan, gans[i], zhis[i], '比劫'):
+            markers.append(f'比劫落宾位（{PILLAR_NAMES_CN[i]}柱），我助兄弟（gaoji:14652）')
+    # 日柱只查日支（日干=日主自身）
+    if _pillar_has_cat(day_gan, '', zhis[2], '比劫'):
+        markers.append('比劫入主位（日支），兄弟助我（gaoji:14652）')
+    if _pillar_has_cat(day_gan, gans[3], zhis[3], '比劫'):
+        markers.append('比劫入主位（时柱），兄弟助我（gaoji:14652）')
+    return {'markers': markers}
+
+
 # ───────────────────── 4. 排行诀 / 情谊诀 / 子女优劣（F17 补节）─────────────────────
 
 def classify_xiongdi_paihang(
@@ -1093,6 +1200,7 @@ def analyze_liuqin(
           'parent_qiyang': {...},
           'zixi_youwu': {...}, 'zixi_xingbie': {...},
           'xiongdi_shuliang': {...}, 'xiongdi_keshun': {...},
+          'liangtouqian': {...}, 'zhubin_qingyi': {...},   # 批Q1 marker
           'summary': str,
         }
     """
@@ -1131,6 +1239,9 @@ def analyze_liuqin(
     xd_ks = detect_xiongdi_keshun(day_gan, gans, zhis, relations)
     xd_ph = classify_xiongdi_paihang(day_gan, gans, zhis, relations)
     xd_qy = classify_xiongdi_qingyi(day_gan, gans, zhis, relations)
+    # 批Q1 补全 marker（只读信号，不进既有判定链）
+    ltq = detect_liangtouqian(day_gan, gans, zhis)
+    zb_qy = infer_bijie_zhubin_qingyi(day_gan, gans, zhis)
 
     parts = ['六亲论断']
     if pzs.get('is_zaoshi'):
@@ -1151,6 +1262,9 @@ def analyze_liuqin(
         parts.append('排行居长')
     if xd_qy.get('verdict') in ('薄', '争夺'):
         parts.append(f'兄弟情谊{xd_qy["verdict"]}')
+    if ltq.get('is_liangtouqian'):
+        parts.append('劫财羊刃两头钳（兄弟难团圆）')
+    parts.extend(zb_qy.get('markers') or [])
     parts.append(f'兄弟约{xd_sl.get("estimate", 0)}个')
 
     return {
@@ -1165,6 +1279,8 @@ def analyze_liuqin(
         'xiongdi_keshun': xd_ks,
         'xiongdi_paihang': xd_ph,
         'xiongdi_qingyi': xd_qy,
+        'liangtouqian': ltq,
+        'zhubin_qingyi': zb_qy,
         'direction_signals': direction_brief(direction_result),
         'summary': '；'.join(parts),
     }
@@ -1182,5 +1298,7 @@ __all__ = [
     'classify_xiongdi_keshun',
     'classify_xiongdi_paihang',
     'classify_xiongdi_qingyi',
+    'detect_liangtouqian',
+    'infer_bijie_zhubin_qingyi',
     'analyze_liuqin',
 ]

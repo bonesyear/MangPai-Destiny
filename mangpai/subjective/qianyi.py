@@ -9,6 +9,9 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
   宫位空间：lixiangxue:4114（年=远方/时=门户/月=祖籍/日=现居）、
            gaoji:5838-5865（年柱动主离乡、月日冲=背井离乡、日时合=安居）；
   总纲：shouke:3600-3602「马冲在哪儿，离开哪儿。马合在哪，留在哪儿」；
+  驿马修饰：gaoji:6727（驿马带财官同柱/相合，主因财、因工作而动）+口诀
+           gaoji:6759「马带财官因利动」；gaoji:6728-6729（驿马空亡，动而
+           不实）+口诀 gaoji:6760「马落空亡动虚陈」；
   合到门户：zhongji:4180「丙辛合到门户上」+ lixiangxue:6571「甲运合己，
            合到门户」——两书同构互证；
   或然机制：shouke:6692（马星伏吟而动）、shouke:704（门户伏吟外出，
@@ -31,7 +34,12 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
      - beijing_lixiang：月日支相冲=背井离乡（gaoji:5857）；
      - anju：日时支相合=安居乐业（gaoji:5858 反向锚）；
      - ma_lin_nianshi：驿马（年日双查口径）落年/时柱=多动远行倾向
-       （gaoji:6735 案例九「马星在年时，主远行」）。
+       （gaoji:6735 案例九「马星在年时，主远行」）；
+     修饰 marker（附于马星支，并随行到马逢冲/马星伏吟窗口 note）：
+     - ma_dai_caiguan：驿马带财官（同柱/相合），因财利/因工作而动
+       （gaoji:6727/6759）；
+     - ma_kongwang：驿马落空亡，动而不实（gaoji:6728/6760，措辞取
+       「虚动」，书原文出国级表达按红线不录）。
   2. qianyi_yingqi 应期窗：
      - move_windows：马逢冲（岁运支冲原局马星支，shouke:3602+gaoji:6757）、
        合到门户（岁运干与原局年/时干成五合，zhongji:4180+lixiangxue:6571）、
@@ -53,10 +61,15 @@ qianyi - 盲派迁移/远行 marker + 迁移应期窗·主观层（subjective）
 """
 from typing import Dict, List, Optional, Set
 
+from mangpai.objective.bazi_calc import get_kong_wang
 from mangpai.objective.constants import (
-    TIAN_GAN_HE, LIU_HE, LIU_CHONG, is_pillars,
+    ZHI_WX, TIAN_GAN_HE, LIU_HE, LIU_CHONG, is_pillars,
 )
 from mangpai.objective.shensha import _YI_MA  # 三支皆马表（zhongji:1563-1565）
+from mangpai.objective.shishen import (
+    shishen_of as _compute_shishen, shishen_cat as _cat,
+    gan_wx_cat as _wx_cat,
+)
 
 _PILLAR_KEYS = ['year', 'month', 'day', 'hour']
 # 宫位空间（lixiangxue:4114 + gaoji:5843-5846）：年=远方、月=祖籍、日=现居、时=门户
@@ -86,16 +99,21 @@ def analyze_qianyi(
     *,
     dayun_list: Optional[List] = None,
     liunian_list: Optional[List] = None,
+    relations: Optional[Dict] = None,
 ) -> Dict:
     """迁移/远行 marker + 迁移应期窗。
 
     签名对齐 analyze_zinv 惯例；岁运序列由 engine 透传（da_yun/liunian），
     测试按 zinv 哨兵惯例手动喂入。缺岁运序列时应期窗空转（仅出原局 marker）。
+    relations 供驿马带财官「相合」档（缺省仅「同柱」档）；空亡就地起日柱
+    旬空（get_kong_wang），不依赖 relations。
 
     Returns:
         {
           'qianyi_yuanju': {'beijing_lixiang': bool, 'anju': bool,
                             'ma_lin_nianshi': {'hit': bool, 'positions': [...]},
+                            'ma_dai_caiguan': {马支: ['财'/'官杀']},
+                            'ma_kongwang': [马支],
                             'markers': [str], 'desc': str},
           'qianyi_yingqi': {'move_windows': [...], 'stay_windows': [...],
                             'desc': str},
@@ -118,6 +136,7 @@ def analyze_qianyi(
         'qianyi_yuanju': {
             'beijing_lixiang': False, 'anju': False,
             'ma_lin_nianshi': {'hit': False, 'positions': []},
+            'ma_dai_caiguan': {}, 'ma_kongwang': [],
             'markers': [], 'desc': '四柱不全，无法判定迁移倾向',
         },
         'qianyi_yingqi': {'move_windows': [], 'stay_windows': [], 'desc': ''},
@@ -138,6 +157,54 @@ def analyze_qianyi(
     ma_positions: Dict[str, str] = {
         z: _PILLAR_KEYS[i] for i, z in enumerate(zhis) if z in ma_union_all}
 
+    # ── 驿马带财官（gaoji:6727「驿马星与财星、官星同柱或相合，主因财、
+    # 因工作而动」+口诀 gaoji:6759「马带财官因利动」）──
+    # 同柱：马星支本气或同柱天干为财/官杀；相合：马星支与财/官杀本气之支
+    # 成合（消费 relations，缺省仅同柱档）。动的「原因」修饰 marker。
+    _REASON_LABEL = {'财': ('财星', '财利'), '官杀': ('官星', '工作')}
+    ma_reason: Dict[str, List[str]] = {}
+    for mz, pk in ma_positions.items():
+        cats: Set[str] = set()
+        i = _PILLAR_KEYS.index(pk)
+        mc = _wx_cat(day_gan, ZHI_WX.get(mz, ''))  # 马星支本气
+        if mc in ('财', '官杀'):
+            cats.add(mc)
+        if gans[i]:
+            gc = _cat(_compute_shishen(day_gan, gans[i]))  # 同柱天干
+            if gc in ('财', '官杀'):
+                cats.add(gc)
+        for a in ((relations or {}).get('work_actions') or []):
+            if a.get('type') not in ('地支合', '暗合', '半合'):
+                continue
+            fk = a.get('from_pos', '').split('_')[0]
+            tk = a.get('to_pos', '').split('_')[0]
+            if fk not in _PILLAR_KEYS or tk not in _PILLAR_KEYS:
+                continue
+            fz, tz = zhis[_PILLAR_KEYS.index(fk)], zhis[_PILLAR_KEYS.index(tk)]
+            if mz not in (fz, tz):
+                continue
+            oc = _wx_cat(day_gan, ZHI_WX.get(tz if fz == mz else fz, ''))
+            if oc in ('财', '官杀'):
+                cats.add(oc)
+        if cats:
+            ma_reason[mz] = sorted(cats)
+
+    # ── 驿马空亡（gaoji:6728-6729「驿马落空，动而不实」+口诀 gaoji:6760
+    # 「马落空亡动虚陈」）：马星支落空亡 → 动而不实（虚动）修饰 marker。
+    # （书原文另及「出国留学等虚动」，出国级表达按措辞红线不录。）
+    kw_zhis = set((get_kong_wang(day_gan, zhis[2]) or {}).get('zhi') or [])
+    ma_kong = {mz for mz in ma_positions if mz in kw_zhis}
+
+    def _ma_suffix(mz: str) -> str:
+        """马星支的带财官/落空亡修饰后缀（gaoji:6727/6759、6728/6760）。"""
+        out = ''
+        if mz in ma_reason:
+            out += ('；马带' + '、'.join(_REASON_LABEL[c][0] for c in ma_reason[mz])
+                    + '，因' + '兼'.join(_REASON_LABEL[c][1] for c in ma_reason[mz]) + '而动')
+        if mz in ma_kong:
+            out += '；马落空亡，动而不实'
+        return out
+
     # ── 1. 原局三 marker ──
     markers: List[str] = []
     beijing = _pair_in(zhis[1], zhis[2], LIU_CHONG)
@@ -151,6 +218,16 @@ def analyze_qianyi(
     ma_lin = {'hit': bool(ns_positions), 'positions': ns_positions}
     if ns_positions:
         markers.append('马星临年/时柱（远方/门户之位），多动远行倾向（gaoji:6735）')
+    # 驿马带财官/落空亡 原局修饰 marker（gaoji:6727/6759、6728/6760）
+    for mz in sorted(ma_reason):
+        markers.append(
+            f'马星{mz}（{_PILLAR_SPACE[ma_positions[mz]]}之马）带'
+            f'{"、".join(_REASON_LABEL[c][0] for c in ma_reason[mz])}，主因'
+            f'{"兼".join(_REASON_LABEL[c][1] for c in ma_reason[mz])}而动'
+            f'（gaoji:6727/6759）')
+    for mz in sorted(ma_kong):
+        markers.append(f'马星{mz}（{_PILLAR_SPACE[ma_positions[mz]]}之马）落空亡，'
+                       f'动而不实（虚动）（gaoji:6728/6760）')
     if beijing and anju:
         # 月日冲与日时合并存：书未给优先级，两 marker 并列呈现
         markers.append('冲合并见，离乡与安居两象并陈（书未定夺，marker 级并列）')
@@ -196,7 +273,7 @@ def analyze_qianyi(
                 _emit(move_windows, dy, ln, '马逢冲', pk, '中',
                       'shouke:3600-3602;gaoji:6757',
                       f'{dz}冲{mz}（{_PILLAR_SPACE[pk]}之马星），'
-                      f'马冲在哪儿离开哪儿，有迁移/远行之象')
+                      f'马冲在哪儿离开哪儿，有迁移/远行之象' + _ma_suffix(mz))
             elif _pair_in(dz, mz, LIU_HE):
                 _emit(stay_windows, dy, ln, '马逢合', pk, '中',
                       'zhongji:1567;gaoji:6757;shouke:3602',
@@ -223,7 +300,7 @@ def analyze_qianyi(
                 _emit(move_windows, dy, ln, '马星伏吟', ma_positions[dz], '或然',
                       'shouke:6692',
                       f'流年{dz}与原局{_PILLAR_SPACE[ma_positions[dz]]}马星伏吟，'
-                      f'或有迁移/远动之象（或然）')
+                      f'或有迁移/远动之象（或然）' + _ma_suffix(dz))
             # 冲出年时：流年支冲年支/时支（shouke:72「冲出」，
             # 书自承「未必所有人都会出门」）
             for zi in (0, 3):
@@ -265,6 +342,8 @@ def analyze_qianyi(
             'beijing_lixiang': beijing,
             'anju': anju,
             'ma_lin_nianshi': ma_lin,
+            'ma_dai_caiguan': {mz: ma_reason[mz] for mz in sorted(ma_reason)},
+            'ma_kongwang': sorted(ma_kong),
             'markers': markers,
             'desc': yuanju_desc,
         },

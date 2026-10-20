@@ -193,3 +193,36 @@ def test_e_menhu_fuyin_priority_over_ma_fuyin():
     assert any(w['mechanism'] == '门户伏吟' for w in _moves(r))
     assert not any(w['mechanism'] == '马星伏吟' and w['pillar'] == 'hour'
                    and w['liunian'] == '丁巳' for w in _moves(r))
+
+
+# ── 批Q2：驿马带财官（gaoji:6727/6759）/驿马空亡（gaoji:6728/6760）──
+
+def test_q2_ma_dai_caiguan():
+    """批Q2：驿马带财官（gaoji:6727「驿马星与财星、官星同柱或相合，主因财、
+    因工作而动」+口诀 gaoji:6759「马带财官因利动」）——动的「原因」修饰
+    marker，随行到马逢冲窗口 note。"""
+    # 戊子日：寅（七杀甲同柱）/子（本气癸=财）/午（本气丁=印？午=[丁,己]…）
+    # 实测盘：甲寅/丙申/戊子/壬午——寅带官（甲=七杀同柱）、子午带财（戊日子午
+    # 本气…以实测为准），庚申运申冲寅窗口 note 带「因工作而动」。
+    r = _run('甲寅丙申戊子壬午', dys=['庚申'])
+    mdcg = r['qianyi_yuanju']['ma_dai_caiguan']
+    assert mdcg.get('寅') == ['官杀'] and '财' in mdcg.get('子', [])
+    assert any('因工作而动' in m for m in r['qianyi_yuanju']['markers'])
+    hits = [w for w in _moves(r)
+            if w['dayun'] == '庚申' and w['mechanism'] == '马逢冲']
+    assert hits and '因工作而动' in hits[0]['note']
+
+
+def test_q2_ma_kongwang():
+    """批Q2：驿马空亡（gaoji:6728-6729「驿马落空，动而不实」+口诀 gaoji:6760
+    「马落空亡动虚陈」）——马星支落空亡录「动而不实（虚动）」修饰 marker；
+    书原文「出国留学等虚动」出国级表达按措辞红线不录。"""
+    # 庚辰日（甲戌旬空申酉）+ 寅在局使申为马 + 申落时柱空亡
+    r = _run('壬寅庚子庚辰丙申', lns=['甲申'])
+    assert r['qianyi_yuanju']['ma_kongwang'] == ['申']
+    assert any('动而不实' in m for m in r['qianyi_yuanju']['markers'])
+    hits = [w for w in _moves(r) if w['mechanism'] == '马星伏吟']
+    assert hits and '动而不实' in hits[0]['note']
+    blob = json.dumps(r, ensure_ascii=False)
+    for term in ('出国', '移民', '海外'):
+        assert term not in blob

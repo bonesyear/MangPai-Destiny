@@ -25,6 +25,8 @@ xiangmao - 盲派相貌 marker 层·主观层（subjective，轻量）
         美容师对照「庚金伤官不见官杀……伤食只单纯表现为技艺」。
   弱线2 身材曲线：zhongji:3981-3982「乙卯又是曲线好，身材好看」；
         zhongji:1484「己为身体（女性则曲线弯，性感；表现力强）」。
+  弱线3 女人禄为身体（限女命）：zhongji:3974-3982「女人的禄为身体…
+        满盘皆禄」；「禄会到时上…」之断措辞越红线，收档不立。
 
 定位与红线（归档 §二.3）：
   纯 marker 层，无判定无档位——不判相貌等级，只产机制 marker+书锚 basis
@@ -46,7 +48,7 @@ xiangmao - 盲派相貌 marker 层·主观层（subjective，轻量）
 from typing import Dict, List, Optional
 
 from mangpai.objective.constants import (
-    GAN_WX, TIAN_GAN_HE, is_pillars,
+    GAN_WX, TIAN_GAN_HE, LU, is_pillars,
 )
 from mangpai.subjective.liuqin import _compute_shishen
 
@@ -188,6 +190,19 @@ def analyze_xiangmao(
         sc_markers.append('乙木见卯禄，身材曲线之象（zhongji:3981）[弱线]')
     if '己' in others:
         sc_markers.append('己土透，身体曲线/表现力之象（zhongji:1484）[弱线]')
+    # ── 弱线3 女人禄为身体（zhongji:3974-3982「女人的禄为身体…满盘皆禄」）──
+    # 限女命（书原文专指女人之禄）；措辞红线同秀气线：只出「身体之象」，
+    # 不出结论词。书另及「禄会到时上…」之断（:3975-3976），措辞越红线，
+    # 收档不立（备案于此）。
+    lu_zhi = LU.get(day_gan, '')
+    if gender == '女' and lu_zhi:
+        lu_count = zhis.count(lu_zhi)
+        if lu_count >= 2:
+            sc_markers.append(f'满盘皆禄（{lu_zhi}×{lu_count}），女命禄为身体，'
+                              f'身体之象重（zhongji:3974-3982）[弱线]')
+        elif lu_count == 1:
+            sc_markers.append(f'女命禄（{lu_zhi}）为身体之象'
+                              f'（zhongji:3974-3982）[弱线]')
     shencai = {
         'hit': bool(sc_markers), 'markers': sc_markers,
         'desc': '；'.join(sc_markers),

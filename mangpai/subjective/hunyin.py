@@ -24,6 +24,13 @@ hunyin - 盲派婚姻专辑·主观层（subjective）
      离婚--男比劫到运年克财、女伤官到运年克官、婚姻宫被裸冲（原局无合）；
      女命关财门--运岁比劫夺财（财是官之原神），gaoji:12963-12967。
 
+批Q1 补全（marker 级只读信号，不进既有凶链、不改既有判定）：
+  婚姻次数提示（宫坏数/星多现数两数法并存，zhongji:4469-4470+gaoji:12652）、
+  早婚/晚婚标志（zhongji:5135-5137）、男命食伤为桃花（zhongji:4471）、
+  婚外情专节（gaoji:13315-13320）；应期补两条：配偶星/宫入墓刑冲其墓为
+  婚期（zhongji:5285+gaoji:13089）、女命官杀多杂/入墓伤官运年反为婚期
+  （gaoji:13238-13258）。
+
 消费关系：
   - objective.zuogong_detect.detect_relations（日支冲合穿刑、星被克合）
   - objective.shensha.compute_shensha_ext（孤辰/寡宿/华盖/桃花/羊刃）
@@ -798,6 +805,43 @@ def infer_jiehun_yingqi(
                     for z in zhis):
                 signals.append(f'{label}干{dgan}合日干（配偶星来合身，有根得旺），婚配应期')
 
+    # (e) 配偶星/宫入墓，运岁刑冲其墓为婚期（zhongji:5285「配偶星或配偶宫
+    # 入墓时，应刑冲其墓的流年而结婚」；gaoji:13089「星宫入墓刑冲开，
+    # 流年到位事必成」）——批Q1 补，marker 级信号
+    if len(zhis or []) == 4 and day_zhi:
+        mu_tombs = set(_star_in_tomb(day_gan, gans, zhis, gender))
+        dz_wx = ZHI_WX.get(day_zhi, '')
+        for z in zhis:
+            if z and z != day_zhi and dz_wx and dz_wx in TOMB_MAP.get(z, []):
+                mu_tombs.add(z)  # 配偶宫（日支五行）入墓
+        for label, _dgan, dzhi in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
+            if not dzhi:
+                continue
+            for t in sorted(mu_tombs):
+                if dzhi != t and (
+                        (dzhi, t) in LIU_CHONG or (t, dzhi) in LIU_CHONG
+                        or (dzhi, t) in XING_PAIRS or (t, dzhi) in XING_PAIRS):
+                    signals.append(f'{label}支{dzhi}刑冲开{t}墓（配偶星/宫入墓，刑冲其墓为婚期，'
+                                   f'zhongji:5285/gaoji:13089），结婚应期')
+                    break
+
+    # (f) 女命官杀多而混杂或入墓，伤官运/年反为婚期（gaoji:13238-13258
+    # 「女命官杀多而混杂，或官杀入墓，反可在伤官大运、伤官流年结婚。此乃
+    # 以毒攻毒，制去多余官杀或冲出官杀之应」）——批Q1 补，marker 级信号
+    if gender == '女' and len(gans or []) == 4 and len(zhis or []) == 4:
+        guan_duo = _star_mingxian_count(day_gan, gans, zhis, gender) >= 2 \
+            or bool(_star_in_tomb(day_gan, gans, zhis, gender))
+        if guan_duo:
+            for label, dgan, dzhi in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
+                if dgan and _compute_shishen(day_gan, dgan) == '伤官':
+                    signals.append(f'女命官杀多杂/入墓，{label}干{dgan}为伤官，制去杂官反为婚期'
+                                   f'（gaoji:13238-13258），特殊结婚应期')
+                elif dzhi:
+                    cg0 = get_canggan_mangpai(dzhi)
+                    if cg0 and _compute_shishen(day_gan, cg0[0][0]) == '伤官':
+                        signals.append(f'女命官杀多杂/入墓，{label}支{dzhi}本气伤官临，制去杂官反为婚期'
+                                       f'（gaoji:13238-13258），特殊结婚应期')
+
     return {'is_jiehun_signal': len(signals) >= 1, 'signals': signals}
 
 
@@ -968,6 +1012,235 @@ def detect_lu_ban_taohua(
                f'禄被桃花绊（{h["pillar"]}柱），主情欲重、为情所累'
                for h in hits]
     return {'is_lu_ban': bool(hits), 'factors': factors}
+
+
+# ───────────────────── 7b. 批Q1 补全 marker（只读信号，不进既有判定链）─────────────────────
+
+def _pillar_has_shishen_cat(day_gan: str, gan: str, zhi: str, cat: str) -> bool:
+    """某柱是否含某十神大类（透干+地支本/中气，口径同 liuqin._pillar_has_cat）。"""
+    if gan and _cat(_compute_shishen(day_gan, gan)) == cat:
+        return True
+    if zhi:
+        for idx, (cg, _q) in enumerate(get_canggan_mangpai(zhi)):
+            if idx <= 1 and _cat(_compute_shishen(day_gan, cg)) == cat:
+                return True
+    return False
+
+
+def infer_hunyin_cishu(
+    day_gan: str, gans: List[str], zhis: List[str],
+    gender: str = '男', relations: Optional[Dict] = None,
+) -> Dict:
+    """婚姻次数计数提示（marker 级，仅提示不作定论）。
+
+    书口径两种数法并存（zhongji:4469-4470「因夫妻宫被坏而离婚者，看坏它
+    的东西，有几个就是几次婚姻；因夫妻星多现而离婚者，有几个夫妻星几次
+    婚姻」；gaoji:12652「数其刑冲穿破处，便是姻缘几次更」互证）：
+      数法一=坏宫之物数（日支被冲/穿/刑/破，按攻方柱去重）；
+      数法二=配偶星明现数（同 _star_mingxian_count 口径）。
+    仅数 ≥2 时录 marker（书语境为多婚计数，1 为常态不录）。
+
+    Returns:
+        {'gong_attack_count': int, 'star_mingxian_count': int, 'markers': [str]}
+    """
+    if is_pillars(day_gan):
+        p = day_gan
+        gans = [p.year_gan, p.month_gan, p.day_gan, p.hour_gan]
+        zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
+        day_gan = p.day_gan
+    gans = gans or []
+    zhis = zhis or []
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        return {'gong_attack_count': 0, 'star_mingxian_count': 0, 'markers': []}
+    rel = _ensure_relations(day_gan, gans, zhis, relations)
+    wa: List[Dict] = rel.get('work_actions') or []
+    day_zhi = zhis[PILLAR_KEYS.index('day')]
+    breakers: Dict[str, str] = {}
+    for a in wa:
+        if a.get('type') not in ('冲', '穿', '刑', '破'):
+            continue
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        other = tp if fp == 'day_zhi' else (fp if tp == 'day_zhi' else '')
+        ok = other.split('_')[0]
+        if not other.endswith('_zhi') or ok not in PILLAR_KEYS or ok == 'day':
+            continue
+        oz = zhis[PILLAR_KEYS.index(ok)]
+        if oz == day_zhi:
+            continue  # 自刑非攻（zhenbao-05 口径）
+        breakers[ok] = oz
+    n_gong = len(breakers)
+    n_star = _star_mingxian_count(day_gan, gans, zhis, gender)
+    markers: List[str] = []
+    if n_gong >= 2:
+        zs = '、'.join(breakers[k] for k in PILLAR_KEYS if k in breakers)
+        markers.append(f'婚姻宫被{zs}所坏（{n_gong}方），数法一：坏它之物{n_gong}个≈{n_gong}次婚姻（zhongji:4469-4470）')
+    if n_star >= 2:
+        markers.append(f'配偶星明现{n_star}位，数法二：{n_star}个夫妻星≈{n_star}次婚姻（zhongji:4469-4470）')
+    if markers:
+        markers.append('书口径两种数法并存（宫坏数/星多现数；gaoji:12652「数其刑冲穿破处，'
+                       '便是姻缘几次更」互证），仅作次数提示不作定论')
+    return {'gong_attack_count': n_gong, 'star_mingxian_count': n_star, 'markers': markers}
+
+
+def infer_hunqi_zaowan(
+    day_gan: str, gans: List[str], zhis: List[str], gender: str = '男',
+) -> Dict:
+    """早婚/晚婚标志（zhongji:5135-5137）。
+
+    「年月出现配偶星者，相对要早婚；日时出现配偶星者，相对要晚婚。女命年月
+    伤官食神旺者，可以断为晚婚；男命年月比劫旺者，也是晚婚的标志。」
+    旺=年月两柱均见该十神（透干或支本/中气）。marker 级，仅提示倾向。
+
+    Returns:
+        {'verdict': '早婚倾向'|'晚婚倾向'|'', 'markers': [str]}
+    """
+    if is_pillars(day_gan):
+        p = day_gan
+        gans = [p.year_gan, p.month_gan, p.day_gan, p.hour_gan]
+        zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
+        day_gan = p.day_gan
+    gans = gans or []
+    zhis = zhis or []
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        return {'verdict': '', 'markers': []}
+    # 「出现」取明现口径（透干/本气/中气，同 _star_mingxian_count；余气藏星
+    # 过弱不算——_star_positions 含余气，不用）
+    swx_zw = _spouse_wx(day_gan, gender, gans, zhis)
+    star_idxs: List[int] = []
+    if swx_zw:
+        for i in range(4):
+            if GAN_WX.get(gans[i]) == swx_zw or ZHI_WX.get(zhis[i]) == swx_zw:
+                star_idxs.append(i)
+                continue
+            cgs = get_canggan_mangpai(zhis[i])
+            if len(cgs) > 1 and GAN_WX.get(cgs[1][0]) == swx_zw:
+                star_idxs.append(i)
+    ym = any(i in (0, 1) for i in star_idxs)
+    dr = any(i in (2, 3) for i in star_idxs)
+    markers: List[str] = []
+    zao = wan = False
+    if ym and not dr:
+        markers.append('配偶星见年月，相对早婚（zhongji:5135-5136）')
+        zao = True
+    elif dr and not ym:
+        markers.append('配偶星见日时，相对晚婚（zhongji:5135-5136）')
+        wan = True
+    elif ym and dr:
+        markers.append('配偶星年月日时并见，婚期须参合星宫（zhongji:5137-5138）')
+    delay_cat = '食伤' if gender == '女' else '比劫'
+    if sum(1 for i in (0, 1)
+           if _pillar_has_shishen_cat(day_gan, gans[i], zhis[i], delay_cat)) >= 2:
+        markers.append(f'{"女命" if gender == "女" else "男命"}年月{delay_cat}旺，'
+                       f'晚婚标志（zhongji:5136-5137）')
+        wan = True
+    verdict = '晚婚倾向' if wan else ('早婚倾向' if zao else '')
+    return {'verdict': verdict, 'markers': markers}
+
+
+def detect_shishang_taohua(
+    day_gan: str, gans: List[str], zhis: List[str], gender: str = '男',
+) -> Dict:
+    """男命食伤为桃花（口诀，zhongji:4471「口诀：男命食伤为桃花」）。
+
+    口诀仅此一句无定量，食伤透干（年/月/时）即录 marker；女命不在此口诀
+    口径内。与禄绊桃花（detect_lu_ban_taohua）并立，不进桃花既有判定。
+
+    Returns:
+        {'is_taohua': bool, 'factors': [str]}
+    """
+    if is_pillars(day_gan):
+        p = day_gan
+        gans = [p.year_gan, p.month_gan, p.day_gan, p.hour_gan]
+        zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
+        day_gan = p.day_gan
+    gans = gans or []
+    zhis = zhis or []
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        return {'is_taohua': False, 'factors': []}
+    if gender != '男':
+        return {'is_taohua': False,
+                'factors': ['「男命食伤为桃花」为男命口诀（zhongji:4471），女命不以此论']}
+    day_idx = PILLAR_KEYS.index('day')
+    ss = [g for i, g in enumerate(gans)
+          if i != day_idx and g and _cat(_compute_shishen(day_gan, g)) == '食伤']
+    factors = ([f'男命食伤（{"".join(ss)}）透干，食伤为桃花（zhongji:4471），异性缘重之象']
+               if ss else [])
+    return {'is_taohua': bool(ss), 'factors': factors}
+
+
+def detect_hunwaiqing(
+    day_gan: str, gans: List[str], zhis: List[str],
+    gender: str = '男', relations: Optional[Dict] = None,
+) -> Dict:
+    """婚外情 marker（专节口诀，gaoji:13315-13320）。
+
+    「婚外情缘看星宫，正副并存暗沟通。男命比劫旺欲重，副宫财星带合冲。
+      女命官杀多混杂，副夫暗合入宫中。」
+    谓词按口诀原文取：
+      男命=比劫透干≥2（旺欲重）+ 非日支财星支被合/冲（副宫财星带合冲）；
+      女命=正官七杀并透（官杀多混杂）+ 官杀星干与他干合、或官杀星支与日支
+      暗合（副夫暗合入宫中）。
+    marker 级，仅录象，不入多婚/独身等既有判定。
+
+    Returns:
+        {'markers': [str]}
+    """
+    if is_pillars(day_gan):
+        p = day_gan
+        gans = [p.year_gan, p.month_gan, p.day_gan, p.hour_gan]
+        zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
+        day_gan = p.day_gan
+    gans = gans or []
+    zhis = zhis or []
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        return {'markers': []}
+    rel = _ensure_relations(day_gan, gans, zhis, relations)
+    wa: List[Dict] = rel.get('work_actions') or []
+    day_wx = GAN_WX.get(day_gan, '')
+    day_idx = PILLAR_KEYS.index('day')
+    markers: List[str] = []
+    if gender == '男':
+        bijie = [g for i, g in enumerate(gans)
+                 if i != day_idx and g and _cat(_compute_shishen(day_gan, g)) == '比劫']
+        cai_wx = WX_KE.get(day_wx, '')
+        hit = ''
+        for a in wa:
+            if a.get('type') not in ('地支合', '半合', '暗合', '冲'):
+                continue
+            for pk in (a.get('from_pos', ''), a.get('to_pos', '')):
+                k = pk.split('_')[0]
+                if pk.endswith('_zhi') and k in PILLAR_KEYS and k != 'day' \
+                        and ZHI_WX.get(zhis[PILLAR_KEYS.index(k)], '') == cai_wx:
+                    hit = f'财星({zhis[PILLAR_KEYS.index(k)]})带{a.get("type")}'
+        if len(bijie) >= 2 and hit:
+            markers.append(f'男命比劫{"".join(bijie)}透旺欲重，{hit}'
+                           f'（副宫财星带合冲），婚外情之象（gaoji:13315-13320）')
+    else:
+        zhengguan = [g for i, g in enumerate(gans)
+                     if i != day_idx and g and _compute_shishen(day_gan, g) == '正官']
+        qisha = [g for i, g in enumerate(gans)
+                 if i != day_idx and g and _compute_shishen(day_gan, g) == '七杀']
+        if zhengguan and qisha:
+            guan_wx = WX_KE_ME.get(day_wx, '')
+            he_hit = ''
+            for a in wa:
+                t = a.get('type', '')
+                if t == '天干合':
+                    for pk in (a.get('from_pos', ''), a.get('to_pos', '')):
+                        k = pk.split('_')[0]
+                        if pk.endswith('_gan') and k in PILLAR_KEYS and k != 'day' \
+                                and gans[PILLAR_KEYS.index(k)] in set(zhengguan + qisha):
+                            he_hit = f'官杀星({gans[PILLAR_KEYS.index(k)]})与他干相合'
+                elif t == '暗合' and 'day_zhi' in (a.get('from_pos', ''), a.get('to_pos', '')):
+                    other = a.get('to_pos') if a.get('from_pos') == 'day_zhi' else a.get('from_pos', '')
+                    k = other.split('_')[0]
+                    if other.endswith('_zhi') and k in PILLAR_KEYS \
+                            and ZHI_WX.get(zhis[PILLAR_KEYS.index(k)], '') == guan_wx:
+                        he_hit = f'官杀支({zhis[PILLAR_KEYS.index(k)]})暗合入日支（宫）'
+            if he_hit:
+                markers.append(f'女命官杀混杂（正官{"".join(zhengguan)}、七杀{"".join(qisha)}并透），'
+                               f'{he_hit}（副夫暗合入宫中），婚外情之象（gaoji:13317-13318）')
+    return {'markers': markers}
 
 
 # ───────────────────── 8. 结婚四法 / 独身四格 ─────────────────────
@@ -1176,6 +1449,8 @@ def analyze_hunyin(
           'guan_caimen': {...}, 'lu_ban_taohua': {...},
           'jiehun_sifa': {...}, 'dushen_sige': {...},
           'jiehun_yingqi': {...}, 'lihun_yingqi': {...},
+          'cishu': {...}, 'zaowan': {...},          # 批Q1 marker
+          'shishang_taohua': {...}, 'hunwaiqing': {...},
           'direction_signals': {...}, 'summary': str,
         }
     """
@@ -1208,6 +1483,11 @@ def analyze_hunyin(
                                  dayun_gan, dayun_zhi, liunian_gan, liunian_zhi)
     lihun = infer_lihun_yingqi(day_gan, gans or [], zhis or [], gender,
                                dayun_gan, dayun_zhi, liunian_gan, liunian_zhi)
+    # 批Q1 补全 marker（只读信号，不进既有判定链）
+    cishu = infer_hunyin_cishu(day_gan, gans or [], zhis or [], gender, relations)
+    zaowan = infer_hunqi_zaowan(day_gan, gans or [], zhis or [], gender)
+    shishang_th = detect_shishang_taohua(day_gan, gans or [], zhis or [], gender)
+    hunwaiqing = detect_hunwaiqing(day_gan, gans or [], zhis or [], gender, relations)
 
     # A3：方向总线信号（缺省自调）
     if direction_result is None:
@@ -1236,6 +1516,14 @@ def analyze_hunyin(
         parts.append('有结婚应期信号')
     if lihun.get('is_lihun_signal'):
         parts.append('有离婚应期信号')
+    if cishu.get('markers'):
+        parts.append('婚姻次数提示（两数法）')
+    if zaowan.get('verdict'):
+        parts.append(zaowan['verdict'])
+    if shishang_th.get('is_taohua'):
+        parts.append('食伤桃花（男命）')
+    if hunwaiqing.get('markers'):
+        parts.append('婚外情之象')
 
     return {
         'quality': quality,
@@ -1248,6 +1536,10 @@ def analyze_hunyin(
         'dushen_sige': dushen_ge,
         'jiehun_yingqi': jiehun,
         'lihun_yingqi': lihun,
+        'cishu': cishu,
+        'zaowan': zaowan,
+        'shishang_taohua': shishang_th,
+        'hunwaiqing': hunwaiqing,
         'direction_signals': direction_brief(direction_result),
         'summary': '；'.join(parts),
     }
@@ -1264,5 +1556,9 @@ __all__ = [
     'classify_dushen_sige',
     'infer_jiehun_yingqi',
     'infer_lihun_yingqi',
+    'infer_hunyin_cishu',
+    'infer_hunqi_zaowan',
+    'detect_shishang_taohua',
+    'detect_hunwaiqing',
     'analyze_hunyin',
 ]

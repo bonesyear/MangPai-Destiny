@@ -215,3 +215,103 @@ def test_xueli_yin_taiwang_cai_ke_yin_positive():
     r = classify_xueli_level('甲', list('戊癸甲壬'), list('子亥子申'))
     assert any('财克印' in s and '上进' in s for s in r['signals'])
     assert not any('财轻印重' in s for s in r['signals'])
+
+
+# ── 批Q1：liuqin 劫财羊刃两头钳/比劫主宾位情谊/过继送养两 marker ──
+# 书锚：gaoji:14547+案例八:14630-14641（两头钳，月时双乙劫财夹日主）、
+#       gaoji:14652（比劫主宾位情谊）、gaoji:13878+案例十七:13885-13897
+#       （食伤重现换门楼主过继）、案例十九:13921-13931（时柱伏吟送出去）。
+
+from mangpai.subjective.liuqin import (
+    detect_liangtouqian, infer_bijie_zhubin_qingyi, detect_parent_qiyang,
+)
+
+
+def test_liangtouqian_an8():
+    """案例八 丁丑乙巳甲子乙丑：月干乙+时干乙劫财两头钳（gaoji:14630-14641）。"""
+    r = detect_liangtouqian('甲', ['丁', '乙', '甲', '乙'], ['丑', '巳', '子', '丑'])
+    assert r['is_liangtouqian']
+    assert any('劫财两头钳' in m for m in r['markers'])
+
+
+def test_liangtouqian_guard():
+    """劫财只见一端（月干乙、时干丙）→ 不成钳。"""
+    r = detect_liangtouqian('甲', ['丁', '乙', '甲', '丙'], ['丑', '巳', '子', '午'])
+    assert not r['is_liangtouqian']
+
+
+def test_bijie_zhubin_qingyi():
+    """比劫主宾位（gaoji:14652）：时柱=主位「兄弟助我」；年月=宾位「我助兄弟」。"""
+    zhu = infer_bijie_zhubin_qingyi('甲', ['庚', '丙', '甲', '乙'], ['申', '午', '子', '亥'])
+    assert any('主位' in m and '兄弟助我' in m for m in zhu['markers'])
+    bin_ = infer_bijie_zhubin_qingyi('甲', ['乙', '甲', '甲', '庚'], ['卯', '寅', '子', '申'])
+    assert any('宾位' in m and '我助兄弟' in m for m in bin_['markers'])
+
+
+def test_qiyang_shishang_chongxian_an17():
+    """案例十七 癸巳癸亥庚辰壬午：月令亥水食神入日支辰墓+时上又见壬午食神，
+    食伤重现换门楼主过继（gaoji:13878/13885-13897）。"""
+    r = detect_parent_qiyang('庚', ['癸', '癸', '庚', '壬'], ['巳', '亥', '辰', '午'])
+    assert any('换门楼' in m and '过继' in m for m in r['markers'])
+
+
+def test_qiyang_shizhu_fuyin_an19():
+    """案例十九 壬寅庚戌癸卯癸丑：卯戌合绊食神（日支卯，弃养结构）+时上癸水
+    伏吟=送出去作养儿（gaoji:13921-13931）。"""
+    r = detect_parent_qiyang('癸', ['壬', '庚', '癸', '癸'], ['寅', '戌', '卯', '丑'])
+    assert any('伏吟' in m and '送出去' in m for m in r['markers'])
+
+
+def test_qiyang_fuyin_guard():
+    """裸时柱伏吟、无弃养结构（全局无食伤/无财印被坏/无食伤合绊）→ 不录送出 marker。"""
+    r = detect_parent_qiyang('甲', ['乙', '甲', '甲', '甲'], ['卯', '申', '丑', '子'])
+    assert not any('送出去' in m for m in r['markers'])
+
+
+# ── 批Q2：文理细分（zhongji:5410-5412）/食神库制印（:5415）/伤官中断+后补文凭（:5557-5558）──
+
+def test_q2_wenli_xifen():
+    """批Q2：文理细分（zhongji:5410-5412「庚、申、戌、亥为数学；申子辰结合主
+    化学；申酉金加丑主法律；寅卯配火主中文；食神为中文或外语；官杀主理科」）
+    ——marker 级随行，不改 direction 判定。"""
+    from mangpai.subjective.xueli import classify_wenli
+    # 例1 丁壬甲己/未子戌巳：戌见→数学；巳中丙食神→中文或外语
+    wl = classify_wenli('甲', list('丁壬甲己'), list('未子戌巳'))
+    assert any('数学' in s for s in wl['xifen'])
+    assert any('中文或外语' in s for s in wl['xifen'])
+    # 申子辰→化学；申酉丑→法律；无火则寅卯不配火不出中文
+    wl2 = classify_wenli('庚', list('庚辛壬癸'), list('申子辰酉'))
+    assert any('化学' in s for s in wl2['xifen'])
+    wl3 = classify_wenli('庚', list('庚辛壬癸'), list('申酉丑戌'))
+    assert any('法律' in s for s in wl3['xifen'])
+    assert any('数学' in s for s in wl3['xifen'])
+    assert not any('中文' in s and '配火' in s for s in wl3['xifen'])
+
+
+def test_q2_shiku_zhiyin():
+    """批Q2：食神库制印做功，定有学历（zhongji:5415）——例1（丁壬甲己/未子
+    戌巳）食神明现+印明现+食神火墓戌在局 → 判高。"""
+    lv = classify_xueli_level('甲', list('丁壬甲己'), list('未子戌巳'))
+    assert lv['shi_ku_zhi_yin'] is True
+    assert lv['level'] == '高'
+    assert any('食神库' in s and '定有学历' in s for s in lv['signals'])
+    # 反例：食神墓库不在局 → 不出（例7 壬丙壬己/子午辰未，木墓未在局但无食神明现）
+    lv2 = classify_xueli_level('壬', list('壬丙壬己'), list('子午辰未'))
+    assert lv2['shi_ku_zhi_yin'] is False
+
+
+def test_q2_shangguan_zhongduan_houbu():
+    """批Q2：伤官太旺无印制服→中断（zhongji:5557-5558，书唯一中断机制）；
+    八字有官→主后补文凭。例18（丁丁甲辛/巳未午未）书断中途中断、后补文凭。"""
+    lv = classify_xueli_level('甲', list('丁丁甲辛'), list('巳未午未'))
+    assert lv['level'] == '中断'
+    assert lv['houbu_wenping'] is True
+    assert any('后补文凭' in s for s in lv['signals'])
+
+
+def test_q2_zhongduan_exemption_he_guan_sha():
+    """批Q2 豁免：合杀/合官有功则伤官有制化不判中断（zhongji:5522-5523 例14
+    「乙庚合，合杀有功，反而论吉。伤官…制局中官星，也为有功」）——例14
+    （庚乙甲丁/午酉午卯）伤官三位无印，书断学习优等，不得判中断。"""
+    lv = classify_xueli_level('甲', list('庚乙甲丁'), list('午酉午卯'))
+    assert lv['level'] != '中断'

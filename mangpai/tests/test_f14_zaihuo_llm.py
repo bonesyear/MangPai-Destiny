@@ -189,3 +189,68 @@ def test_yangren_yunsui_marker():
     assert any('羊刃' in m and '运岁' in m for m in sw['markers'])
     # 原局无刃冲/合 → 原局 marker 不出（仅运岁一条）
     assert not any('羊刃' in m and '运岁' not in m for m in sw['markers'])
+
+
+# ───────────────── 批Q2：生之过四则/自刑心郁/宫位定病灶/驿马逢冲合/对称车象 ─────────────────
+
+def test_q2_shengzhiguo_muduo_huosai():
+    """批Q2：生之过（母多子病）病机四则（gaoji:15620-15623，书仅列此四则）——
+    木多火塞：木≥3、火 1-2（工程化阈值，书无定量）→ 肝郁化火伤心神经。"""
+    jb = classify_jibing('丁', ['甲', '乙', '丁', '庚'], ['卯', '辰', '戌', '酉'])
+    assert any('木多火塞（母多子病' in s for s in jb['wx_bingji'])
+    assert any('金多水浊（母多子病' in s for s in jb['wx_bingji'])
+
+
+def test_q2_shengzhiguo_child_absent_no_trigger():
+    """子行全无（火=0）不属「弱」→ 木多火塞不出（书「乙木多而丁火弱」须见弱丁）。"""
+    jb = classify_jibing('癸', ['甲', '乙', '癸', '辛'], ['卯', '辰', '丑', '酉'])
+    assert not any('木多火塞' in s for s in jb['wx_bingji'])
+    assert any('金多水浊' in s for s in jb['wx_bingji'])  # 金4水2 仍在
+
+
+def test_q2_zixing_xinyu():
+    """批Q2：自刑主心郁（gaoji:15401「三刑聚处多疾厄，自刑多见心郁烦」）——
+    XING_PAIRS 同支对（辰辰/午午/酉酉/亥亥），同支两见即成。"""
+    jb = classify_jibing('甲', ['甲', '丙', '戊', '庚'], ['辰', '辰', '子', '丑'])
+    assert any('自刑' in s and '心郁' in s for s in jb['xing'])
+    # 单辰不成自刑
+    jb2 = classify_jibing('甲', ['甲', '丙', '戊', '庚'], ['辰', '寅', '子', '丑'])
+    assert not any('自刑' in s for s in jb2['xing'])
+
+
+def test_q2_gongwei_dingbingzao():
+    """批Q2：宫位定病灶（gaoji:15751「宫位年腿月胸腹，日腑时窍生殖专」）——
+    子未穿落年/月柱 → 宫位 marker 随行（marker 级，不改 risk）。"""
+    jb = classify_jibing('甲', ['甲', '丙', '庚', '壬'], ['子', '未', '申', '午'])
+    assert '脾胃/腹疾' in jb['chuan_hai']
+    assert '年柱（腿）' in jb['gongwei'] and '月柱（胸腹）' in jb['gongwei']
+    assert '宫位：' in jb['desc']
+
+
+def test_q2_yima_fengchong_jiaxian():
+    """批Q2：驿马逢冲加险（gaoji:15777「马星逄冲车疾驰」+:15807「车祸概率
+    大增」）——原局在局马星支逢冲录加险 marker。"""
+    ch = detect_chehuo('庚', ['庚', '丙', '庚', '壬'], ['申', '子', '申', '午'])
+    assert any('马星午逢冲（车疾驰，加险）' in m for m in ch['ma_feng'])
+    assert any('马星子逢冲（车疾驰，加险）' in m for m in ch['ma_feng'])
+
+
+def test_q2_yima_fenghe_jianxian():
+    """批Q2：驿马逢合=合绊减险（gaoji:15778「马星合绊车停留」）——
+    全合无冲盘：四条马星全逢合绊、零逢冲 marker。"""
+    ch = detect_chehuo('庚', ['庚', '庚', '庚', '庚'], ['寅', '亥', '子', '丑'])
+    assert ch['ma_feng']
+    assert all('逢合绊（车停留，减险）' in m for m in ch['ma_feng'])
+    assert not any('逢冲' in m for m in ch['ma_feng'])
+
+
+def test_q2_duichen_chexiang():
+    """批Q2：对称车象（gaoji:15792「对称出现：如双酉、双申、子午冲等，可象
+    两个轮子或两辆车」）——车象支成双录佐证 marker（不计分）；子午冲类已由
+    triggers 收录不重复。"""
+    ch = detect_chehuo('庚', ['庚', '丙', '庚', '壬'], ['申', '子', '申', '午'])
+    assert '双申' in ch['duichen']
+    assert '对称车象' in ch['desc']
+    # 无双支 → 不出
+    ch2 = detect_chehuo('庚', ['庚', '庚', '庚', '庚'], ['寅', '亥', '子', '丑'])
+    assert ch2['duichen'] == []

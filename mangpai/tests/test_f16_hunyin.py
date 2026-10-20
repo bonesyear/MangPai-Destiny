@@ -288,3 +288,133 @@ def test_e_gan_he_daygan_requires_rooted_star():
     j2 = infer_jiehun_yingqi('甲', ['乙', '丁', '甲', '庚'],
                              ['卯', '子', '酉', '亥'], '男', liunian_gan='己')
     assert not any('合日干' in s for s in j2['signals'])
+
+
+# ── 批Q1：婚姻次数/早晚婚/入墓刑冲婚期/食伤桃花/婚外情/伤官特殊应期 ──
+# 书锚：zhongji:4469-4470+gaoji:12652（次数两数法）、zhongji:5135-5137（早晚婚）、
+#       zhongji:5285+gaoji:13089（入墓刑冲婚期）、zhongji:4471（男命食伤为桃花）、
+#       gaoji:13315-13320（婚外情专节口诀）、gaoji:13238-13258（伤官特殊应期，
+#       案例七 癸丑甲寅甲子甲戌）。
+
+from mangpai.subjective.hunyin import (
+    infer_hunyin_cishu, infer_hunqi_zaowan, detect_shishang_taohua, detect_hunwaiqing,
+)
+
+
+class TestHunyinCishu:
+    """婚姻次数提示两数法（zhongji:4469-4470；gaoji:12652 互证）。marker 级不作定论。"""
+
+    def test_gong_liangchong_shu1(self):
+        # 日支子被月时两午冲 → 数法一=2（坏它之物2个≈2次婚姻）
+        r = infer_hunyin_cishu('戊', ['甲', '丙', '戊', '甲'], ['子', '午', '子', '午'], '男')
+        assert r['gong_attack_count'] == 2
+        assert any('数法一' in m for m in r['markers'])
+        assert any('两种数法并存' in m for m in r['markers'])
+
+    def test_xing_duoxian_shu2(self):
+        # 甲日男 财=土，辰（本气戊）+戌（本气戊）两现 → 数法二=2
+        r = infer_hunyin_cishu('甲', ['乙', '丁', '甲', '庚'], ['辰', '戌', '子', '申'], '男')
+        assert r['star_mingxian_count'] == 2
+        assert any('数法二' in m for m in r['markers'])
+
+    def test_guard_anjing_no_marker(self):
+        # 宫无攻+星不现 → 两数法均不录（1 为常态不录）
+        r = infer_hunyin_cishu('甲', ['癸', '辛', '甲', '乙'], ['亥', '酉', '寅', '卯'], '男')
+        assert r['markers'] == []
+
+
+class TestHunqiZaowan:
+    """早婚/晚婚标志（zhongji:5135-5137）。"""
+
+    def test_xing_zai_nianyue_zaohun(self):
+        # 甲日男 年干戊=偏财透（配偶星见年月）→ 早婚倾向
+        r = infer_hunqi_zaowan('甲', ['戊', '庚', '甲', '乙'], ['辰', '申', '寅', '卯'], '男')
+        assert r['verdict'] == '早婚倾向'
+
+    def test_xing_zai_ri_shi_wanhun(self):
+        # 甲日男 财=土仅见时支辰 → 晚婚倾向
+        r = infer_hunqi_zaowan('甲', ['庚', '壬', '甲', '乙'], ['申', '子', '寅', '辰'], '男')
+        assert r['verdict'] == '晚婚倾向'
+        assert any('日时' in m for m in r['markers'])
+
+    def test_nv_nianyue_shishang_wang_wanhun(self):
+        # 女命 年壬子/月癸亥两柱皆水（食伤旺）+官杀（火）仅见时支巳 → 晚婚
+        r = infer_hunqi_zaowan('辛', ['壬', '癸', '辛', '戊'], ['子', '亥', '丑', '巳'], '女')
+        assert r['verdict'] == '晚婚倾向'
+        assert any('年月食伤旺' in m for m in r['markers'])
+
+    def test_nan_nianyue_bijie_wang_wanhun(self):
+        # 男命 年甲寅/月乙卯两柱皆比劫 → 晚婚标志（zhongji:5136-5137）
+        r = infer_hunqi_zaowan('甲', ['甲', '乙', '甲', '戊'], ['寅', '卯', '子', '辰'], '男')
+        assert r['verdict'] == '晚婚倾向'
+        assert any('年月比劫旺' in m for m in r['markers'])
+
+
+class TestRumuXingchongHunqi:
+    """配偶星/宫入墓，运岁刑冲其墓为婚期（zhongji:5285；gaoji:13089）。"""
+
+    def test_cai_ru_xu_mu_chen_chong_kai(self):
+        # 壬日男 财=火入戌墓，流年辰冲戌开墓 → 结婚应期信号
+        j = infer_jiehun_yingqi('壬', ['甲', '丙', '壬', '辛'],
+                                ['寅', '午', '子', '戌'], '男', liunian_zhi='辰')
+        assert any('刑冲开戌墓' in s for s in j['signals'])
+
+    def test_guard_wu_mu_no_signal(self):
+        # 同盘无墓支（戌换酉）→ 不出入墓刑冲信号
+        j = infer_jiehun_yingqi('壬', ['甲', '丙', '壬', '辛'],
+                                ['寅', '午', '子', '酉'], '男', liunian_zhi='辰')
+        assert not any('墓' in s for s in j['signals'])
+
+
+class TestShishangTaohua:
+    """男命食伤为桃花（口诀 zhongji:4471，无定量，透干即录）。"""
+
+    def test_nan_shishang_tou_gan(self):
+        r = detect_shishang_taohua('甲', ['丙', '庚', '甲', '乙'], ['午', '子', '寅', '卯'], '男')
+        assert r['is_taohua']
+
+    def test_nv_bu_lun(self):
+        # 口诀男命专属，女命不以此论
+        r = detect_shishang_taohua('甲', ['丙', '庚', '甲', '乙'], ['午', '子', '寅', '卯'], '女')
+        assert not r['is_taohua']
+
+    def test_guard_shishang_bu_tou(self):
+        # 男命食伤仅藏支不透干 → 不录
+        r = detect_shishang_taohua('甲', ['庚', '辛', '甲', '乙'], ['申', '酉', '寅', '午'], '男')
+        assert not r['is_taohua']
+
+
+class TestHunwaiqing:
+    """婚外情专节口诀（gaoji:13315-13320），谓词按口诀原文取。"""
+
+    def test_nan_bijie_wang_cai_he(self):
+        # 男命 双乙劫财透旺 + 财支辰带子辰半合（副宫财星带合冲）
+        r = detect_hunwaiqing('甲', ['乙', '乙', '甲', '丙'], ['卯', '辰', '子', '酉'], '男')
+        assert any('副宫财星带合冲' in m for m in r['markers'])
+
+    def test_nv_guansha_hunza_anhe(self):
+        # 女命 正官辛+七杀庚并透（混杂）+ 庚与乙干合（副夫暗合入宫中）
+        r = detect_hunwaiqing('甲', ['庚', '辛', '甲', '乙'], ['申', '酉', '子', '卯'], '女')
+        assert any('副夫暗合入宫中' in m for m in r['markers'])
+
+    def test_guard_no_marker(self):
+        # 男命比劫单透 → 不成「旺」，不录
+        r = detect_hunwaiqing('甲', ['乙', '庚', '甲', '丙'], ['卯', '午', '子', '辰'], '男')
+        assert r['markers'] == []
+
+
+class TestShangguanTeshuYingqi:
+    """女命官杀多杂/入墓，伤官运年反为婚期（gaoji:13238-13258，案例七）。"""
+
+    def test_anli7_gengwu_yun(self):
+        # 案例七 坤 癸丑甲寅甲子甲戌：辛金官星藏丑（金墓）=入墓，庚午运支午
+        # 本气丁=伤官 → 特殊结婚应期（书：庚午运为伤官运）
+        j = infer_jiehun_yingqi('甲', ['癸', '甲', '甲', '甲'],
+                                ['丑', '寅', '子', '戌'], '女', dayun_gan='庚', dayun_zhi='午')
+        assert any('伤官' in s and '特殊结婚应期' in s for s in j['signals'])
+
+    def test_guard_qingchun_no_signal(self):
+        # 女命官星一位清透（无多杂无入墓）→ 伤官运不出此信号
+        j = infer_jiehun_yingqi('甲', ['癸', '辛', '甲', '乙'],
+                                ['亥', '酉', '子', '卯'], '女', dayun_gan='丁', dayun_zhi='卯')
+        assert not any('特殊结婚应期' in s for s in j['signals'])

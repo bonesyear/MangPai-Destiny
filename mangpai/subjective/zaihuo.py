@@ -8,13 +8,17 @@ zaihuo - 盲派灾祸专辑·主观层（subjective）
   1. 疾病（11.2）：穿害破刑 → 五行病机。六穿各主其脏（子未穿脾胃/丑午穿心/
      寅巳穿胆神经/卯辰穿肝腹/申亥穿胫足肾/酉戌穿肺眼）；破仅卯午破血管
      （批D 收窄：盲派破全书仅子卯/卯午两对，理象学:2930；子卯破并入子卯刑）；
-     三刑（寅巳申神经肝胆筋骨、丑未戌脾胃皮肤、子卯肝肾泌尿）。
-     五行病机：金=肺呼吸、木=肝胆、水=肾泌尿血、火=心血、土=脾胃。特殊病：
+     三刑（寅巳申神经肝胆筋骨、丑未戌脾胃皮肤、子卯肝肾泌尿）；
+     自刑主心郁（gaoji:15401）。
+     五行病机：金=肺呼吸、木=肝胆、水=肾泌尿血、火=心血、土=脾胃；
+     生之过（母多子病）四则（gaoji:15620-15623 木多火塞/土多金埋/水多木漂/
+     金多水浊）；宫位定病灶（gaoji:15751 年腿月胸腹日腑时窍）。特殊病：
      糖尿=土浊水、白血=火克金（金主骨髓）、尿毒=亥子绝寅、精神=酉戌穿/双丁、
      癌=阴阳战+穿破带墓。
   2. 车祸（11.3）：车象（辰丑申酉子，辰丑=车身/申酉=金属车/子=轮转）+ 盲派
      多马星（三合局对冲方及墓库方皆马）+ 穿冲触发（酉戌穿/寅巳穿/卯酉冲/子午
-     冲/辰戌冲）。应期：禄身被冲穿、凶神汇聚。
+     冲/辰戌冲）；驿马逢冲加险、逢合绊减险（gaoji:15777-15778/15807）；
+     对称车象佐证（gaoji:15792 双酉/双申类）。应期：禄身被冲穿、凶神汇聚。
   3. 死亡（11.4）：寿元星三级（第一食神、第二印、第三日主/禄）+ 墓绝空亡。
      寿星遭刑破穿害克绝、禄神被冲穿破入墓、羊刃逢冲、寿星入墓墓被冲开、
      寿星/禄见绝地、寿元落空亡+运岁冲实。三者合见「神仙难救」。
@@ -93,6 +97,21 @@ _XING_DISEASE = {
 # 车象地支（源文 15785-15787）
 _CHE_ZHIS = {'辰', '丑', '申', '酉', '子'}
 
+# 生之过（母多子病）病机四则（gaoji:15620-15623，书仅列此四则——火多土焦
+# 书无载，不补）：母行过旺而子行虚弱，母反为子之病。
+#   木多火塞→肝郁化火伤心神经／土多金埋→肺疾呼吸道／
+#   水多木漂→肝胆病风湿肾虚／金多水浊→肾亏泌尿病
+_SHENGZHIGUO_BINGJI = {
+    '火': ('木', '木多火塞', '肝郁化火伤心神经'),
+    '金': ('土', '土多金埋', '肺疾呼吸道'),
+    '木': ('水', '水多木漂', '肝胆病风湿肾虚'),
+    '水': ('金', '金多水浊', '肾亏泌尿病'),
+}
+
+# 宫位定病灶（gaoji:15751「宫位年腿月胸腹，日腑时窍生殖专」）：
+# 年柱=腿、月柱=胸腹、日柱=腑、时柱=窍/生殖（诀言原文口径）。
+_GONGWEI_BING = ['腿', '胸腹', '腑', '窍/生殖']
+
 
 # ───────────────────── 共用小工具 ─────────────────────
 # H-fix-4b：_compute_shishen/_cat/_wx_cat/_ensure_relations 下沉
@@ -143,10 +162,11 @@ def classify_jibing(
         {
           'chuan_hai': [str],   # 穿害主病
           'po': [str],          # 破主病
-          'xing': [str],        # 刑主病
-          'wx_bingji': [str],   # 五行病机
+          'xing': [str],        # 刑主病（含自刑心郁）
+          'wx_bingji': [str],   # 五行病机（克/过旺/生之过母多子病）
           'special': [str],     # 特殊病（糖尿/白血/尿毒/精神/癌）
           'organs': [str],      # 易病脏腑汇总
+          'gongwei': [str],     # 宫位定病灶（gaoji:15751 年腿月胸腹日腑时窍）
           'risk': '高'|'中'|'低'|'无',
           'desc': str,
         }
@@ -158,6 +178,7 @@ def classify_jibing(
     chuan_hai: List[str] = []
     po: List[str] = []
     xing: List[str] = []
+    gw_idx: Set[int] = set()  # 宫位定病灶落柱索引（gaoji:15751）
 
     # 穿害
     for a in wa:
@@ -168,8 +189,11 @@ def classify_jibing(
         tz = zhis[PILLAR_KEYS.index(tp.split('_')[0])] if tp.split('_')[0] in PILLAR_KEYS else ''
         if fz and tz:
             d = _HAI_DISEASE.get(frozenset({fz, tz}))
-            if d and d not in chuan_hai:
-                chuan_hai.append(d)
+            if d:
+                if d not in chuan_hai:
+                    chuan_hai.append(d)
+                gw_idx.add(PILLAR_KEYS.index(fp.split('_')[0]))
+                gw_idx.add(PILLAR_KEYS.index(tp.split('_')[0]))
 
     # 破
     for a in wa:
@@ -180,14 +204,25 @@ def classify_jibing(
         tz = zhis[PILLAR_KEYS.index(tp.split('_')[0])] if tp.split('_')[0] in PILLAR_KEYS else ''
         if fz and tz:
             d = _PO_DISEASE.get(frozenset({fz, tz}))
-            if d and d not in po:
-                po.append(d)
+            if d:
+                if d not in po:
+                    po.append(d)
+                gw_idx.add(PILLAR_KEYS.index(fp.split('_')[0]))
+                gw_idx.add(PILLAR_KEYS.index(tp.split('_')[0]))
 
     # 刑
     present = set(zhi_set)
     for pair, d in _XING_DISEASE.items():
         if pair <= present:
             xing.append(d)
+            gw_idx.update(i for i, z in enumerate(zhis) if z in pair)
+    # 自刑主心郁（gaoji:15401「三刑聚处多疾厄，自刑多见心郁烦」）：
+    # 自刑=XING_PAIRS 同支对（辰辰/午午/酉酉/亥亥），同支两见即成。
+    zi_xing = sorted({a for a, b in XING_PAIRS
+                      if a == b and zhi_set.count(a) >= 2})
+    if zi_xing:
+        xing.append(f'自刑{"".join(zi_xing)}（心郁烦闷）')
+        gw_idx.update(i for i, z in enumerate(zhis) if z in zi_xing)
 
     # 五行病机
     cnt = _wx_counts(day_gan, gans, zhis)
@@ -198,6 +233,12 @@ def classify_jibing(
             wx_bingji.append(f'{ke_me}旺克{w}（{organ}疾）')
         elif cnt.get(w, 0) >= 4:
             wx_bingji.append(f'{w}过旺（{organ}亢盛）')
+    # 生之过（母多子病）病机四则（gaoji:15620-15623，书仅列此四则）：
+    # 母行过旺、子行虚弱，母反为子之病。阈值=工程化启发（书无定量）：
+    # 母行≥3、子行 1-2（子行须有而弱，子行全无不属「弱」不属本条）。
+    for child, (mother, label, organ) in _SHENGZHIGUO_BINGJI.items():
+        if cnt.get(mother, 0) >= 3 and 1 <= cnt.get(child, 0) <= 2:
+            wx_bingji.append(f'{label}（母多子病，{organ}）')
 
     # 特殊病
     special: List[str] = []
@@ -232,6 +273,11 @@ def classify_jibing(
     organs = list(dict.fromkeys(chuan_hai + po + xing +
                                 [s.split('（')[0] for s in wx_bingji]))
 
+    # 宫位定病灶（gaoji:15751「宫位年腿月胸腹，日腑时窍生殖专」）：
+    # 疾病触发（穿/破/刑/自刑）落柱即带宫位，marker 级随行不改 risk。
+    gongwei = [f'{PILLAR_NAMES_CN[i]}柱（{_GONGWEI_BING[i]}）'
+               for i in sorted(gw_idx)]
+
     n = len(chuan_hai + po + xing) + len(special)
     risk = '高' if n >= 3 else ('中' if n == 2 else ('低' if n == 1 else '无'))
 
@@ -246,10 +292,13 @@ def classify_jibing(
         parts.append('、'.join(wx_bingji))
     if special:
         parts.append('特殊病：' + '、'.join(special))
+    if gongwei:
+        parts.append('宫位：' + '、'.join(gongwei))
 
     return {
         'chuan_hai': chuan_hai, 'po': po, 'xing': xing,
         'wx_bingji': wx_bingji, 'special': special, 'organs': organs,
+        'gongwei': gongwei,
         'risk': risk,
         'desc': '；'.join(parts) if parts else '无明显疾病标志',
     }
@@ -272,6 +321,8 @@ def detect_chehuo(
     Returns:
         {
           'che_xiang': [str], 'ma_count': int, 'triggers': [str],
+          'ma_feng': [str],     # 驿马逢冲（加险）/逢合绊（减险）marker
+          'duichen': [str],     # 对称车象佐证 marker（双酉/双申类，不计分）
           'lu_damaged': bool, 'xiong_shen': [str],
           'risk': '高'|'中'|'低'|'无', 'desc': str,
         }
@@ -285,7 +336,9 @@ def detect_chehuo(
     # 多马星——F13 改消费在局马数（in_pillars）：供给层 'count'=并集马支数
     # 恒≥3（批8 实锤死判据），在局马数（马支实际落柱）才有判别力。
     ss = resolve_shensha(day_gan, zhis, shensha_result)
-    ma_count = len((ss.get('马星') or {}).get('in_pillars') or [])
+    ma_in_pillars = (ss.get('马星') or {}).get('in_pillars') or []
+    ma_count = len(ma_in_pillars)
+    ma_zhis_in = {zhis[PILLAR_KEYS.index(pk)] for pk in ma_in_pillars}
 
     # 触发：穿/冲 涉车象支
     triggers: List[str] = []
@@ -304,6 +357,37 @@ def detect_chehuo(
                 label = f'{fz}{tz}{t}'
                 if label not in triggers:
                     triggers.append(label)
+
+    # 驿马逢冲（加险）/逢合=合绊（减险）（gaoji:15777-15778「马星逄冲车疾驰，
+    # 马星合绊车停留」+ gaoji:15807「驿马逢冲……车祸概率大增」）：
+    # 原局在局马星支逢冲→加险 marker；逢合绊→减险 marker。
+    # 同支冲合并见时从冲（书诀以冲为显，合绊不并列双出）。
+    ma_chong_zhi: Set[str] = set()
+    ma_he_zhi: Set[str] = set()
+    for a in wa:
+        t = a.get('type', '')
+        if t not in ('冲', '地支合', '暗合', '半合'):
+            continue
+        for pos in (a.get('from_pos', ''), a.get('to_pos', '')):
+            pk = pos.split('_')[0]
+            if not pos.endswith('_zhi') or pk not in PILLAR_KEYS:
+                continue
+            z = zhis[PILLAR_KEYS.index(pk)]
+            if z not in ma_zhis_in:
+                continue
+            if t == '冲':
+                ma_chong_zhi.add(z)
+            else:
+                ma_he_zhi.add(z)
+    ma_he_zhi -= ma_chong_zhi
+    ma_feng: List[str] = []
+    ma_feng.extend(f'马星{z}逢冲（车疾驰，加险）' for z in sorted(ma_chong_zhi))
+    ma_feng.extend(f'马星{z}逢合绊（车停留，减险）' for z in sorted(ma_he_zhi))
+
+    # 对称车象（gaoji:15792「对称出现：如双酉、双申、子午冲等，可象两个
+    # 轮子或两辆车」）：车象支成双录佐证 marker（不计分）；六冲对之涉车象
+    # 支者（子午冲类）已由 triggers 收录，不重复计。
+    duichen = [f'双{z}' for z in sorted(che_set) if zhis.count(z) >= 2]
 
     # 禄身受损
     lu_zhi = LU.get(day_gan, '')
@@ -348,6 +432,12 @@ def detect_chehuo(
         score += 1
     if xiong_shen:
         score += 1
+    # 驿马逢冲加险 / 逢合绊减险（gaoji:15777-15778/15807），地板 0
+    if ma_chong_zhi:
+        score += 1
+    if ma_he_zhi:
+        score -= 1
+    score = max(score, 0)
     risk = '高' if score >= 4 else ('中' if score == 3 else ('低' if score >= 1 else '无'))
 
     parts = []
@@ -357,6 +447,10 @@ def detect_chehuo(
         parts.append(f'马星{ma_count}颗')
     if triggers:
         parts.append('触发：' + '、'.join(triggers))
+    if ma_feng:
+        parts.append('、'.join(ma_feng))
+    if duichen:
+        parts.append(f'对称车象：{"、".join(duichen)}（象两个轮子/两辆车）')
     if lu_damaged:
         parts.append('禄身被冲穿')
     if xiong_shen:
@@ -364,6 +458,7 @@ def detect_chehuo(
 
     return {
         'che_xiang': che_xiang, 'ma_count': ma_count, 'triggers': triggers,
+        'ma_feng': ma_feng, 'duichen': duichen,
         'lu_damaged': lu_damaged, 'xiong_shen': xiong_shen, 'risk': risk,
         'desc': '；'.join(parts) if parts else '无明显车祸标志',
     }

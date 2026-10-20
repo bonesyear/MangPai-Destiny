@@ -145,3 +145,23 @@ def test_g3_yanxiang_dayan_anchor():
     assert r['yanxiang']['bing'] is True
     assert '大眼' in r['yanxiang']['desc']
     assert 'zhongji:1483/4531' in r['yanxiang']['desc']
+
+
+# ── 批Q2：女人禄为身体（zhongji:3974-3982，限女命）──
+
+def test_q2_nuren_lu_shenti():
+    """批Q2 弱线3：女人的禄为身体（zhongji:3974-3982「女人的禄为身体…满盘
+    皆禄」）——限女命；满盘皆禄（禄支≥2）象重。措辞红线同秀气线：只出
+    「身体之象」，不出美/丑/帅结论词。"""
+    # 乙未乙卯乙未己卯（卯禄×2，书例 3978-3982 满盘皆禄原型）
+    r = _run('乙未乙卯乙未己卯', gender='女')
+    assert any('满盘皆禄' in m and '身体' in m for m in r['shencai']['markers'])
+    # 男命同造不出（书原文专指女人之禄）
+    r_m = _run('乙未乙卯乙未己卯', gender='男')
+    assert not any('禄为身体' in m for m in r_m['shencai']['markers'])
+    # 单禄：女命禄为身体之象（轻档）
+    r1 = _run('乙未乙卯乙未己巳', gender='女')
+    assert any('女命禄（卯）为身体之象' in m for m in r1['shencai']['markers'])
+    blob = json.dumps(r, ensure_ascii=False)
+    for term in ('美', '丑', '帅'):
+        assert term not in blob

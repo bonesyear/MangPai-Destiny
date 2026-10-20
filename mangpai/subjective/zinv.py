@@ -44,7 +44,13 @@ zinv - 盲派子女岁运应期 + 借腹 marker·主观层（subjective）
        （授课:18-20「戊克壬，壬不能合丁」）。
   3. jiefu 借腹/养子 marker：日支（妻宫）受穿 + 子息星/妻星入时墓
      （gaoji:14317-14334 案例十二 + zhongji:1911-1914/4165-4170 两书同构）。
-  4. summary：只述应期与借腹，不复拼 liuqin 子息段。
+  4. guofang 过房 marker（批Q1 补）：原局子卯相刑 → 有子必为过房
+     （shouke:428「逢子卯刑，卯与子两伤…有子必为过房，子卯之刑已无法
+     形成血缘关系」；yanjiu:12050-12053 乔布斯私生子被收养互证——过继/
+     收养之象可从原局读出）。分工注：本 marker=命主之子女过继他人
+     （子女域）；liuqin 弃养域=命主被父母弃养（含食伤重现换门楼/时柱
+     伏吟送出去，gaoji:13878/13885-13897/13921-13931），两域分属不重复。
+  5. summary：只述应期与借腹/过房，不复拼 liuqin 子息段。
 
 分层位置：subjective/，单向依赖 objective + subjective.liuqin（只读其输出）。
           本模块不反向依赖 engine。
@@ -65,6 +71,46 @@ from mangpai.subjective.liuqin import (
 
 def _pair_in(a: str, b: str, pairs) -> bool:
     return (a, b) in pairs or (b, a) in pairs
+
+
+def detect_guofang(
+    zhis: List[str], relations: Optional[Dict] = None,
+) -> Dict:
+    """过房 marker（批Q1 补）：原局子卯相刑 → 有子必为过房。
+
+    书锚：shouke:428「逢子卯刑，卯与子两伤，一方面说明一生为子女而伤心
+    操劳；另一方面表示有子必为过房，子卯之刑已无法形成血缘关系」
+    （同页书例 己丑丁丑乙卯丙子：日支卯、时支子互刑）；
+    yanjiu:12050-12053 乔布斯「私生子，出生后被一普通家庭收养」互证——
+    过继/收养之象可从原局读出。
+    分工：本 marker=命主之子女过继他人（子女域）；liuqin 弃养域=命主被
+    父母弃养，两域分属不重复实现。
+    检测：优先 relations 刑动作（子卯双向已入 XING_PAIRS）；relations 缺省
+    或长不发射时回退「同局并见即相刑」。marker 级，措辞中性。
+
+    Returns:
+        {'is_guofang': bool, 'basis': [str], 'desc': str}
+    """
+    wa: List[Dict] = (relations or {}).get('work_actions') or []
+    hit = False
+    for a in wa:
+        if a.get('type') != '刑':
+            continue
+        ps = [zhis[PILLAR_KEYS.index(pk.split('_')[0])]
+              for pk in (a.get('from_pos', ''), a.get('to_pos', ''))
+              if pk.endswith('_zhi') and pk.split('_')[0] in PILLAR_KEYS]
+        if set(ps) == {'子', '卯'}:
+            hit = True
+            break
+    if not hit and len(zhis) == 4 and '子' in zhis and '卯' in zhis:
+        hit = True  # 回退口径：同局并见即子卯相刑（XING_PAIRS 双向已录）
+    return {
+        'is_guofang': hit,
+        'basis': (['子卯相刑，卯与子两伤（shouke:428）'] if hit else []),
+        'desc': ('子卯相刑两伤，有子必为过房（shouke:428），子女过继/过房养与之象'
+                 '（yanjiu:12050-12053 乔布斯被收养互证）'
+                 if hit else '无明显过房标志'),
+    }
 
 
 def _child_wx(day_gan: str, cat: str) -> str:
@@ -118,6 +164,7 @@ def analyze_zinv(
           'zixi_yingqi_dezi':  {'windows': [...], 'desc': str},
           'zixi_yingqi_sunzi': {'windows': [...], 'desc': str},
           'jiefu': {'is_jiefu': bool, 'basis': [str], 'desc': str},
+          'guofang': {'is_guofang': bool, 'basis': [str], 'desc': str},
           'summary': str,
         }
     """
@@ -135,6 +182,7 @@ def analyze_zinv(
         'zixi_yingqi_dezi': {'windows': [], 'desc': '四柱不全，无法判定子女应期'},
         'zixi_yingqi_sunzi': {'windows': [], 'desc': ''},
         'jiefu': {'is_jiefu': False, 'basis': [], 'desc': ''},
+        'guofang': {'is_guofang': False, 'basis': [], 'desc': ''},
         'summary': '四柱不全，无法判定子女应期',
     }
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
@@ -306,6 +354,9 @@ def analyze_zinv(
                  if is_jiefu else '无明显借腹/养子标志'),
     }
 
+    # ── 过房 marker（批Q1 补）：子卯相刑 → 有子必为过房（shouke:428）──
+    guofang = detect_guofang(zhis, relations)
+
     dezi_desc = ('岁运引动，有得子/孕育之象：'
                  + '；'.join(w['note'] for w in dezi_windows)
                  if dezi_windows else '岁运序列内无明显得子应期窗')
@@ -322,14 +373,17 @@ def analyze_zinv(
         parts.append(f'子息受创应期窗{len(sunzi_windows)}处（{mech}）')
     if is_jiefu:
         parts.append('借腹/养子之象')
+    if guofang.get('is_guofang'):
+        parts.append('子女过房/过继之象')
     summary = '子女应期：' + ('；'.join(parts) if parts else '岁运序列内无明显应期窗')
 
     return {
         'zixi_yingqi_dezi': {'windows': dezi_windows, 'desc': dezi_desc},
         'zixi_yingqi_sunzi': {'windows': sunzi_windows, 'desc': sunzi_desc},
         'jiefu': jiefu,
+        'guofang': guofang,
         'summary': summary,
     }
 
 
-__all__ = ['analyze_zinv']
+__all__ = ['analyze_zinv', 'detect_guofang']

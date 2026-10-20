@@ -829,12 +829,14 @@ class MangpaiEngine:
 
         # 缺口批1 迁移/远行 marker + 应期窗（马星查法复用 shensha._YI_MA，
         # 岁运序列=engine 已有 dy_list/cur_ln_list 供给，缺省空转；
-        # 措辞上限「迁移/远行」，不出出国级断语——归档 §一）
+        # relations 供驿马带财官「相合」档（批Q2）；空亡模块内就地起日柱
+        # 旬空。措辞上限「迁移/远行」，不出出国级断语——归档 §一）
         self._write(result, 'qianyi', self._safe_compute(
             'qianyi', analyze_qianyi,
             self.day_gan, self.gans, self.zhis,
             dayun_list=dy_list if isinstance(dy_list, list) else [],
             liunian_list=cur_ln_list,
+            relations=relations,
         ))
 
         # 缺口批2 相貌 marker 层（纯 marker 无判定无档位，供叙事层消费；
