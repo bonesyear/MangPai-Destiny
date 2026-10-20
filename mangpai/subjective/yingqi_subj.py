@@ -22,17 +22,18 @@ yingqi_subj - 盲派应期主观推断·主观层（subjective）
 消费关系：
   - objective.yingqi（大限映射/禄与原身/遁藏透干检测）
   - objective.constants（LU/PILLAR_KEYS/GAN_WX/WX_KE 等）
-  - subjective.liunian（流年-大运互动，可选）
+  - subjective.liunian（流年-大运互动，可选；批O 复用其 _judge_xiji 扶抑喜忌
+    口径与 _kong_zhis 空亡入参兼容工具）
 
 分层位置：subjective/，单向依赖 objective。本模块不反向依赖 engine。
 已知争议已收口：大限年龄区间全引擎统一为书中大限值（1-18/18-35/35-55/55+），
           原六亲宫位口径已废弃（见 objective.yingqi 与 MODULE_ATTRS.md 统一决定）。
 置信度：中
 """
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from mangpai.objective.constants import (
-    WX_KE,
+    WX_KE, GAN_WX,
     LU, PILLAR_KEYS, is_pillars, ZHI_WX,
     LIU_CHONG, LIU_HAI, XING_PAIRS,
 )
@@ -43,6 +44,7 @@ from mangpai.objective.yingqi import (
     DAXIAN_MAP, detect_daxian, daxian_of_age,
     detect_lu_yuanshen, detect_duncang_tougan, detect_yingqi,
 )
+from mangpai.subjective.liunian import _judge_xiji, _kong_zhis
 
 # _YANG_GANS 随 _compute_shishen 下沉删除（H-fix-4b，本文件无其它引用）。
 
@@ -297,6 +299,18 @@ def infer_comprehensive_yingqi(
     if liunian_interaction:
         dayun_signals.append(f'  流年-大运互动：{len(liunian_interaction)}项（路车配合）')
 
+    # ── 批O 项2：干支互应（虚实应期三法之三）marker——additive，不改交集判定 ──
+    ganzhi_huying = detect_ganzhi_huying(
+        day_gan, gans, zhis,
+        dayun_gan=dayun_gan, dayun_zhi=dayun_zhi,
+        liunian_gan=liunian_gan, liunian_zhi=liunian_zhi,
+    )
+    # ── 批O 项3：大限×大运交脱诀 marker——additive，不改大限区间判定 ──
+    daxian_dayun_jiaotuo = detect_daxian_dayun_jiaotuo(
+        day_gan, gans, zhis, age=age,
+        dayun_gan=dayun_gan, dayun_zhi=dayun_zhi,
+    )
+
     # ── 交集判定（真应期成立）──
     # 禄触发归属：日干禄/命局他干禄/外神禄分清（修「他干禄误归日主」——外神禄
     #   不再混称日干/他干，仅作见禄信号计入触发，归属标签为「外神」）。
@@ -369,11 +383,204 @@ def infer_comprehensive_yingqi(
             'signals': liunian_signals,
         },
         'liunian_trigger': has_liunian_trigger,
+        'ganzhi_huying': ganzhi_huying,            # 批O 项2：干支互应 marker
+        'daxian_dayun_jiaotuo': daxian_dayun_jiaotuo,  # 批O 项3：交脱诀 marker
         'priority': priority,
         'intersection': intersection,
         'intersection_signals': inter_signals,
         'conclusion': conclusion,
     }
+
+
+# ───────────────────── 2b. 干支互应（虚实应期三法之三，批O）─────────────────
+
+# 五行之墓（zhongji:826 次序「再墓」判别用：木墓未/火墓戌/金墓丑/水墓辰）
+_MU_OF_WX = {'木': '未', '火': '戌', '金': '丑', '水': '辰'}
+
+
+def detect_ganzhi_huying(
+    day_gan: str = '',
+    gans: Optional[List[str]] = None,
+    zhis: Optional[List[str]] = None,
+    dayun_gan: str = '',
+    dayun_zhi: str = '',
+    liunian_gan: str = '',
+    liunian_zhi: str = '',
+) -> Dict:
+    """干支互应（遁藏透干）——虚实应期三法之三，marker 级，不改交集判定。
+
+    书锚：gaoji:17906「有三法：出现为应、引动为应、干支互应」；
+    gaoji:17944-17948「干支互应（遁藏透干）：命局地支藏干，在流年天干透出，
+    此地支所代表的信息便被引动；反之，命局天干，在流年见其禄神或根气，此天干
+    所代表的信息亦被引动」；zhongji:820-822「八字地支中某字遁藏，在大运或
+    流年的天干出现，也是地支此字的应期」。
+
+    两个方向：
+      - 干应支：运岁干为原局某支藏干 -> 该支信息应期。一干命中多支时按
+        zhongji:826 次序标注优先级（「乙到，先应卯，再未，再找辰」：本气
+        禄位支 > 墓库 > 余气支；以藏干序 order 升序、同序墓库优先）。
+      - 支应干：运岁支为原局某干之禄（原身）或藏其根气 -> 该干信息应期
+        （gaoji:17946-17948「流年支现天干禄，此天干事必临」）。
+
+    Returns:
+        {'markers': [...], 'desc': str}
+    """
+    gans = gans or []
+    zhis = zhis or []
+    markers: List[Dict] = []
+    natal_gan_set = {g for g in gans if g}
+
+    # ── 干应支：运岁干透原局支藏干 ──
+    for src, yg in (('流年', liunian_gan), ('大运', dayun_gan)):
+        if not yg:
+            continue
+        mu_of_yg = _MU_OF_WX.get(GAN_WX.get(yg, ''), '')
+        hits = []  # (次序档, 柱序, 支, 气名)；档次：本气禄位 0 > 该干之墓 1 > 余气 2
+        for i, z in enumerate(zhis):
+            if not z:
+                continue
+            for order, (cg, qi) in enumerate(get_canggan_mangpai(z)):
+                if cg == yg:
+                    tier = 0 if order == 0 else (1 if z == mu_of_yg else 2)
+                    hits.append((tier, i, z, qi))
+        hits.sort()
+        for prio, (_t, i, z, qi) in enumerate(hits, 1):
+            pos = PILLAR_KEYS[i] if i < len(PILLAR_KEYS) else ''
+            markers.append({
+                'huying_type': '干支互应·干应支',
+                'direction': f'{src}干{yg}→应支{z}',
+                'priority': prio,
+                'reason': (
+                    f'{src}干{yg}透原局{pos}宫支{z}藏干（{qi}），{z}所代表的信息'
+                    f'应期（zhongji:820-822/gaoji:17944-17946）'
+                    + (f'；次序{prio}（zhongji:826：先本气禄位、再墓库、再余气）'
+                       if len(hits) > 1 else '')
+                ),
+            })
+
+    # ── 支应干：运岁支为原局干之禄（原身）或藏其根气 ──
+    for src, yz in (('流年', liunian_zhi), ('大运', dayun_zhi)):
+        if not yz:
+            continue
+        lu_gans = _ZHI_LU_OF.get(yz, [])
+        for g in lu_gans:
+            if g in natal_gan_set:
+                markers.append({
+                    'huying_type': '干支互应·支应干',
+                    'direction': f'{src}支{yz}→应干{g}',
+                    'priority': 1,
+                    'reason': (
+                        f'{src}支{yz}为原局干{g}之禄（原身到场），{g}所代表的信息'
+                        f'应期（gaoji:17946-17948「流年支现天干禄，此天干事必临」）'
+                    ),
+                })
+        for cg, qi in get_canggan_mangpai(yz):
+            if cg in natal_gan_set and cg not in lu_gans:
+                markers.append({
+                    'huying_type': '干支互应·支应干',
+                    'direction': f'{src}支{yz}→应干{cg}',
+                    'priority': 2,
+                    'reason': (
+                        f'{src}支{yz}藏原局干{cg}根气（{qi}），{cg}所代表的信息'
+                        f'应期（gaoji:17946-17948）'
+                    ),
+                })
+
+    return {
+        'markers': markers,
+        'desc': '；'.join(m['reason'] for m in markers) if markers else '无干支互应触发',
+    }
+
+
+# ───────────────────── 2c. 大限×大运交脱诀（批O）────────────────────
+
+def detect_daxian_dayun_jiaotuo(
+    day_gan: str = '',
+    gans: Optional[List[str]] = None,
+    zhis: Optional[List[str]] = None,
+    age: Optional[Union[int, float]] = None,
+    dayun_gan: str = '',
+    dayun_zhi: str = '',
+) -> Dict:
+    """大限×大运交脱诀（zhongji:649-657 + gaoji:16571 四柱管限）——marker 级。
+
+    交脱诀（zhongji:650-655）：「大限应凶，如大限克父，大运应吉，此运不克，
+    过运则凶。大限应吉，大运应凶，此运不吉，过运则吉。大限应凶，如有好运，
+    大运有吉，未到吉运也应凶。八字之运限应吉，但逢凶大运则过运应吉，不看
+    应期。八字之运限应凶，但逢吉大运则过运应凶，不看应期。八字之运限应凶，
+    但后逢吉大运则未到吉运必见凶。」闲注（zhongji:656-657）：大限与大运是
+    「与」的关系——俱凶应凶、俱吉应吉。
+
+    大限/大运吉凶的 marker 级近似：所在大限柱干支、大运干支五行对日主的
+    扶抑喜忌（liunian._judge_xiji 口径）；干支喜忌不一或不可判则「不明」，
+    不出 marker（保守降噪）。大限区间沿用既有四柱管限（年1-18/月18-35/
+    日35-55/时55+，gaoji:16571），不改判定。
+
+    Returns:
+        {'markers': [...], 'daxian_jx': '吉'|'凶'|'',
+         'dayun_jx': '吉'|'凶'|'', 'desc': str}
+    """
+    empty = {'markers': [], 'daxian_jx': '', 'dayun_jx': '',
+             'desc': '无年龄/大运数据，交脱诀不适用'}
+    gans = gans or []
+    zhis = zhis or []
+    if age is None or not (dayun_gan or dayun_zhi):
+        return empty
+    active = daxian_of_age(age)
+    if not active:
+        return empty
+    idx = PILLAR_KEYS.index(active)
+    if idx >= len(gans) or idx >= len(zhis):
+        return empty
+
+    def _jx(gan: str, zhi: str) -> str:
+        vals = set()
+        if gan:
+            v = _judge_xiji(day_gan, gans, zhis, GAN_WX.get(gan, ''))
+            if v:
+                vals.add(v)
+        if zhi:
+            v = _judge_xiji(day_gan, gans, zhis, ZHI_WX.get(zhi, ''))
+            if v:
+                vals.add(v)
+        return vals.pop() if len(vals) == 1 else ''
+
+    # _judge_xiji 返回喜/忌，交脱诀以吉/凶表述——喜=吉、忌=凶（marker 级映射）
+    _XI_JI_TO_JX = {'喜': '吉', '忌': '凶'}
+    dx = _XI_JI_TO_JX.get(_jx(gans[idx], zhis[idx]), '')
+    dy = _XI_JI_TO_JX.get(_jx(dayun_gan, dayun_zhi), '')
+    markers: List[Dict] = []
+    if dx and dy:
+        dx_pillar = f'{DAXIAN_MAP[active]["pillar"]}{gans[idx]}{zhis[idx]}'
+        pair = f'大限{dx_pillar}应{dx}，大运{dayun_gan}{dayun_zhi}应{dy}'
+        if dx == '凶' and dy == '吉':
+            markers.append({
+                'jiaotuo_type': '限凶运吉',
+                'reason': f'{pair}——此运不克，过运则凶（zhongji:650）；运限应凶'
+                          f'而逢吉大运，过运应凶，不看应期（zhongji:654）',
+            })
+        elif dx == '吉' and dy == '凶':
+            markers.append({
+                'jiaotuo_type': '限吉运凶',
+                'reason': f'{pair}——此运不吉，过运则吉（zhongji:651）；运限应吉'
+                          f'而逢凶大运，过运应吉，不看应期（zhongji:653）',
+            })
+        elif dx == '凶' and dy == '凶':
+            markers.append({
+                'jiaotuo_type': '限运俱凶',
+                'reason': f'{pair}——大限与大运为「与」的关系，俱凶则此运应凶'
+                          f'（zhongji:656-657 闲注）；未到吉运也应凶'
+                          f'（zhongji:652/655）',
+            })
+        else:
+            markers.append({
+                'jiaotuo_type': '限运俱吉',
+                'reason': f'{pair}——大限与大运俱吉，此运应吉（zhongji:656-657 闲注）',
+            })
+
+    desc = ('；'.join(m['reason'] for m in markers) if markers
+            else f'大限/大运喜忌不一或不明（大限{dx or "不明"}，大运{dy or "不明"}），交脱诀不出')
+    return {'markers': markers, 'daxian_jx': dx, 'dayun_jx': dy, 'desc': desc}
 
 
 # ───────────────────── 3. 寿元机制推演 ─────────────────────
@@ -406,6 +613,7 @@ def detect_shouyuan_jixie(
     dayun_zhi: str = '',
     liunian_gan: str = '',
     liunian_zhi: str = '',
+    kong_wang: Any = None,
 ) -> Dict:
     """寿元机制推演（只做推演验证：识别「带病逢引动」结构，不输出死亡/寿数预测）。
 
@@ -419,11 +627,17 @@ def detect_shouyuan_jixie(
         gaoji:4600/7651）；其禄/根被坏或透干坐绝（cj2:6042「癸水寿元星见子水为禄…
         被午冲」；cj2:3704「穿倒食神损寿元」；gaoji:16172「坐巳火绝地」；
         gaoji:16206-16216「印根辰被冲散…印根被拔寿星倒」）。
+      - 寿元星空亡（批O）：「食神都落空亡，食神落空亡为短寿」（chuji:1849）；
+        寿元星自坐/根/禄支落空亡=带病（gaoji:7651-7652「若寅木落空亡（需查旬
+        空）…寿元堪忧」）；运岁支填实空亡之位=引动（gaoji:16549「空亡临干寿元
+        位，运岁填实赴九泉」）。措辞中性，marker 级。
       - 原局字到位：运岁干/支重现原局字或透原局支藏干，引动其受坏结构
         （yx2:7486「申金到位被局中官星火正克」——到位逢正克亦计，总诀
         「最忌寿星遭刑克」gaoji:16547；cj2:4160「丁虚透为原局的戌到了」）。
       - 坏关系并集=冲/穿/刑/破；破从盲派书口径仅子卯/卯午互破
         （理象学:2934-2955），标准六破其余各对无段氏书锚不入。
+
+    Args 增 kong_wang（可选，list 或 {'zhi': [...]} 形态；缺省不启用空亡检测）。
 
     Returns:
         {'signals': [str], 'mechanisms': [str], 'risk': bool, 'desc': str}
@@ -512,6 +726,28 @@ def detect_shouyuan_jixie(
             signals.append(
                 f'寿元星被坏（原局带病）：寿元星({g})之根{bad_pair[0]}被{bad_pair[1]}坏')
 
+    # 1d) 批O 项4：寿元星落空亡=带病（chuji:1849「食神都落空亡，食神落空亡为
+    #     短寿」；gaoji:7651-7652「寅木食神为寿元星…若寅木落空亡（需查旬空）…
+    #     寿元堪忧」）。口径：寿元星之禄/本气根支落空亡（余气根、自坐空亡不
+    #     计——反锚 chuji:1826 甲辰丙寅壬寅甲辰「甲坐了水库…寿没问题」，辰空
+    #     而食神甲本气根寅不空）。marker 级，措辞中性。
+    kong_zhis = _kong_zhis(kong_wang)
+    if kong_zhis:
+        for g in shishang:
+            hits = set()
+            for rz in zhis:
+                if not rz or rz not in kong_zhis:
+                    continue
+                cg0 = get_canggan_mangpai(rz)
+                if LU.get(g, '') == rz or (cg0 and cg0[0][0] == g):
+                    hits.add(rz)  # 禄/本气根支落空亡
+            if hits:
+                mechanisms.add('寿元星空亡')
+                natal_huai = True
+                signals.append(
+                    f'寿元星空亡（原局带病）：寿元星({g})禄/本气根'
+                    f'{"、".join(sorted(hits))}落空亡（chuji:1849/gaoji:7651-7652）')
+
     # 2) 运岁：引动坏 / 到位
     for src, yg, yz in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
         if yz:
@@ -564,6 +800,12 @@ def detect_shouyuan_jixie(
                 if weak:
                     triggered = True
                 signals.append(f'原局字到位：{src}支{yz}重现原局' + ('，其位原局已受坏' if weak else ''))
+            # 批O 项4：运岁支填实寿元空亡之位=引动（gaoji:16549「空亡临干寿元位，
+            #   运岁填实赴九泉」）——须原局已有寿元星空亡带病方计（marker 级）
+            if kong_zhis and yz in kong_zhis and '寿元星空亡' in mechanisms:
+                triggered = True
+                signals.append(
+                    f'空亡填实（{src}引动）：{src}支{yz}填实寿元空亡之位（gaoji:16549）')
         if yg:
             # 原局字到位（干重现，或透原局支藏干——「丁虚透为戌到了」cj2:4160）
             if yg in gans:
@@ -579,7 +821,8 @@ def detect_shouyuan_jixie(
                     signals.append(f'原局字到位：{src}干{yg}透原局{hit}藏干')
 
     risk = triggered or (natal_huai and arrived)
-    mech_list = [m for m in ('破禄', '寿元星被坏', '禄到位', '原局字到位') if m in mechanisms]
+    mech_list = [m for m in ('破禄', '寿元星被坏', '寿元星空亡', '禄到位', '原局字到位')
+                 if m in mechanisms]
     if risk:
         desc = '寿元机制推演成立（带病逢引动）：' + '、'.join(mech_list)
     elif mech_list:
@@ -592,5 +835,7 @@ def detect_shouyuan_jixie(
 __all__ = [
     'judge_lu_yuanshen_priority',
     'infer_comprehensive_yingqi',
+    'detect_ganzhi_huying',
+    'detect_daxian_dayun_jiaotuo',
     'detect_shouyuan_jixie',
 ]

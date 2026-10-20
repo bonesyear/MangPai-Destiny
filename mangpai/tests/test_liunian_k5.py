@@ -17,6 +17,7 @@ from mangpai.subjective.liunian import (
     analyze_liunian_mangpai,
     classify_chong_semantic,
     classify_he_semantic,
+    detect_hechong_yingqi,
     determine_dayun_phase,
 )
 
@@ -226,3 +227,128 @@ class TestIntegration:
         assert out['summary'].startswith('共2年')
         assert 'ji_count' in out and 'xiong_count' in out
         assert 'overall' in out['liunian'][0]
+
+
+# ── 批O 项1：冲起/冲去/冲开 强弱喜忌分流 marker（书锚：gaoji:19204「力量相当
+#    为冲动；弱被强冲为冲去；冲开库墓为冲开」/gaoji:19211「喜用被合来、合动、
+#    冲起则吉…忌仇反之」/zhongji:935「当运为冲去，不当运为冲起」/
+#    gaoji:17460-17461「凶神入墓冲则发，吉神入墓冲则贫」）。
+#    marker 级：chong_type 判定向不变，新增 xiji/xiji_direction/alias 三键。──
+
+class TestChongXijiSplit:
+    def test_chongqi_alias_xishen(self):
+        # 冲旺·喜用=冲起（gaoji:19211）：庚日身弱（木火财官党众），申金体
+        # 旺（月令双申）为喜，流年寅冲申→冲旺·喜，alias 冲起、吉向
+        r = classify_chong_semantic(
+            '寅', '申', ['丙', '甲', '庚', '丁'], ['寅', '申', '申', '卯'], '庚')
+        assert r['chong_type'] == '冲旺'
+        assert r['alias'] == '冲起'
+        assert r['xiji'] == '喜'
+        assert r['xiji_direction'] == '吉向'
+
+    def test_chongqi_alias_dayun_ganyun(self):
+        # 流年冲大运·正行干运=运支不当运→又名冲起（zhongji:935）；戊日辰辰辰
+        # 土身强，申金食伤为喜→吉向。判定向不动（chong_type 仍冲动）
+        r = classify_chong_semantic(
+            '寅', '申', ['壬', '癸', '戊', '丙'], ['辰', '卯', '辰', '辰'], '戊',
+            dayun_zhi='申', target_location='dayun', phase_active='干')
+        assert r['chong_type'] == '冲动'
+        assert r['alias'] == '冲起'
+        assert r['xiji_direction'] == '吉向'
+        assert 'zhongji:935' in r['desc']
+
+    def test_chongkai_xiji_split_ji(self):
+        # 墓库冲开·忌：己日从强（火土七党），丑土体党为忌，未冲丑仍判冲开
+        # （定向不动），补凶神入墓冲则发（gaoji:17460）marker
+        r = classify_chong_semantic(
+            '未', '丑', ['丙', '戊', '己', '丙'], ['戌', '辰', '丑', '午'], '己')
+        assert r['chong_type'] == '冲开'
+        assert '凶神入墓冲则发' in r['desc']
+        assert r['xiji_direction'] == '凶向'
+
+    def test_chongkai_xiji_unknown_no_mark(self):
+        # 反例（书例五原造，癸卯丙辰己丑乙亥）：扶抑中和→喜忌不明→冲开不附加
+        # 喜忌 marker（保守：不明不出，书判发财不受影响）
+        r = classify_chong_semantic(
+            '未', '丑', ['癸', '丙', '己', '乙'], ['卯', '辰', '丑', '亥'], '己')
+        assert r['chong_type'] == '冲开'
+        assert '入墓' not in r['desc']
+        assert r['xiji_direction'] == '中性'
+
+    def test_chongkai_xiji_split_xi(self):
+        # 墓库冲开·喜：庚日身弱（丙丁巳午官旺），丑土印星为喜，未冲丑→冲开+
+        # 吉神入墓冲则贫（gaoji:17461）提示；两说酌参故中性
+        r = classify_chong_semantic(
+            '未', '丑', ['丙', '丁', '庚', '甲'], ['午', '巳', '丑', '寅'], '庚')
+        assert r['chong_type'] == '冲开'
+        assert '吉神入墓冲则贫' in r['desc']
+        assert r['xiji_direction'] == '中性'
+
+    def test_chongqu_xiji_directions(self):
+        # 冲去喜忌分流（gaoji:19211「忌仇反之」）：冲大运·支运=当运为冲去
+        # （zhongji:935）——运支为喜→凶向；运支为忌→吉向
+        r_xi = classify_chong_semantic(
+            '寅', '申', ['壬', '癸', '戊', '丙'], ['辰', '卯', '辰', '辰'], '戊',
+            dayun_zhi='申', target_location='dayun', phase_active='支')
+        assert r_xi['chong_type'] == '冲去'
+        assert r_xi['xiji_direction'] == '凶向'  # 申=身强戊日之喜用，冲去喜神
+        r_ji = classify_chong_semantic(
+            '寅', '申', ['甲', '壬', '戊', '癸'], ['寅', '子', '辰', '亥'], '戊',
+            dayun_zhi='申', target_location='dayun', phase_active='支')
+        assert r_ji['chong_type'] == '冲去'
+        assert r_ji['xiji_direction'] == '吉向'  # 身弱申=食伤为忌，冲去忌神
+
+    def test_chongdong_neutral_no_alias(self):
+        # 反例：力量相当之冲动（gaoji:19204）保持中性，不标冲起、无方向
+        r = classify_chong_semantic(
+            '卯', '酉', ['己', '庚', '甲', '癸'], ['酉', '午', '子', '酉'], '甲')
+        assert r['chong_type'] == '冲动'
+        assert r['alias'] == ''
+        assert r['xiji_direction'] == '中性'
+
+
+# ── 批O 项5：应期总则「合者见冲为应，冲者见合为应」（zhenbao:690/zhongji:934）
+#    marker 级，analyze_liunian_mangpai 每流年附 hechong_yingqi 键（非空才写）。──
+
+class TestHechongHuying:
+    def test_he_jian_chong(self):
+        # 合者见冲为应：原局子丑六合（年/月），流年午冲子→应期 marker
+        ms = detect_hechong_yingqi(
+            ['甲', '丙', '戊', '庚'], ['子', '丑', '午', '戌'], '丙', '午')
+        assert any(m['huying_type'] == '合者见冲为应' and m['hit'] == '子'
+                   and m['source'] == '流年' for m in ms)
+
+    def test_chong_jian_he(self):
+        # 冲者见合为应：原局子午六冲（年/日），流年未合午→应期 marker
+        ms = detect_hechong_yingqi(
+            ['甲', '丙', '戊', '庚'], ['子', '寅', '午', '戌'], '己', '未')
+        assert any(m['huying_type'] == '冲者见合为应' and m['hit'] == '午'
+                   for m in ms)
+
+    def test_dayun_source(self):
+        # 大运支同为运岁：原局卯戌六合，大运酉冲卯→source=大运
+        ms = detect_hechong_yingqi(
+            ['甲', '丙', '戊', '庚'], ['卯', '寅', '戌', '辰'], '', '', '壬', '酉')
+        assert any(m['huying_type'] == '合者见冲为应' and m['source'] == '大运'
+                   and m['hit'] == '卯' for m in ms)
+
+    def test_no_relation_no_marker(self):
+        # 反例：原局六合/六冲皆未被运岁触动→不出（辰冲戌，戌在原局无合）
+        ms = detect_hechong_yingqi(
+            ['甲', '丙', '戊', '庚'], ['子', '寅', '午', '戌'], '庚', '辰')
+        assert ms == []
+
+    def test_integrated_in_analyze(self):
+        # 集成：analyze_liunian_mangpai 每流年附 hechong_yingqi（additive，
+        # 不改 overall/signals——由全套件回归保证）
+        out = analyze_liunian_mangpai(
+            [{'gz': '丙午', 'year': 2026}],
+            ['甲', '丙', '戊', '庚'], ['子', '丑', '午', '戌'], '戊')
+        r = out['liunian'][0]
+        assert any(m['huying_type'] == '合者见冲为应'
+                   for m in r.get('hechong_yingqi', []))
+        # 无关流年不写键（最小 diff）
+        out2 = analyze_liunian_mangpai(
+            [{'gz': '庚辰', 'year': 2000}],
+            ['甲', '丙', '戊', '庚'], ['子', '寅', '午', '戌'], '戊')
+        assert 'hechong_yingqi' not in out2['liunian'][0]

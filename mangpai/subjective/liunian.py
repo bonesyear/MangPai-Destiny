@@ -381,16 +381,28 @@ def classify_chong_semantic(
       2. 所冲为墓库（辰戌丑未）               -> 冲开（库藏释放，事发扬）
       3. 所冲衰（评分<0）                     -> 冲去（主离去/失去）
       4. 流年支衰而所冲旺（衰神冲旺神）        -> 冲去（流年字自去，书例姐远嫁）
-      5. 流年冲大运：正行干运 -> 冲动（提前引动）；正行支运/统看 -> 冲去
+      5. 流年冲大运：正行干运 -> 冲动（提前引动；运支不当运，又名冲起，
+         zhongji:935「当运为冲去，不当运为冲起」）；正行支运/统看 -> 冲去
          （运支当令怕冲崩；统看干支同主事，「流年冲大运一般是冲去」）
-      6. 所冲旺（>=2）且喜忌可判               -> 冲旺（激起：用神吉放大/忌神凶放大）
-      7. 其余（旺而喜忌不明/力量相当）          -> 冲动（主变迁/调动）
+      6. 所冲旺（>=2）且喜忌可判               -> 冲旺（激起：用神吉放大/忌神凶放大；
+         用神被冲起又名冲起，gaoji:19211「喜用被合来、合动、冲起则吉」）
+      7. 其余（旺而喜忌不明/力量相当）          -> 冲动（主变迁/调动；
+         gaoji:19204「力量相当为冲动；弱被强冲为冲去」）
+
+    批O（marker 级，不改 chong_type 判定向）：返回补 xiji/xiji_direction/alias
+    三键——被冲字旺衰（_zhi_strength）与喜忌（_judge_xiji）决定方向分流：
+    冲起（吉向，喜用被冲起）/冲去（凶向于喜、吉向于忌）/冲动（中性）；
+    墓库冲开分喜忌（gaoji:17460-17461「凶神入墓冲则发，吉神入墓冲则贫」）。
     """
     month_zhi = natal_zhis[1] if len(natal_zhis) > 1 else ''
     ctx = list(natal_zhis) + ([dayun_zhi] if dayun_zhi else [])
     s_t = _zhi_strength(target_zhi, ctx, kong_wang, month_zhi,
                         natal_gans=natal_gans)
     s_l = _liunian_strength(ln_zhi, ctx, month_zhi)
+    # 批O：所冲之字喜忌（扶抑口径，冲起/冲去/冲开方向分流用，marker 级）
+    xiji = _judge_chong_xiji(day_gan, natal_gans, natal_zhis,
+                             target_zhi) if target_zhi else ''
+    alias = ''
 
     day_zhi = natal_zhis[2] if len(natal_zhis) > 2 else ''
     chong_type = ''
@@ -422,34 +434,68 @@ def classify_chong_semantic(
         elif target_zhi in _MU_KU:
             chong_type = '冲开'
             desc_tail = '冲开墓库，库藏释放，事发扬'
+            # 批O：墓库冲开分喜忌（gaoji:17460-17461「墓为收藏归库地，流年
+            # 冲合开闭门。凶神入墓冲则发，吉神入墓冲则贫」）——忌=凶神入库，
+            # 冲开防凶神出笼发作；喜=吉神入库，冲开防吉神走失（惟书例五未冲
+            # 丑库发财，喜用之库冲开亦主得库，两说酌参，故喜向仅作中性提示）
+            if xiji == '忌':
+                desc_tail += '；凶神入墓冲则发，防凶神出笼（gaoji:17460）'
+            elif xiji == '喜':
+                desc_tail += ('；吉神入墓冲则贫，防吉神走失（gaoji:17461；'
+                              '冲开喜用之库亦主得库，两说酌参）')
         elif s_t < 0:
+            # gaoji:19204「弱被强冲为冲去」
             chong_type = '冲去'
             desc_tail = '衰神逢冲而去，主离去/失去'
         elif s_l <= 0 and s_t >= 2:
             chong_type = '冲去'
             desc_tail = '流年衰神冲旺神，流年字自去（主离去）'
         elif target_location == 'dayun' and phase_active == '干':
+            # 运支不当运：zhongji:935「流年冲大运则看其当运不当运，当运为
+            # 冲去，不当运为冲起」——又名冲起（marker 级 alias，不改冲动定向）
             chong_type = '冲动'
-            desc_tail = '正行天干运，流年冲运为冲动，提前引动该运之事'
+            alias = '冲起'
+            desc_tail = ('正行天干运，流年冲运为冲动，提前引动该运之事；'
+                         '运支不当运，按当运诀又名冲起（zhongji:935）')
         elif target_location == 'dayun' and phase_active in ('支', '干支'):
             # 「流年冲大运一般是冲去」（shouke:1370）/「若正行地支运，流年冲
             # 大运为冲去」（gaoji:19348）；统看干支同主事同论：壬午年冲去丙子
-            # 运子水，母子被杀（cj2:6042）
+            # 运子水，母子被杀（cj2:6042）。即当运诀「当运为冲去」（zhongji:935）
             chong_type = '冲去'
-            desc_tail = '运支当令怕冲崩，流年冲运为冲去，运支力量暂弱'
+            desc_tail = ('运支当令怕冲崩，流年冲运为冲去，运支力量暂弱'
+                         '（当运为冲去，zhongji:935）')
         elif s_t >= 2:
-            xiji = _judge_chong_xiji(day_gan, natal_gans, natal_zhis, target_zhi)
             if xiji == '喜':
                 chong_type = '冲旺'
-                desc_tail = '冲旺用神，激起更旺，反为吉'
+                alias = '冲起'  # gaoji:19211「喜用被合来、合动、冲起则吉」
+                desc_tail = '冲旺用神，激起更旺，反为吉（喜用被冲起则吉，gaoji:19211）'
             elif xiji == '忌':
                 chong_type = '冲旺'
                 desc_tail = '冲旺忌神，激起发凶，祸难当'
+
+    # 批O：喜忌方向 marker（gaoji:19211「喜用被合来、合动、冲起则吉…忌仇
+    # 反之」）——冲去喜神凶向/冲去忌神吉向，冲起吉向于喜、凶向于忌，
+    # 冲动中性；不改 chong_type 与既有判定向，仅供叙事层参考
+    if chong_type == '冲破':
+        xiji_direction = '凶向'
+    elif chong_type == '冲去':
+        xiji_direction = {'喜': '凶向', '忌': '吉向'}.get(xiji, '中性')
+    elif chong_type == '冲开':
+        xiji_direction = '凶向' if xiji == '忌' else '中性'
+    elif chong_type == '冲旺':
+        xiji_direction = {'喜': '吉向', '忌': '凶向'}.get(xiji, '中性')
+    elif alias == '冲起':
+        xiji_direction = {'喜': '吉向', '忌': '凶向'}.get(xiji, '中性')
+    else:
+        xiji_direction = '中性'
 
     return {
         'chong_type': chong_type,
         'target_strength': s_t,
         'liunian_strength': s_l,
+        'xiji': xiji,
+        'xiji_direction': xiji_direction,
+        'alias': alias,
         'desc': f'{ln_zhi}冲{target_zhi}：{chong_type}（{desc_tail}）',
     }
 
@@ -552,6 +598,75 @@ def classify_he_semantic(
         'target_shishen': shishen,
         'desc': f'{kind}{target}：{he_type}（{tail}）',
     }
+
+
+def detect_hechong_yingqi(
+    natal_gans: List[str],
+    natal_zhis: List[str],
+    ln_gan: str = '',
+    ln_zhi: str = '',
+    dy_gan: str = '',
+    dy_zhi: str = '',
+) -> List[Dict]:
+    """应期总则「合者见冲为应，冲者见合为应」——marker 级，不入吉凶链。
+
+    书锚：zhenbao:690「八字的应期法则…一般法则是同六爻相似，合者见冲为应，
+    冲者见合为应」；zhongji:934「原局有合，以冲为应；原局有冲，以合为应」
+    （所在节 930-935 论流年/大运与八字冲合刑穿墓应期，语境为地支）。
+
+    口径（地支六合/六冲层）：
+      - 原局有六合之字/宫（a 与 b 六合），运岁支冲 a 或 b（冲开合）-> 应期
+      - 原局有六冲之字/宫（a 与 b 六冲），运岁支合 a 或 b（合住冲）-> 应期
+    天干无冲（五合之冲应以支论根），本则只在地支层展开。
+    与既有特例不重复：0b「配偶宫有合逢配偶星冲入」（chong_semantic 内婚姻
+    语义）与本 marker 并存（不同键、不同语义层）；本则泛化到一般字/宫。
+    """
+    markers: List[Dict] = []
+    sui_zhis = [(s, z) for s, z in (('流年', ln_zhi), ('大运', dy_zhi)) if z]
+    if not sui_zhis or not natal_zhis:
+        return markers
+    seen = set()
+    for i, a in enumerate(natal_zhis):
+        if not a:
+            continue
+        for j, b in enumerate(natal_zhis):
+            if j <= i or not b:
+                continue
+            pos = f'{PILLAR_KEYS[i]}/{PILLAR_KEYS[j]}' \
+                if i < len(PILLAR_KEYS) and j < len(PILLAR_KEYS) else ''
+            if _check_pair(a, b, LIU_HE):
+                for src, yz in sui_zhis:
+                    for tgt in (a, b):
+                        if _check_pair(yz, tgt, LIU_CHONG):
+                            key = ('合者见冲', a, b, tgt, src)
+                            if key in seen:
+                                continue
+                            seen.add(key)
+                            markers.append({
+                                'huying_type': '合者见冲为应',
+                                'he_pair': f'{a}{b}',
+                                'hit': tgt,
+                                'source': src,
+                                'reason': f'原局{a}{b}六合（{pos}宫），{src}支{yz}冲{tgt}'
+                                          f'——合者见冲为应（zhenbao:690/zhongji:934）',
+                            })
+            elif _check_pair(a, b, LIU_CHONG):
+                for src, yz in sui_zhis:
+                    for tgt in (a, b):
+                        if _check_pair(yz, tgt, LIU_HE):
+                            key = ('冲者见合', a, b, tgt, src)
+                            if key in seen:
+                                continue
+                            seen.add(key)
+                            markers.append({
+                                'huying_type': '冲者见合为应',
+                                'chong_pair': f'{a}{b}',
+                                'hit': tgt,
+                                'source': src,
+                                'reason': f'原局{a}{b}六冲（{pos}宫），{src}支{yz}合{tgt}'
+                                          f'——冲者见合为应（zhenbao:690/zhongji:934）',
+                            })
+    return markers
 
 
 def determine_dayun_phase(
@@ -778,6 +893,13 @@ def analyze_liunian_mangpai(
                 if note not in result['negative_signals']:
                     result['negative_signals'].append(note)
 
+        # 批O 项5：应期总则「合者见冲为应，冲者见合为应」marker（zhenbao:690/
+        # zhongji:934）——additive，不改 overall/signals，非空才写键
+        hc_yingqi = detect_hechong_yingqi(
+            natal_gans, natal_zhis, gan, zhi, dy_gan, dy_zhi)
+        if hc_yingqi:
+            result['hechong_yingqi'] = hc_yingqi
+
         dy_interactions: List[Dict] = []
         if dy_gan and dy_zhi:
             dy_interactions = _analyze_liunian_dayun_interaction(
@@ -862,5 +984,6 @@ __all__ = [
     'analyze_liunian_mangpai',
     'classify_chong_semantic',
     'classify_he_semantic',
+    'detect_hechong_yingqi',
     'determine_dayun_phase',
 ]
