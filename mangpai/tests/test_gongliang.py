@@ -245,6 +245,33 @@ class TestG2Sanli:
         assert any('月令见印' in x for x in r['reasons'])
 
 
+class TestS2YuelingJianyinNarrow:
+    """批S2（2026-10-20）规则3 收窄哨兵：「强有力的印」要件补「三合局所化
+    五行≠月令印本气」——书例慈禧月令亥（水印）合化入亥卯未木局（所化≠印
+    本行），印化入制杀做功之局；印局自旺者（所化=印本行）唯旺身不做功
+    （理象学:8284-8302「日主过旺…看的还是做功；既没有象也没有功的四柱，
+    不管从的多么好，都不会有大的富贵」），维持 +0.5。"""
+
+    ZB14B = (['戊', '戊', '戊', '甲'], ['戌', '午', '午', '寅'])   # 珍宝14期·贪财坐牢
+    CIXI  = (['乙', '丁', '乙', '己'], ['未', '亥', '丑', '卯'])   # 慈禧（批G2 闭合锚）
+
+    def test_zb14b_yinju_ziwang_no_full_layer(self):
+        # 14b 寅午戌三合火局=印本行自旺（从强），非书「强有力的印」做功之局
+        # → 月令计 +0.5 不整层，层功 3→2（郝断「贪财坐牢」凶局不合 L3 大富大贵）。
+        g, z = self.ZB14B
+        r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
+        assert r['level'] <= 2
+        assert not any('月令见印' in x for x in r['reasons'])
+        assert any('月令做功' in x and '+0.5' in x for x in r['reasons'])
+
+    def test_cixi_still_four_layers_after_narrow(self):
+        # 收窄后慈禧仍命中整层（亥水印化入木局，所化≠印本行）→ L4 不动。
+        g, z = self.CIXI
+        r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
+        assert r['level'] == 4
+        assert any('月令见印' in x for x in r['reasons'])
+
+
 class TestYongshenXiongAnnotation:
     """根因A（用神方向入层功）：锚案已由 R1 比劫夺财封顶缓解（第9期 L1+贫），
     R2/R3 扶抑层凶向与做功层口径冲突（岳飞印制伤食=贵格仍命中 R2 severe），

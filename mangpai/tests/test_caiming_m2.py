@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.subjective.caiming import (
     analyze_caiming, classify_caifu_view, _assess_caixing_path,
+    assess_direction_signals,
 )
 
 
@@ -336,3 +337,24 @@ class TestShengyongSanshi:
         qm = classify_qucai_method('庚', ['甲', '丙', '庚', '戊'], ['寅', '午', '辰', '戌'])
         assert not any('自己做生意' in d or '经理人' in d or '秀气发越' in d
                        for d in qm['details'])
+
+
+class TestS2Zb14bTierAnchor:
+    """批S2（2026-10-20）zhenbao-14b 财档哨兵：财档回归与层功同源（批G2
+    规则3 抬 gongliang 基阶 2→3 致「下浮（禄/食伤当财量级有限）」落点
+    贫→小康），规则3 收窄后基阶回 2、下浮落贫归位。郝断「因为贪财坐了牢」
+    （mingli-zhenbao-50qi:505-509）——方向凶 + 档位贫为引擎对该形态的
+    表达（凶向 severe 不立：局中无财、R1 比劫夺财须财明现，理象学:5982
+    满盘比劫无财=翰林院编修反例证该形态非必 severe）。"""
+
+    GANS = ['戊', '戊', '戊', '甲']
+    ZHIS = ['戌', '午', '午', '寅']
+
+    def test_zb14b_tier_static_pin(self):
+        r = analyze_caiming('戊', self.GANS, self.ZHIS)
+        assert r['tier_static'] == '贫'
+        assert '下浮（禄/食伤当财量级有限）' in r['summary_static']
+
+    def test_zb14b_direction_xiong(self):
+        d = assess_direction_signals('戊', self.GANS, self.ZHIS)
+        assert d['direction'] == '凶'
