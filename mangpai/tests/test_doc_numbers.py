@@ -155,7 +155,8 @@ def test_parse_missing_returns_none(mod):
 
 def test_repo_end_to_end_green():
     r = subprocess.run([sys.executable, str(SCRIPT), "--quiet"],
-                       capture_output=True, text=True, cwd=str(REPO_ROOT), timeout=300)
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=str(REPO_ROOT), timeout=300)
     assert r.returncode == 0, r.stdout + r.stderr
 
 

@@ -60,7 +60,7 @@ mangpai/
     heldout/   cases.yaml(215) blind_eval.py snapshots/(LATEST 基线指针+README 链总账+archive/ 14 份无引用归档,H-fix-8) diag_case.py _*_diag/_*_sim(诊断考古) archive/(H-fix-4a 归档的历史模拟 8 脚本)
     trainset/  cases.yaml(294)
     backtest/  regression67.py famous_cases.py famous_baseline.json regression_famous.py
-    calib_assertions.py/.yaml  test_*.py(1172 测,含 test_feishu 34/test_d6b_zinv 12/test_llm_channel 27/test_qianyi 11/test_xiangmao 7/test_key_contract 6/test_inject_faults 82/test_hfix5_* 109/test_credential_gate 20/test_doc_numbers 23/test_snapshot_hygiene 2)
+    calib_assertions.py/.yaml  test_*.py(1429 测·批R 后口径——细目数字随批次漂移，权威数以 README 验证表为准)
   docs/        duan-books/(段氏五书+珍宝50期+授课教程原文txt) 各分析文档
   CHANGELOG.md           批次变更记录（第七批起有书写惯例）
 docs/                    任务书(tasks/)、remaining-tasks 系列、本知识库
