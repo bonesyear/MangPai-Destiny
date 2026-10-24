@@ -7,7 +7,7 @@
 降级返回组装好的 prompt 文本（同 narrative.render_hao_narrative 契约）。
 
 三层校验（validate_reading）：
-- L0 schema：七维键齐、conclusion/basis/confidence 结构合法；
+- L0 schema：七维键齐、无额外维度（批R①）、conclusion/basis/confidence 结构合法；
 - L1 出处：basis 每条路径回解析特征 JSON，不存在/为空/带数组下标 → 违规；
   意图唯一的近-miss（缺 _ops 前缀/层级拍平/多包一层/叶键别名）自动 remap 转正；
 - L2 枚举：财命档位/官命是非回对引擎枚举值 + 死亡词黑名单兜底
@@ -65,7 +65,10 @@ _DEATH_WORDS = ('死亡', '寿终', '享年', '夭折', '早夭', '短命',
                 '命不久', '寿数', '寿命', '寿元', '大限生死',
                 '离世', '去世', '归西', '病逝', '过世', '身故', '辞世',
                 '早逝', '病故', '亡故', '终年', '卒于', '活不过', '往生',
-                '百年之后')
+                '百年之后',
+                # 批R④b：「大限」单字有应期术语义（批O 大限管限/大限×大运交脱诀），
+                # 只拦「将至/已到」组合形态，术语不误杀
+                '大限将至', '大限已到')
 
 # L2 死亡词误报窗（V4 P2-2/2-3）：模型合规拒答句会复述死亡词（如「寿数」）
 # 并外露「红线」字样——死亡词所在句内出现拒答标记则该处不计。
@@ -92,8 +95,10 @@ _NEG_PREFIX = ('不', '非', '无', '难', '未', '莫', '否')  # 已弃用，�
 # 跨维逃逸曾致出境词/美丑词落在迁移/相貌维之外而放行）：
 # 出境词绝对禁（对齐引擎措辞上限「迁移/远行」，qianyi 模块不出硬断语）。
 # 红2 补词：出境/移居/异国/留洋（对抗用例实测逃逸族）。
+# 批R④a 补词：赴外/南洋/赴美（批5 对抗实跑逃逸词；词级匹配无单字误报）。
 _QIANYI_FORBID = ('出国', '移民', '海外', '国外', '外国',
-                  '出境', '移居', '异国', '留洋')
+                  '出境', '移居', '异国', '留洋',
+                  '赴外', '南洋', '赴美')
 # 相貌结论词禁（marker 层无判定无档位，只许引用 marker 描述）。
 # N2b 裁定（书锚为准）：含「美」复合评价词（优美/柔美/秀美/俊美等）书内零锚
 # → 一律入禁，单字「美」扫描已全覆盖（r3 残留 2 例均被抓），不加词表不加
@@ -137,6 +142,11 @@ def _l0_schema(data: Any) -> list:
             v.append({'layer': 'L0', 'detail': f'{dim}.basis 缺失或非数组'})
         if node.get('confidence') not in _CONFIDENCE:
             v.append({'layer': 'L0', 'detail': f'{dim}.confidence 非法值: {node.get("confidence")!r}'})
+    # 批R①：七维之外的额外维度记违规——自造第 8 维（如「健康」）静默通过则
+    # 其内容不受 L2 检查（L2 只扫 DIMENSIONS 内维度文本）
+    for key in data:
+        if key not in DIMENSIONS:
+            v.append({'layer': 'L0', 'detail': f'额外维度「{key}」不在 schema 七维内'})
     return v
 
 
@@ -368,14 +378,31 @@ def _tier_rank(text: str, corpus: str = '') -> int:
 # L2 应期维吉凶回对词表（2026-10-17 零校验补齐，小词表起步）：
 # 应期 conclusion 引用某运/年干支，该条目 overall=凶 而叙述含吉词、
 # overall=吉 而叙述含凶词 → 矛盾记违规；吉凶参半/平不查，缺数据不查。
-# ponytail: 结论级词表启发式，否定语境/分运分句不细辨，语义级残留由人工兜底
+# 批R③：命中词剔除否定语境（复用批F _neg_in_pre 同口径——同子句±5 窗、
+# 剔除双重否定/反语肯定，「婚姻不美满」「运势不算顺利」不误拦）；
+# ponytail: 分运分句不细辨（词与干支不绑同句），语义级残留由人工兜底
 _YINGQI_POS_WORDS = ('大吉', '顺利', '亨通', '好运')
 _YINGQI_NEG_WORDS = ('大凶', '凶险', '灾祸')
 
 # L2 婚姻维质量回对词表（同批，小词表起步）：引擎 hunyin.quality.quality=差
 # 而叙述含褒词、=好 而叙述含贬词 → 矛盾记违规；=平或缺 hunyin 数据不查。
+# 批R③：同应期口径剔除否定语境。
 _HUNYIN_POS_WORDS = ('美满', '幸福', '恩爱', '和睦')
 _HUNYIN_NEG_WORDS = ('婚变', '离异', '不幸')
+
+
+def _unnegated_hit(text: str, words) -> Optional[str]:
+    """词表中首个无否定语境的命中词；全部命中处均被否定则 None（批R③）。"""
+    for w in words:
+        start = 0
+        while True:
+            j = text.find(w, start)
+            if j == -1:
+                break
+            start = j + 1
+            if not _neg_in_pre(text, j):
+                return w
+    return None
 
 
 def _l2_enum(data: dict, engine_result: dict) -> list:
@@ -451,9 +478,9 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
             if not gz or gz not in t_yq:
                 continue
             if ov == '凶':
-                w = next((w for w in _YINGQI_POS_WORDS if w in t_yq), None)
+                w = _unnegated_hit(t_yq, _YINGQI_POS_WORDS)
             elif ov == '吉':
-                w = next((w for w in _YINGQI_NEG_WORDS if w in t_yq), None)
+                w = _unnegated_hit(t_yq, _YINGQI_NEG_WORDS)
             else:
                 continue
             if w:
@@ -461,11 +488,11 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                           'detail': f'应期 与引擎「{gz}」overall={ov}矛盾：叙述含「{w}」'})
 
     # 婚姻维质量回对（零校验补齐）：引擎 hunyin.quality.quality=差 而叙述褒词、
-    # =好 而叙述贬词记违规；=平或缺 hunyin 数据不查。
+    # =好 而叙述贬词记违规；=平或缺 hunyin 数据不查。批R③：否定语境命中不计。
     _hq = ((engine_result.get('hunyin') or {}).get('quality') or {}).get('quality')
     if _hq in ('好', '差'):
         _hw = _HUNYIN_NEG_WORDS if _hq == '好' else _HUNYIN_POS_WORDS
-        w = next((w for w in _hw if w in texts['婚姻']), None)
+        w = _unnegated_hit(texts['婚姻'], _hw)
         if w:
             v.append({'layer': 'L2',
                       'detail': f'婚姻 与引擎婚姻质量={_hq}矛盾：叙述含「{w}」'})
