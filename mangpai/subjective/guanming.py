@@ -144,7 +144,9 @@ def classify_guanming_combo(
       G7 财/财之原神被围制（≥2方非辅助硬制）之支，涉其之官命组合主富不主贵，
          不入官命（李嘉诚例「主的是富而不是贵」；保尔森例「财与财的原神同时被制」）。
       另：官杀不透不主气但藏支被制=藏杀被制/制杀得权，与明现同论
-         （慈禧「合局制死丑中杀星主权力」/希特勒「丑入辰墓」/曾国藩「功在墓杀」）。
+         （慈禧「合局制死丑中杀星主权力」/希特勒「丑入辰墓」/曾国藩「功在墓杀」）；
+         批S2-01① 收窄：单方触及非制死，须≥2 不同来方或单方来方五行成势
+         （干支主气计数≥2），孤军触及不立（zhenbao-01 巳中庚仅被亥克且亥孤立）。
 
     Returns:
         {
@@ -238,6 +240,39 @@ def classify_guanming_combo(
                 continue  # 纯宾位藏杀被制，无主位的字参与，不立官命
             if any(GAN_WX.get(cg) == guan_wx
                    for cg, _ in get_canggan_mangpai(zhis[i])):
+                # 批S2-01①：单方触及≠制死——须≥2 不同来方非辅助制/合制（围制成势
+                # 方称「制死/得权」：慈禧丑支未冲/卯克/未刑三方、希特勒丑支酉半合/
+                # 寅克两方），或单方来方其五行成势（干支主气计数≥2：岳飞子水得癸透；
+                # 黄兴「甲木得势而有土金之病」shouke:1682；处级-2「火与燥土之势…
+                # 只是午来克申…形成匪制，故官级能至处级」yanjiu:7792-7796；戊寅升官
+                # 从强制辰中癸病神 shouke:6782）。zhenbao-01（戊戌己未乙巳丁亥）
+                # 巳中庚藏官仅被亥一方克、亥水孤立无势（反遭戌未巳三方围攻），
+                # 触及非制死不立（50qi:10/16 书判「普通人有官司」「戌为忌神中含
+                # 七杀主官司…俱是民事纠纷」）。
+                _pos_i = f'{PILLAR_KEYS[i]}_zhi'
+                _atk_srcs = {a.get('from_pos', '') for a in wa
+                             if not a.get('auxiliary') and a.get('to_pos') == _pos_i
+                             and (a.get('type') in _ZHI_CONTROL
+                                  or a.get('type') in _HE_CONTROL)}
+                if len(_atk_srcs) < 2:
+                    _swx = ''
+                    if len(_atk_srcs) == 1:
+                        _sp = next(iter(_atk_srcs))
+                        _si = PILLAR_KEYS.index(_sp.split('_')[0])
+                        _swx = (ZHI_WX.get(zhis[_si], '') if _sp.endswith('_zhi')
+                                else GAN_WX.get(gans[_si], ''))
+                    _shi = bool(_swx) and (
+                        sum(1 for g in gans if GAN_WX.get(g) == _swx)
+                        + sum(1 for j in range(4)
+                              if zhis[j] not in _kw_zhis
+                              and ZHI_WX.get(zhis[j]) == _swx)) >= 2
+                    if not _shi:
+                        details.append(
+                            f'官杀藏{PILLAR_NAMES_CN[i]}支{zhis[i]}仅被单方触及且'
+                            '制方无势（孤军触及非围制，制不死/不得权），不立藏杀被制'
+                            '（50qi:16 01造；yanjiu:7792-7796 处级-2「火与燥土之势…'
+                            '形成匪制」）')
+                        continue
                 has_guansha = True
                 # 藏杀被制=制杀得权，入官命组合（K3-294官命批：旧仅置
                 # has_guansha，藏杀被制为唯一官结构时判非官——yx-厅级-2
@@ -401,6 +436,54 @@ def classify_guanming_combo(
                         f'{key}（纯宾位做功，无主的字参与，书规则三须有'
                         '主位的字，不立官命）')
                     break
+                # 批S2-01④：财制印「宾制主+制方财支藏官杀」不立——宾位之财带杀气
+                # （财支藏干含官杀）制主位之印（我之权柄）=外财带杀夺我权，非得权
+                # （zhenbao-01 戌宾财藏辛杀制亥主印，书明言「戌为忌神中含七杀主
+                # 官司」50qi:16——官司/破财机制非官命做功）；财制印得官书锚皆不
+                # 命中（ans46 行长纯宾位 shouke:2112、cj-处级-5 制方居主 chuji:5631、
+                # cj-5536 丞相主制主、yx-3290 制方酉藏辛非官杀、岳飞未无金、
+                # 厅级-2 未无金、蒋介石由藏杀被制腿兜底）。
+                if pkey == '财制印' and direction == '宾制主' \
+                        and from_pos.endswith('_zhi'):
+                    _fi2 = PILLAR_KEYS.index(from_pos.split('_')[0])
+                    if guan_wx and any(
+                            GAN_WX.get(cg) == guan_wx
+                            for cg, _ in get_canggan_mangpai(zhis[_fi2])):
+                        details.append(
+                            f'{key}（宾制主）：宾位财支{zhis[_fi2]}藏官杀，'
+                            '财带杀气制主位之印=外财夺我权（失非得），不立官命'
+                            '（50qi:16「戌为忌神中含七杀主官司」；得官书锚 '
+                            'ans46/处级-5/5536/yx-3290 皆不命中）')
+                        break
+                # 批S2-01②③：印↔伤食互战收口——②印制伤食「护官自反」：被制伤食支
+                # 藏干含官杀且与制方互战（存在反向非辅助制/合制动作）者，制伤食=
+                # 连官并制，护官不成（01 亥克巳、巳藏庚官且巳亥互冲）；反锚
+                # reg67-市长（被制午藏丁己无金）/cj-县长（亥藏壬甲无火）/岳飞
+                # （子克巳、巳无反向动作）皆不伤。③伤食制印「同源裁断」：制方
+                # 伤食支藏官杀且互战者，官随伤动与印互战，「去印得权」不立
+                # （01 巳藏庚冲亥、亥亦克巳；县委书记/市长同盘制方午藏丁己无金）。
+                if pkey in ('印制伤食', '伤食制印'):
+                    _ss_pos = to_pos if pkey == '印制伤食' else from_pos
+                    if _ss_pos.endswith('_zhi'):
+                        _si = PILLAR_KEYS.index(_ss_pos.split('_')[0])
+                        if guan_wx and any(
+                                GAN_WX.get(cg) == guan_wx
+                                for cg, _ in get_canggan_mangpai(zhis[_si])):
+                            _back = any(
+                                (not a2.get('auxiliary'))
+                                and a2.get('from_pos') == to_pos
+                                and a2.get('to_pos') == from_pos
+                                and (a2.get('type') in _ZHI_CONTROL
+                                     or a2.get('type') in _HE_CONTROL)
+                                for a2 in wa)
+                            if _back:
+                                details.append(
+                                    f'{key}：伤食支{zhis[_si]}藏官杀且两造互战'
+                                    '（护官自反/同源裁断：制伤食=连官并制、'
+                                    '官随伤动，非做功得权），不立官命'
+                                    '（50qi:16 01造巳亥互冲；反锚市长/县长/'
+                                    '岳飞不伤）')
+                                break
                 # G1：劫刃制财属财命域模式，不计入官命组合；
                 # 例外：比劫孤（<=1，不结党非劫夺——参 R1 比劫2柱口径）且官杀
                 # 有根（>=2）者，制财为「我取财」非争财，仍计入（日禄归时贵命例）
