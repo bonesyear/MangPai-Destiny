@@ -46,7 +46,7 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.constants import (
-    GAN_WX, ZHI_WX, WX_KE, WX_SHENG, TIAN_GAN_HE,
+    GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG, TIAN_GAN_HE,
     LIU_CHONG, XING_PAIRS, SAN_HE, BAN_HE, LIU_HAI, LIU_HE, LU, TOMB_MAP,
 )
 from mangpai.objective.shishen import wx_cat as _wx_cat
@@ -958,6 +958,74 @@ def detect_jishen_zhiyongshen(
         'severity': severity, 'strength': strength,
         'hits': hits, 'reason': reason,
     }
+
+
+def detect_cangguan_tongguan(
+    day_gan: str, gans: List[str], zhis: List[str],
+) -> Dict:
+    """藏官出库暗合·官星通关检测（R2 财坏印化解，财命专批）。
+
+    书证 mingli-zhenbao-50qi:494-496（第14期 刘XX 乙未/丙戌/甲子/乙亥）：
+    「辛金不明现，暗藏在戌中又被未土刑开，丙辛暗合」；「因未戌之刑戌开库，
+    辛会出库，它们同在柱就会合」；「它又是忌神，弱忌神被合去主吉，而戌土之
+    财是通过丙辛之暗合取得的」——财库藏官、库被刑冲开而出库、与同柱食伤
+    暗合（书「同在柱就会合」）。官星居财印之间（财生官、官生印）通关，
+    财不直坏印；书判富（卖身起家/靠权赚钱，「内生财」）。
+
+    判据四腿俱中（任一不备即不成立）：
+      1. 支为日主之财，且该支为财五行之墓库（戌为土墓=甲木财库）；
+      2. 库中藏干有官杀（辛在戌为中气）；
+      3. 同局另有支与之刑/冲（未戌刑开库；口径同 muku「冲、刑皆可开库」）；
+      4. 藏官与本柱天干为天干五合，且该天干为日主之食伤（丙合辛，书
+         「同在柱就会合」）——食伤为财之原神、合去弱忌神，「内生财」。
+
+    仅作 R2 财坏印的化解判据（caiming 封顶链消费）；R2 检出本身不变。
+
+    Returns:
+        {'detected': bool, 'hits': [str], 'reason': str}
+    """
+    out: Dict = {'detected': False, 'hits': [], 'reason': ''}
+    if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
+        return out
+    dw = GAN_WX.get(day_gan, '')
+    guan_wx = WX_KE_ME.get(dw, '')
+    cai_wx = WX_KE.get(dw, '')
+    if not (guan_wx and cai_wx):
+        return out
+    hits: List[str] = []
+    for i, z in enumerate(zhis):
+        if not z or ZHI_WX.get(z, '') != cai_wx or z not in TOMB_MAP:
+            continue
+        if cai_wx not in (TOMB_MAP.get(z) or []):
+            continue
+        cangs = [cg for cg, _qi in get_canggan_mangpai(z)
+                 if GAN_WX.get(cg, '') == guan_wx]
+        if not cangs:
+            continue
+        opener = ''
+        for j, z2 in enumerate(zhis):
+            if j == i or not z2:
+                continue
+            if (z, z2) in LIU_CHONG or (z2, z) in LIU_CHONG:
+                opener = f'{z2}冲'
+                break
+            if not opener and ((z, z2) in XING_PAIRS or (z2, z) in XING_PAIRS):
+                opener = f'{z2}刑'
+        if not opener:
+            continue
+        he_gan = TIAN_GAN_HE.get(gans[i], '')
+        if not he_gan or _wx_cat(dw, GAN_WX.get(gans[i], '')) != '食伤':
+            continue
+        for cg in cangs:
+            if cg != he_gan:
+                continue
+            hits.append(f'{z}藏{cg}官，{opener}开库，同柱{gans[i]}(食伤)暗合{cg}')
+            break
+    if hits:
+        out['detected'] = True
+        out['hits'] = hits
+        out['reason'] = '藏官出库暗合：' + '；'.join(hits)
+    return out
 
 
 def _zhuqi_cat_count(

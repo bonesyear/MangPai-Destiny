@@ -81,7 +81,7 @@ from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 from mangpai.subjective.gongliang import analyze_gongliang
 from mangpai.subjective.yongshen import (
     assess_direction_signals, _LIUHE_VICTIMS,
-    classify_strength, classify_cong_target,
+    classify_strength, classify_cong_target, detect_cangguan_tongguan,
 )
 
 _logger = logging.getLogger(__name__)
@@ -1924,19 +1924,39 @@ def assess_caiming_level(
     # 段氏功量层只判「做了什么」，凶向反哺「该不该做」：制用神/反局破财不得
     # 记为富（如第9期比劫夺财清家荡产、第8期贪财坐牢、忌神制用神/用神被合绊
     # 则财源断而难富；财星反局书明文「财大凶…非常穷」，A15 severe 化）。
+    # 例外（财命专批）：唯一凶向=R2 财坏印 severe 而命有藏官出库暗合通关者
+    # 不封顶——书第14期「辛官出库、丙辛暗合」，官星通关（财生官、官生印）
+    # 合去坏印之力，财路不被切断，书判富（zhenbao:494-496，内生财）。
+    # 仅此一支豁免：反局/破财/原局凶向/R3 任一在档仍照旧封顶。
+    _r2 = ds.get('jishen_zhiyongshen') or {}
+    _tg: Dict = {}
+    if (ds.get('yongshen_xiong')
+            and not (ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai')
+                     or ds.get('mingju_xiong'))
+            and not (ds.get('heban_yongshen') or {}).get('detected')
+            and _r2.get('detected') and _r2.get('kind') == '财坏印'
+            and _r2.get('severity') == 'severe'):
+        _tg = detect_cangguan_tongguan(day_gan, gans or [], zhis or [])
+    _r2_tongguan = bool(_tg.get('detected'))
     if ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai') \
             or ds.get('yongshen_xiong') or ds.get('mingju_xiong'):
         cap = 1 if (ds.get('pocai_severe') or ds.get('mingju_xiong_severe')
                     or ds.get('fanju_caixing')) else 2
-        if tier_idx > cap:
-            tier_idx = cap
-            sev = '严重' if cap == 1 else '一般'
-            adjust = (adjust + '；' if adjust != '持平' else '') + \
-                f'下浮封顶{cap}阶（{sev}凶向：' + '；'.join(ds.get('reasons') or []) + '）'
-        # 富档跟随凶向（避免坐牢破财仍标千万-亿级荒谬）：凶向命中即抹富档——
-        # 阶位被压者自不待言，本在低位者（乞丐/清家荡产）亦不标百万级；
-        # 岁运反局（全量轨）同口径。
-        wealth_grade = ''
+        if _r2_tongguan:
+            if tier_idx > cap:
+                adjust = (adjust + '；' if adjust != '持平' else '') + \
+                    '官星通关不封顶（' + _tg.get('reason', '藏官出库暗合') + \
+                    '；财生官、官生印，财坏印之力被合去）'
+        else:
+            if tier_idx > cap:
+                tier_idx = cap
+                sev = '严重' if cap == 1 else '一般'
+                adjust = (adjust + '；' if adjust != '持平' else '') + \
+                    f'下浮封顶{cap}阶（{sev}凶向：' + '；'.join(ds.get('reasons') or []) + '）'
+            # 富档跟随凶向（避免坐牢破财仍标千万-亿级荒谬）：凶向命中即抹富档——
+            # 阶位被压者自不待言，本在低位者（乞丐/清家荡产）亦不标百万级；
+            # 岁运反局（全量轨）同口径。
+            wealth_grade = ''
     # T-教授条款（日支穿月令财 → 封顶小康）：穿了月令财=日主与财星无缘，纵有
     # 制财结构/官统财上浮亦发不了大财。书锚：chuji:2379-2384「为月令的财被坐支穿
     # …此造是制财结构，财还是可以的，教授，收入还可以」+chuji:3678-3681「穿了

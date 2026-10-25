@@ -358,3 +358,51 @@ class TestS2Zb14bTierAnchor:
     def test_zb14b_direction_xiong(self):
         d = assess_direction_signals('戊', self.GANS, self.ZHIS)
         assert d['direction'] == '凶'
+
+
+class TestCaihuaiyinTongguanCap:
+    """财命专批（2026-10-25）：R2 财坏印 severe 的「藏官出库暗合」通关豁免
+    （仅 caiming 封顶链；R2 检出不变）。
+
+    书证 mingli-zhenbao-50qi:494-496（第14期 刘XX 乙未/丙戌/甲子/乙亥）：
+    「辛金不明现，暗藏在戌中又被未土刑开，丙辛暗合」「因未戌之刑戌开库，
+    辛会出库」「弱忌神被合去主吉，而戌土之财是通过丙辛之暗合取得的」——
+    官星通关（财生官、官生印）/合去坏印之力，财路不被坏印切断，书判富
+    （卖身起家/靠权赚钱）。反锚：无通关的 R2 财坏印 severe 照旧封顶小康。
+    """
+
+    # 第14期 刘XX：乙未 丙戌 甲子 乙亥（坤）
+    GANS = ['乙', '丙', '甲', '乙']
+    ZHIS = ['未', '戌', '子', '亥']
+
+    def test_14a_tier_fu_not_capped(self):
+        r = analyze_caiming('甲', self.GANS, self.ZHIS)
+        assert r['tier_static'] == '富'
+        assert '下浮封顶' not in r['summary_static']
+        assert '官星通关' in r['level_static']['adjust']
+
+    def test_reverse_anchor_no_tongguan_capped(self):
+        # reg67-甲子地矿局长 癸甲戊癸/巳子午亥：R2 财坏印 severe（财2处），
+        # 局无「财库藏官出库暗合」-> 照旧封顶小康
+        r = analyze_caiming('戊', ['癸', '甲', '戊', '癸'],
+                            ['巳', '子', '午', '亥'])
+        assert r['tier_static'] == '小康'
+        assert '下浮封顶2阶' in r['summary_static']
+
+    def test_only_xiong_source_exempted(self):
+        # 豁免只对「唯一凶向=R2 财坏印 severe」成立：通关之外另有反局/
+        # 原局凶向/R3 者，照旧封顶小康
+        ds = assess_direction_signals('甲', self.GANS, self.ZHIS)
+        cv = classify_caifu_view('甲', self.GANS, self.ZHIS)
+        gl = {'level': 2, 'gong_points': 2.5, 'penalty': None, 'wealth_grade': ''}
+        base = assess_caiming_level('甲', self.GANS, self.ZHIS, dict(gl), cv,
+                                    direction_signals=ds)
+        assert base['tier'] == '富'
+        for key in ('fanju', 'mingju_xiong'):
+            lv = assess_caiming_level('甲', self.GANS, self.ZHIS, dict(gl), cv,
+                                      direction_signals=dict(ds, **{key: True}))
+            assert lv['tier'] == '小康'
+        lv = assess_caiming_level(
+            '甲', self.GANS, self.ZHIS, dict(gl), cv,
+            direction_signals=dict(ds, heban_yongshen={'detected': True}))
+        assert lv['tier'] == '小康'

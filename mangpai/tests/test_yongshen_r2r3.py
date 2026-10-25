@@ -14,6 +14,7 @@ import pytest
 
 from mangpai.subjective.yongshen import (
     assess_direction_signals,
+    detect_cangguan_tongguan,
     detect_heban_yongshen,
     detect_jishen_zhiyongshen,
     direction_brief,
@@ -82,6 +83,46 @@ class TestR2JishenZhiyongshen:
         r2 = detect_jishen_zhiyongshen('甲', ['癸', '乙', '甲', '己'],
                                        ['未', '卯', '子', '巳'])
         assert r2['detected'] and r2['kind'] == '印夺食'
+
+
+# ───────────── R2 财坏印·藏官出库暗合通关（财命专批 2026-10-25）─────────────
+
+class TestR2CangguanTongguan:
+    """R2 财坏印「藏官出库暗合」通关检测（财命专批）。
+
+    书证 mingli-zhenbao-50qi:494-496（第14期 刘XX 乙未/丙戌/甲子/乙亥）：
+    「辛金不明现，暗藏在戌中又被未土刑开，丙辛暗合」「因未戌之刑戌开库，
+    辛会出库，它们同在柱就会合」「弱忌神被合去主吉，而戌土之财是通过丙辛
+    之暗合取得的」——财库藏官、库被刑冲开、同柱食伤暗合，官星居财印之间
+    （财生官、官生印）通关，财不直坏印。豁免仅落 caiming 消费侧，R2 检出
+    本身不变（官命/职业等方向标注面不受影响）。
+    """
+
+    GANS = ['乙', '丙', '甲', '乙']
+    ZHIS = ['未', '戌', '子', '亥']
+
+    def test_14a_cangguan_chuku_anhe_detected(self):
+        r = detect_cangguan_tongguan('甲', self.GANS, self.ZHIS)
+        assert r['detected']
+        assert '辛' in r['reason'] and '丙' in r['reason']
+
+    def test_needs_ku_opened_by_xing_chong(self):
+        # 戌为财库藏辛、同柱丙暗合，但局无刑/冲开库（午戌只半合）-> 不成立
+        r = detect_cangguan_tongguan('甲', ['乙', '丙', '甲', '乙'],
+                                     ['午', '戌', '子', '亥'])
+        assert not r['detected']
+
+    def test_needs_same_pillar_he(self):
+        # 未戌刑开库，然丙在年干、戌在月支（不同柱）——书「同在柱就会合」不成立
+        r = detect_cangguan_tongguan('甲', ['丙', '乙', '甲', '乙'],
+                                     ['未', '戌', '子', '亥'])
+        assert not r['detected']
+
+    def test_r2_detection_unchanged(self):
+        # 豁免在消费侧：R2 财坏印 severe 仍照常检出
+        r = detect_jishen_zhiyongshen('甲', self.GANS, self.ZHIS)
+        assert r['detected'] and r['kind'] == '财坏印'
+        assert r['severity'] == 'severe'
 
 
 # ───────────────────── R3 用神被合绊 ─────────────────────
