@@ -49,3 +49,6 @@ mangpai/docs/book-index/*
 /docs/chuangong-spec.md
 /docs/zhengminsheng-shipaige-fragments.md
 /docs/五行精纪.txt
+
+# 工具目录（不入库）
+.kimi-work/
