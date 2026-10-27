@@ -54,6 +54,49 @@ def test_blind_eval_engine_error_exit_nonzero(monkeypatch):
     assert exc.value.code == 1
 
 
+@pytest.mark.parametrize('relative,args', [
+    ('mangpai/tests/calib_assertions.py', []),
+    ('mangpai/tests/heldout/blind_eval.py', ['--diff', 'latest', 'latest']),
+    ('mangpai/tests/backtest/regression67.py', []),
+    ('mangpai/tests/backtest/regression_famous.py', []),
+])
+def test_cli_utf8_default_console(relative, args):
+    import subprocess
+
+    env = os.environ.copy()
+    env.pop('PYTHONIOENCODING', None)
+    env['PYTHONUTF8'] = '0'
+    r = subprocess.run([sys.executable, os.path.join(_REPO, relative), *args],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace',
+                       env=env, timeout=120)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_verify_mangpai_reports_only_known_xfail():
+    import subprocess
+
+    env = os.environ.copy()
+    env.pop('PYTHONIOENCODING', None)
+    env['PYTHONUTF8'] = '0'
+    r = subprocess.run([sys.executable, os.path.join(_REPO, 'mangpai', 'verify_mangpai.py')],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace',
+                       env=env, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert '验证结果: 401 passed, 0 failed, 1 xfailed, total 402' in r.stdout
+
+
+def test_famous_r7_regressions_are_explicit_pending():
+    import subprocess
+
+    r = subprocess.run([sys.executable,
+                        os.path.join(_REPO, 'mangpai/tests/backtest/regression_famous.py')],
+                       capture_output=True, text=True, encoding='utf-8', errors='replace',
+                       timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert '预期未决（R7，2）' in r.stdout
+    assert 'REGRESSION (' not in r.stdout
+
+
 def test_verify_layer3_compute_error_exit_nonzero(monkeypatch):
     """verify_layer3_checkpoint A 环节：compute_all 异常 → 退出码非 0。"""
     monkeypatch.setattr(MangpaiEngine, 'compute_all', _boom)
@@ -93,3 +136,93 @@ def test_verify_heldout_compute_error_exit_nonzero(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         runpy.run_path(_VERIFY_HELDOUT, run_name='__main__')
     assert exc.value.code == 1
+
+
+@pytest.mark.parametrize('script', ['regression67.py', 'regression_famous.py'])
+def test_regression_missing_baseline_exit_nonzero(script, tmp_path):
+    """回归 runner：指定基线不存在时必须失败，不能仅打印当前判定后假绿。"""
+    import subprocess
+
+    env = os.environ.copy()
+    env['PYTHONIOENCODING'] = 'utf-8'
+    r = subprocess.run(
+        [sys.executable, os.path.join(_HERE, 'backtest', script),
+         str(tmp_path / 'missing-baseline.json')],
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        env=env, timeout=60,
+    )
+    assert r.returncode != 0
+    assert 'baseline 不存在' in r.stdout + r.stderr
+
+
+def test_verify_all_propagates_pytest_failure(tmp_path):
+    """verify_all：任一 pytest 失败必须传到总退出码，不能被后续成功命令掩盖。"""
+    import shutil
+    import subprocess
+
+    if shutil.which('bash') is None:
+        pytest.skip('verify_all.sh 需要 bash')
+    fake_python = tmp_path / 'fake-python'
+    fake_python.write_text(
+        '#!/bin/bash\n'
+        'if [[ "$1" == "-m" && "$2" == "pytest" ]]; then\n'
+        '  echo "injected pytest failure"\n'
+        '  exit 1\n'
+        'fi\n'
+        'case "$1" in\n'
+        '  *verify_*.py) echo "验证结果: 420 passed, 0 failed" ;;\n'
+        '  *regression67.py|*regression_famous.py|*calib_assertions.py)\n'
+        '    echo "TOTAL: ✅0 ⚠️0 ❌0" ;;\n'
+        'esac\n'
+        'exit 0\n',
+        encoding='utf-8',
+    )
+    fake_python.chmod(0o755)
+    env = os.environ.copy()
+    env['PYTHON'] = str(fake_python)
+    env['PYTHONIOENCODING'] = 'utf-8'
+    r = subprocess.run(
+        ['bash', os.path.join(_HERE, 'backtest', 'verify_all.sh')],
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        env=env, timeout=30,
+    )
+    assert r.returncode != 0
+    assert 'injected pytest failure' in r.stdout + r.stderr
+
+
+def test_verify_all_propagates_verify_failure(tmp_path):
+    """verify_all：命令替换中的 verify 失败也必须传到总退出码。"""
+    import shutil
+    import subprocess
+
+    if shutil.which('bash') is None:
+        pytest.skip('verify_all.sh 需要 bash')
+    fake_python = tmp_path / 'fake-python'
+    fake_python.write_text(
+        '#!/bin/bash\n'
+        'if [[ "$1" == *verify_mangpai.py ]]; then\n'
+        '  echo "验证结果: injected verify failure"\n'
+        '  exit 1\n'
+        'fi\n'
+        'if [[ "$1" == "-m" && "$2" == "pytest" ]]; then\n'
+        '  echo "1453 passed"\n'
+        '  exit 0\n'
+        'fi\n'
+        'case "$1" in\n'
+        '  *verify_*.py) echo "验证结果: 420 passed, 0 failed" ;;\n'
+        '  *regression67.py|*regression_famous.py|*calib_assertions.py)\n'
+        '    echo "TOTAL: ✅0 ⚠️0 ❌0" ;;\n'
+        'esac\n'
+        'exit 0\n',
+        encoding='utf-8',
+    )
+    fake_python.chmod(0o755)
+    env = os.environ.copy()
+    env['PYTHON'] = str(fake_python)
+    env['PYTHONIOENCODING'] = 'utf-8'
+    r = subprocess.run(
+        ['bash', os.path.join(_HERE, 'backtest', 'verify_all.sh')],
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        env=env, timeout=30,
+    )
+    assert r.returncode != 0

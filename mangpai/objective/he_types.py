@@ -11,9 +11,9 @@ he_types - 盲派合的类型细分
     闭气：六合闭住墓库藏干（子丑闭丑金、辰酉闭辰水、午未闭未木、卯戌闭戌火）
     合去：某一字太弱（周围克泄交加），合即被去（消失）
 
-  天干五合：日干与月干/时干相合，按生克分合财/合官/合
-  合化：天干五合化气（相邻+月令为化气五行+无克破+无争合）
+  天干五合：按生克分合财/合官/合，只合不化（初级:2663）
   三合局/半合：三字齐现成局 / 相邻二字半合（气未全）
+  拱局：亥未拱木、寅戌拱火、巳丑拱金、申辰拱水（理象学:2498）
   暗合：寅丑、午亥、卯申（盲派独有，主暗中往来；仅三对，初级:3218 排他）
 
 多重属性并报：六合常兼具多种属性（子丑=合克+闭气、辰酉=合伤+闭气、
@@ -27,8 +27,10 @@ from typing import Dict, List, Optional, Tuple
 
 from mangpai.objective.constants import (
     ZHI_WX, WX_KE_ME, WX_KE, LIU_HE, TIAN_GAN_HE, GAN_WX,
-    HUA_YONG_MAP, SAN_HE, BAN_HE, AN_HE, BI_QI,
+    SAN_HE, BAN_HE, AN_HE, BI_QI, PILLAR_KEYS,
 )
+from mangpai.objective.bazi_calc import get_di_zhi_relations
+from mangpai.objective.muku import sanhe_tomb_priority
 
 # 六合中带克（合克/合制）：双向各存一份便于查表
 _HE_KE: Dict[str, str] = {
@@ -113,43 +115,6 @@ def _gan_he_sub_type(day_gan: str, other_gan: str) -> str:
     return '合'
 
 
-def _try_hua(
-    day_gan: str, other_gan: str, other_idx: int,
-    gans: List[str], zhis: List[str], zheng_he: bool,
-) -> Optional[Tuple[str, str]]:
-    """天干五合化气判定（条件与 zuogong 合化一致）。
-
-    合化条件：
-      1) 两干相邻（日干索引2，相邻即月干1/时干3；年干0隔位不合化）
-      2) 月令为化气五行
-      3) 无克破（天干+地支均不可有克化气之五行；月令为化气之地不参与克破）
-      4) 无争合（两个或以上相同天干与日干合则不化）
-    成功返回 (化气五行, desc)，否则 None。
-    """
-    if zheng_he or abs(other_idx - 2) != 1:
-        return None
-    hua_wx = HUA_YONG_MAP.get((day_gan, other_gan))
-    if not hua_wx:
-        return None
-    if ZHI_WX.get(zhis[1], '') != hua_wx:  # 月令非化气五行
-        return None
-
-    ke_hua_wx = WX_KE_ME.get(hua_wx, '')
-    # 地支克破检查（月令为化气之地，不参与克破）
-    for j, z in enumerate(zhis):
-        if j == 1 or not z:
-            continue
-        if ZHI_WX.get(z, '') == ke_hua_wx:
-            return None
-    # 天干克破检查（跳过合化两方：日干2与other_idx）
-    for j, g in enumerate(gans):
-        if j == 2 or j == other_idx or not g:
-            continue
-        if GAN_WX.get(g, '') == ke_hua_wx:
-            return None
-    return hua_wx, f'{day_gan}{other_gan}合化{hua_wx}，月令{zhis[1]}为{hua_wx}气，无克破'
-
-
 def _ban_he_wx(a: str, b: str) -> Optional[str]:
     """半合五行（生旺/旺墓相邻对）；非半合返回 None。"""
     pair = f'{a}{b}'
@@ -161,22 +126,14 @@ def _ban_he_wx(a: str, b: str) -> Optional[str]:
     return None
 
 
-def _classify_gan_he(
-    gans: List[str], zhis: List[str], results: List[Dict],
-) -> None:
-    """天干五合（日干合）及合化判定。
-
-    天干五合：日干与所合之干（年/月/时干均可）相合，按生克分合财/合官/合。
-    合化：仅相邻（月干/时干）且满足月令+无克破+无争合方化（详见 _try_hua），
-          年干隔位可合但不化。与 zuogong 天干合/合化口径一致。
-    """
+def _classify_gan_he(gans: List[str], results: List[Dict]) -> None:
+    """天干五合只分合财/合官/合；初级:2663 明言不讲合化。"""
     day_gan = gans[2]
     if not day_gan:
         return
     he_gan = TIAN_GAN_HE.get(day_gan, '')
     if not he_gan:
         return
-    # 争合：两个或以上相同天干与日干合 -> 不化
     zheng_he = sum(1 for g in gans if g and g == he_gan) >= 2
 
     for i, gan in enumerate(gans):
@@ -191,15 +148,6 @@ def _classify_gan_he(
             'to': f'{_GAN_PILLAR_NAMES[i]}({gan})',
             'desc': f'{day_gan}{gan}合，{sub}' + ('（争合）' if zheng_he else ''),
         })
-        hua = _try_hua(day_gan, gan, i, gans, zhis, zheng_he)
-        if hua:
-            hua_wx, desc = hua
-            results.append({
-                'he_type': '合化',
-                'from': f'日干({day_gan})',
-                'to': f'{_GAN_PILLAR_NAMES[i]}({gan})',
-                'desc': desc,
-            })
 
 
 def classify_he_types(
@@ -209,8 +157,7 @@ def classify_he_types(
 ) -> Dict:
     """对四柱中的合进行分类。
 
-    覆盖五类合：地支六合（合绊/合克·合制/合伤/闭气/合去）、天干五合
-    （合财/合官/合）、合化、三合局/半合、暗合。
+    覆盖地支六合、天干五合、三合局/半合、拱局与暗合；天干五合不讲合化。
 
     六合多重属性并报：子丑(合克+闭气)、辰酉(合伤+闭气)、卯戌(合克+闭气)
     等以独立 if 判定并报，不以 elif 互斥；合去为特例，弱方既去则不论克/伤/闭气。
@@ -220,7 +167,7 @@ def classify_he_types(
         year_zhi: 年支
         month_zhi: 月支
         hour_zhi: 时支
-        year_gan: 年干（可选，提供后启用天干五合/合化判定）
+        year_gan: 年干（可选，提供后启用天干五合判定，只合不化）
         month_gan: 月干（可选）
         day_gan: 日干（可选）
         hour_gan: 时干（可选）
@@ -257,19 +204,19 @@ def classify_he_types(
                         'desc': desc,
                     })
 
-    # ── 天干五合 / 合化（需天干）──
+    # ── 天干五合（只合不化）──
     if any(gans):
-        _classify_gan_he(gans, zhis, results)
+        _classify_gan_he(gans, results)
 
-    # ── 三合局 / 半合 ──
-    # 三字齐现 -> 成局成势；二字相邻（生旺/旺墓）-> 半合（气未全）；
-    # 二字为生墓两端（如寅戌）非半合，不论
+    # ── 三合局 / 半合：原始事实同源，多而墓按直接书例优先 ──
+    raw = get_di_zhi_relations(zhis)
     zhis_set = set(all_zhis)
     for group, wx in SAN_HE.items():
+        if sanhe_tomb_priority(group, zhis, gans):
+            continue
         members = list(group)
         present = [m for m in members if m in zhis_set]
-        if len(present) == len(members):
-            # 成局：三合三字齐现、或四库会局四字齐现 -> 化该五行之气成势
+        if len(present) == len(members) and (len(members) > 3 or group in raw['三合']):
             positions = [(m, zhis.index(m)) for m in members]
             parts = [f'{_ZHI_PILLAR_NAMES[idx]}({m})' for m, idx in positions]
             results.append({
@@ -281,7 +228,8 @@ def classify_he_types(
         elif len(present) == 2:
             a, b = present[0], present[1]
             wx_ban = _ban_he_wx(a, b)
-            if wx_ban:
+            if wx_ban and any({r['from']['zhi'], r['to']['zhi']} == {a, b}
+                              for r in raw['半三合']):
                 ia, ib = zhis.index(a), zhis.index(b)
                 results.append({
                     'he_type': '半合',
@@ -289,6 +237,18 @@ def classify_he_types(
                     'to': f'{_ZHI_PILLAR_NAMES[ib]}({b})',
                     'desc': f'{a}{b}半合{wx_ban}局，气未全',
                 })
+
+    # ── 拱局（关系/取象事实，不直接判做功）──
+    for record in raw['拱局']:
+        a, b = record['from']['zhi'], record['to']['zhi']
+        ia = PILLAR_KEYS.index(record['from']['pillar'])
+        ib = PILLAR_KEYS.index(record['to']['pillar'])
+        results.append({
+            'he_type': '拱局',
+            'from': f'{_ZHI_PILLAR_NAMES[ia]}({a})',
+            'to': f'{_ZHI_PILLAR_NAMES[ib]}({b})',
+            'desc': f'{a}{b}拱{record["wuxing"]}局',
+        })
 
     # ── 暗合 ──
     # 寅丑、午亥、卯申（仅三对，初级:3218 排他）；双向表，i<j 遍历避免重复

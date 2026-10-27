@@ -27,13 +27,13 @@ from mangpai.objective.constants import (
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, LIU_PO,
     XING_PAIRS, AN_HE, SAN_HE, BAN_HE,
     TOMB_MAP, LU, PILLAR_KEYS, PILLAR_NAMES_CN,
-    SI_SHENG, SI_ZHENG, DI_ZHI, HUA_YONG_MAP, BI_QI,
+    SI_SHENG, SI_ZHENG, DI_ZHI, BI_QI,
 )
 from mangpai.objective.bazi_calc import GAN, ZHI  # 天干/地支序列表（唯一定义处）
 from mangpai.objective.changsheng import get_changsheng_mangpai
 from mangpai.objective.muku import TOMB_MAP as _TOMB_MAP
 from mangpai.objective.shensha import _YANG_REN_FULL
-from mangpai.objective._relation_utils import pair_in
+from mangpai.objective._relation_utils import pair_in, is_work_xing, GONG_JU
 from mangpai.objective.shishen import shishen_of as _compute_shishen
 
 _YANG_GANS = set('甲丙戊庚壬')
@@ -55,14 +55,8 @@ def _analyze_gan_relations(
     dy_gan: str,
     natal_gans: List[str],
     day_gan: str,
-    month_zhi: str = '',
 ) -> List[Dict]:
-    """分析大运天干与命局天干的关系。
-
-    日干（i==2 的日主自身）跳过：运干与日主的十神定位由 tiyong_import 专管，
-    运干合/克日主不再入 relations（此前此处为死 pass，过滤从未生效——M2 修复）。
-    month_zhi 用于天干合化气的月令验证（见 _check_hua）。
-    """
+    """分析大运天干与命局天干的关系；天干五合只讲合，不附加化气。"""
     relations: List[Dict] = []
     dy_wx = GAN_WX.get(dy_gan, '')
 
@@ -73,14 +67,12 @@ def _analyze_gan_relations(
         ng_wx = GAN_WX.get(ng, '')
 
         if TIAN_GAN_HE.get(dy_gan) == ng:
-            he_wx = _check_hua(dy_gan, ng, month_zhi)
             relations.append({
                 'type': '天干合',
                 'target': ng,
                 'target_pos': f'{PILLAR_KEYS[i]}_gan',
                 'target_pillar': _PILLAR_LABELS[i],
-                'hua': he_wx,
-                'desc': f'大运{dy_gan}合{ng}（{_PILLAR_LABELS[i]}）' + (f'化{he_wx}' if he_wx else ''),
+                'desc': f'大运{dy_gan}合{ng}（{_PILLAR_LABELS[i]}）',
             })
         elif dy_wx and ng_wx and WX_KE.get(dy_wx) == ng_wx and TIAN_GAN_HE.get(dy_gan) != ng:
             relations.append({
@@ -100,19 +92,6 @@ def _analyze_gan_relations(
             })
 
     return relations
-
-
-def _check_hua(a: str, b: str, month_zhi: str = '') -> str:
-    """检查天干合是否能化（验月令：化气五行须当令方论化）。
-
-    与 zuogong_detect 原局合化 gate 同口径：月令主气五行 == 化气五行，方标
-    化气；否则合而不化（返回 ''）。month_zhi 缺省时保守不标化（旧行为不验
-    月令直接标化气，属口径缺陷——M2 修复）。
-    """
-    hua_wx = HUA_YONG_MAP.get((a, b), '')
-    if not hua_wx or not month_zhi:
-        return ''
-    return hua_wx if ZHI_WX.get(month_zhi, '') == hua_wx else ''
 
 
 def _analyze_zhi_relations(
@@ -162,6 +141,7 @@ def _analyze_zhi_relations(
                 'target': nz,
                 'target_pos': f'{PILLAR_KEYS[i]}_zhi',
                 'target_pillar': _PILLAR_LABELS[i],
+                'relation_only': not is_work_xing(dy_zhi, nz, natal_zhis + [dy_zhi]),
                 'desc': f'大运{dy_zhi}刑{nz}（{_PILLAR_LABELS[i]}）' + ('（自刑）' if is_zi_xing else ''),
             })
 
@@ -171,6 +151,7 @@ def _analyze_zhi_relations(
                 'target': nz,
                 'target_pos': f'{PILLAR_KEYS[i]}_zhi',
                 'target_pillar': _PILLAR_LABELS[i],
+                'relation_only': True,
                 'desc': f'大运{dy_zhi}破{nz}（{_PILLAR_LABELS[i]}）',
             })
 
@@ -215,9 +196,11 @@ def _analyze_zhi_relations(
             present = [z for z in natal_zhis if z and z in combo and z != dy_zhi]
             if len(present) >= 1:
                 missing = [z for z in combo if z != dy_zhi and z not in present]
-                # 成局：命局凑齐 combo 余下全部成员（dy + len(combo)-1 字）；
-                # 三合即 dy+2 字、四库会即 dy+3 字；不足则半合
                 formed = len(present) >= len(combo) - 1
+                if not formed and len(present) == 1:
+                    pair = dy_zhi + present[0]
+                    if GONG_JU.get(pair) or GONG_JU.get(pair[::-1]):
+                        continue  # 生墓两端归拱局，不误报半合
                 relations.append({
                     'type': '三合局' if formed else '半合',
                     'target': '、'.join(present),
@@ -229,6 +212,19 @@ def _analyze_zhi_relations(
                     'desc': f'大运{dy_zhi}与{"、".join(present)}{"成" if formed else "半"}{wx}局'
                             + (f'（缺{missing[0]}）' if not formed and missing else ''),
                 })
+
+    for i, nz in enumerate(natal_zhis):
+        if not nz:
+            continue
+        gong_wx = GONG_JU.get(dy_zhi + nz) or GONG_JU.get(nz + dy_zhi)
+        if gong_wx:
+            relations.append({
+                'type': '拱局', 'target': nz,
+                'target_pos': f'{PILLAR_KEYS[i]}_zhi',
+                'target_pillar': _PILLAR_LABELS[i],
+                'wuxing': gong_wx, 'relation_only': True,
+                'desc': f'大运{dy_zhi}与{nz}拱{gong_wx}局（{_PILLAR_LABELS[i]}）',
+            })
 
     return relations
 
@@ -588,10 +584,7 @@ def _analyze_pillar_interaction(
     tomb_extra_gans：透干引拔的额外天干（如流年干），纳入墓库开库引拔判定；
     默认 None 保持大运分析既有行为（仅本命天干透干引拔）。
     """
-    gan_relations = _analyze_gan_relations(
-        pillar_gan, natal_gans, day_gan,
-        month_zhi=(natal_zhis[1] if len(natal_zhis) > 1 else ''),
-    )
+    gan_relations = _analyze_gan_relations(pillar_gan, natal_gans, day_gan)
     zhi_relations = _analyze_zhi_relations(pillar_zhi, natal_zhis)
     tomb_effect = _analyze_tomb_effect(pillar_zhi, natal_zhis, natal_gans, tomb_extra_gans)
     tiyong = _analyze_tiyong_import(pillar_gan, day_gan)
@@ -614,7 +607,8 @@ def _analyze_pillar_interaction(
     has_anhe = any(r['type'] == '暗合' for r in zhi_relations)
 
     work_types: List[str] = []
-    if any(r['type'] in ('冲', '穿', '刑', '破', '克', '天干克', '天干被克') for r in all_relations):
+    if any(r['type'] in ('冲', '穿', '刑', '克', '天干克', '天干被克')
+           and not r.get('relation_only') for r in all_relations):
         work_types.append('制用')
     if has_he or has_anhe:
         work_types.append('合用')

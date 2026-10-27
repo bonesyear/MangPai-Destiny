@@ -6,7 +6,7 @@ gongfei — 盲派功神/废神分类
 
 理论来源：段建业《段氏理象学》功神篇
 核心思想：
-  功神 = 参与做功的天干地支（有目标的克制/合化/墓用等）
+  功神 = 参与做功的天干地支（有目标的克制/相合/墓用等）
   废神 = 未参与做功的天干地支（闲置无用）
   功神多 → 命局效率高；废神多 → 需大运激发
 已知争议：功神的定义范围各盲师有不同标准（严格派只算直接做功者）
@@ -25,6 +25,9 @@ def _extract_positions(work_actions: List[Dict]) -> Set[str]:
     """
     positions: Set[str] = set()
     for wa in work_actions:
+        # 辅助功神仍是功神；宾宾全局动作与纯关系事实不参与主宾做功。
+        if wa.get('relation_only') or wa.get('global_qi'):
+            continue
         # 辅助功神仍是功神（理象学:6008-6010「参与做功的字也分主要功神和
         # 辅助功神…卯木生巳火为辅助功神」）——auxiliary 仅主功权重标记，不排除
         for field in ('from_pos', 'to_pos'):

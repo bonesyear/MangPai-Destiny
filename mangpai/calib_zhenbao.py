@@ -9,7 +9,7 @@ from mangpai.subjective.caiming import analyze_caiming
 from mangpai.subjective.guanming import analyze_guanming
 from mangpai.subjective.hunyin import analyze_hunyin
 from mangpai.subjective.zhiye import analyze_zhiye
-from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi
+from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi, liunian_interactions
 from mangpai.subjective.gongliang import analyze_gongliang
 
 def run_case(name, gans, zhis, gender, year, dayun=None, liunian=None):
@@ -48,7 +48,9 @@ def run_case(name, gans, zhis, gender, year, dayun=None, liunian=None):
             dayun_gan=(dayun[0] if dayun else ''),
             dayun_zhi=(dayun[1] if dayun else ''),
             liunian_gan=(liunian[0] if liunian else ''),
-            liunian_zhi=(liunian[1] if liunian else ''))
+            liunian_zhi=(liunian[1] if liunian else ''),
+            liunian_interaction=(liunian_interactions(res.get('liunian_analysis'))
+                                 if liunian else None))
     return res, cm, gm, hy, zy, yq
 
 def show(name, res, cm, gm, hy, zy, yq):

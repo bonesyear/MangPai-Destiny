@@ -55,7 +55,7 @@ _DAYUN_KEEP = ('gz', 'order', 'start_age', 'end_age', 'gan_shishen',
                'zhi_relations', 'work_types', 'tomb_effect',
                'fei_shen_activated', 'lu_blade', 'changsheng',
                'qishi_change', 'is_kong_wang',
-               'positive_signals', 'negative_signals', 'overall')
+               'positive_signals', 'negative_signals', 'overall', 'segments')
 
 _MALE = ('男', 'male', '乾')
 _FEMALE = ('女', 'female', '坤')

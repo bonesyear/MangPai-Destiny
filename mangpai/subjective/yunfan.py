@@ -39,6 +39,7 @@ from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_SHENG, WX_KE, PILLAR_KEYS, TOMB_MAP, LU, SAN_HE,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective._relation_utils import GONG_JU
 from mangpai.objective.shensha import _YANG_REN_FULL
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.zhengfan import analyze_zhengfan
@@ -99,6 +100,11 @@ def _op_interactions(
             if _pair_hit(op_zhi, nz, XING_PAIRS):
                 out.append({'type': '刑', 'target_pos': pos, 'target_elem': nz,
                             'desc': f'{op_zhi}刑{PILLAR_KEYS[i]}支{nz}'})
+            gong_wx = GONG_JU.get(op_zhi + nz) or GONG_JU.get(nz + op_zhi)
+            if gong_wx:
+                out.append({'type': '拱局', 'target_pos': pos, 'target_elem': nz,
+                            'relation_only': True,
+                            'desc': f'{op_zhi}与{PILLAR_KEYS[i]}支{nz}拱{gong_wx}局'})
             # 暗合
             if AN_HE.get(op_zhi) == nz or AN_HE.get(nz) == op_zhi:
                 out.append({'type': '暗合', 'target_pos': pos, 'target_elem': nz,

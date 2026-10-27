@@ -5,8 +5,8 @@
 # 注意: items 必须保持单行 flow 风格 (- {dim: ..., gold: {...}, baseline: X})，且 note 内
 #       禁止半角逗号 (flow mapping 分隔符)，用全角，代替。
 meta:
-  baseline_date: '2026-07-17'
-  baseline_counts: {✅: 31, ⚠️: 11, ❌: 4}
+  baseline_date: '2026-10-27'
+  baseline_counts: {✅: 32, ⚠️: 10, ❌: 4}
   rubric: |
     财命 direction: 破财=summary含凶向标记(破财/比劫夺财/坐牢/牢狱/官非/下浮封顶)或tier=贫 -> ✅,
       小康 -> ⚠️, 富/巨富无凶向 -> ❌; 凶(因财致祸)=有凶向标记 ✅, tier=贫 ⚠️, 否则 ❌;
@@ -123,7 +123,7 @@ cases:
     gender: 女
     year: 1955
     items:
-      - {dim: 财命, gold: {direction: 富, note: 卖身起家/靠权赚钱(来路不正)}, baseline: ⚠️}
+      - {dim: 财命, gold: {direction: 富, note: 卖身起家/靠权赚钱(来路不正)}, baseline: ✅}
       - {dim: 婚姻, gold: {quality: 差, duohun: true, note: 三婚}, baseline: ⚠️}
       - {dim: 职业, gold: {primary_in: [performer], note: 名演员}, baseline: ✅}
       - {dim: 子息, gold: {has_zixi: false, note: 不会生育}, baseline: ✅}

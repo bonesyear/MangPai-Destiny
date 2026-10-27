@@ -84,3 +84,11 @@ def test_tomb_relations_shuli():
     r = analyze_muku(['卯', '未', '辰', '寅'], ['己', '辛', '戊', '甲'])
     rels = {t['relation'] for t in r['tomb_relations']}
     assert '未(土)入辰墓' in rels
+
+
+def test_r4_natal_self_xing_does_not_open_tomb():
+    """理象学:2883 自刑不应验，原局辰辰不把水库伪报为刑开。"""
+    r = analyze_muku(['辰', '午', '辰', '申'], ['戊', '丙', '甲', '壬'])
+    chen = next(t for t in r['tombs'] if t['zhi'] == '辰' and t['pillar'] == '年柱')
+    assert chen['status'] == '墓库'
+    assert not any(t['zhi'] == '辰' for t in r['open_tombs'])

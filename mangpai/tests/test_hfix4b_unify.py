@@ -124,7 +124,10 @@ def test_pair_in_truth_table():
     assert _rel_utils.pair_in('子', '午', LIU_CHONG)
     from mangpai.objective import muku
     assert muku._is_he('寅', '亥') and not muku._is_he('寅', '申')
-    assert muku._is_chong('寅', '申') and muku._is_xing('子', '卯')
+    assert muku._is_chong('寅', '申')
+    assert muku._is_xing('丑', '戌') and muku._is_xing('未', '戌')
+    assert not muku._is_xing('子', '卯') and not muku._is_xing('丑', '未')
+    assert not muku._is_xing('辰', '辰')
 
 
 def test_ensure_behavior():
@@ -147,9 +150,10 @@ def test_detect_relations_golden():
     from mangpai.objective.zuogong_detect import detect_relations
     rA = detect_relations('甲', '卯', '庚', '丑', '丙', '午', '壬', '子')
     sA = json.dumps(rA['work_actions'], ensure_ascii=False)
-    assert len(rA['work_actions']) == 15
-    assert hashlib.sha256(sA.encode()).hexdigest()[:16] == 'f3f81dbc62d0d639'
+    # R5：A 增泄用（16→17）及实际施受方向；B 增时支生宾财（13→14）。
+    assert len(rA['work_actions']) == 17
+    assert hashlib.sha256(sA.encode()).hexdigest()[:16] == 'b56be78eafddd0cb'
     rB = detect_relations('丙', '寅', '甲', '丑', '庚', '申', '戊', '戌')
     sB = json.dumps(rB['work_actions'], ensure_ascii=False)
-    assert len(rB['work_actions']) == 12
-    assert hashlib.sha256(sB.encode()).hexdigest()[:16] == 'd4d846a1eb8b0227'
+    assert len(rB['work_actions']) == 14
+    assert hashlib.sha256(sB.encode()).hexdigest()[:16] == '11e4fd56aceb9293'

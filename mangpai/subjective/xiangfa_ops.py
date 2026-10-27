@@ -8,11 +8,11 @@ xiangfa_ops - 盲派象法操作层·主观层（subjective）
 
 象法七原则（段氏第七章）：
   1. 共象：两类及以上象（干支/宫位/十神/神煞）指向同一事物 -> 锁定（取象定论）。
-  2. 合象：天干合/地支合产生**新象**（合双方之十神组合 + 合化之气 + 合象定义
+  2. 合象：天干合/地支合产生**新象**（合双方之十神组合 + 合象定义
      组合库：相合双方互用对方的象、一方定义另一方性质——劫财合财/食神合印/
      伤官合印/伤官合杀/官杀合身，中级:2204-2212、高级:8193-8225）。
-  3. 化象：合化成功后的**新象**（化气五行之象 + 杀印相生化象 + 三合成势——
-     「如生、三合局、半合局都是一种转化」中级:2276-2278，批P2 归正自合象移入）。
+  3. 化象：杀印相生与三合成势的**转化象**（「如生、三合局、半合局都是一种转化」
+     中级:2276-2278；天干地支只合不化，不另立合化气）。
   4. 墓象：入墓/开库之物象变化（财入库=守财、官入库=封存/狱象；开库=墓物复出）。
   5. 制象：制住了才有象（制官得官、制财得财）；主制宾=得，宾制主=失/被制。
   6. 带象（带帽）：天干（帽）+地支藏干（身）十神组合产生复合象（印带官帽、财带官帽…）。
@@ -36,7 +36,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
-    TIAN_GAN_HE, LIU_HE, AN_HE, LU, HUA_YONG_MAP,
+    TIAN_GAN_HE, LIU_HE, AN_HE, LU,
     TOMB_MAP, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
 from mangpai.objective.xiangfa import (
@@ -411,8 +411,8 @@ def hexiang(
 ) -> List[Dict]:
     """合象原则：天干合/地支合产生新象。
 
-    天干五合 -> 合化气之象 + 合双方十神组合之象（日干合财=合财象、合官=合官象）；
-    地支六合 -> 合化/闭气之新象；互用定义 -> 合象定义组合库（_HEXIANG_DEF_RULES，
+    天干五合 -> 合双方十神组合之象（日干合财=合财象、合官=合官象），不讲合化气；
+    地支六合 -> 合绊/闭气之新象；互用定义 -> 合象定义组合库（_HEXIANG_DEF_RULES，
     marker 级）。三合局不归合象——批4 归错原则归正：中级:2276-2278 化象原则
     「如生、三合局、半合局都是一种转化」，三合成势属化象「转化」非合象互用，
     移入 huaxiang（半合兼作合制动作 [_HE_CONTROL]，书亦归转化——定义库不适用，
@@ -458,24 +458,19 @@ def hexiang(
         if t == '天干合':
             he_type = rel.get('day_he_type') or ''
             from_pos, to_pos = a.get('from_pos', ''), a.get('to_pos', '')
-            # 合化气
-            pair = (gans[PILLAR_KEYS.index(_pos_pillar(from_pos))] if _pos_pillar(from_pos) in PILLAR_KEYS else '',
-                    gans[PILLAR_KEYS.index(_pos_pillar(to_pos))] if _pos_pillar(to_pos) in PILLAR_KEYS else '')
-            hua_wx = HUA_YONG_MAP.get(pair) or HUA_YONG_MAP.get((pair[1], pair[0]), '')
-            subject = ''
             if he_type == '合财':
                 subject = '合财（得财/姻缘）'
             elif he_type == '合官':
                 subject = '合官（就职/姻缘·女命）'
             else:
-                subject = f'合（化{hua_wx}）' if hua_wx else '合'
+                subject = '合'
             findings.append({
                 'principle': '合象',
                 'subject': subject,
-                'domain': _wx_to_shishen_cat(day_gan, hua_wx) if hua_wx else '',
+                'domain': '',
                 'pillar': PILLAR_NAMES_CN[PILLAR_KEYS.index(_pos_pillar(to_pos))] if _pos_pillar(to_pos) in PILLAR_KEYS else '',
                 'pos': to_pos,
-                'evidence': [a.get('desc', ''), f'合化气={hua_wx}' if hua_wx else '合未化'],
+                'evidence': [a.get('desc', '')],
                 'locked': True,
                 'desc': f'{a.get("desc", "")}，产生{subject}之合象',
             })
@@ -548,13 +543,7 @@ def huaxiang(
     zhis: List[str],
     relations: Optional[Dict] = None,
 ) -> List[Dict]:
-    """化象原则：合化成功后的新象。
-
-    天干合化（type='合化'）-> 化气五行之象（如甲己化土=中央/信用/地产之象）；
-    杀印相生（type='杀印相生'）-> 化杀为印、化印为身之化象（印权）；
-    三合局（type='三合局'）-> 三合成势之转化象（批P2 归正自 hexiang 移入——
-    中级:2276-2278 化象原则「如生、三合局、半合局都是一种转化」，三合成势
-    属化象「转化」非合象互用）。
+    """化象原则：杀印相生与三合成势的转化象；天干五合不讲合化。
 
     Returns:
         化象记录列表。
@@ -567,26 +556,7 @@ def huaxiang(
 
     for a in wa:
         t = a.get('type', '')
-        if t == '合化':
-            desc = a.get('desc', '')
-            # 解析化气五行（desc 含「合化X」）
-            hua_wx = ''
-            for wx in ('木', '火', '土', '金', '水'):
-                if f'化{wx}' in desc:
-                    hua_wx = wx
-                    break
-            cat = _wx_to_shishen_cat(day_gan, hua_wx) if hua_wx else ''
-            findings.append({
-                'principle': '化象',
-                'subject': f'合化{hua_wx}（化气之象）' if hua_wx else '合化之象',
-                'domain': cat,
-                'pillar': PILLAR_NAMES_CN[PILLAR_KEYS.index(_pos_pillar(a.get('to_pos', '')))] if _pos_pillar(a.get('to_pos', '')) in PILLAR_KEYS else '',
-                'pos': a.get('to_pos', ''),
-                'evidence': [desc],
-                'locked': True,
-                'desc': f'{desc}，合化成功产生{hua_wx or ""}气新象' + (f'（对日主为{cat}）' if cat else ''),
-            })
-        elif t == '杀印相生':
+        if t == '杀印相生':
             findings.append({
                 'principle': '化象',
                 'subject': '化杀为印（印权）',
@@ -792,9 +762,20 @@ def zhixiang(
     wa: List[Dict] = rel.get('work_actions') or []
     seen: Set[Tuple[str, str, str]] = set()  # (to_pos, cat, direction) 去重
 
-    for a in wa:
+    action_views: List[Dict] = []
+    for action in wa:
+        action_views.append(action)
+        if (action.get('type') in _HE_CONTROL
+                or action.get('relation_direction') == 'mutual'):
+            other = dict(action)
+            other['from_pos'], other['to_pos'] = action.get('to_pos', ''), action.get('from_pos', '')
+            other['from'], other['to'] = action.get('to', ''), action.get('from', '')
+            action_views.append(other)
+    for a in action_views:
         t = a.get('type', '')
         if t not in _ZHI_CONTROL and t not in _HE_CONTROL:
+            continue
+        if t not in _HE_CONTROL and a.get('relation_direction') == 'unknown':
             continue
         from_pos, to_pos = a.get('from_pos', ''), a.get('to_pos', '')
         if not from_pos or not to_pos:
@@ -1576,7 +1557,7 @@ def xiangfa_fallback(
         'desc': (f'局象纯：{best_pair[0]}{best_pair[1]}二行{best_cnt}/8字，气势纯一'
                  if chun else f'局象杂（主导二行{best_cnt}/8字，未达6字）'),
     }
-    # 伤官诀：食伤同一五行干支主气 ≥3（成局）+ 局象纯 + 配印（印明现）
+    # 伤官诀：食伤成局+局象纯；土金等配印，水木例可仅以纯局象主贵。
     shi_wx = WX_SHENG.get(day_wx, '')
     sg_cnt = sum(1 for g in gans if GAN_WX.get(g) == shi_wx) + \
         sum(1 for z in zhis if ZHI_WX.get(z) == shi_wx)
@@ -1584,7 +1565,14 @@ def xiangfa_fallback(
     yin_mingxian = bool(yin_wx) and (
         any(GAN_WX.get(g) == yin_wx for g in gans)
         or any(ZHI_WX.get(z) == yin_wx for z in zhis))
-    sg_ok = sg_chengju and chun and yin_mingxian
+    sg_ok = sg_chengju and chun and (
+        yin_mingxian or (day_wx == '水' and shi_wx == '木'))
+    if sg_ok:
+        sg_desc = (f'伤官诀：{day_wx}{shi_wx}伤官成局（{sg_cnt}字）又纯粹'
+                   + ('，配印' if yin_mingxian else '，无印以纯局象')
+                   + '，主贵（重权/高官），非做功财命')
+    else:
+        sg_desc = f'伤官诀不成立（成局={sg_chengju} 纯={chun} 配印={yin_mingxian}）'
     out['shangguan_jue'] = {
         'detected': sg_ok,
         'chengju': sg_chengju,
@@ -1592,9 +1580,7 @@ def xiangfa_fallback(
         'sg_count': sg_cnt,
         'pure': chun,
         'pei_yin': yin_mingxian,
-        'desc': (f'伤官诀：{day_wx}{shi_wx}伤官成局（{sg_cnt}字）又纯粹，配印，'
-                 f'主贵（重权/高官），非做功财命' if sg_ok
-                 else f'伤官诀不成立（成局={sg_chengju} 纯={chun} 配印={yin_mingxian}）'),
+        'desc': sg_desc,
     }
 
     # ── 4. 连体（连根之体）──
@@ -1608,7 +1594,8 @@ def xiangfa_fallback(
         # 连体之字不可制服：日柱为被制方（to_pos=day_*）之冲/克/穿/刑（非辅助）
         rel = relations or {}
         for a in (rel.get('work_actions') or []):
-            if a.get('auxiliary'):
+            if (a.get('auxiliary')
+                    or a.get('relation_direction') in ('mutual', 'unknown')):
                 continue
             if a.get('type') not in ('冲', '克', '穿', '刑'):
                 continue

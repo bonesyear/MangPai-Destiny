@@ -86,6 +86,52 @@ def test_late_zi_jiazi_day_tui_zhuan():
     assert fp['hour_gz'] == '丙子', fp
 
 
+def test_calc_mangpai_full_late_zi_defaults_to_book():
+    """公开完整入口默认子正换日，并允许显式选择子初换日。"""
+    from mangpai.engine import calc_mangpai_full
+
+    result = calc_mangpai_full(2010, 12, 9, 23, 30, '男', LON)
+    assert result['bazi']['day'] == '癸巳', result['bazi']
+    assert result['bazi']['hour'] == '甲子', result['bazi']
+    alternate = calc_mangpai_full(
+        2010, 12, 9, 23, 30, '男', LON, late_zi_method='next_day')
+    assert alternate['bazi']['day'] == '甲午', alternate['bazi']
+    assert alternate['bazi']['hour'] == '甲子', alternate['bazi']
+
+
+def test_true_solar_cross_day_uses_corrected_date():
+    """大经度校正须保留完整日期：2020-01-15 12:00、-120° → 前一日 19 时日柱。"""
+    fp = compute_four_pillars(2020, 1, 15, 12, 0, -120.0)
+    assert fp['corrected_hour'] == 19, fp
+    assert fp['day_gz'] == day_gz(2020, 1, 14), fp
+
+
+def test_solar_terms_xiaohan_dahan_use_actual_year():
+    """小寒/大寒须属当公历年，不得沿用前一年时刻；含边界辅助年份。"""
+    from mangpai.objective.bazi_calc import SOLAR_TERMS
+
+    assert SOLAR_TERMS[1899][22:24] == (1052017, 1201337)
+    assert SOLAR_TERMS[1900][22:24] == (1060203, 1201932)
+    assert SOLAR_TERMS[2026][22:24] == (1051622, 1200944)
+    assert SOLAR_TERMS[2100][22:24] == (1051528, 1200845)
+    assert SOLAR_TERMS[2101][22:24] == (1052106, 1201433)
+    assert len(SOLAR_TERMS[2101]) == 24
+
+
+def test_solar_term_table_boundaries_do_not_clamp():
+    """1900 年初逆排找上年大雪，2100 年末顺排找次年小寒，不得钳到错误节。"""
+    early = calc_bazi_full(1900, 1, 1, 12, 0, '男', 120.0)
+    assert early['bazi']['month'] == '丙子', early['bazi']
+    assert early['da_yun']['jie_name'] == '大雪', early['da_yun']
+    assert early['da_yun']['days'] == 25, early['da_yun']
+    assert early['da_yun']['start_age'] == 8, early['da_yun']
+
+    late = calc_bazi_full(2100, 12, 31, 12, 0, '男', 120.0)
+    assert late['da_yun']['jie_name'] == '小寒', late['da_yun']
+    assert late['da_yun']['days'] == 5, late['da_yun']
+    assert late['da_yun']['start_age'] == 2, late['da_yun']
+
+
 # ── 交运时间（理象学 :3882-3922 书例） ──────────────────────────
 
 def test_jiaoyun_book_2005_xu_sui():
@@ -93,7 +139,7 @@ def test_jiaoyun_book_2005_xu_sui():
     r = calc_bazi_full(2005, 3, 15, 10, 0, '男', LON)
     tl = compute_jiaoyun_timeline(
         2005, dayun_list=r['da_yun']['dayun'],
-        start_age=r['da_yun']['start_age'])
+        start_age=r['da_yun']['start_age'], year_gz=r['bazi']['year'])
     first = tl[0]
     assert first['jiaoyun_age'] == 3, first
     assert first['jiaoyun_year'] == 2007, first
@@ -102,3 +148,23 @@ def test_jiaoyun_book_2005_xu_sui():
     assert first['jiaoyun_iso'].startswith('2007-12-19T22:00'), first['jiaoyun_iso']
     # 支交运点：8 虚岁 → 2012 年
     assert tl[1]['jiaoyun_age'] == 8 and tl[1]['jiaoyun_year'] == 2012, tl[1]
+
+
+def test_jiaoyun_before_lichun_uses_actual_year_pillar():
+    """立春前出生须用实际年柱纳音，不得用公历年替代年柱。"""
+    from mangpai.engine import calc_mangpai_full
+
+    result = calc_mangpai_full(2020, 1, 15, 12, 0, '男', 120.0)
+    assert result['bazi']['year'] == '己亥', result['bazi']
+    assert result['jiaoyun_analysis']['ming_wx'] == '木', result['jiaoyun_analysis']
+    assert result['jiaoyun_analysis']['rule'] == '大寒当日寅时', result['jiaoyun_analysis']
+
+
+def test_jiaoyun_missing_context_returns_explicit_error():
+    """缺实际年柱或大运序列时返回数据不足，不伪造精确交运时间。"""
+    r = calc_bazi_full(2020, 1, 15, 12, 0, '男', 120.0)
+    without_year = compute_jiaoyun_timeline(
+        2020, dayun_list=r['da_yun']['dayun'], start_age=r['da_yun']['start_age'])
+    assert 'year_gz' in without_year[0]['error'], without_year[0]
+    without_dayun = compute_jiaoyun_timeline(2020, year_gz=r['bazi']['year'])
+    assert 'dayun_list' in without_dayun[0]['error'], without_dayun[0]

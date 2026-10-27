@@ -98,3 +98,14 @@ def test_sanheju_gui_huaxiang():
     assert not any(f['subject'] == '三合成势' for f in hexiang('戊', gans, zhis))
     assert any(f['subject'] == '三合成势' and f['principle'] == '化象'
                for f in huaxiang('戊', gans, zhis))
+
+
+def test_r4_gan_he_xiang_has_no_huaqi():
+    """初级:2663 只有合象没有合化，甲己合也不再生成化气或合化化象。"""
+    gans, zhis = ['庚', '己', '甲', '壬'], ['午', '丑', '子', '申']
+    gan_he = [f for f in hexiang('甲', gans, zhis)
+              if f['evidence'] and '甲己合' in f['evidence'][0]]
+    assert gan_he
+    assert all(f['domain'] == '' for f in gan_he)
+    assert all(not any('合化气' in e for e in f['evidence']) for f in gan_he)
+    assert not any(f['subject'].startswith('合化') for f in huaxiang('甲', gans, zhis))

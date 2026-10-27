@@ -616,9 +616,8 @@ def render_structured_reading(
         data = json.loads(raw)
     except json.JSONDecodeError as e:
         # 红1：降级不回显 raw——未校验原文直达用户则死亡红线全旁路；
-        # 原文仅写日志留痕。返回前缀契约不变（feishu service 前缀白名单兜底）
-        _logger.warning('LLM 输出非合法 JSON，不予展示（%s）；原文留痕: %r',
-                        e, raw[:500])
+        # 原文不写日志，仅保留解析错误。返回前缀契约不变（feishu service 前缀白名单兜底）
+        _logger.warning('LLM 输出非合法 JSON，不予展示（%s）', e)
         return f"[LLM 输出非合法 JSON，不予展示 | {e}]\n{_DISCLAIMER_LINE}"
 
     report = validate_reading(data, features, engine_result) if validate != 'off' \

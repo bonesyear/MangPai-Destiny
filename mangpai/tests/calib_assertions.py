@@ -28,7 +28,7 @@ from mangpai.subjective.guanming import analyze_guanming
 from mangpai.subjective.hunyin import analyze_hunyin
 from mangpai.subjective.zhiye import analyze_zhiye
 from mangpai.subjective.liuqin import analyze_liuqin
-from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi
+from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi, liunian_interactions
 
 YAML_PATH = os.path.join(_HERE, 'calib_assertions.yaml')
 
@@ -76,14 +76,16 @@ def run_case(case):
     }
     if dayun or liunian:
         # 修批B：传 age（has_daxian 不再恒 False，R1 P1）——age 锚定事件年
-        # （流年公历年-出生年），与断语所断事件时段同口径；无流年则缺省不变。
-        age = (liunian[2] - year) if liunian else None
+        # 虚岁（流年公历年-出生年+1），与断语所断事件时段同口径；无流年则缺省不变。
+        age = (liunian[2] - year + 1) if liunian else None
         out['yq'] = infer_comprehensive_yingqi(
             dg, gans, zhis,
             dayun_gan=(dayun[0] if dayun else ''), dayun_zhi=(dayun[1] if dayun else ''),
             liunian_gan=(liunian[0] if liunian else ''),
             liunian_zhi=(liunian[1] if liunian else ''),
-            age=age)
+            age=age,
+            liunian_interaction=(liunian_interactions(res.get('liunian_analysis'))
+                                 if liunian else None))
     return out
 
 
@@ -347,4 +349,5 @@ def _validate_baseline_yaml(txt, expected_items):
 
 
 if __name__ == '__main__':
+    sys.stdout.reconfigure(encoding='utf-8')
     main()

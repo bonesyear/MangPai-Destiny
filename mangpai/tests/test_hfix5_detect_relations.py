@@ -10,6 +10,9 @@
    判定值取自拆分前 detect_relations 的实测输出（等价性捕获口径），
    不断言任何新规则。
 """
+from mangpai.objective.bazi_calc import get_di_zhi_relations
+from mangpai.objective.gongfei import classify_gongshen
+from mangpai.objective.he_types import classify_he_types
 from mangpai.objective.zuogong_detect import (
     _ZHI_PAIR_SPECS,
     _calibrate_huayong,
@@ -91,21 +94,19 @@ def _descs(actions):
     return [a['desc'] for a in actions]
 
 
-# ─────────── 1. _scan_gan_relations（日干合/争合/合化/非日干合）───────────
+# ─────────── 1. _scan_gan_relations（日干合/争合/非日干合）───────────
 
-def test_scan_gan_relations_day_he_and_hua():
+def test_scan_gan_relations_day_he_without_hua():
     dg, dwx, gans, zhis, mz = PAN_HE_HUA
     r = _scan_gan_relations(dg, dwx, gans, zhis, mz)
     assert r['day_he_type'] == '合财'
     assert r['zheng_he'] is False
     assert r['work_types'] == {'合用'}
     wa = r['work_actions']
-    assert len(wa) == 2
+    assert len(wa) == 1
     assert wa[0]['type'] == '天干合' and wa[0]['action'] == '合用'
     assert wa[0]['to'] == '月干(己)'
     assert wa[0]['desc'] == '甲己合，合财'
-    assert wa[1]['type'] == '合化' and wa[1]['action'] == '化用'
-    assert wa[1]['desc'] == '甲己合化土，月令丑为土气，无克破'
 
 
 def test_scan_gan_relations_zheng_he_blocks_hua():
@@ -173,21 +174,52 @@ def test_scan_shengyong_neishishen():
     dg, dwx, gans, zhis, mz = PAN_NEISHISHEN
     r = _scan_shengyong(dg, dwx, gans, zhis)
     wa = r['work_actions']
-    assert len(wa) == 1
-    a = wa[0]
+    assert len(wa) == 2  # 月支伤官泄秀与时支内食神是两处事实
+    a = next(a for a in wa if a['to_pos'] == 'hour_zhi')
     assert a['subtype'] == '食伤生财'
+    assert a['inner_food'] is True
     assert a['to'] == '时支(寅藏甲)'
-    assert a['to_pos'] == 'hour_zhi'
     assert a['desc'] == '寅藏食神(甲)泄秀，内食神生坐支藏财（食神藏财·才华）'
     assert 'auxiliary' not in a
+    assert [a['action'] for a in wa if a['to_pos'] == 'month_zhi'] == ['泄用']
 
 
-def test_scan_shengyong_no_target_no_action():
+def test_inner_food_precedes_xieyong_primary():
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+    result = analyze_zuogong('壬', '子', '壬', '寅', '癸', '卯', '壬', '寅')
+    assert result['primary_work']['type'] == '生用'
+    assert any(a.get('inner_food') and a.get('primary')
+               for a in result['work_actions'])
+
+
+def test_scan_shengyong_no_target_is_xieyong():
     dg, dwx, gans, zhis, mz = PAN_SS_NONE
     r = _scan_shengyong(dg, dwx, gans, zhis)
-    assert r['work_actions'] == []
-    assert r['sheng_yong_actions'] == []
-    assert r['work_types'] == set()
+    assert len(r['work_actions']) == 1
+    a = r['work_actions'][0]
+    assert a['type'] == '食伤' and a['action'] == '泄用'
+    assert a['subtype'] == '食伤泄秀'
+    assert r['sheng_yong_actions'] == [a]
+    assert r['work_types'] == {'泄用'}
+
+
+def test_r5_hour_zhi_food_sheng_bin_cai():
+    # 原盘寅入未墓；保留 R6 的入墓拦截，另取可生宾财的真实盘。
+    det = detect_relations('癸', '丑', '丙', '午', '乙', '酉', '甲', '寅')
+    hits = [a for a in det['work_actions']
+            if a['type'] == '食伤' and a.get('to_pos') == 'hour_zhi'
+            and a.get('action') == '生用' and a.get('subtype') == '食伤生财']
+    assert len(hits) == 1
+    assert '年支午' in hits[0]['desc']
+
+
+def test_r5_equal_earth_chong_unknown():
+    det = detect_relations('戊', '辰', '戊', '戌', '戊', '辰', '戊', '戌')
+    hit = next(a for a in det['work_actions']
+               if a['type'] == '冲' and a['from_pos'] == 'year_zhi'
+               and a['to_pos'] == 'month_zhi')
+    assert hit['relation_direction'] == 'unknown'
+    assert hit['auxiliary'] is True
 
 
 def test_scan_shengyong_empty_day_wx():
@@ -245,7 +277,8 @@ def test_scan_zhi_pairs_zixing():
     assert len(wa) == 1
     assert wa[0]['type'] == '刑' and wa[0]['severity'] == 'normal'
     assert wa[0]['desc'] == '辰辰刑（自刑）'
-    assert wt == {'制用'}
+    assert wa[0]['relation_only'] and wa[0]['auxiliary']
+    assert wt == set()
 
 
 def test_scan_zhi_pairs_empty():
@@ -260,9 +293,10 @@ def test_scan_sanhe_banhe_sanhe_formed():
     wa, wt, formed = _scan_sanhe_banhe(zhis)
     assert formed is True
     assert wt == {'成势'}
-    assert len(wa) == 1
-    a = wa[0]
-    assert a['type'] == '三合局' and a['action'] == '成势做功'
+    triples = [a for a in wa if a['type'] == '三合局']
+    assert len(triples) == 1
+    a = triples[0]
+    assert a['action'] == '成势做功'
     assert a['participants'] == ['year_zhi', 'month_zhi', 'day_zhi']
     assert a['desc'] == '申子辰水局成势，参与字均为功神'
 
@@ -312,17 +346,18 @@ def test_scan_gan_ke_day_vs_non_day():
     assert [(a['from'], a['to'], a['desc'], a.get('auxiliary')) for a in wa] == [
         ('月干(丙)', '年干(庚)', '丙火克庚金（宾位干相克，不做主功）', True),
         ('年干(庚)', '日干(甲)', '庚金克甲木', None),
-        ('时干(壬)', '月干(丙)', '壬水克丙火（宾位干相克，不做主功）', True),
+        ('时干(壬)', '月干(丙)', '壬水克丙火', None),
     ]
     assert wa[1].get('non_day_ganke') is None
+    assert wa[2].get('non_day_ganke') is None  # 时干也是主位，不按旧日柱单主口径降级
 
 
 def test_scan_gan_ke_he_pair_skipped():
     _, _, gans, _, _ = PAN_GAN_KE_HE
     wa, _ = _scan_gan_ke(gans)
-    # 甲己/丙辛两组合对均以合论不计克；唯辛金克甲木（宾位 aux）检出
+    # 甲己/丙辛两组合对均以合论不计克；时干辛克年干甲是主制宾，不降辅助。
     assert [(a['from'], a['to'], a['desc']) for a in wa] == [
-        ('时干(辛)', '年干(甲)', '辛金克甲木（宾位干相克，不做主功）'),
+        ('时干(辛)', '年干(甲)', '辛金克甲木'),
     ]
 
 
@@ -525,3 +560,109 @@ def test_detect_relations_end_to_end_calibration_and_he_center():
           if a['type'] == '食伤' and a['to_pos'] == 'day_zhi']
     assert len(ss) == 1 and ss[0].get('auxiliary') is True
     assert ss[0].get('he_center_skip') is True
+
+
+# ─────────── R4：关系语义书证哨兵 ───────────
+
+def test_r4_duan_po_table_and_relation_only():
+    raw = get_di_zhi_relations(['子', '卯', '午', '酉'])
+    pairs = {(r['from']['zhi'], r['to']['zhi']) for r in raw['相破']}
+    assert pairs == {('子', '卯'), ('卯', '午')}
+
+    traditional = get_di_zhi_relations(['子', '酉', '丑', '辰'])
+    assert not {(r['from']['zhi'], r['to']['zhi']) for r in traditional['相破']}
+
+    wa, wt = _scan_zhi_pairs(['子', '卯', '丑', '寅'], _ZHI_PAIR_SPECS[3:])
+    po = [a for a in wa if a['type'] == '破']
+    assert len(po) == 1
+    assert all(a.get('relation_only') and a.get('auxiliary') for a in po)
+    assert wt == set()  # 初级:1269「破不是做功方式」
+
+
+def test_r4_xing_core_boundaries():
+    full, full_wt = _scan_zhi_pairs(['寅', '巳', '申', '子'], _ZHI_PAIR_SPECS[3:])
+    assert any(a['type'] == '刑' and not a.get('relation_only') for a in full)
+    assert '制用' in full_wt
+
+    pair, pair_wt = _scan_zhi_pairs(['寅', '巳', '午', '酉'], _ZHI_PAIR_SPECS[3:])
+    assert all(a.get('relation_only') for a in pair if a['type'] == '刑')
+    assert any(a['type'] == '穿' and not a.get('relation_only') for a in pair)
+    assert '制用' in pair_wt  # 穿保留，刑不压穿
+
+    chou_xu, chou_xu_wt = _scan_zhi_pairs(['丑', '戌', '午', '酉'], _ZHI_PAIR_SPECS[3:])
+    assert any(a['type'] == '刑' and not a.get('relation_only') for a in chou_xu)
+    assert chou_xu_wt == {'制用'}
+
+    chou_wei, chou_wei_wt = _scan_zhi_pairs(['丑', '未', '辰', '巳'], _ZHI_PAIR_SPECS[3:])
+    assert all(a.get('relation_only') for a in chou_wei if a['type'] == '刑')
+    assert chou_wei_wt == set()  # 丑未以冲为主，冲不在本扫描段
+
+
+def test_r4_chong_chuan_xing_he_coexist():
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+
+    result = analyze_zuogong('甲', '巳', '甲', '寅', '丙', '申', '壬', '子')
+    pair_types = {}
+    for a in result['work_actions']:
+        if a.get('auxiliary') or a.get('type') not in ('刑', '穿', '地支合'):
+            continue
+        pair = frozenset((a.get('from_pos'), a.get('to_pos')))
+        pair_types.setdefault(pair, set()).add(a['type'])
+    assert any({'刑', '穿'} <= types for types in pair_types.values())
+    assert any({'刑', '地支合'} <= types for types in pair_types.values())
+    assert not any(a.get('dedup_removed') and a.get('type') in ('冲', '刑', '穿', '地支合')
+                   for a in result['work_actions'])  # 克/生仍按原规则去重
+
+
+def test_r4_relation_only_not_gongshen():
+    actions = [{'type': '破', 'from_pos': 'year_zhi', 'to_pos': 'month_zhi',
+                'relation_only': True, 'auxiliary': True}]
+    result = classify_gongshen(actions, ['year', 'month'], ['甲', '丙'], ['子', '卯'])
+    assert result['gong_shen'] == []
+    assert result['fei_shen'] == ['month_gan', 'month_zhi', 'year_gan', 'year_zhi']
+
+
+def test_r4_four_gongju_reach_public_views():
+    for a, b, wx in [('亥', '未', '木'), ('寅', '戌', '火'),
+                     ('巳', '丑', '金'), ('申', '辰', '水')]:
+        zhis = [a, '子', '午', b]
+        raw = get_di_zhi_relations(zhis)
+        assert any(r.get('wuxing') == wx
+                   and {r['from']['zhi'], r['to']['zhi']} == {a, b}
+                   for r in raw['拱局'])
+        he = classify_he_types(zhis[2], zhis[0], zhis[1], zhis[3],
+                               '甲', '丙', '甲', '壬')['he_types']
+        assert any(r['he_type'] == '拱局' and f'{a}{b}拱{wx}局' in r['desc']
+                   for r in he)
+        det = detect_relations('甲', '午', '甲', a, '丙', '子', '壬', b)
+        assert any(r['type'] == '拱局' and r.get('relation_only')
+                   and r.get('auxiliary') for r in det['work_actions'])
+
+    assert get_di_zhi_relations(['亥', '卯', '子', '午'])['拱局'] == []
+
+
+def test_r4_sanhe_tomb_priority_and_counterexamples():
+    wa, _, formed = _scan_sanhe_banhe(
+        ['戌', '午', '午', '寅'], ['戊', '戊', '戊', '甲'])
+    assert formed is False  # 理象学:3058 两午见戌，以入墓而不以三合看
+    assert not any(a['type'] == '三合局' for a in wa)
+
+    wa, wt, formed = _scan_sanhe_banhe(
+        ['酉', '丑', '卯', '午'], ['辛', '丙', '甲', '己'])
+    assert formed is False  # 辛酉柱见丑，半合仅留关系标记
+    half = [a for a in wa if a['type'] == '半合']
+    assert half and all(a.get('relation_only') and a.get('auxiliary') for a in half)
+    assert '合用' not in wt
+
+    # 理象学:6898-6912 副总酉丑仍论半合；他柱庚金不能冒充辛酉同柱之多。
+    det = detect_relations('丁', '丑', '甲', '寅', '癸', '酉', '庚', '子')
+    half = [a for a in det['work_actions'] if a['type'] == '半合']
+    assert half and all(not a.get('relation_only') for a in half)
+    food = [a for a in det['work_actions']
+            if a['type'] == '食伤' and a.get('to_pos') == 'day_zhi']
+    assert food and all(a.get('he_center_skip') for a in food)
+
+    wa, _, formed = _scan_sanhe_banhe(
+        ['亥', '丑', '卯', '未'], ['乙', '丁', '乙', '己'])
+    assert formed is True  # 不把多而墓与三合作全局互斥
+    assert any(a['type'] == '三合局' for a in wa)

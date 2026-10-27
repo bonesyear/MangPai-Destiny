@@ -54,23 +54,20 @@ def test_he_guan_meaning_in_reason():
 
 # ── 2. 时支做功归日主 ──
 
-def test_hour_zhi_work_attributed_to_day():
-    """合时干官时，时支发起的实质做功归日主（全局侧不再计该功）。
-
-    构造：己日甲戌时（合官），时支戌与月支子无特殊关系仅五行克（土克水）；
-    归功后时支之功于 day 侧可考。用直接构造的 work_actions 锁定归功语义。
-    """
+def test_hour_zhi_work_attributed_to_main_position():
+    """时支属主位，不以合时干官为归功前提；纯宾位仍不冒充日主之功。"""
     wa = [
         {'type': '天干合', 'from_pos': 'day_gan', 'to_pos': 'hour_gan'},
-        {'type': '克', 'from_pos': 'hour_zhi', 'to_pos': 'month_zhi'},  # 时支之功
+        {'type': '克', 'from_pos': 'hour_zhi', 'to_pos': 'month_zhi'},
     ]
-    # 归功：hour_zhi 发起的克并入日柱之功 → 日柱有做功，不判「无功不为局」
     zf = analyze_zhengfan(wa, '合官', ['丙', '戊', '己', '甲'], ['午', '子', '酉', '戌'])
     assert zf['configuration'] != '无功不为局'
-    # 对照：无合官（他干），同一 hour_zhi 克不归功 → 日柱仅合，判无功不为局
     wa2 = [{'type': '克', 'from_pos': 'hour_zhi', 'to_pos': 'month_zhi'}]
     zf2 = analyze_zhengfan(wa2, None, ['丙', '戊', '庚', '甲'], ['午', '子', '辰', '戌'])
-    assert '无功不为局' in zf2['configuration']
+    assert zf2['configuration'] != '无功不为局'
+    wa3 = [{'type': '克', 'from_pos': 'year_zhi', 'to_pos': 'month_zhi'}]
+    zf3 = analyze_zhengfan(wa3, None, ['丙', '戊', '庚', '甲'], ['午', '子', '辰', '戌'])
+    assert '无功不为局' in zf3['configuration']
 
 
 # ── 3. 时支不可坏特判 ──
@@ -135,11 +132,12 @@ def test_same_mode_no_contradiction():
 
 # ── 5. 五行相背「相克须做功指向成立」（K3 批1）──
 
-def test_wuxiang_li101_redline_still_fan():
-    """li101 穷命红线（K2-6 复验锚）：癸卯 癸亥 壬申 戊午——申克卯木（印制
-    食伤）为日柱制式做功指向，与全局主指向（戊土）相克 → 反局不动。"""
+def test_li101_poverty_not_forced_fan():
+    """li101 原文只说身旺财为用、卯难生午火而穷，没有反局判词。
+    时柱属主位后，不能再把时干合戊土当全局目标来伪造反局。
+    """
     zf = _zf(['癸', '癸', '壬', '戊'], ['卯', '亥', '申', '午'])
-    assert zf['type'] == 'fan'
+    assert zf['type'] != 'fan'
 
 
 def test_wuxiang_ricai_qiucai_no_fan():

@@ -36,3 +36,15 @@ def test_idle_positions_are_fei():
     r = classify_gongshen(wa, PILLAR_KEYS, GANS, ZHIS)
     assert set(r['fei_shen']) == {'year_gan', 'year_zhi', 'month_gan',
                                   'day_gan', 'hour_gan', 'hour_zhi'}
+
+
+def test_global_qi_binbin_not_gongshen_but_auxiliary_kept():
+    wa = [
+        {'type': '克', 'from_pos': 'year_zhi', 'to_pos': 'month_zhi',
+         'auxiliary': True, 'global_qi': True},
+        {'type': '生', 'from_pos': 'hour_zhi', 'to_pos': 'day_zhi',
+         'auxiliary': True},
+    ]
+    r = classify_gongshen(wa, PILLAR_KEYS, GANS, ZHIS)
+    assert 'year_zhi' not in r['gong_shen']
+    assert 'day_zhi' in r['gong_shen']  # 非 global_qi 的辅助功神仍保留

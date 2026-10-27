@@ -9,6 +9,7 @@ output/*.json
 _kang*
 *.json
 !mangpai/tests/backtest/baseline67.json
+!mangpai/tests/backtest/famous_baseline.json
 !mangpai/tests/**/snapshots/*.json
 
 # Python

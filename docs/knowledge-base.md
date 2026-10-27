@@ -23,7 +23,9 @@
 | 职业 | 41✅/12⚠️/32❌ = **48.24%** (n=85) | 24✅ = **46.15%** (n=52) |
 
 （T-教授 财 +2 全预注册（教授/邢铭芬，贫穷命 ❌→⚠️ 改善非✅），M3 噪声带内，CI 下界 44.8%→46.6%。P4 职 +1 全预注册（gj-警察墓库），M3 噪声带内。P3 财 +2 全预注册，M3 噪声带内、CI 下界 43.1%→44.8%）
-- **验证口径**：`verify_mangpai.py` 420 项 + `pytest mangpai/tests/` 1451 collected（**1450 passed+1 xfailed，财命专批 zhenbao-14a 财坏印通关豁免批（藏官出库暗合四腿判据+封顶链唯一凶向豁免，哨兵7测）2026-10-25 实测**；旧记 批S2-01 zhenbao-01官命假阳收口批（藏杀被制须≥2不同来方或单方成势/印制伤食护官自反须互战/伤食制印同源裁断/财制印宾制主+财支藏官杀，哨兵15测）1443+1xf、批R LLM校验器加固二期（L0拒额外维度/所问注入隔离/应期婚姻回对否定语境排除/词表扩充，哨兵4测）1428+1xf、批Q1 婚姻/六亲/子女遗漏补全批（hunyin/liuqin/zinv marker+哨兵25测）与并行批合计 1424+1xf、批S2 zhenbao-14b溯源修复批 1385+1xf、批P2 hunyin星众坏（zhenbao-23b）修复批 1381+1xf、批P1 审计遗漏补全并行批 1378+1xf、批O 应期体系补全批 1341+1xf、批N2 从格判定修复批 1313+1xf；旧记 批L juefa C组豁免修复批 1286+1xf、批K juefa断语A组接入批 1278+1xf、L2校验器应期/婚姻维零校验+豁免收窄批 1271+1xf、功量三书证规则批 G2 1266+1xf、校验器修批F·校准敏感区收口 1264+1xf、方向性bug修复批·上游模块+校验器红1-4 批 1207+1xf、github description 闸门批 1173+1xf、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129+1xf、S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）+ `scripts/check_credentials.py`（脱敏脱密：凭证/隐私/本机路径，pre-commit 同源）+ `scripts/check_doc_numbers.py`（文档数字闸门：README/KB 权威声明位 vs 实测，非 pre-commit 默认项，改测试/模块数后手动跑）（旧 853 口径 2026-07-17 起作废）。
+- **验证口径**：`verify_mangpai.py` 402 项（401 passed + 1 xfailed）+ `pytest mangpai/tests/` 1518 collected（**1510 passed+8 xfailed，R5 方向与做功资格修整批 2026-10-27 实测**；旧记 批S2-01 zhenbao-01官命假阳收口批（藏杀被制须≥2不同来方或单方成势/印制伤食护官自反须互战/伤食制印同源裁断/财制印宾制主+财支藏官杀，哨兵15测）1443+1xf、批R LLM校验器加固二期（L0拒额外维度/所问注入隔离/应期婚姻回对否定语境排除/词表扩充，哨兵4测）1428+1xf、批Q1 婚姻/六亲/子女遗漏补全批（hunyin/liuqin/zinv marker+哨兵25测）与并行批合计 1424+1xf、批S2 zhenbao-14b溯源修复批 1385+1xf、批P2 hunyin星众坏（zhenbao-23b）修复批 1381+1xf、批P1 审计遗漏补全并行批 1378+1xf、批O 应期体系补全批 1341+1xf、批N2 从格判定修复批 1313+1xf；旧记 批L juefa C组豁免修复批 1286+1xf、批K juefa断语A组接入批 1278+1xf、L2校验器应期/婚姻维零校验+豁免收窄批 1271+1xf、功量三书证规则批 G2 1266+1xf、校验器修批F·校准敏感区收口 1264+1xf、方向性bug修复批·上游模块+校验器红1-4 批 1207+1xf、github description 闸门批 1173+1xf、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129+1xf、S1/demo 两批非引擎 +16 测后 1129、T-教授 1113+1xf、P4 1107+1xf、P3 1097+1xf、P2 1087+1xf、P1 1077+1xf、L1 1066+1xf、旧记 G2 838+1xf+19xp、批10 499 均作废）+ blind_eval 快照零翻转 + 双 seed 逐字节一致 + `scripts/check_layering.py`（分层单向）+ `scripts/check_typing_imports.py`（typing/import 面）+ `scripts/check_credentials.py`（脱敏脱密：凭证/隐私/本机路径，pre-commit 同源）+ `scripts/check_doc_numbers.py`（文档数字闸门：README/KB 权威声明位 vs 实测，非 pre-commit 默认项，改测试/模块数后手动跑）（旧 853 口径 2026-07-17 起作废）。
+- **R4 工作树状态（2026-10-26）**：**已完成**。1491 collected 中 **1490 passed + 1 xfailed**；calib 零回归。`LATEST` 已推进 `20261026_r4.json`，新基线自比对零翻转零文本抖动，双 seed 一致。关系差异与门禁实况见 `docs/audit-vs-originals-20261017.md` 批R4；财档、职业和从格分域的后续问题仍按原计划另批处理。
+- **R5 工作树状态（2026-10-27）**：**本批范围已完成**。pytest 1518 collected 中 **1510 passed + 8 xfailed**；verify_mangpai 402 项中 **401 passed + 1 xfailed**，其余 verify 70/64/20；regression67 无回归，calib **32✅/10⚠️/4❌**、无回归。巴菲特用忌、保尔森合官分域属 R7；阎锡山及总理例合制墓库/同制/开库权重属 R8。R4→R5 共 56 条翻转、138 条文本差异，已逐项归因，但不代表全部书例已吻合；双 seed 一致。新增 `20261027_r5.json` 并推进 `LATEST`，新基线自比对零翻转零文本抖动；保留预期未决，不冒充书例已修。
 - **三维攻坚已收官**（2026-08-14 职业批4）。残留❌全数收档备案（见 §6），后续批次须先读本文件 §5/§6 防重复踩坑。
 - **十批全模块审计已收官**（2026-08-17）：P0=96/P1=245/P2=259，修复批次 F0-F19 已批准（见 `docs/audit-progress-20260816.md`）；审计勘误本文件记录见 §10。
 
@@ -39,7 +41,7 @@ mangpai/
   engine.py              MangpaiEngine.compute_all() 编排器
   __init__.py            公共 API re-export 枢纽（from mangpai import X 对一切可用）
   calib_zhenbao.py       郝金阳10例校准脚本（zhenbao-01~23b）
-  verify_mangpai.py      420 项自洽检查（唯一版本，objective 副本已删）
+  verify_mangpai.py      410 项自洽检查（唯一版本，objective 副本已删）
   verify_dayun.py        70 项大运检查；verify_layer1.py 64 项基础层
   verify_layer3_checkpoint.py  20 项方向层检查点
   objective/  27 模块：bazi_calc/canggan/changsheng/constants/nayin/shensha/shenshu/
@@ -60,7 +62,7 @@ mangpai/
     heldout/   cases.yaml(215) blind_eval.py snapshots/(LATEST 基线指针+README 链总账+archive/ 14 份无引用归档,H-fix-8) diag_case.py _*_diag/_*_sim(诊断考古) archive/(H-fix-4a 归档的历史模拟 8 脚本)
     trainset/  cases.yaml(294)
     backtest/  regression67.py famous_cases.py famous_baseline.json regression_famous.py
-    calib_assertions.py/.yaml  test_*.py(1451 测·财命专批 后口径——细目数字随批次漂移，权威数以 README 验证表为准)
+    calib_assertions.py/.yaml  test_*.py(1507 测·R5 后口径——细目数字随批次漂移，权威数以 README 验证表为准)
   docs/        duan-books/(段氏五书+珍宝50期+授课教程原文txt) 各分析文档
   CHANGELOG.md           批次变更记录（第七批起有书写惯例）
 docs/                    任务书(tasks/)、remaining-tasks 系列、本知识库
@@ -510,9 +512,9 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 | 工具 | 用途 |
 |---|---|
-| `mangpai/verify_mangpai.py` | 420 项自洽检查（唯一版） |
+| `mangpai/verify_mangpai.py` | 402 项自洽检查（401 passed + 1 xfailed；R8 未决单独列出） |
 | `mangpai/verify_dayun.py` / `verify_layer1.py` / `verify_layer3_checkpoint.py` | 70 大运 / 64 基础 / 20 方向检查点 |
-| `python3 -m pytest mangpai/tests/ -q` | 1451 collected（**1450 passed+1 xfailed，财命专批 zhenbao-14a 财坏印通关豁免批（藏官出库暗合四腿判据+封顶链唯一凶向豁免，哨兵7测）2026-10-25 实测**；旧记 批S2-01 zhenbao-01官命假阳收口批（藏杀被制须≥2不同来方或单方成势/印制伤食护官自反须互战/伤食制印同源裁断/财制印宾制主+财支藏官杀，哨兵15测）1443+1xf、批R LLM校验器加固二期（L0拒额外维度/所问注入隔离/应期婚姻回对否定语境排除/词表扩充，哨兵4测）1428+1xf、批Q1 婚姻/六亲/子女遗漏补全批（hunyin/liuqin/zinv marker+哨兵25测）与并行批合计 1424+1xf、批S2 zhenbao-14b溯源修复批 1385、批P2 hunyin星众坏（zhenbao-23b）修复批 1381、批P1 审计遗漏补全并行批 1378、批O 应期体系补全批 1341、批N2 从格判定修复批 1313；旧记 批L juefa C组豁免修复批 1286、批K juefa断语A组接入批 1278、L2校验器应期/婚姻维零校验+豁免收窄批 1271、功量三书证规则批 G2 1266、校验器修批F·校准敏感区收口 1264、方向性bug修复批·红1-4 批 1207、github description 闸门批 1173、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129、T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
+| `python3 -m pytest mangpai/tests/ -q` | 1518 collected（**1510 passed+8 xfailed，R5 方向与做功资格修整批 2026-10-27 实测**；旧记 批S2-01 zhenbao-01官命假阳收口批（藏杀被制须≥2不同来方或单方成势/印制伤食护官自反须互战/伤食制印同源裁断/财制印宾制主+财支藏官杀，哨兵15测）1443+1xf、批R LLM校验器加固二期（L0拒额外维度/所问注入隔离/应期婚姻回对否定语境排除/词表扩充，哨兵4测）1428+1xf、批Q1 婚姻/六亲/子女遗漏补全批（hunyin/liuqin/zinv marker+哨兵25测）与并行批合计 1424+1xf、批S2 zhenbao-14b溯源修复批 1385、批P2 hunyin星众坏（zhenbao-23b）修复批 1381、批P1 审计遗漏补全并行批 1378、批O 应期体系补全批 1341、批N2 从格判定修复批 1313；旧记 批L juefa C组豁免修复批 1286、批K juefa断语A组接入批 1278、L2校验器应期/婚姻维零校验+豁免收窄批 1271、功量三书证规则批 G2 1266、校验器修批F·校准敏感区收口 1264、方向性bug修复批·红1-4 批 1207、github description 闸门批 1173、文档数字闸门批 1158、脱敏闸门批 1149、审查修复批 1129、T-教授 1113、P4 1107、P3 1097、P2 1087、P1 1077、L1 1066、842/822(N2b+N3)、794、776、682、499、473 均作废；19 xp 死测试 H-fix-4a 随 chuangong 删除） |
 | `scripts/check_layering.py` / `scripts/check_typing_imports.py` | 分层单向依赖守护（H-fix-4c 入库，`--graph` 出依赖图）/ typing-import 崩溃面守护（H-fix-1 配套） |
 | `scripts/check_credentials.py` | **脱敏脱密闸门**（2026-09-19 入库）：P0 凭证 / P1 隐私 → 阻止，P2 本机路径 → 警告；默认扫暂存区**新增行**（存量不干扰），`--all` 全量审计，输出打码含断言；与 `.git/hooks/pre-commit` 同源（`scripts/install_git_hooks.sh` 安装，clone 后须跑一次） |
 | `scripts/check_doc_numbers.py` | **文档数字闸门**（2026-09-19 入库）：README/KB 权威声明位（首行/验证表/架构表/验证口径行/本表 pytest 行）模块数与 pytest 数字 vs 实测（`pytest --collect-only` ~0.5s + 分层口径计数：foundation/objective 递归、subjective 只算顶层），漂移即退出码 1；`--quiet`/`--json`；`--github`=opt-in 联网追加核对 GitHub 仓库 description 数字声明（2026-09-25 入库：`MANGPAI_GITHUB_REPO` 默认 bonesyear/MangPai-Destiny、`GITHUB_TOKEN` 可选、public 仓库匿名可读；不一致/提取不到数字/网络失败均退 1 报明原因防假-green；默认关闭、不带开关时离线行为逐字节不变）；verify 四件套=低频项跳过（总数运行期动态累计，静态解析不可靠）；**非 pre-commit 默认项**，改了测试/模块数后手动跑 → 常驻闸门六件套（分层/typing/键契约/防假-green/脱敏/文档数字） |
@@ -529,12 +531,12 @@ docs/                    任务书(tasks/)、remaining-tasks 系列、本知识�
 
 **标准验证六件套**（每批落地前必跑）：
 ```bash
-python3 mangpai/verify_mangpai.py                 # 420 全绿
-python3 -m pytest mangpai/tests/ -q               # 1451 collected（1450 passed+1 xfailed，财命专批 zhenbao-14a 财坏印通关豁免批 2026-10-25 实测）
+python3 mangpai/verify_mangpai.py                 # 402 项（401 passed + 1 xfailed）
+python3 -m pytest mangpai/tests/ -q               # 1518 collected（1510 passed+8 xfailed，R5 方向与做功资格修整批 2026-10-27 实测）
 python3 mangpai/tests/heldout/blind_eval.py --out snapshots/<批>.json --note "<验证状态>" --baseline latest
 PYTHONHASHSEED=0 python3 mangpai/tests/heldout/blind_eval.py --out /tmp/seed0.json  # 与默认 seed 逐字节一致
 python3 mangpai/tests/backtest/regression67.py    # 0 回归
-python3 mangpai/tests/backtest/regression_famous.py  # 0 回归（罗斯切尔德批7 已自愈；calib 侧常驻 2 条见 §6.4；两 baseline 修批C 已刷新，IMPROVE 悬挂清零）
+python3 mangpai/tests/backtest/regression_famous.py  # R7 两条预期未决；其他无回归，不刷金标
 python3 scripts/check_layering.py && python3 scripts/check_typing_imports.py  # H-fix 新增两件套
 ```
 

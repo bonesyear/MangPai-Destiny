@@ -91,6 +91,20 @@ class TestCaixingPath:
                                   ['申', '午', '子', '丑'], prom, [], muku_open)
         assert r2['rumu'] == []
 
+    def test_r4_relation_only_po_still_counts_as_cai_damage(self):
+        # 破退出做功，不退出「财被众破」的坏义；两卯破午为受控结构例。
+        prom = [{'印': 'gan'}, {'比劫': 'gan'}, {'财': 'benqi'}, {'印': 'gan'}]
+        wa = [
+            {'type': '破', 'from_pos': 'year_zhi', 'to_pos': 'day_zhi',
+             'relation_only': True, 'auxiliary': True},
+            {'type': '破', 'from_pos': 'hour_zhi', 'to_pos': 'day_zhi',
+             'relation_only': True, 'auxiliary': True},
+        ]
+        r = _assess_caixing_path('壬', ['壬', '壬', '壬', '壬'],
+                                 ['卯', '子', '午', '卯'], prom, wa, None)
+        assert len(r['cai_zhonggong']) == 1
+        assert '2方' in r['cai_zhonggong'][0]
+
     def test_no_cai_no_path(self):
         # 无明现财 -> 路径评估空（禄/食伤/官杀当财另行判定）
         prom = [{'比劫': 'gan'}, {'比劫': 'gan'}, {'比劫': 'gan'}, {'印': 'gan'}]
@@ -340,12 +354,7 @@ class TestShengyongSanshi:
 
 
 class TestS2Zb14bTierAnchor:
-    """批S2（2026-10-20）zhenbao-14b 财档哨兵：财档回归与层功同源（批G2
-    规则3 抬 gongliang 基阶 2→3 致「下浮（禄/食伤当财量级有限）」落点
-    贫→小康），规则3 收窄后基阶回 2、下浮落贫归位。郝断「因为贪财坐了牢」
-    （mingli-zhenbao-50qi:505-509）——方向凶 + 档位贫为引擎对该形态的
-    表达（凶向 severe 不立：局中无财、R1 比劫夺财须财明现，理象学:5982
-    满盘比劫无财=翰林院编修反例证该形态非必 severe）。"""
+    """zhenbao-14b：R4 入墓优先取消半合双计，基阶 L1 直接落贫，不伪造下浮。"""
 
     GANS = ['戊', '戊', '戊', '甲']
     ZHIS = ['戌', '午', '午', '寅']
@@ -353,7 +362,8 @@ class TestS2Zb14bTierAnchor:
     def test_zb14b_tier_static_pin(self):
         r = analyze_caiming('戊', self.GANS, self.ZHIS)
         assert r['tier_static'] == '贫'
-        assert '下浮（禄/食伤当财量级有限）' in r['summary_static']
+        assert r['level_static']['base_level'] == 1
+        assert r['level_static']['adjust'] == '持平'
 
     def test_zb14b_direction_xiong(self):
         d = assess_direction_signals('戊', self.GANS, self.ZHIS)

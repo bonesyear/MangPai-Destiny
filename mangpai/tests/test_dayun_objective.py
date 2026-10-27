@@ -5,7 +5,7 @@
   a. 运干合/克日干（日主自身）跳过——原 L81-82 死 pass 从未生效；
   b. 戊刃取段氏全刃表（午、未双刃），shensha/dayun/yunfan 单一事实源；
   c. 墓库冲/刑+透干引拔才开库（与 objective.muku 同口径），无透干闭而不开；
-  d. 天干合化气须验月令（化气五行当令方论化），与 zuogong_detect 合化 gate 同口径。
+  d. 天干五合只合不化，不再附化气字段（初级:2663）。
 
 口径备案（F19）：11 测全为自建盘、锁 M2 修复自洽口径，零书例锚（批5 测试
 缺口记录）。a-d 四口径本身各有上游书锚（见 objective/dayun.py docstring），
@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from mangpai.objective.dayun import _analyze_pillar_interaction, _check_hua
+from mangpai.objective.dayun import _analyze_pillar_interaction
 from mangpai.objective.shensha import compute_shensha_ext, _YANG_REN_FULL
 
 
@@ -104,22 +104,40 @@ def test_tomb_he_closes_unchanged():
     assert any('合闭' in c['desc'] for c in r['tomb_effect']['closes'])
 
 
-# ── d. 化气验月令 ──
+# ── d. 天干只合不化 / 拱局 ──
 
-def test_hua_requires_month_command():
-    """甲己合：辰月（土当令）化土；子月（水）不化；无月令不标化。"""
-    assert _check_hua('甲', '己', '辰') == '土'
-    assert _check_hua('甲', '己', '子') == ''
-    assert _check_hua('甲', '己', '') == ''
-
-
-def test_hua_in_gan_relations_respects_month():
-    """运干合化气经 relations 透出时同样验月令（辰月标化土，子月不标）。"""
+def test_gan_he_has_no_hua_annotation():
+    """初级:2663 只讲合不讲化：辰月也不附加合化字段或文案。"""
     r = _analyze_pillar_interaction('己', '丑', ['甲', '丙', '庚', '壬'],
                                     ['寅', '辰', '午', '子'], '庚')
     he = [x for x in r['gan_relations'] if x['type'] == '天干合']
-    assert he and he[0].get('hua') == '土'
-    r2 = _analyze_pillar_interaction('己', '丑', ['甲', '丙', '庚', '壬'],
-                                     ['寅', '子', '午', '辰'], '庚')
-    he2 = [x for x in r2['gan_relations'] if x['type'] == '天干合']
-    assert he2 and not he2[0].get('hua')
+    assert he and 'hua' not in he[0]
+    assert '化' not in he[0]['desc']
+
+
+def test_gan_he_without_month_still_has_no_hua():
+    r = _analyze_pillar_interaction('己', '丑', ['甲', '丙', '庚', '壬'],
+                                    ['寅', '子', '午', '辰'], '庚')
+    he = [x for x in r['gan_relations'] if x['type'] == '天干合']
+    assert he and 'hua' not in he[0]
+    assert '化' not in he[0]['desc']
+
+
+def test_sheng_mu_pair_is_gongju_not_banhe():
+    """理象学:2498 亥未拱木，不把生墓两端误报为半合。"""
+    r = _analyze_pillar_interaction('己', '未', ['甲', '丙', '庚', '壬'],
+                                    ['亥', '子', '午', '辰'], '庚')
+    gong = [x for x in r['zhi_relations'] if x['type'] == '拱局']
+    assert len(gong) == 1 and gong[0]['target'] == '亥'
+    assert '拱木局' in gong[0]['desc']
+    assert not any(x['type'] == '半合' and x.get('target') == '亥'
+                   for x in r['zhi_relations'])
+
+
+def test_po_and_noncore_xing_do_not_create_work_type():
+    r = _analyze_pillar_interaction('辛', '卯', ['壬', '壬', '庚', '壬'],
+                                    ['子', '亥', '寅', '卯'], '庚')
+    po = [x for x in r['zhi_relations'] if x['type'] == '破']
+    xing = [x for x in r['zhi_relations'] if x['type'] == '刑']
+    assert po and all(x.get('relation_only') for x in po + xing)
+    assert '制用' not in r['work_types']

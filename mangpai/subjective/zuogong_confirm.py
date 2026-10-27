@@ -4,8 +4,8 @@ zuogong_confirm - 盲派做功引擎·做功成立确认层（subjective）
 理论来源：段建业《段氏理象学》做功篇
 核心思想：做功是盲派分析命局的核心。日柱通过制、合、墓、生、化五种方式
           对其他柱做功，做功的效率和层次决定命局格局高低。
-  制用：克、冲、刑、破、穿
-  合用：六合、天干五合、暗合、半合、合化（天干五合化气，原误作化用，已归入合用）
+  制用：克、冲、刑、穿（破只保留关系，不做主功）
+  合用：六合、天干五合、暗合、半合（天干地支只合不化）
   墓用：入墓（制住入墓）
   生用：食伤泄秀（日干生出食神/伤官，食伤再生财或制杀方为做功）
   化用：杀印相生（官杀->印->日主链，化杀为印、化印为身方为做功）
@@ -13,12 +13,12 @@ zuogong_confirm - 盲派做功引擎·做功成立确认层（subjective）
 做功优先级链（M9 声明式规则表 + A8 强度加权混合，旧串行链已重构）：
   规则表（priority 升序）：1. 日干合（合官/合财，争合强度1/单合2）
   2. 化用成局（杀印相生，坐下印2/月干印3） 3. 生用（食伤泄秀，2）
-  4. 弃干看支（日支刑冲破害墓合，被动1/主动2/穿制让位5）
+  4. 弃干看支（日支刑冲穿墓合，被动1/主动2/穿制让位5）
   解析器：优先级取首候选；低优先级强度超出在任者 2 则逆袭（化例三/制例三
   锚例由强度自然复现）；无法强度化之旧语义（坐下印+争合、穿降级无候选）
   保留硬性否决声明。5. 俱不做功 -> 看禄/比劫（fallback）。
-党势铁律（段氏）：须一方成党势、强方制弱方才算功。日柱所在方党羽数不足
-  （孤身无党）者，其制用做功无力，降为辅助（auxiliary）。
+党势方向由关系层按双方阵营判定；主位弱反制可降级，宾宾之间不按同五行
+  计数二次否决（理象学:6340 的弱癸水与 :7332-7336 的戊克壬分域）。
 
 分层说明（objective/subjective 重构）：
   本模块为"解释性判断"层：消费 objective.zuogong_detect 的纯关系检测结果，
@@ -36,10 +36,13 @@ zuogong_confirm - 盲派做功引擎·做功成立确认层（subjective）
 import logging
 from typing import Dict, List, Optional, Set, Tuple
 
-from mangpai.objective.zuogong_detect import detect_relations, _day_faction
+from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.objective.gongfei import classify_gongshen
+from mangpai.objective._relation_utils import (
+    _main_qi_count, _party_strength, _single_zhi_party,
+)
 from mangpai.objective.constants import (
-    GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG, LU,
+    GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
     PILLAR_NAMES_CN, PILLAR_KEYS, is_pillars,
     EFFICIENCY_HIGH_ACTION_COUNT, EFFICIENCY_HIGH_TYPE_COUNT,
     EFFICIENCY_MID_ACTION_COUNT,
@@ -54,31 +57,22 @@ from mangpai.objective.canggan import get_canggan_mangpai
 
 _logger = logging.getLogger(__name__)
 
-# ── 穿的 harm 信号（G1：原 assess_work_level 的 L0-L5 类型计数体系已废除，
-#    做功层次唯一事实源 = subjective.gongliang；以下两个 any() 为原函数
-#    :128-139 逐字保留，行为等价：work_types 为空 -> 双 False，否则在非辅助
-#    动作集上判穿）──
-
 
 def _harm_signals(work_types: List[str], work_actions: List[Dict]) -> Tuple[bool, bool]:
-    """穿的 harm 信号（原 assess_work_level 内联段逐字保留）。
-
-    被动穿（severity=high 且 to_pos 含 day_）-> has_severe_harm；
-    主动穿（severity=high 且 from_pos 含 day_）-> has_active_harm。
-    work_types 为空时双 False（与原函数早退分支等价）。调用方传
-    (sorted(work_types), non_aux)，与原 assess_work_level 同参。
-    """
+    """方向明确的穿才计主/被动；双向穿不能按柱序冒充单向伤害。"""
     if not work_types:
         return False, False
     has_severe_harm = any(
         wa.get('type') == '穿'
         and wa.get('severity') == 'high'
+        and wa.get('relation_direction') not in ('mutual', 'unknown')
         and wa.get('to_pos', '').startswith('day_')
         for wa in work_actions
     )
     has_active_harm = any(
         wa.get('type') == '穿'
         and wa.get('severity') == 'high'
+        and wa.get('relation_direction') not in ('mutual', 'unknown')
         and wa.get('from_pos', '').startswith('day_')
         for wa in work_actions
     )
@@ -89,23 +83,18 @@ def _harm_signals(work_types: List[str], work_actions: List[Dict]) -> Tuple[bool
 # 主位（体之位）：日柱 + 时柱；宾位（用之位）：年柱 + 月柱
 _ZHU_PILLARS = {'day', 'hour'}
 # 被动受制类型（计入 passive_control，格局减分）
-_PASSIVE_CONTROL_TYPES = {'冲', '克', '穿', '刑', '破', '墓用'}
+_PASSIVE_CONTROL_TYPES = {'冲', '克', '穿', '刑', '墓用'}
 # 做功动作 type -> 做功方式 label（work_types 集合元素）。
-# work_types 仅从非辅助动作提取（见 analyze_zuogong 末尾），S1 去重/S2 降级
-# 动作虽在建阶段 add 了 label，最终以 non_aux 重算为准，避免 type_count 虚高。
+# work_types 仅从非辅助动作提取（见 analyze_zuogong 末尾），降级动作虽在建
+# 阶段 add 了 label，最终以 non_aux 重算为准，避免 type_count 虚高。
 _WORK_TYPE_LABEL = {
-    '冲': '制用', '克': '制用', '穿': '制用', '刑': '制用', '破': '制用',
+    '冲': '制用', '克': '制用', '穿': '制用', '刑': '制用',
     '天干合': '合用', '地支合': '合用', '暗合': '合用', '半合': '合用',
-    '合化': '合用',
     '杀印相生': '化用',
     '食伤': '生用',
     '三合局': '成势',
     '墓用': '墓用',
-    '禄': '禄',
 }
-# 党势阈值：日柱所在方须至少有 N 个党羽（比劫/印，不含日干自身）方成党势。
-# 党羽数不足（孤身无党）者，其日柱制用做功无力，降为辅助。
-_DANGSHI_MIN_SUPPORTERS = 1
 
 # ── 制法效率标签（批D，书据定性排序；键=无序支对，作用于地支合/暗合/半合）──
 # 理象学:7462-7489：巳申合效率最高（金水有势申制巳、木火有势巳制申，原神
@@ -275,108 +264,64 @@ def analyze_zuogong(
     kong_wang_zhis: Set[str] = det['kong_wang_zhis']
     entombed_gan_pillars: Set[str] = det['entombed_gan_pillars']
 
-    # ── S1 重复计数去重 ──
-    # 同一地支对可能被冲/克/刑/穿/破/合多条匹配，按段氏关系优先级只保留一条
-    # 优先级: 冲>刑>穿>破>合>克>生；天干合/合化/三合局/半合/暗合/墓用不参与
-    # 注：六合的 type 是 '地支合'（非 '合'），故去重类型集合须用 '地支合'
-    # 合克属合不属克（《三命通会》论合克：合先于克，以合论不以克论）：地支同时
-    # 满足合与克时优先归类为合。六合中带克的只有子丑/卯戌/巳申（合克对），
-    # 故"地支合>克"只作用于合克对--与天干克"合对以合论不计克"统一处理。
-    # 冲/刑/穿/破 仍高于地支合，故巳申（合+克+刑+破）仍以刑胜出，不受影响。
-    _DEDUP_PRIORITY = {'冲': 7, '刑': 6, '穿': 5, '破': 4, '地支合': 3, '克': 2, '生': 1}
-    _DEDUP_TYPES = {'冲', '克', '刑', '穿', '破', '地支合', '生'}
-    # 穿（severity=high）即使被去重也不标 auxiliary：穿为暗伤，其 harm 信号必须
-    # 透传到 _harm_signals 的 has_severe_harm/has_active_harm 判断（G1 后消费方
-    # 为 gongliang/xiangfa 等，行为与原 assess_work_level 逐字等价）。
-    # 被动穿（to_pos 含 day_）-> has_severe_harm；主动穿（from_pos 含 day_）-> has_active_harm。
-    # 寅巳对同时为刑(pri6)与穿(pri5)，刑胜出时穿被去重--若不保护，主动穿漏标
-    # has_active_harm（被动穿已由 _is_passive_chuan 保护，_is_active_chuan 对称补全）。
-    def _is_passive_chuan(wa):
-        return (wa.get('type') == '穿' and wa.get('severity') == 'high'
-                and wa.get('to_pos', '').startswith('day_'))
-
-    def _is_active_chuan(wa):
-        return (wa.get('type') == '穿' and wa.get('severity') == 'high'
-                and wa.get('from_pos', '').startswith('day_'))
-
-    def _is_protected_chuan(wa):
-        return _is_passive_chuan(wa) or _is_active_chuan(wa)
-
-    # 去重键用无序 frozenset({from_pos, to_pos})：克的 from/to 方向与冲/刑相反
-    # （克方为"我克者"在先，冲/刑按柱序），有序 (from_pos, to_pos) 无法把同一对合并
-    _best: Dict[frozenset, tuple] = {}  # frozenset({fpos, tpos}) -> (priority, index)
+    # 授课:944 只要求冲/穿/刑/合并存；克/生仍按冲克、合克去重。
+    # 破另按「子不生卯、卯不生午」抑制同对生扶，不把关系标记计做功。
+    _priority = {'冲': 7, '刑': 6, '穿': 5, '破': 4, '地支合': 3, '克': 2, '生': 1}
+    _coexist = {'冲', '刑', '穿', '破', '地支合'}
+    _best: Dict[frozenset, tuple] = {}
+    _po_pairs = {frozenset((wa.get('from_pos', ''), wa.get('to_pos', '')))
+                 for wa in work_actions if wa.get('type') == '破'}
     for _idx, _wa in enumerate(work_actions):
-        if _wa.get('auxiliary') or _wa.get('type') not in _DEDUP_TYPES:
+        if _wa.get('auxiliary'):
+            continue
+        _type = _wa.get('type', '')
+        if _type not in _priority:
             continue
         _pair = frozenset((_wa.get('from_pos', ''), _wa.get('to_pos', '')))
         if not _pair or '' in _pair:
             continue
-        _pri = _DEDUP_PRIORITY.get(_wa.get('type', ''), 0)
-        if _pair in _best and _pri <= _best[_pair][0]:
-            if not _is_protected_chuan(_wa):
-                _wa['auxiliary'] = True
-                _wa['dedup_removed'] = True
-        else:
-            if _pair in _best:
+        if _type == '生' and _pair in _po_pairs:
+            _wa['auxiliary'] = True
+            _wa['relation_only'] = True
+            _wa['dedup_removed'] = True
+            continue
+        _pri = _priority[_type]
+        if _type in _coexist:
+            if _pair in _best and _pri > _best[_pair][0]:
                 _old_idx = _best[_pair][1]
-                if not _is_protected_chuan(work_actions[_old_idx]):
+                if work_actions[_old_idx].get('type') not in _coexist:
                     work_actions[_old_idx]['auxiliary'] = True
                     work_actions[_old_idx]['dedup_removed'] = True
-            _best[_pair] = (_pri, _idx)
-
-    # S1 dedup placeholder
-    work_actions.extend(tomb_works)
-
-    # ── S2 宾宾交互过滤 ──
-    # 日柱不参与的地支互动（from_pos/to_pos 都不含 day_）降级为辅助
-    # 天干合/合化/三合局不受此限制
-    _DAY_REQUIRED_TYPES = {'冲', '克', '刑', '穿', '破', '合', '生', '墓用', '暗合', '半合'}
-    for _wa in work_actions:
-        if _wa.get('auxiliary'):
+                _best[_pair] = (_pri, _idx)
+            elif _pair not in _best:
+                _best[_pair] = (_pri, _idx)
             continue
-        _tp = _wa.get('type', '')
-        if _tp in ('天干合', '合化', '杀印相生', '三合局'):
-            continue
-        _fp = _wa.get('from_pos', '')
-        _tp2 = _wa.get('to_pos', '')
-        if not _fp.startswith('day_') and not _tp2.startswith('day_'):
+        if _pair in _best and _pri <= _best[_pair][0]:
             _wa['auxiliary'] = True
-            _wa['global_qi'] = True
+            _wa['dedup_removed'] = True
+            continue
+        if _pair in _best:
+            work_actions[_best[_pair][1]]['auxiliary'] = True
+            work_actions[_best[_pair][1]]['dedup_removed'] = True
+        _best[_pair] = (_pri, _idx)
 
-    # ── S3 党势强弱判定（段氏铁律：强方制弱方才算功）──
-    # 须一方成党势方有制用之力。统计日柱所在方党羽数（比劫+印，不含日干自身），
-    # 党羽数不足（孤身无党）者，其日柱主动制用（冲/克/刑/破）做功无力，降为辅助。
-    # 穿（severity=high）携 harm 信号，不在此降级，避免漏标 has_active_harm。
-    # 被动受制（to_pos=day_）属强方制弱方之"制弱"，不降级。
-    if day_wx:
-        _yin_wx_ds, _sha_wx_ds, _day_supporters = _day_faction(day_gan, gans, zhis)
-        if _day_supporters < _DANGSHI_MIN_SUPPORTERS:
-            for _wa in work_actions:
-                if _wa.get('auxiliary'):
-                    continue
-                if _wa.get('type') not in ('冲', '克', '刑', '破'):
-                    continue  # 仅制用（穿除外，见上注）
-                if not _wa.get('from_pos', '').startswith('day_'):
-                    continue  # 仅日柱主动做功
-                _wa['auxiliary'] = True
-                _wa['weak_faction'] = True
+    work_actions.extend(tomb_works)
+    # 入墓优先：同一墓库/被收端点不再按普通相克做功；冲穿刑合仍按 R4 并存。
+    _tomb_pairs = {(tw.get('from_pos', ''), tw.get('to_pos', ''))
+                   for tw in tomb_works}
+    for _wa in work_actions:
+        if (_wa.get('type') == '克'
+                and (_wa.get('from_pos', ''), _wa.get('to_pos', '')) in _tomb_pairs):
+            _wa['auxiliary'] = True
+            _wa['tomb_covered'] = True
 
-    # ── 正向/反向做功方向（P1-2，消费 tiyong + binzhu）──
-    # 主位=日时（体之位），宾位=年月（用之位）
-    # 正向：from=体在主位 + to=用在宾位（我以体之工具取宾位之用）
-    # 反向：from=用在主位 + to=体在宾位（反向做功，效率高）
-    # 与下方 ti_result 守卫风格对齐：analyze_binzhu 异常时留空，
-    # 由下方 isinstance(binzhu_result, dict) 判空 -> binzhu_zhu/binzhu_bin 留空
-    # -> 自动触发回退到硬编码 _ZHU_PILLARS，不致整体做功分析崩溃。
+    # 主位取宾主层日时集合；异常时沿用固定日时，不影响后续体用判断。
     try:
         binzhu_result = analyze_binzhu(year_zhi, month_zhi, day_zhi, hour_zhi,
                                        year_gan, month_gan, day_gan, hour_gan)
     except Exception as e:
         _logger.warning('binzhu 宾主分析失败，回退硬编码主宾柱位: %s', e, exc_info=True)
         binzhu_result = None
-    # 由 binzhu 三层模型推导主/宾柱位（替代硬编码 _ZHU_PILLARS）：
-    #   主位 = layer1（日、时）；宾位 = layer2 近宾 + layer3 远宾（年、月）
-    # 远宾仍属宾，故宾位取 layer2∪layer3，保持原"主=日时、宾=年月"语义。
     _cn_to_pillar = dict(zip(PILLAR_NAMES_CN, PILLAR_KEYS))
     binzhu_zhu: Set[str] = set()
     binzhu_bin: Set[str] = set()
@@ -390,11 +335,64 @@ def analyze_zuogong(
                 k = _cn_to_pillar.get(cn)
                 if k:
                     binzhu_bin.add(k)
-    # 回退：binzhu 无 layer 信息时沿用原硬编码逻辑
     if not binzhu_zhu:
         binzhu_zhu = set(_ZHU_PILLARS)
     if not binzhu_bin:
         binzhu_bin = set(PILLAR_KEYS) - binzhu_zhu
+
+    # ── S2 宾宾交互过滤：时辰也是主位，不按旧 day_ 单柱口径降全局气 ──
+    _DAY_REQUIRED_TYPES = {'冲', '克', '刑', '穿', '合', '生', '墓用', '暗合', '半合'}
+    for _wa in work_actions:
+        if _wa.get('auxiliary') or _wa.get('type') in ('天干合', '杀印相生', '三合局'):
+            continue
+        _fp = _wa.get('from_pos', '')
+        _tp2 = _wa.get('to_pos', '')
+        if not {_pillar_of(_fp), _pillar_of(_tp2)} & binzhu_zhu:
+            _wa['auxiliary'] = True
+            _wa['global_qi'] = True
+
+    # ── S3 主位弱反制退出主功；宾宾动作不以同五行数量二次否决 ──
+    for _wa in work_actions:
+        if _wa.get('auxiliary') or _wa.get('type') not in ('冲', '克', '刑', '穿'):
+            continue
+        _relation_direction = _wa.get('relation_direction')
+        if _relation_direction == 'unknown':
+            _wa['auxiliary'] = True
+            _wa['direction_unresolved'] = True
+            continue
+        if not {_pillar_of(_wa.get('from_pos', '')),
+                  _pillar_of(_wa.get('to_pos', ''))} & binzhu_zhu:
+            continue
+        _f_elem = _elem_of(_wa.get('from_pos', ''), gans, zhis)
+        _t_elem = _elem_of(_wa.get('to_pos', ''), gans, zhis)
+        _f_wx = GAN_WX.get(_f_elem, '') or ZHI_WX.get(_f_elem, '')
+        _t_wx = GAN_WX.get(_t_elem, '') or ZHI_WX.get(_t_elem, '')
+        if not _f_wx or not _t_wx:
+            _wa['auxiliary'] = True
+            _wa['direction_unresolved'] = True
+            continue
+        _f_party = _main_qi_count(_f_wx, gans, zhis, camp=False)
+        _t_party = _main_qi_count(_t_wx, gans, zhis, camp=False)
+        _weak = _f_party < 4 <= _t_party
+        if _f_party >= 4 and _t_party >= 4 and _relation_direction != 'mutual':
+            _f_compare = _party_strength(_f_wx, gans, zhis)
+            _t_compare = _party_strength(_t_wx, gans, zhis)
+            if _wa.get('type') in ('冲', '刑') and _f_wx == _t_wx == '土':
+                _f_compare = _single_zhi_party(_f_wx, _f_elem, zhis, gans)
+                _t_compare = _single_zhi_party(_t_wx, _t_elem, zhis, gans)
+            _weak = _f_compare <= _t_compare
+        if _weak:
+            _wa['auxiliary'] = True
+            _wa['weak_faction'] = True
+            _wa['party_strength'] = {
+                'from': round(_party_strength(_f_wx, gans, zhis), 2),
+                'to': round(_party_strength(_t_wx, gans, zhis), 2),
+            }
+
+    # ── 正向/反向做功方向（P1-2，消费 tiyong + binzhu）──
+    # 主位=日时（体之位），宾位=年月（用之位）
+    # 正向：from=体在主位 + to=用在宾位（我以体之工具取宾位之用）
+    # 反向：from=用在主位 + to=体在宾位（反向做功，效率高）
     ti_result: Optional[Dict] = None
     if shishen:
         try:
@@ -435,7 +433,8 @@ def analyze_zuogong(
         ti_result['bias_summary'] = _bias_summary
     reverse_work_count = 0
     for wa in work_actions:
-        if wa.get('auxiliary'):
+        if (wa.get('auxiliary')
+                or wa.get('relation_direction') in ('mutual', 'unknown')):
             continue
         fpos, tpos = wa.get('from_pos', ''), wa.get('to_pos', '')
         if not fpos or not tpos:
@@ -580,23 +579,25 @@ def analyze_zuogong(
     # 生用候选（旧链口径）：非辅助 + 未入墓 + 穿让位过滤。食伤泄秀之伤官/食神
     # 若入墓（gan_entombed），泄秀之器受制无力泄秀，生用不当主功，让位予弃干
     # 看支之制用（制例二 戊日伤官辛入墓，主功在日支寅克丑/戌之制用）。
-    _sheng_qualified = [
-        a for a in sheng_yong_actions
-        if not a.get('auxiliary')
-        and not a.get('gan_entombed')
-        and not (_chuan_yields and a.get('to_pos') == 'day_zhi')
-    ]
-    # 弃干看支候选：日支的刑冲破害墓合（含被动受制/合制）
+    _sheng_qualified = sorted(
+        [a for a in sheng_yong_actions
+         if not a.get('auxiliary')
+         and not a.get('gan_entombed')
+         and not (_chuan_yields and a.get('to_pos') == 'day_zhi')],
+        key=lambda a: not a.get('inner_food'),
+    )
+    # 弃干看支候选：日支的刑冲穿墓合（含被动受制/合制）；破只保留坏义。
     _zhi_actions = [
         wa for wa in work_actions
         if not wa.get('auxiliary')
         and (wa.get('from_pos', '').startswith('day_zhi')
              or wa.get('to_pos', '').startswith('day_zhi'))
-        and wa.get('action') in ('冲', '克', '穿', '刑', '破', '墓用', '半成势', '合用')
+        and wa.get('action') in ('冲', '克', '穿', '刑', '墓用', '半成势', '合用')
     ]
     _active_zhi = [
         wa for wa in _zhi_actions
         if wa.get('from_pos', '').startswith('day_zhi')
+        or wa.get('relation_direction') == 'mutual'
     ]
 
     _ctx = {
@@ -627,8 +628,11 @@ def analyze_zuogong(
     def _cand_sheng(c):
         if not c['sheng_qualified']:
             return None
-        return {'type': '生用', 'path': '日干生（食伤泄秀）',
-                'action': c['sheng_qualified'][0], 'strength': 2}
+        action = c['sheng_qualified'][0]
+        return {'type': action['action'],
+                'path': '日干生（食伤泄秀）' if action['action'] == '生用'
+                        else '食伤泄秀（泄用，无财杀目标）',
+                'action': action, 'strength': 2}
 
     def _cand_zhi(c):
         if not c['zhi_actions']:
@@ -640,7 +644,7 @@ def analyze_zuogong(
         elif _pa == '合用':
             ptype, _path = '合用', '弃干看支（日支合用做功）'
         else:
-            ptype, _path = '制用', '弃干看支（日支刑冲破害做功）'
+            ptype, _path = '制用', '弃干看支（日支刑冲穿做功）'
         strength = 5 if c['chuan_yields'] else (2 if c['active_zhi'] else 1)
         return {'type': ptype, 'path': _path, 'action': pa, 'strength': strength}
 
@@ -698,18 +702,7 @@ def analyze_zuogong(
             }
 
     if primary_action is None:
-        # 日干支俱不做功 -> 看禄/比劫：查日干禄位是否在主位（日支/时支）。
-        # 段氏：禄在主位（自坐禄/时禄）为禄做功；禄在宾位则无主位之禄可凭。
-        # 若禄在主位，primary_work 由"禄比"label 升级为实际禄做功检测。
-        lu_zhi = LU.get(day_gan, '')
-        lu_in_zhu = bool(lu_zhi) and lu_zhi in (day_zhi, hour_zhi)
-        # 禄分支前置守卫：上方 zhi_actions 过滤器（弃干看支）只认
-        # 冲/克/穿/刑/破/墓用/半成势，不认日支六合(地支合)/暗合，也不认日干
-        # 主动克(天干克)。这些同样是日柱做功--若已存在则不应触发禄分支，
-        # 否则会追加伪禄 action、误标 primary_work=禄做功，或在禄不在主位时
-        # 误写"俱不做功"（实际有制用/合用）。
-        # 仅日干主动克(from_pos=day_gan)算日柱做功：被动受克(to_pos=day_gan)
-        # 是日柱受制而非做功，不抑制禄（自坐禄逢官杀克身仍可凭禄做功）。
+        # 主位有禄只说明通根，不能自动补禄做功；仍保留实际合/克的回退标签。
         day_work_actions = [
             wa for wa in work_actions
             if not wa.get('auxiliary')
@@ -720,47 +713,7 @@ def analyze_zuogong(
                 or (wa.get('type') == '克' and wa.get('from_pos') == 'day_gan')
             )
         ]
-        has_day_zuo_gong = bool(day_work_actions)
-        if lu_in_zhu and not has_day_zuo_gong:
-            lu_pos = 'day_zhi' if lu_zhi == day_zhi else 'hour_zhi'
-            lu_pillar_cn = '日' if lu_pos == 'day_zhi' else '时'
-            lu_action = {
-                'type': '禄',
-                'action': '禄做功',
-                'from': f'日干({day_gan})',
-                'to': f'{lu_pillar_cn}支({lu_zhi})',
-                'from_pos': 'day_gan',
-                'to_pos': lu_pos,
-                'desc': f'日干{day_gan}禄在{lu_zhi}（主位{lu_pillar_cn}支），禄做功',
-            }
-            work_actions.append(lu_action)
-            # 禄 action 追加晚于长生/天干入墓/空亡三个折扣循环，此处补标
-            # efficiency_discount（与上方折扣循环同口径），避免禄做功漏标折扣。
-            for _lu_pos_field in ('from_pos', 'to_pos'):
-                _lu_pos = lu_action.get(_lu_pos_field, '')
-                if not _lu_pos.endswith('_zhi'):
-                    continue
-                _lu_zhi_char = _elem_of(_lu_pos, gans, zhis)
-                if _lu_zhi_char in day_weak_zhis:
-                    lu_action['efficiency_discount'] = True
-                if kong_wang_zhis and _lu_zhi_char in kong_wang_zhis:
-                    lu_action['efficiency_discount'] = True
-                    lu_action['kong_wang'] = True
-            _lu_f_pillar = _pillar_of(lu_action.get('from_pos', ''))
-            _lu_t_pillar = _pillar_of(lu_action.get('to_pos', ''))
-            if _lu_f_pillar in entombed_gan_pillars or _lu_t_pillar in entombed_gan_pillars:
-                lu_action['gan_entombed'] = True
-                lu_action['efficiency_discount'] = True
-            primary_action = lu_action
-            primary_work = {
-                'type': '禄比',
-                'path': f'日干{day_gan}禄在{lu_zhi}（主位），禄做功',
-                'lu_in_zhu': True,
-                'lu_zhi': lu_zhi,
-            }
-        elif has_day_zuo_gong:
-            # 日柱已有六合/暗合/天干克做功 -> primary_work 反映实际做功方式，
-            # 不追加伪禄 action，不标禄做功，亦不误写"俱不做功"
+        if day_work_actions:
             _dw = day_work_actions[0]
             if _dw.get('type') == '克':
                 primary_work = {'type': '制用',
@@ -948,8 +901,10 @@ def analyze_zuogong(
     non_aux = [wa for wa in work_actions if not wa.get('auxiliary')]
     # work_types 以 non_aux 为准重算：S1 去重/S2 降级动作的 type 不计入，
     # 避免宾宾半合/宾宾制用等降级动作虚增 type_count（建阶段的 add 为 provisional）。
-    work_types = {_WORK_TYPE_LABEL[wa.get('type', '')]
-                  for wa in non_aux if wa.get('type', '') in _WORK_TYPE_LABEL}
+    work_types = {
+        '泄用' if wa.get('action') == '泄用' else _WORK_TYPE_LABEL[wa['type']]
+        for wa in non_aux if wa.get('type', '') in _WORK_TYPE_LABEL
+    }
     action_count = len(non_aux)
     type_count = len(work_types)
     if action_count >= EFFICIENCY_HIGH_ACTION_COUNT or type_count >= EFFICIENCY_HIGH_TYPE_COUNT:
@@ -979,24 +934,31 @@ def analyze_zuogong(
             efficiency = '低'
         # 低不变
 
-    # ── 主动/被动做功分析（仅计非辅助做功）──
-    # 主动做功：from_pos 以 day_ 开头 -> 日柱主动做功（我取外物，格局高）
-    # 被动做功：to_pos 以 day_ 开头 -> 日柱被动被做功
-    # 被动细分：被动制（被克/冲/穿/刑/破/入墓）-> 格局减分
-    #           被动合（被合）-> 中性（财来合我可为吉）
-    #           被动生（被生）-> 中性偏吉（印来生我）
-    # 方向性互斥：同一动作不应既出又入。自坐禄 from_pos=day_gan、to_pos=day_zhi
-    # 同属 day_，本质是日干凭禄主动做功（非被动承受），故被动集合排除已属主动者，
-    # 避免禄 action 同时计入 active_work + passive_work 双计。
-    active_work = [
-        wa for wa in non_aux
-        if wa.get('from_pos', '').startswith('day_')
-    ]
-    passive_work = [
-        wa for wa in non_aux
-        if wa.get('to_pos', '').startswith('day_')
-        and not wa.get('from_pos', '').startswith('day_')
-    ]
+    # 主位=日时；但时柱制日柱对日主仍是被动。双向关系只按主宾端点归类，
+    # 不把 from 当唯一施力方；unknown 已在 S3 退出 non_aux，这里仍显式防守。
+    def _work_role(wa):
+        relation_direction = wa.get('relation_direction')
+        if relation_direction == 'unknown':
+            return False, False
+        from_pos = wa.get('from_pos', '')
+        to_pos = wa.get('to_pos', '')
+        if relation_direction == 'mutual':
+            active = any(_pillar_of(pos) in binzhu_zhu
+                         for pos in (from_pos, to_pos))
+            return active, False
+        active = (from_pos.startswith('day_')
+                  or (from_pos.startswith('hour_') and not to_pos.startswith('day_')))
+        passive = _pillar_of(to_pos) in binzhu_zhu and not active
+        return active, passive
+
+    active_work: List[Dict] = []
+    passive_work: List[Dict] = []
+    for wa in non_aux:
+        active, passive = _work_role(wa)
+        if active:
+            active_work.append(wa)
+        if passive:
+            passive_work.append(wa)
     passive_control = [
         wa for wa in passive_work
         if wa.get('type') in _PASSIVE_CONTROL_TYPES

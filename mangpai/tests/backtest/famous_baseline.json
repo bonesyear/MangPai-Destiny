@@ -1,0 +1,190 @@
+{
+ "zg:李世民": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '化用'] primary=化用 书=['制用']"
+ },
+ "gl:李世民": {
+  "verdict": "⚠️",
+  "detail": "level=3(书4) score=74"
+ },
+ "gm:李世民": {
+  "verdict": "✅",
+  "detail": "is_guanming=True 书=True combo="
+ },
+ "zg:汉武帝": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '化用', '合用'] primary=合用 书=['制用']"
+ },
+ "gm:汉武帝": {
+  "verdict": "✅",
+  "detail": "is_guanming=True 书=True combo="
+ },
+ "zg:唐明皇": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '合用', '生用'] primary=生用 书=['制用']"
+ },
+ "gm:唐明皇": {
+  "verdict": "✅",
+  "detail": "is_guanming=True 书=True combo="
+ },
+ "zg:曾国藩": {
+  "verdict": "⚠️",
+  "detail": "types=['合用', '墓用', '生用'] primary=合用 书=['墓用']"
+ },
+ "gm:曾国藩": {
+  "verdict": "✅",
+  "detail": "is_guanming=True 书=True combo="
+ },
+ "zg:慈禧": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '成势', '生用'] primary=生用 书=['制用']"
+ },
+ "gl:慈禧": {
+  "verdict": "✅",
+  "detail": "level=4(书4) score=90"
+ },
+ "gm:慈禧": {
+  "verdict": "✅",
+  "detail": "is_guanming=True 书=True combo="
+ },
+ "zg:王阳明": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '墓用'] primary=制用 书=['墓用']"
+ },
+ "gm:王阳明": {
+  "verdict": "✅",
+  "detail": "is_guanming=True 书=True combo="
+ },
+ "zg:希特勒": {
+  "verdict": "❌",
+  "detail": "types=['制用', '合用', '生用'] primary=生用 书=['墓用']"
+ },
+ "gm:希特勒": {
+  "verdict": "✅",
+  "detail": "is_guanming=True 书=True combo="
+ },
+ "zg:辛普森": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '化用', '合用'] primary=合用 书=['制用']"
+ },
+ "ly:辛普森": {
+  "verdict": "✅",
+  "detail": "risk=高 书=高"
+ },
+ "zy:阿炳": {
+  "verdict": "❌",
+  "detail": "primary='merchant'(商人/经营) 书=['performer']"
+ },
+ "zg:李昌镐": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=制用 书=['制用']"
+ },
+ "gm:李昌镐": {
+  "verdict": "✅",
+  "detail": "is_guanming=False 书=False combo="
+ },
+ "zg:帕瓦罗蒂": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=制用 书=['制用']"
+ },
+ "zy:帕瓦罗蒂": {
+  "verdict": "✅",
+  "detail": "primary='performer'(演艺/演员) 书=['performer']"
+ },
+ "zy:迈克尔杰克逊": {
+  "verdict": "⚠️",
+  "detail": "primary=''(未分类) 书=['performer']"
+ },
+ "zg:牛顿": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '墓用', '生用'] primary=生用 书=['制用']"
+ },
+ "hy:戴安娜": {
+  "verdict": "✅",
+  "detail": "quality=差 书=差"
+ },
+ "gm:王亚樵": {
+  "verdict": "✅",
+  "detail": "is_guanming=False 书=False combo="
+ },
+ "zg:巴菲特": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '合用', '生用'] primary=生用 书=['制用']"
+ },
+ "cm:巴菲特": {
+  "verdict": "✅",
+  "detail": "tier_static=巨富 tier=巨富 书=['巨富']"
+ },
+ "zy:巴菲特": {
+  "verdict": "⚠️",
+  "detail": "primary=''(未分类) 书=['merchant']"
+ },
+ "zg:保尔森": {
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=制用 书=['制用']"
+ },
+ "cm:保尔森": {
+  "verdict": "✅",
+  "detail": "tier_static=巨富 tier=巨富 书=['巨富']"
+ },
+ "zg:索罗斯": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '合用', '生用'] primary=生用 书=['制用']"
+ },
+ "cm:索罗斯": {
+  "verdict": "⚠️",
+  "detail": "tier_static=富 tier=富 书=['巨富']"
+ },
+ "cm:马云": {
+  "verdict": "⚠️",
+  "detail": "tier_static=富 tier=富 书=['巨富']"
+ },
+ "zy:马云": {
+  "verdict": "❌",
+  "detail": "primary='teacher'(教师/教育) 书=['merchant']"
+ },
+ "zg:李嘉诚": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '化用', '合用'] primary=化用 书=['制用']"
+ },
+ "gl:李嘉诚": {
+  "verdict": "⚠️",
+  "detail": "level=3(书4) score=68"
+ },
+ "gm:李嘉诚": {
+  "verdict": "❌",
+  "detail": "is_guanming=True 书=False combo="
+ },
+ "cm:李嘉诚": {
+  "verdict": "✅",
+  "detail": "tier_static=巨富 tier=巨富 书=['巨富']"
+ },
+ "zy:李嘉诚": {
+  "verdict": "✅",
+  "detail": "primary='merchant'(商人/经营) 书=['merchant']"
+ },
+ "zg:罗斯切尔德": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '化用', '合用', '生用'] primary=合用 书=['制用']"
+ },
+ "cm:罗斯切尔德": {
+  "verdict": "⚠️",
+  "detail": "tier_static=富 tier=富 书=['巨富']"
+ },
+ "zy:罗斯切尔德": {
+  "verdict": "✅",
+  "detail": "primary='merchant'(商人/经营) 书=['merchant']"
+ },
+ "zg:坤沙": {
+  "verdict": "⚠️",
+  "detail": "types=['制用', '生用'] primary=生用 书=['制用']"
+ },
+ "cm:坤沙": {
+  "verdict": "⚠️",
+  "detail": "tier_static=富 tier=富 书=['巨富']"
+ },
+ "zy:乔布斯": {
+  "verdict": "✅",
+  "detail": "primary='merchant'(商人/经营) 书=['merchant']"
+ }
+}

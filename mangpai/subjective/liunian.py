@@ -38,7 +38,7 @@ from mangpai.objective.constants import (
     XING_PAIRS, AN_HE, LU, PILLAR_KEYS, SAN_HE,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective._relation_utils import pair_in as _check_pair
+from mangpai.objective._relation_utils import pair_in as _check_pair, GONG_JU
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
 from mangpai.subjective.yongshen import classify_strength, _shishen_full
 
@@ -107,6 +107,13 @@ def _analyze_liunian_dayun_interaction(
         interactions.append({
             'type': '刑',
             'desc': f'流年{ln_zhi}刑大运{dy_zhi}--是非纠纷',
+        })
+
+    gong_wx = GONG_JU.get(ln_zhi + dy_zhi) or GONG_JU.get(dy_zhi + ln_zhi)
+    if gong_wx:
+        interactions.append({
+            'type': '拱局', 'relation_only': True,
+            'desc': f'流年{ln_zhi}与大运{dy_zhi}拱{gong_wx}局--关系标记，不直接计做功',
         })
 
     if AN_HE.get(ln_zhi) == dy_zhi:

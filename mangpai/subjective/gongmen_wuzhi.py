@@ -234,6 +234,7 @@ def classify_gongjianfa(
 
         yang_ke_yin = any(
             a.get('type') in ('克', '冲', '穿', '刑')
+            and a.get('relation_direction') not in ('mutual', 'unknown')
             and _end_ch(a.get('from_pos', '')) in _YANG82
             and _end_ch(a.get('to_pos', '')) in _YIN82
             for a in wa

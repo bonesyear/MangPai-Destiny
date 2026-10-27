@@ -45,8 +45,10 @@ def _is_he(a: str, b: str) -> bool:
 
 
 def _is_xing(a: str, b: str) -> bool:
-    # XING_PAIRS 三刑已含寅巳申/丑戌未环向三组，唯子卯单列单向，故双向判定。
-    return pair_in(a, b, XING_PAIRS)
+    # 原局墓库做功采用理象学：子卯/自刑不作刑，丑未以冲为主；授课的
+    # 子卯刑、自刑开库口径留在对应领域与岁运路径，不在此混用。
+    return (a != b and pair_in(a, b, XING_PAIRS)
+            and not pair_in(a, b, [('子', '卯'), ('丑', '未')]))
 
 
 def _is_tomb_opened(tomb_zhi: str, all_zhis: List[str]) -> bool:
@@ -219,6 +221,22 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
             if g and GAN_WX.get(g, '') == tombed_wx
         )
     return same_wx_count >= 2
+
+
+def sanhe_tomb_priority(group: str, zhis: List[str],
+                        gans: Optional[List[str]] = None) -> bool:
+    """书中直接例的入墓优先；不把入墓与三合作全局互斥。"""
+    if len(group) != 3:
+        return False
+    first, middle, tomb = group
+    if middle not in zhis or tomb not in zhis:
+        return False
+    full = first in zhis
+    if full and zhis.count(middle) < 2:
+        return False
+    # shortcut: 仅重复中神或同柱干支同五行的直接书例，其他旺衰待书证再扩展。
+    same_pillar_gans = [g for g, z in zip(gans or [], zhis) if z == middle]
+    return is_entomb(middle, tomb, zhis, None if full else same_pillar_gans)
 
 
 # ── 库制库（阳库制阴库）做功检测（P4，2026-09-18）──

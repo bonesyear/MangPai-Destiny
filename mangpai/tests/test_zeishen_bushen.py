@@ -121,8 +121,9 @@ class TestChongLian:
 
     def test_single_chong_not_counted(self):
         """单冲（链长 1）不计层层相制。子午单冲无续。"""
-        z = ['子', '寅', '午', '亥']
-        assert detect_chong_lian(z, ['甲', '丙', '庚', '丁']) is None
+        # 火旺时子午冲与子酉、子申之克均不续接，只有单冲。
+        z = ['子', '午', '申', '酉']
+        assert detect_chong_lian(z, ['丙', '丙', '丙', '丙']) is None
 
     def test_pure_ke_chain_no_chong_not_counted(self):
         """纯克链（无冲）不计（段氏层层相制以冲为骨）。寅->辰->子->巳 全克无冲。"""
@@ -237,6 +238,12 @@ class TestZeishenBushen:
     def test_wuzhi_no_control(self):
         """全水局无冲克合，无制局做功。"""
         zb = _zb(*WUZHI)
+        assert zb['jing_zhi'] == '无制'
+
+    def test_same_element_chong_not_zeibu(self):
+        """土冲可定向做功，但同一「土」不能分别充当捕神和贼神。"""
+        zb = detect_zeishen_bushen('乙', ['癸', '辛', '乙', '丁'],
+                                   ['未', '酉', '酉', '丑'])
         assert zb['jing_zhi'] == '无制'
 
     def test_output_contract(self):

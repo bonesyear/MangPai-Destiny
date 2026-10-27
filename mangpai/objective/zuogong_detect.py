@@ -2,27 +2,30 @@
 zuogong_detect - 盲派做功·纯关系检测层（objective）
 
 理论来源：段建业《段氏理象学》做功篇
-职责：仅做"四柱间存在哪些关系"的纯规则检测，不做任何做功成立判定、
-      党势强弱判定、层次评估或吉凶解释。检测产出原始 work_actions /
-      tomb_works / 食伤动作 / 长生·空亡·天干入墓等原始事实，交由
-      subjective.zuogong_confirm 做解释性判断。
+职责：检测四柱关系及有向做功动作的施受端点，不判层次或吉凶。
+      原始关系保持柱序；做功方向按五行、主气成党与局部党势确定，
+      mutual/unknown 显式保留，不伪造唯一方向。党势只用于结构定向，
+      做功成立确认仍交 subjective.zuogong_confirm。
 
-本模块为纯规则层：仅依赖 constants / muku / changsheng 等确定性查表，
-无歧义、无置信度，可独立测试。
+本模块仅依赖 objective 查表与关系工具，不反向依赖 subjective。
 """
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
-    HUA_YONG_MAP, TOMB_MAP, GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
+    TOMB_MAP, GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
     LIU_CHONG, LIU_HE, LIU_HAI, LIU_PO, XING_PAIRS, TIAN_GAN_HE, AN_HE,
     SAN_HE, BAN_HE, LU, CANG_GAN_MANGPAI,
     PILLAR_NAMES_CN, PILLAR_KEYS,
 )
-from mangpai.objective.muku import is_entomb, analyze_muku, is_gan_entombed
+from mangpai.objective.muku import (
+    is_entomb, analyze_muku, is_gan_entombed, sanhe_tomb_priority,
+)
 from mangpai.objective.changsheng import get_changsheng_mangpai
-from mangpai.objective.bazi_calc import get_kong_wang
+from mangpai.objective.bazi_calc import get_kong_wang, get_di_zhi_relations
 from mangpai.objective.shensha import _YANG_REN as _YANG_REN_MAP
-from mangpai.objective._relation_utils import pair_in
+from mangpai.objective._relation_utils import (
+    pair_in, is_work_xing, resolve_relation_direction, _main_qi_count,
+)
 
 _YANG_GANS = set('甲丙戊庚壬')
 
@@ -65,8 +68,7 @@ _ZHI_PAIR_SPECS = (
         'severity': 'normal',
     },
     {
-        # 刑（制用，含自刑）：自刑（辰辰/午午/酉酉/亥亥）只在同一地支出现在
-        # 不同柱时触发（i<j 天然要求两柱）。
+        # 刑：丑戌/未戌可独立做功；寅巳申须三字齐，其余仅保留关系标记。
         'match': lambda z1, z2: _check_pair(z1, z2, XING_PAIRS),
         'require_day': False,
         'type': '刑', 'action': '刑', 'work_type': '制用',
@@ -83,8 +85,7 @@ _ZHI_PAIR_SPECS = (
         'severity': 'high',
     },
     {
-        # 六破（制用）：破与穿同为暗中破坏，severity='high'。盲派原典六破应事
-        # 较轻，但既落地则与穿同级标记。
+        # 段氏相破仅子卯/卯午：保留破坏性关系，不做主功（初级:1269）。
         'match': lambda z1, z2: _check_pair(z1, z2, LIU_PO),
         'require_day': False,
         'type': '破', 'action': '破', 'work_type': '制用',
@@ -189,7 +190,7 @@ def _kong_wang_zhis(kong_wang) -> Set[str]:
 
 def _scan_gan_relations(day_gan: str, day_wx: str, gans: List[str],
                         zhis: List[str], month_zhi: str) -> Dict:
-    """天干合扫描：日干五合（含争合/合财/合官/合化判断）+ 非日干合制做功。
+    """天干合扫描：日干五合（含争合/合财/合官，只合不化）+ 非日干合制做功。
 
     原 detect_relations 第 2-3 段（天干五合/非日干天干合）原样抽取。
     返回 {'work_actions', 'work_types', 'day_he_type', 'zheng_he'}。
@@ -227,52 +228,6 @@ def _scan_gan_relations(day_gan: str, day_wx: str, gans: List[str],
                 'desc': f'{day_gan}{gan}合，{day_he_type}' + ('（争合）' if zheng_he else ''),
             })
             work_types.add('合用')
-
-            # ── 合化判断（天干五合化气，归入合用）──
-            # 段氏化用本为杀印相生（见下方 _detect 杀印相生），天干五合化气属合之延伸，
-            # 故化气成功者标"合化"并入合用，不再冒用化用之名。
-            # 合化条件：1)两干相邻（与日干索引差1）2)月令为化气五行 3)无克破 4)无争合
-            # 日干索引为2，相邻即月干(1)或时干(3)；年干(0)隔位不合化
-            #
-            # 功能归类：type='合化'、work_types 累入'合用'（非'化用'），故不触发
-            # hua_success/化用成局--化用之名现仅属杀印相生。action 字段保留旧值
-            # '化用'仅为兼容 verify_mangpai 合化条件用例对 action=='化用'的过滤
-            # （action 纯标签，不介入去重/层次/效率/primary_work 等任何判定）。
-            if abs(i - 2) == 1 and not zheng_he:
-                hua_pair = (day_gan, gan)
-                if hua_pair in HUA_YONG_MAP:
-                    hua_wx = HUA_YONG_MAP[hua_pair]
-                    month_zhi_wx = ZHI_WX.get(month_zhi, '')
-                    if month_zhi_wx == hua_wx:
-                        # 检查无克破：化气五行被克则破
-                        ke_hua_wx = WX_KE_ME.get(hua_wx, '')
-                        has_ke_po = False
-                        # 地支克破检查（月令本身为化气之地，不参与克破）
-                        for j, z in enumerate(zhis):
-                            if j == 1:
-                                continue
-                            if ZHI_WX.get(z, '') == ke_hua_wx:
-                                has_ke_po = True
-                                break
-                        # 天干克破检查（跳过合化两方）
-                        if not has_ke_po:
-                            for j, g in enumerate(gans):
-                                if j == 2 or j == i:
-                                    continue
-                                if GAN_WX.get(g, '') == ke_hua_wx:
-                                    has_ke_po = True
-                                    break
-                        if not has_ke_po:
-                            work_actions.append({
-                                'type': '合化',
-                                'action': '化用',
-                                'from': f'日干({day_gan})',
-                                'to': f'{PILLAR_NAMES_CN[i]}干({gan})',
-                                'from_pos': 'day_gan',
-                                'to_pos': f'{pk}_gan',
-                                'desc': f'{day_gan}{gan}合化{hua_wx}，月令{month_zhi}为{hua_wx}气，无克破',
-                            })
-                            work_types.add('合用')
 
     # ── 非日干天干合（伤官合杀/食神合官/羊刃合杀等，合制做功）──
     # 段氏：天干合不限于日干，伤官合杀、食神合官、羊刃合杀等非日干合亦为合制做功
@@ -390,18 +345,16 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
                 sub_parts.append('制杀(' + '、'.join(zhi_sha_targets) + ')')
                 if subtype == '食伤泄秀':
                     subtype = '食伤制杀'
-            if not sub_parts:
-                # 食伤贴身但无财杀目标，仅泄秀不做功
-                continue
             action = {
                 'type': '食伤',
-                'action': '生用',
+                'action': '生用' if sub_parts else '泄用',
                 'subtype': subtype,
                 'from': f'日干({day_gan})',
                 'to': f'{PILLAR_NAMES_CN[idx]}干({other_gan})',
                 'from_pos': 'day_gan',
                 'to_pos': f'{pk}_gan',
-                'desc': f'{ss}{other_gan}泄秀，' + '、'.join(sub_parts),
+                'desc': f'{ss}{other_gan}泄秀，'
+                        + ('、'.join(sub_parts) if sub_parts else '无财杀目标，泄用做功'),
             }
             if idx == 0:
                 # M4 年干食伤：宾位远干泄秀力弱，检出标 auxiliary 不做主功
@@ -410,30 +363,30 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
                 action['desc'] += '（年干远泄，不做主功）'
             work_actions.append(action)
             sheng_yong_actions.append(action)
-            work_types.add('生用')
+            work_types.add(action['action'])
 
-        # 地支食伤（月支/日支藏干食伤贴身，泄秀做功；食伤藏支生财/制杀同属生用）
-        # 仅取本气藏干：中气/余气食伤过弱且易误检（如申中壬、巳中戊），与制用本气口径一致。
-        for idx in (1, 2):  # 月支、日支
+        # 地支食伤限本气：月/日/时支；主位（含时支）可生宾财。
+        for idx in (1, 2, 3):
             _zhi = zhis[idx]
             if not _zhi:
                 continue
             _cang = CANG_GAN_MANGPAI.get(_zhi, [])
             if not _cang:
                 continue
-            _ss_gan = _cang[0][0]  # 本气藏干
+            _ss_gan = _cang[0][0]
             if _shishang_of(day_gan, _ss_gan) is None:
-                continue  # 本气非食伤，不做生用
-            # 入墓之物不做功：食伤地支若被墓库所收，其食伤被困，不应泄秀做生用。
-            # （如数学家 亥入辰墓，亥藏壬食伤不做生用，主功在制用+墓用；富婆 子不入墓，正常生用。）
+                continue
             if any(zk and zk != _zhi and zk in TOMB_MAP and is_entomb(_zhi, zk, zhis, gans)
                    for zk in zhis):
                 continue
+            # 内食神格由下方专门路径产出，不能与普通生宾财重复计功。
+            if (idx == 3 and any(GAN_WX.get(g, '') == cai_wx for g, _ in _cang)
+                    and not any(GAN_WX.get(g, '') == cai_wx for g in gans)):
+                continue
             _ss = _shishang_of(day_gan, _ss_gan)
             _pk = PILLAR_KEYS[idx]
-            # 做功须涉主宾交换：食伤在宾(月)则目标须在主(日/时)，食伤在主(日)则目标须在宾(年/月)。
-            # 主主(日支食伤生时支财)/宾宾(月支食伤生年支财)为内部流转，非做功。
-            _target_idx = {2, 3} if idx in (0, 1) else {0, 1}
+            # 宾（月）生主（日/时），主（日/时）生宾（年/月）；内部流转不算生用。
+            _target_idx = {2, 3} if idx == 1 else {0, 1}
             _sheng_cai_t: List[str] = []
             _zhi_sha_t: List[str] = []
             for _j, _g in enumerate(gans):
@@ -465,21 +418,20 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
                 _sub_parts.append('制杀(' + '、'.join(_zhi_sha_t) + ')')
                 if _subtype == '食伤泄秀':
                     _subtype = '食伤制杀'
-            if not _sub_parts:
-                continue  # 食伤藏支但无财杀目标，仅泄秀不做功
             _action = {
                 'type': '食伤',
-                'action': '生用',
+                'action': '生用' if _sub_parts else '泄用',
                 'subtype': _subtype,
                 'from': f'日干({day_gan})',
                 'to': f'{PILLAR_NAMES_CN[idx]}支({_zhi}藏{_ss_gan})',
                 'from_pos': 'day_gan',
                 'to_pos': f'{_pk}_zhi',
-                'desc': f'{_zhi}藏{_ss}({_ss_gan})泄秀，' + '、'.join(_sub_parts),
+                'desc': f'{_zhi}藏{_ss}({_ss_gan})泄秀，'
+                        + ('、'.join(_sub_parts) if _sub_parts else '无财杀目标，泄用做功'),
             }
             work_actions.append(_action)
             sheng_yong_actions.append(_action)
-            work_types.add('生用')
+            work_types.add(_action['action'])
 
         # ── 内食神格（食神藏财·主位时支食伤本气坐藏财，无明财）──
         # 段氏"内食神成格"为企业之命（郝金阳：内食神者被人吃，为社会创造财富的
@@ -504,6 +456,7 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
                         'type': '食伤',
                         'action': '生用',
                         'subtype': '食伤生财',
+                        'inner_food': _nshi_ss == '食神',
                         'from': f'日干({day_gan})',
                         'to': f'{PILLAR_NAMES_CN[_nshi_idx]}支({_nshi_zhi}藏{_nshi_ben})',
                         'from_pos': 'day_gan',
@@ -533,7 +486,7 @@ def _scan_shayin_huayong(day_gan: str, day_wx: str, gans: List[str],
 
     # ── 化用（杀印相生：官杀->印->日主链）──
     # 段氏《段氏理象学》化用即杀印相生：官杀(克我)生印(生我)生日主，化杀为印、
-    # 化印为身方为做功（原实现误以天干合化为化用，已将合化归入合用）。
+    # 化印为身方为做功（天干五合只合不化，不属于本条杀印相生路径）。
     # 五行循环中官杀恒生印、印恒生日主，故链路成立性取决于官杀与印是否同现。
     # 做功要求印须"主动"以化杀：印透干或印居月令（司令之印）方为真化用做功；
     # 官杀须透干（明杀受化）。杀印双透/印令即化用成局之象。
@@ -618,60 +571,104 @@ def _scan_shayin_huayong(day_gan: str, day_wx: str, gans: List[str],
     }
 
 
-def _scan_zhi_pairs(zhis: List[str], specs) -> Tuple[List[Dict], Set[str]]:
-    """地支对关系注册表统一扫描（H-fix-4b 闭环）。
-
-    原 detect_relations 内层闭包提升为模块级函数，扫描行为不变。⚠️ 排放顺序
-    契约：调用方须按 _ZHI_PAIR_SPECS[:2]（六合/暗合）/ [2:3]（冲）/ [3:]（刑穿破）
-    在原序列位置分段调用，work_actions 顺序才逐字节不变。返回 (work_actions, work_types)。
-    """
+def _scan_zhi_pairs(zhis: List[str], specs,
+                    gans: Optional[List[str]] = None) -> Tuple[List[Dict], Set[str]]:
+    """保留原始关系；仅做功动作按实际施受定向，不把柱序当力量方向。"""
     work_actions: List[Dict] = []
     work_types: Set[str] = set()
+    raw_relations = get_di_zhi_relations(zhis)
+    relation_keys = {'地支合': '六合', '冲': '六冲', '刑': '相刑',
+                     '穿': '六害', '破': '相破'}
     for _spec in specs:
-        for i in range(4):
-            for j in range(i + 1, 4):
-                z1, z2 = zhis[i], zhis[j]
-                if not z1 or not z2:
-                    continue
-                if not _spec['match'](z1, z2):
-                    continue
+        spec_start = len(work_actions)
+        raw_key = relation_keys.get(_spec['type'])
+        if raw_key is not None:
+            records = list(raw_relations[raw_key])
+            if _spec['type'] == '刑':
+                records += raw_relations['自刑']
+                records.sort(key=lambda r: (
+                    PILLAR_KEYS.index(r['from']['pillar']),
+                    PILLAR_KEYS.index(r['to']['pillar']),
+                ))
+            for record in records:
+                z1, z2 = record['from']['zhi'], record['to']['zhi']
+                i = PILLAR_KEYS.index(record['from']['pillar'])
+                j = PILLAR_KEYS.index(record['to']['pillar'])
                 is_day = (i == 2 or j == 2)
                 if _spec['require_day'] and not is_day:
                     continue
+                source, target, relation_direction = resolve_relation_direction(
+                    z1, z2, _spec['type'], zhis, gans)
+                from_i, to_i = i, j
+                if z1 != z2 and (source, target) == (z2, z1):
+                    from_i, to_i = j, i
                 _act = {
                     'type': _spec['type'],
                     'action': _spec['action'],
-                    'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
-                    'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
-                    'from_pos': f'{PILLAR_KEYS[i]}_zhi',
-                    'to_pos': f'{PILLAR_KEYS[j]}_zhi',
+                    'from': f'{PILLAR_NAMES_CN[from_i]}支({source})',
+                    'to': f'{PILLAR_NAMES_CN[to_i]}支({target})',
+                    'from_pos': f'{PILLAR_KEYS[from_i]}_zhi',
+                    'to_pos': f'{PILLAR_KEYS[to_i]}_zhi',
+                    'relation_direction': relation_direction,
                     'desc': _spec['desc'](z1, z2, is_day),
                 }
                 if _spec['severity'] is not None:
                     _act['severity'] = _spec['severity']
+                if (_spec['type'] == '破'
+                        or (_spec['type'] == '刑' and not is_work_xing(z1, z2, zhis))):
+                    _act['auxiliary'] = True
+                    _act['relation_only'] = True
+                if relation_direction == 'unknown':
+                    _act['auxiliary'] = True
+                    _act['direction_unresolved'] = True
                 work_actions.append(_act)
-                work_types.add(_spec['work_type'])
+        else:
+            for i in range(4):
+                for j in range(i + 1, 4):
+                    z1, z2 = zhis[i], zhis[j]
+                    if not z1 or not z2:
+                        continue
+                    if not _spec['match'](z1, z2):
+                        continue
+                    is_day = (i == 2 or j == 2)
+                    if _spec['require_day'] and not is_day:
+                        continue
+                    relation_direction = resolve_relation_direction(
+                        z1, z2, _spec['type'], zhis, gans)[2]
+                    _act = {
+                        'type': _spec['type'],
+                        'action': _spec['action'],
+                        'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
+                        'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
+                        'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+                        'to_pos': f'{PILLAR_KEYS[j]}_zhi',
+                        'relation_direction': relation_direction,
+                        'desc': _spec['desc'](z1, z2, is_day),
+                    }
+                    if _spec['severity'] is not None:
+                        _act['severity'] = _spec['severity']
+                    work_actions.append(_act)
+        if any(not a.get('relation_only') for a in work_actions[spec_start:]):
+            work_types.add(_spec['work_type'])
     return work_actions, work_types
 
 
-def _scan_sanhe_banhe(zhis: List[str]) -> Tuple[List[Dict], Set[str], bool]:
-    """三合局 / 半合扫描（成势做功）。
-
-    原 detect_relations 第 9 段原样抽取。返回 (work_actions, work_types, san_he_formed)。
-    """
+def _scan_sanhe_banhe(zhis: List[str], gans: Optional[List[str]] = None,
+                      ) -> Tuple[List[Dict], Set[str], bool]:
+    """三合/半合做功与拱局标记；多而墓按直接书例优先。"""
     work_actions: List[Dict] = []
     work_types: Set[str] = set()
     san_he_formed = False
+    raw = get_di_zhi_relations(zhis)
 
-    # ── 三合局 / 半合（成势做功）──
-    # 三合三字齐现 -> 成局成势；半合（生旺/旺墓相邻二字）-> 半成势
     zhis_set = [z for z in zhis if z]
     san_he_participants: List[str] = []
     for group, wx in SAN_HE.items():
+        tomb_priority = sanhe_tomb_priority(group, zhis, gans)
         members = list(group)
         present_members = [m for m in members if m in zhis_set]
-        if len(present_members) == len(members):
-            # 成局：三合三字齐现、或四库会局四字齐现 -> 化该五行之气成势
+        if (not tomb_priority and len(present_members) == len(members)
+                and (len(members) > 3 or group in raw['三合'])):
             san_he_formed = True
             parts: List[str] = []
             for m in members:
@@ -691,11 +688,12 @@ def _scan_sanhe_banhe(zhis: List[str]) -> Tuple[List[Dict], Set[str], bool]:
             work_types.add('成势')
         elif len(present_members) == 2:
             pair_str = ''.join(present_members)
-            if pair_str in BAN_HE:
-                # 半合（生旺/旺墓相邻对）；三合未全，气未成局
+            if pair_str in BAN_HE and any(
+                    {r['from']['zhi'], r['to']['zhi']} == set(present_members)
+                    for r in raw['半三合']):
                 a, b = present_members[0], present_members[1]
                 ia, ib = zhis.index(a), zhis.index(b)
-                work_actions.append({
+                action = {
                     'type': '半合',
                     'action': '半成势',
                     'from': f'{PILLAR_NAMES_CN[ia]}支({a})',
@@ -704,21 +702,44 @@ def _scan_sanhe_banhe(zhis: List[str]) -> Tuple[List[Dict], Set[str], bool]:
                     'to_pos': f'{PILLAR_KEYS[ib]}_zhi',
                     'participants': [f'{PILLAR_KEYS[ia]}_zhi', f'{PILLAR_KEYS[ib]}_zhi'],
                     'desc': f'{a}{b}半合{BAN_HE[pair_str]}局，气未全',
-                })
-                work_types.add('合用')
+                }
+                day_gan = gans[2] if gans and len(gans) > 2 else ''
+                ren_sha_he = (
+                    _YANG_REN_MAP.get(day_gan) == a
+                    and ZHI_WX.get(b) == WX_KE_ME.get(GAN_WX.get(day_gan, ''))
+                )
+                # 中级:3806-3814 的壬子入辰与羊刃合杀并存，不全局放宽旺墓半合。
+                if tomb_priority and not ren_sha_he:
+                    action['auxiliary'] = True
+                    action['relation_only'] = True
+                else:
+                    work_types.add('合用')
+                work_actions.append(action)
 
+    for record in raw['拱局']:
+        i = PILLAR_KEYS.index(record['from']['pillar'])
+        j = PILLAR_KEYS.index(record['to']['pillar'])
+        a, b = record['from']['zhi'], record['to']['zhi']
+        work_actions.append({
+            'type': '拱局', 'action': '拱局',
+            'from': f'{PILLAR_NAMES_CN[i]}支({a})',
+            'to': f'{PILLAR_NAMES_CN[j]}支({b})',
+            'from_pos': f'{PILLAR_KEYS[i]}_zhi',
+            'to_pos': f'{PILLAR_KEYS[j]}_zhi',
+            'desc': f'{a}{b}拱{record["wuxing"]}局',
+            'auxiliary': True, 'relation_only': True,
+        })
+
+    for action in work_actions:
+        action['relation_direction'] = 'mutual'
     return work_actions, work_types, san_he_formed
 
 
 def _scan_zhi_ke(zhis: List[str]) -> Tuple[List[Dict], Set[str]]:
-    """地支五行相克扫描（制用）。
-
-    原 detect_relations 第 11 段原样抽取。返回 (work_actions, work_types)。
-    """
+    """地支五行相克扫描（制用）。"""
     work_actions: List[Dict] = []
     work_types: Set[str] = set()
 
-    # ── 克（制用）──
     for i in range(4):
         for j in range(i + 1, 4):
             z1, z2 = zhis[i], zhis[j]
@@ -729,8 +750,7 @@ def _scan_zhi_ke(zhis: List[str]) -> Tuple[List[Dict], Set[str]]:
             if wx1 and wx2:
                 if WX_KE.get(wx1) == wx2:
                     work_actions.append({
-                        'type': '克',
-                        'action': '克',
+                        'type': '克', 'action': '克',
                         'from': f'{PILLAR_NAMES_CN[i]}支({z1})',
                         'to': f'{PILLAR_NAMES_CN[j]}支({z2})',
                         'from_pos': f'{PILLAR_KEYS[i]}_zhi',
@@ -741,8 +761,7 @@ def _scan_zhi_ke(zhis: List[str]) -> Tuple[List[Dict], Set[str]]:
                     work_types.add('制用')
                 elif WX_KE.get(wx2) == wx1:
                     work_actions.append({
-                        'type': '克',
-                        'action': '克',
+                        'type': '克', 'action': '克',
                         'from': f'{PILLAR_NAMES_CN[j]}支({z2})',
                         'to': f'{PILLAR_NAMES_CN[i]}支({z1})',
                         'from_pos': f'{PILLAR_KEYS[j]}_zhi',
@@ -755,35 +774,30 @@ def _scan_zhi_ke(zhis: List[str]) -> Tuple[List[Dict], Set[str]]:
     return work_actions, work_types
 
 
-def _scan_gan_ke(gans: List[str]) -> Tuple[List[Dict], Set[str]]:
-    """天干五行相克扫描（制用；合对以合论不计克，非日柱参与标 auxiliary）。
-
-    原 detect_relations 第 12 段原样抽取。返回 (work_actions, work_types)。
-    """
+def _scan_gan_ke(gans: List[str], zhis: Optional[List[str]] = None
+                 ) -> Tuple[List[Dict], Set[str]]:
+    """天干五行相克扫描；时干弱反制成党宾方不做主功。"""
     work_actions: List[Dict] = []
     work_types: Set[str] = set()
 
-    # ── 天干克（制用）──
-    # 遍历天干，用 GAN_WX 判两干生克；日干参与的克加 type=克（与支克共用同名 type）。
-    # 天干五合之对（甲己/乙庚/丙辛/丁壬/戊癸）亦含单向克，但合为主动关系，
-    # 段氏以合论不以克论，故合对不再计天干克，避免与天干合重复。
-    # M4：放开日干参与限制——他干之间相克（年月/年时/月时）同为真实关系，一并
-    # 检出；主宾/做功权重由 confirm S2 宾宾过滤判定（非日柱参与者降 auxiliary）。
     for i in range(4):
         for j in range(i + 1, 4):
             g1, g2 = gans[i], gans[j]
-            if not g1 or not g2:
+            if not g1 or not g2 or TIAN_GAN_HE.get(g1) == g2:
                 continue
-            if TIAN_GAN_HE.get(g1) == g2:
-                continue  # 合对以合论，不计天干克
             gw1, gw2 = GAN_WX.get(g1, ''), GAN_WX.get(g2, '')
             if WX_KE.get(gw1) == gw2:
                 fg, tg, f_idx, t_idx = g1, g2, i, j
             elif WX_KE.get(gw2) == gw1:
                 fg, tg, f_idx, t_idx = g2, g1, j, i
             else:
-                continue  # 须天干相克
-            _non_day = not (f_idx == 2 or t_idx == 2)
+                continue
+            _non_day = not ({f_idx, t_idx} & {2, 3})
+            _weak = bool(
+                zhis and f_idx == 3 and t_idx in (0, 1)
+                and _main_qi_count(GAN_WX[fg], gans, zhis, zhis[f_idx]) < 4
+                <= _main_qi_count(GAN_WX[tg], gans, zhis, zhis[t_idx])
+            )
             work_actions.append({
                 'type': '克',
                 'action': '克',
@@ -794,9 +808,8 @@ def _scan_gan_ke(gans: List[str]) -> Tuple[List[Dict], Set[str]]:
                 'desc': f'{fg}{GAN_WX.get(fg, "")}克{tg}{GAN_WX.get(tg, "")}'
                         + ('（宾位干相克，不做主功）' if _non_day else ''),
                 'severity': 'normal',
-                # M4：非日柱天干克（宾宾/宾主他干）检出但标 auxiliary，
-                # 与 confirm S2 宾宾过滤同口径提前标注，保护 raw 消费方
                 **({'auxiliary': True, 'non_day_ganke': True} if _non_day else {}),
+                **({'auxiliary': True, 'weak_faction': True} if _weak else {}),
             })
             work_types.add('制用')
 
@@ -911,12 +924,10 @@ def _calibrate_huayong(day_gan: str, gans: List[str], zhis: List[str],
     # 但不计入 work_types，故 confirm 阶段 hua_success=False，避免 zuogong 层次因伪化用
     # 虚高至 L4（制例三/合例六/墓例一/复例二）。与墓用去重：有墓用做功时杀印相生同降
     # auxiliary，不与墓用双计。
-    # "真实制用"仅指地支之制（冲/穿/刑/破/地支克）且涉日支（主位之制）或墓用；天干克
-    # （日干克财/被动受克）力弱且多为制财/受制，不涉日支之宾位破（如午卯破）亦非命局主
-    # 功，均不构成真实制用目标，不抑制化用（如壬丙戊乙 戊克壬制财+午卯破，书仍以杀印
-    # 相生化用为主功）。
+    # "真实制用"仅指地支之制（冲/穿/刑/地支克）且涉日支（主位之制）或墓用；
+    # 破只保留关系，不抑制化用；天干克（日干克财/被动受克）亦不抑制化用。
     if '化用' in work_types:
-        # "印星化用路径内之制"：涉日支之制（冲/穿/刑/破/克）两端若有一为印星五行
+        # "印星化用路径内之制"：涉日支之制（冲/穿/刑/克）两端若有一为印星五行
         # （yin_wx），属财冲坏印/印克食伤等印星自身动作或坏印，非独立制用结构，
         # 不抑制化用。仅两端皆非印星之涉日支制用方为独立"真实制用目标"可抑制化用
         # （化例二 丙日坐寅印、申财冲寅坏印+寅印克戌辰，书仍以坐下印化杀为化用主功；
@@ -976,6 +987,7 @@ def _apply_he_center_skip(work_actions: List[Dict], work_types: Set[str]) -> Non
         if not any(_wa.get('type') == '食伤' and not _wa.get('auxiliary')
                    for _wa in work_actions):
             work_types.discard('生用')
+            work_types.discard('泄用')
 
 
 def _scan_fuyin_fanyin(gans: List[str], zhis: List[str]) -> List[Dict]:
@@ -1133,7 +1145,7 @@ def detect_relations(
     tomb_works: List[Dict] = []
     sheng_yong_actions: List[Dict] = []
 
-    # ── 天干合（日干合/争合/合化 + 非日干合制做功）──
+    # ── 天干合（日干合/争合，只合不化；非日干合制做功）──
     r = _scan_gan_relations(day_gan, day_wx, gans, zhis, month_zhi)
     work_actions += r['work_actions']
     work_types |= r['work_types']
@@ -1152,18 +1164,18 @@ def detect_relations(
     work_types |= r['work_types']
 
     # ── 地支对关系扫描（H-fix-4b 注册表；按 [:2]/[2:3]/[3:] 三次调用放回原
-    #    排放位置，work_actions 顺序逐字节不变）──
-    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[:2])  # 六合 / 暗合
+    #    排放位置；R5 传完整天干供双方党势定向）──
+    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[:2], gans)  # 六合 / 暗合
     work_actions += a
     work_types |= t
 
-    # ── 三合局 / 半合（成势做功）──
-    a, t, san_he_formed = _scan_sanhe_banhe(zhis)
+    # ── 三合局 / 半合（成势做功）与拱局标记 ──
+    a, t, san_he_formed = _scan_sanhe_banhe(zhis, gans)
     work_actions += a
     work_types |= t
 
     # ── 六冲（制用，H-fix-4b 注册表段）──
-    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[2:3])
+    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[2:3], gans)
     work_actions += a
     work_types |= t
 
@@ -1173,12 +1185,12 @@ def detect_relations(
     work_types |= t
 
     # ── 天干克（制用）──
-    a, t = _scan_gan_ke(gans)
+    a, t = _scan_gan_ke(gans, zhis)
     work_actions += a
     work_types |= t
 
-    # ── 刑 / 穿 / 破（制用，H-fix-4b 注册表段）──
-    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[3:])
+    # ── 刑 / 穿（核心做功）；破（关系标记，H-fix-4b 注册表段）──
+    a, t = _scan_zhi_pairs(zhis, _ZHI_PAIR_SPECS[3:], gans)
     work_actions += a
     work_types |= t
 

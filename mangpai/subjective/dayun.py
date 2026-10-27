@@ -218,6 +218,25 @@ def analyze_dayun_mangpai(
         )
         result['start_age'] = entry.get('start_age', 0)
         result['end_age'] = entry.get('end_age', 0)
+        start_age = result['start_age']
+        mid_age = start_age + 5
+        end_age = result['end_age'] or mid_age + 5
+        zhi_input = {
+            k: v for k, v in result.items()
+            if k not in ('positive_signals', 'negative_signals', 'overall', 'desc')
+        }
+        zhi_input['tiyong_import'] = {}
+        segments = []
+        for part, seg_start, seg_end in (
+                ('干', start_age, mid_age), ('支', mid_age, end_age)):
+            judged = judge_pillar_signals(
+                {'tiyong_import': result.get('tiyong_import', {})}
+                if part == '干' else zhi_input)
+            segments.append({
+                'gz': result['gz'], 'part': part,
+                'start_age': seg_start, 'end_age': seg_end, **judged,
+            })
+        result['segments'] = segments
         result['order'] = entry.get('order', len(analyses) + 1)
         analyses.append(result)
 

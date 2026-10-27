@@ -38,6 +38,12 @@ from datetime import date, datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any
 
 from mangpai.objective.shishen import god_from_wx
+from mangpai.objective._relation_utils import (
+    pair_in, LIU_CHONG as _LIU_CHONG, LIU_HE as _LIU_HE,
+    XING_PAIRS as _XING_PAIRS, XING_GROUPS as _XING_GROUPS, ZI_XING as _ZI_XING,
+    LIU_HAI as _LIU_HAI, LIU_PO as _LIU_PO, SAN_HE as _SAN_HE,
+    SAN_HUI as _SAN_HUI, GONG_JU as _GONG_JU, PILLAR_KEYS as _PILLAR_KEYS,
+)
 
 __all__ = [
     'calc_bazi_full',
@@ -89,9 +95,11 @@ def _unpack(v: int) -> Tuple[int, int, int, int]:
 
 
 # AUTO-GENERATED solar-term moments (Beijing/UTC+8 civil time), 1900-2100.
-# 24 terms per year in canonical order (立春-first). Each entry packed as
+# 1899/2101 仅作首尾边界辅助。每年 24 项按公历年归属（立春起序，
+# 小寒/大寒同属该公历年），MMDDHHmm 压缩格式如下：
 # MMDDHHmm = month*1_000_000 + day*10_000 + hour*100 + minute.
 SOLAR_TERMS: Dict[int, Tuple[int, ...]] = {
+  1899: (2040806, 2190407, 3060238, 3210345, 4050808, 4201533, 5060210, 5211522, 6060652, 6212345, 7071721, 7231042, 8080259, 8231728, 9080523, 9231430, 10082019, 10232306, 11072246, 11222000, 12071504, 12220856, 1052017, 1201337),
   1900: (2041351, 2191001, 3060821, 3210939, 4051352, 4202127, 5060755, 5212116, 6061238, 6220539, 7072310, 7231636, 8080850, 8232319, 9081116, 9232020, 10090213, 10240455, 11080439, 11230147, 12072055, 12221441, 1060203, 1201932),
   1901: (2041939, 2191544, 3061410, 3211523, 4051944, 4210313, 5061350, 5220304, 6061836, 6221127, 7080507, 7232223, 8081446, 8240507, 9081710, 9240208, 10090806, 10241046, 11081034, 11230741, 12080252, 12222036, 1060753, 1210116),
   1902: (2050138, 2192139, 3062007, 3212116, 4060137, 4210904, 5061938, 5220853, 6070019, 6221715, 7081046, 7240409, 8082022, 8241053, 9082246, 9240755, 10091345, 10241635, 11081617, 11231335, 12080841, 12230235, 1061351, 1210711),
@@ -293,15 +301,14 @@ SOLAR_TERMS: Dict[int, Tuple[int, ...]] = {
   2098: (2031528, 2181112, 3050903, 3200939, 4041312, 4192001, 5050548, 5201831, 6050922, 6210202, 7061921, 7221250, 8070515, 8222011, 9070838, 9221823, 10080057, 10230426, 11070450, 11220237, 12062212, 12211620, 1050355, 1192120),
   2099: (2032108, 2181652, 3051442, 3201517, 4041850, 4200137, 5051128, 5210007, 6051507, 6210741, 7070111, 7221832, 8071109, 8230156, 9071433, 9230010, 10080651, 10231012, 11071042, 11220822, 12070402, 12212203, 1050938, 1200301),
   2100: (2040259, 2182236, 3052034, 3202103, 4050043, 4200724, 5051720, 5210556, 6052057, 6211331, 7070658, 7230023, 8071653, 8230747, 9072014, 9230559, 10081230, 10231600, 11071619, 11221408, 12070939, 12220350, 1051528, 1200845),
+  2101: (2040839, 2190427, 3060216, 3210256, 4050627, 4201318, 5052304, 5211148, 6060240, 6211920, 7071242, 7230610, 8072239, 8231332, 9080203, 9231146, 10081822, 10232147, 11072213, 11221956, 12071534, 12220938, 1052106, 1201433),
 }
-
 
 # ── 节气时刻索引（一次性构建，供月柱/年柱/大运查询）──────────────
 def _build_jie_timeline() -> List[Tuple[datetime, int, str]]:
     """构建全量「节」时间线：(北京时间, 月支序, 节名)，按时刻升序。"""
     tl: List[Tuple[datetime, int, str]] = []
-    for Y in range(SOLAR_TERM_YEAR_MIN, SOLAR_TERM_YEAR_MAX + 1):
-        packed = SOLAR_TERMS[Y]
+    for Y, packed in SOLAR_TERMS.items():
         for pos in _JIE_POS:
             m, d, h, mi = _unpack(packed[pos])
             branch = (pos // 2 + 2) % 12
@@ -446,10 +453,9 @@ def month_gz(year: int, month: int, day: int, hour: int, minute: int,
 # ════════════════════════════════════════════════════════════════
 #  真太阳时校正（NOAA 均时差 + 经度校正；无外部库）
 # ════════════════════════════════════════════════════════════════
-def true_solar_components(year: int, month: int, day: int,
-                          hour: int, minute: int, city_lon: float
-                          ) -> Tuple[int, int, int]:
-    """真太阳时（时、分、秒）。
+def _true_solar_datetime(year: int, month: int, day: int,
+                         hour: int, minute: int, city_lon: float) -> datetime:
+    """保留跨日结果的真太阳时。
 
     经度校正 = (city_lon - 120) × 4 分钟（120°E = 北京时间基准）
     均时差 EoT = 229.18 * (0.000075 + 0.001868·cosB − 0.032077·sinB
@@ -465,7 +471,14 @@ def true_solar_components(year: int, month: int, day: int,
         - 0.040849 * math.sin(2 * b)
     )
     corr = (city_lon - 120.0) * 4.0 + eot
-    cdt = datetime(year, month, day, hour, minute) + timedelta(minutes=corr)
+    return datetime(year, month, day, hour, minute) + timedelta(minutes=corr)
+
+
+def true_solar_components(year: int, month: int, day: int,
+                          hour: int, minute: int, city_lon: float
+                          ) -> Tuple[int, int, int]:
+    """真太阳时（时、分、秒）；日期由 _true_solar_datetime 保留。"""
+    cdt = _true_solar_datetime(year, month, day, hour, minute, city_lon)
     return cdt.hour, cdt.minute, cdt.second
 
 
@@ -473,13 +486,13 @@ def true_solar_components(year: int, month: int, day: int,
 #  四柱排盘（整合：真太阳时 + 晚子时 + 日/时/月/年柱）
 # ════════════════════════════════════════════════════════════════
 def compute_four_pillars(year: int, month: int, day: int, hour: int, minute: int,
-                         city_lon: float, late_zi_method: str = 'next_day'
+                         city_lon: float, late_zi_method: str = 'same_day'
                          ) -> Dict[str, Any]:
     """排四柱（年/月/日/时）。
 
     - 年柱以立春为界（名义出生时刻判定）
     - 月柱以节气为界（名义出生时刻判定最近节）
-    - 日柱六十甲子连续计数（真太阳时 ±12h 跨日校正）
+    - 日柱六十甲子连续计数（真太阳时完整日期跨日校正）
     - 时柱五鼠遁（真太阳时小时；晚子时 23 点时柱推转一轮纳次日干，
       日柱归属见 late_zi_method，理象学:3703-3716）
 
@@ -487,24 +500,16 @@ def compute_four_pillars(year: int, month: int, day: int, hour: int, minute: int
         year/month/day/hour/minute: 公历出生时刻（北京时间）
         city_lon: 城市经度（东经，度），用于真太阳时校正
         late_zi_method: 晚子时（23:00-23:59）日柱处理
-            'next_day'（子初换日派，默认）→ 日柱取次日
-            'same_day'（子正换日派，书例口径）→ 日柱仍用当天
+            'next_day'（子初换日派）→ 日柱取次日
+            'same_day'（子正换日派，书例口径，默认）→ 日柱仍用当天
             （两派时柱均推转一轮 = 次日日干起子时）
 
     Returns:
         {'year_gz','month_gz','day_gz','hour_gz','corrected_hour'}
     """
-    ch, cmi, cs = true_solar_components(year, month, day, hour, minute, city_lon)
-    orig = datetime(year, month, day, hour, minute)
-    # 真太阳时强制落在名义日期上（与排盘惯例一致），跨日只影响日柱 ±12h 判定
-    corrected_dt = datetime(year, month, day, ch, cmi, cs)
-    delta = corrected_dt - orig
-
-    d = date(year, month, day)
-    if delta < timedelta(hours=-12):
-        d = d + timedelta(days=1)
-    elif delta > timedelta(hours=12):
-        d = d - timedelta(days=1)
+    corrected_dt = _true_solar_datetime(year, month, day, hour, minute, city_lon)
+    ch, cmi, cs = corrected_dt.hour, corrected_dt.minute, corrected_dt.second
+    d = corrected_dt.date()
 
     # 年/月柱：名义出生时刻（真太阳时不影响节气日的年月归属判定口径）
     y_gz = year_gz(year, month, day, hour, minute)
@@ -588,86 +593,48 @@ def get_kong_wang(day_gan: str, day_zhi: str) -> Dict[str, List[str]]:
     return {'zhi': list(_KONG_WANG_TABLE[xun_no])}
 
 
-# ── 地支关系表（六冲/六合/三刑/自刑/六害/三合/三会）──
-_LIU_CHONG: List[Tuple[str, str]] = [
-    ('子', '午'), ('丑', '未'), ('寅', '申'),
-    ('卯', '酉'), ('辰', '戌'), ('巳', '亥'),
-]
-_LIU_HE: List[Tuple[str, str]] = [
-    ('子', '丑'), ('寅', '亥'), ('卯', '戌'),
-    ('辰', '酉'), ('巳', '申'), ('午', '未'),
-]
-_XING_PAIRS: List[Tuple[str, str]] = [
-    ('寅', '巳'), ('巳', '申'), ('申', '寅'),
-    ('丑', '戌'), ('戌', '未'), ('未', '丑'),
-    ('子', '卯'), ('卯', '子'),
-]
-_XING_GROUPS: List[Tuple[str, str, str]] = [('寅', '巳', '申'), ('丑', '戌', '未')]
-_ZI_XING: List[str] = ['辰', '午', '酉', '亥']
-_LIU_HAI: List[Tuple[str, str]] = [
-    ('子', '未'), ('丑', '午'), ('寅', '巳'),
-    ('卯', '辰'), ('申', '亥'), ('酉', '戌'),
-]
-_SAN_HE: List[Tuple[str, str, str]] = [
-    ('申', '子', '辰'), ('巳', '酉', '丑'),
-    ('寅', '午', '戌'), ('亥', '卯', '未'),
-]
-_SAN_HUI: List[Tuple[str, str, str]] = [
-    ('寅', '卯', '辰'), ('巳', '午', '未'),
-    ('申', '酉', '戌'), ('亥', '子', '丑'),
-]
-_PILLAR_KEYS: List[str] = ['year', 'month', 'day', 'hour']
-
-
-def _pair_match(a: str, b: str, pair: Tuple[str, str]) -> bool:
-    return (a == pair[0] and b == pair[1]) or (a == pair[1] and b == pair[0])
-
-
-def _in_pair_list(a: str, b: str, pairs) -> bool:
-    return any(_pair_match(a, b, p) for p in pairs)
-
-
 def _labeled(a: str, i: int, b: str, j: int) -> Dict[str, Any]:
     return {'from': {'zhi': a, 'pillar': _PILLAR_KEYS[i]},
             'to': {'zhi': b, 'pillar': _PILLAR_KEYS[j]}}
 
 
 def get_di_zhi_relations(zhis: List[str]) -> Dict[str, Any]:
-    """四柱地支两两关系检测（六冲/相刑/三刑/自刑/六害/三合/半三合/六合/三会）。
-
-    与 fate-system engine.relations.get_di_zhi_relations 同口径，供 engine 透传。
-    """
+    """四柱地支关系事实，含段氏相破与四组拱局；不含做功资格判定。"""
     n = len(zhis)
     pairs = [(i, j) for i in range(n) for j in range(i + 1, n)]
     uniq = set(zhis)
     chong, xing_pairs, zi_xing, hai, ban_san_he, liu_he = [], [], [], [], [], []
+    po, gong_ju = [], []
 
     for i, j in pairs:
         a, b = zhis[i], zhis[j]
-        if _in_pair_list(a, b, _LIU_CHONG):
+        if pair_in(a, b, _LIU_CHONG):
             chong.append(_labeled(a, i, b, j))
-        if _in_pair_list(a, b, _XING_PAIRS):
+        if pair_in(a, b, _XING_PAIRS):
             xing_pairs.append(_labeled(a, i, b, j))
         if a == b and a in _ZI_XING:
             zi_xing.append(_labeled(a, i, b, j))
-        if _in_pair_list(a, b, _LIU_HAI):
+        if pair_in(a, b, _LIU_HAI):
             hai.append(_labeled(a, i, b, j))
+        if pair_in(a, b, _LIU_PO):
+            po.append(_labeled(a, i, b, j))
         if a != b:
             for g in _SAN_HE:
                 if a in g and b in g:
                     if not set(g).issubset(uniq):
                         ia, ib = g.index(a), g.index(b)
-                        if {ia, ib} == {0, 1}:
-                            kind = '前半合'
-                        elif {ia, ib} == {1, 2}:
-                            kind = '后半合'
-                        else:
-                            kind = '拱合'
-                        e = _labeled(a, i, b, j)
-                        e['type'] = kind
-                        ban_san_he.append(e)
+                        if {ia, ib} in ({0, 1}, {1, 2}):
+                            e = _labeled(a, i, b, j)
+                            e['type'] = '前半合' if {ia, ib} == {0, 1} else '后半合'
+                            ban_san_he.append(e)
                     break
-        if _in_pair_list(a, b, _LIU_HE):
+            gong_wx = _GONG_JU.get(a + b) or _GONG_JU.get(b + a)
+            if gong_wx:
+                e = _labeled(a, i, b, j)
+                e['type'] = '拱局'
+                e['wuxing'] = gong_wx
+                gong_ju.append(e)
+        if pair_in(a, b, _LIU_HE):
             liu_he.append(_labeled(a, i, b, j))
 
     xing_groups = [''.join(g) for g in _XING_GROUPS if set(g).issubset(uniq)]
@@ -678,6 +645,7 @@ def get_di_zhi_relations(zhis: List[str]) -> Dict[str, Any]:
         '六冲': chong, '相刑': xing_pairs, '三刑': xing_groups,
         '自刑': zi_xing, '六害': hai, '三合': sa_he,
         '半三合': ban_san_he, '六合': liu_he, '三会': san_hui,
+        '相破': po, '拱局': gong_ju,
     }
 
 
@@ -758,7 +726,7 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
                    gender: str, city_lon: float,
                    yin_method: str = 'same_as_yang',
                    shensha_reference: str = 'day',
-                   late_zi_method: str = 'next_day') -> Dict[str, Any]:
+                   late_zi_method: str = 'same_day') -> Dict[str, Any]:
     """完整八字排盘（盲派 engine 入口所需最小契约）。
 
     内部完成四柱（compute_four_pillars）+ 十神 + 空亡 + 地支关系 + 大运，

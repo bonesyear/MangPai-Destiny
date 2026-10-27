@@ -191,7 +191,7 @@ def call_deepseek(
             # 红6b：畸形 URL（unknown url type 等）Request 构造即抛 ValueError——
             # 包装为 LLMBackendError，llm_channel except 方能接住降级；
             # 畸形不会自愈，不重试
-            raise LLMBackendError(f'URL 畸形（{base_url!r}）: {e}') from e
+            raise LLMBackendError(f'URL 畸形: {type(e).__name__}') from e
         t0 = time.monotonic()
         t0_wall = time.time()  # 计价按请求发出的实际时段选峰/谷档
         try:
@@ -204,24 +204,21 @@ def call_deepseek(
                 if e.code == 400 and base_url != _API_URL:
                     hint = ('（若报错为 unknown field/不支持的参数：该服务不接受 '
                             'thinking/reasoning_effort，请设 MANGPAI_LLM_THINKING=0）')
-                raise LLMBackendError(
-                    f'HTTP {e.code}: {e.read().decode("utf-8", "replace")[:300]}{hint}'
-                ) from e
+                raise LLMBackendError(f'HTTP {e.code}{hint}') from e
             last_err = LLMBackendError(f'HTTP {e.code}')
             continue
         except ValueError as e:
             # 红6b：urlopen 阶段同族 ValueError（如重定向后 URL 畸形）同口径包装
-            raise LLMBackendError(f'URL 畸形（{base_url!r}）: {e}') from e
+            raise LLMBackendError(f'URL 畸形: {type(e).__name__}') from e
         except (urllib.error.URLError, TimeoutError, OSError) as e:
-            last_err = LLMBackendError(f'网络错误: {e}')
+            last_err = LLMBackendError(f'网络错误: {type(e).__name__}')
             continue
         try:
             payload = json.loads(raw.decode('utf-8'))
         except (UnicodeDecodeError, json.JSONDecodeError) as e:
             # HTTP 200 但返回体非 JSON（网关错误页/代理拦截/编码异常）：
             # 包装为 LLMBackendError 走重试，禁止 JSONDecodeError 裸穿透（H4 P0）
-            last_err = LLMBackendError(
-                f'HTTP 200 但返回体非 JSON: {e}; 前 100 字符: {raw[:100]!r}')
+            last_err = LLMBackendError(f'HTTP 200 但返回体非 JSON: {e}')
             continue
         try:
             msg = payload['choices'][0]['message']

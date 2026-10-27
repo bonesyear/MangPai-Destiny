@@ -42,6 +42,10 @@ class TestThreeBookAnchors:
 
     def test_tingzhang(self):
         # 庭长：羊刃合杀（子辰半合刃杀相制），杀刃相制本身即制，无须另要印化
+        from mangpai.objective.zuogong_detect import detect_relations
+        actions = detect_relations('壬', '辰', '壬', '子', '丙', '午', '丙', '午')['work_actions']
+        ren_sha = next(a for a in actions if a['type'] == '半合')
+        assert not ren_sha.get('relation_only')  # 入墓与羊刃合杀在原书同段并存
         assert _is(['壬', '丙', '壬', '丙'], ['子', '午', '辰', '午']) is True
 
     def test_dingwei_twin_not_guan(self):
@@ -76,8 +80,9 @@ class TestGuanluGe:
 
 class TestZhuweiGate:
     def test_pure_binbin_not_guan(self):
-        # 纯年月互制（子午冲=官杀制比劫，两端皆宾位）不立官命——书规则三
-        assert _is(['戊', '己', '丙', '丁'], ['子', '午', '酉', '卯']) is False
+        # 纯年月互制（子午冲=官杀制比劫，两端皆宾位）不立官命——书规则三；
+        # 时支申避免日时财制印混入，专测纯宾位门槛。
+        assert _is(['戊', '己', '丙', '丁'], ['子', '午', '酉', '申']) is False
 
 
 # ── grade 映射与书同口径（理象学研究版:6103-6104＝理象学版:6022，联动 F6 备案）──────────

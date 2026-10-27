@@ -47,7 +47,7 @@ from mangpai.subjective.guanming import analyze_guanming
 from mangpai.subjective.hunyin import analyze_hunyin
 from mangpai.subjective.xueli import analyze_xueli
 from mangpai.subjective.laoyu import analyze_laoyu
-from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi
+from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi, liunian_interactions
 from mangpai.subjective.yunfan import analyze_yunfan, current_fan_slice
 from mangpai.subjective.zhiye import analyze_zhiye
 from mangpai.subjective.gongmen_wuzhi import analyze_gongmen_wuzhi
@@ -185,7 +185,10 @@ class MangpaiEngine:
         self.shishen: Dict[str, str] = bazi_data.get('shishen', {})
         self.kong_wang = bazi_data.get('kong_wang', {})
         self.di_zhi_relations = bazi_data.get('di_zhi_relations', {})
-        self.input_data = bazi_data.get('input', {})
+        self.input_data = dict(bazi_data.get('input', {}))
+        self.input_data['gender'] = {
+            'male': '男', '乾': '男', 'female': '女', '坤': '女',
+        }.get(self.input_data.get('gender'), self.input_data.get('gender'))
         self.bazi = bazi
         self._raw_bazi_data = bazi_data
         # L1 B3：实例属性初始化（旧版仅 _compute_yunshi 条件赋值+getattr
@@ -241,20 +244,20 @@ class MangpaiEngine:
         ]
 
     def _current_age(self) -> Optional[int]:
-        """当前虚岁口径年龄（当前年 − 出生年），与 _auto_liunian_list 的
+        """当前虚岁口径年龄（当前年 − 出生年 + 1），与 _auto_liunian_list 的
         「当下」锚点同口径；无出生年返回 None。"""
         birth_year = self.input_data.get('year')
         if not birth_year:
             return None
         try:
-            return datetime.now().year - int(birth_year)
+            return datetime.now().year - int(birth_year) + 1
         except (TypeError, ValueError) as e:
             # 白名单化（H8 P1）：出生年非数值属输入瑕疵，显式 None + 记录原因
             logger.info(f"出生年无法解析为整数，年龄缺省 None: {birth_year!r} ({e})")
             return None
 
     def _current_dayun(self, dy_list: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
-        """定位「当下」所处大运：按当前年龄（当前年 − 出生年）匹配
+        """定位「当下」所处大运：按当前虚岁（当前年 − 出生年 + 1）匹配
         start_age/end_age 区间，与 _auto_liunian_list 的「当下」锚点
         （系统当前年）同口径。
 
@@ -609,6 +612,7 @@ class MangpaiEngine:
                 self.month_gz,
                 dayun_list=dy_list,
                 start_age=start_age,
+                year_gz=self.year_gz,
             ))
 
         # 郑氏十排歌扩展分析（断语集锦 + 方法论）
@@ -869,6 +873,7 @@ class MangpaiEngine:
             self.day_gan, self.gans, self.zhis,
             cur_dy_gan, cur_dy_zhi, cur_ln_gan, cur_ln_zhi,
             age=self._current_age(),
+            liunian_interaction=liunian_interactions(result.get('liunian_analysis')),
         ))
 
         # 郝金阳叙事层：把引擎结构化结论压成一行【引擎结论】（软依赖，
@@ -973,6 +978,7 @@ def calc_mangpai_full(
     gender: str, city_lon: float,
     yin_method: str = 'same_as_yang',
     shensha_reference: str = 'day',
+    late_zi_method: str = 'same_day',
 ) -> Dict[str, Any]:
     """盲派完整排盘便捷函数。
 
@@ -990,6 +996,8 @@ def calc_mangpai_full(
             （F1 标注：透传形参，calc_bazi_full 接收不用，全链路无消费方）
         shensha_reference: 神煞参考柱，默认 'day'（F13 起；gaoji:7912
             日支为主、年支同查，year_ref/day_ref 子键恒在）
+        late_zi_method: 晚子时日柱处理，默认 'same_day'（子正换日·书例口径）；
+            可显式传 'next_day'（子初换日）
 
     Returns:
         完整盲派排盘结果
@@ -998,6 +1006,7 @@ def calc_mangpai_full(
         year, month, day, hour, minute, gender, city_lon,
         yin_method=yin_method,
         shensha_reference=shensha_reference,
+        late_zi_method=late_zi_method,
     )
     engine = MangpaiEngine(bazi_data, shensha_reference=shensha_reference)
     return engine.compute_all()

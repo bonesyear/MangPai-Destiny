@@ -38,11 +38,10 @@ pattern 标注：三合两翼（寅戌火/巳丑金/申辰水/亥未木）/ 透�
 段氏：「乾隆……做功是通过一级一级相制形成金字塔形的权力结构。子制午、午制酉、
 酉制卯」。即层层相制：A制B、B制C、C制D 的有向制链（链长>=2），区别于单冲/单克。
 
-制链边由「冲」「克」两类有向边构成，方向一律取五行克方->被克方：
-  - 冲：六冲中五行异者（子午水火、卯酉金木、寅申金木、巳亥水火）方向=克方->被克方；
-        辰戌、丑未同土无克向，以党势定向（势均则不计）。冲边与克边重合时标「冲」
-        （冲为层层相制之骨，如乾隆子午冲、卯酉冲）。
-  - 克：任两支五行相克，克方->被克方。
+制链边由「冲」「克」两类有向边构成：金木固定金克木；水火先看主气是否成党，
+  未成党保留自然克向，成党后按双方力量互克；同土冲按局部燥湿党势定向。
+  冲边与克边重合时标「冲」（冲为层层相制之骨，如乾隆子午冲、卯酉冲）。
+  克：任两支五行相克，克方->被克方。
 建图求最长简单路径边数。链长>=2 且路径含至少一条「冲」边 -> 冲链（层层相制），
 +1 功量点；单冲（链长 1）不计。纯克链（无冲）不计（避免与 gongliang 既有
 克链重复，且段氏层层相制以冲为骨）。
@@ -80,8 +79,11 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
-    CANG_GAN_MANGPAI, LIU_CHONG, LIU_HE, AN_HE, TIAN_GAN_HE,
+    CANG_GAN_MANGPAI, LIU_HE, AN_HE, TIAN_GAN_HE,
     PILLAR_KEYS, is_pillars,
+)
+from mangpai.objective._relation_utils import (
+    _directed_control_edges, _party_strength, _yuan_wx, he_control_target,
 )
 
 # ── 三合两翼（生+墓两端，缺旺端）── 用于包制 pattern 标注
@@ -92,13 +94,6 @@ _SAN_HE_WINGS: Dict[frozenset, str] = {
     frozenset({'申', '辰'}): '水',
     frozenset({'亥', '未'}): '木',
 }
-
-# ── 党势强度权重 ──
-_W_GAN_TG: float = 2.0     # 透干
-_W_BEN_QI: float = 2.0     # 地支本气
-_W_ZHONG_QI: float = 1.0   # 中气藏干
-_W_YU_QI: float = 0.5      # 余气藏干
-_W_YUAN: float = 0.5       # 原神（生我者）折半计入党势
 
 # ── 阈值 ──
 _CHENG_DANG: float = 4.25  # 捕神成势阈值（party >= 此值视为成党成势）
@@ -130,55 +125,6 @@ def _wx_of(elem: str) -> str:
     return GAN_WX.get(elem, '') or ZHI_WX.get(elem, '')
 
 
-def _yuan_wx(wx: str) -> str:
-    """原神五行 = 生 wx 者（WX_SHENG 反查：WX_SHENG[原]=wx）。"""
-    for w, born in WX_SHENG.items():
-        if born == wx:
-            return w
-    return ''
-
-
-def _wx_in_elem(wx: str, elem: str, is_gan: bool) -> float:
-    """单个干/支元素中 wx 的党势权重（透干 2 / 本气 2 / 中气 1 / 余气 0.5）。"""
-    if not elem:
-        return 0.0
-    if is_gan:
-        return _W_GAN_TG if GAN_WX.get(elem) == wx else 0.0
-    w = 0.0
-    for cg, qi in CANG_GAN_MANGPAI.get(elem, []):
-        if GAN_WX.get(cg) != wx:
-            continue
-        if qi == '本气':
-            w += _W_BEN_QI
-        elif qi == '中气':
-            w += _W_ZHONG_QI
-        else:  # 余气
-            w += _W_YU_QI
-    return w
-
-
-def _party_strength(wx: str, gans: List[str], zhis: List[str],
-                    include_yuan: bool = True) -> float:
-    """五行 wx 在全局的党势强度（同党 + 原神）。
-
-    同党 = 透干/本气/藏干中属 wx 者；原神 = 生 wx 者（折半）。
-    用于判捕神成势、强方制弱方、贼神孤立。
-    """
-    w = 0.0
-    for g in gans:
-        w += _wx_in_elem(wx, g, is_gan=True)
-    for z in zhis:
-        w += _wx_in_elem(wx, z, is_gan=False)
-    if include_yuan:
-        yuan = _yuan_wx(wx)
-        if yuan:
-            for g in gans:
-                w += _wx_in_elem(yuan, g, is_gan=True) * _W_YUAN
-            for z in zhis:
-                w += _wx_in_elem(yuan, z, is_gan=False) * _W_YUAN
-    return w
-
-
 def _benqi_wx(zhi: str) -> str:
     """地支本气五行。"""
     cg = CANG_GAN_MANGPAI.get(zhi, [])
@@ -208,85 +154,6 @@ def _yuan_present(yuan_wx: str, gans: List[str], zhis: List[str]) -> bool:
     return False
 
 
-# ── 有向制边（冲/克，五行克定向）──
-def _directed_control_edges(zhis: List[str], gans: Optional[List[str]] = None
-                            ) -> List[Tuple[str, str, str]]:
-    """四支间有向制边列表 [(from_zhi, to_zhi, link_type), ...]，link_type in {冲,克}。
-
-    方向一律取五行克方->被克方：
-      - 克：ZHI_WX[a] 克 ZHI_WX[b] -> (a, b, 克)
-      - 冲：六冲且五行异 -> 克方->被克方；辰戌/丑未同土以党势定向（势均则跳过）
-    冲边与克边重合时（如子午既是冲又是水克火）取「冲」标--冲为层层相制之骨
-    （乾隆子午冲、卯酉冲），取冲方知链含冲。不依赖 zuogong 的 auxiliary 标记
-    （zuogong 常把被冲覆盖的克标为 aux 致链断裂，见 gongliang._chain_length 对
-    乾隆仅得 chain=1 的局限），直接由五行重算。
-    """
-    edge_type: Dict[Tuple[str, str], str] = {}
-    nz = [z for z in zhis if z]
-
-    def _add(a: str, b: str, t: str) -> None:
-        # 冲 优先于 克（同边重合时标冲）
-        cur = edge_type.get((a, b))
-        if cur is None or (cur == '克' and t == '冲'):
-            edge_type[(a, b)] = t
-
-    # 克边（任两支五行相克）
-    for a in nz:
-        wa = ZHI_WX.get(a, '')
-        if not wa:
-            continue
-        for b in nz:
-            if a == b:
-                continue
-            wb = ZHI_WX.get(b, '')
-            if wb and WX_KE.get(wa) == wb:
-                _add(a, b, '克')
-
-    # 冲边（覆盖方向：五行异者取克向；同土者党势定向）
-    chong_map: Dict[str, str] = {}
-    for a, b in LIU_CHONG:
-        chong_map[a] = b
-        chong_map[b] = a
-    for a in nz:
-        b = chong_map.get(a, '')
-        if not b or b not in nz:
-            continue
-        wa, wb = ZHI_WX.get(a, ''), ZHI_WX.get(b, '')
-        if wa and wb and wa != wb:
-            # 五行异：克方->被克方
-            if WX_KE.get(wa) == wb:
-                src, dst = a, b
-            elif WX_KE.get(wb) == wa:
-                src, dst = b, a
-            else:
-                continue
-            _add(src, dst, '冲')
-        elif gans and wa and wb and wa == wb:
-            # 同土冲（辰戌/丑未）：以本气同党+原神党势定向，势均跳过
-            sa = _single_zhi_party(wa, a, zhis, gans)
-            sb = _single_zhi_party(wa, b, zhis, gans)
-            if sa > sb:
-                src, dst = a, b
-            elif sb > sa:
-                src, dst = b, a
-            else:
-                continue
-            _add(src, dst, '冲')
-    return [(a, b, t) for (a, b), t in edge_type.items()]
-
-
-def _single_zhi_party(wx: str, zhi: str, zhis: List[str],
-                      gans: Optional[List[str]] = None) -> float:
-    """某地支作为 wx 党员的局部党势（自身权重 + 全局原神加成），用于同土冲定向。"""
-    w = _wx_in_elem(wx, zhi, is_gan=False)
-    yuan = _yuan_wx(wx)
-    if yuan:
-        if gans:
-            for g in gans:
-                w += _wx_in_elem(yuan, g, is_gan=True) * _W_YUAN
-        for z in zhis:
-            w += _wx_in_elem(yuan, z, is_gan=False) * _W_YUAN
-    return w
 
 
 def _longest_path(edges: List[Tuple[str, str, str]]) -> Tuple[List[str], List[Tuple[str, str, str]]]:
@@ -341,29 +208,12 @@ def _he_candidates(gans: List[str], zhis: List[str],
     gan_set = {g for g in gans if g}
 
     def _add_pair(a: str, b: str, is_gan: bool) -> None:
-        wa, wb = _wx_of(a), _wx_of(b)
-        if not wa or not wb or wa == wb:
-            return
         day_marker = day_gan if is_gan else day_zhi
-        if a == day_marker:
-            doer, target = a, b
-        elif b == day_marker:
-            doer, target = b, a
-        else:
-            pa = _party_strength(wa, gans, zhis)
-            pb = _party_strength(wb, gans, zhis)
-            if pa > pb:
-                doer, target = a, b
-            elif pb > pa:
-                doer, target = b, a
-            else:
-                return
-        dw = _wx_of(doer)
-        tw = _wx_of(target)
-        # 仅取克合（合中带制：两五行相克）；生合（相生）为和谐合，非合制
-        # （李嘉诚午未火土生合不计，午亥水火克合才为合制->贼水）
-        if not (WX_KE.get(dw) == tw or WX_KE.get(tw) == dw):
+        target = he_control_target(a, b, day_marker, gans, zhis)
+        if not target:
             return
+        doer = b if target == a else a
+        dw, tw = _wx_of(doer), _wx_of(target)
         cands.append((dw, tw, _party_strength(dw, gans, zhis),
                       doer == day_marker))
 
@@ -606,7 +456,8 @@ def detect_zeishen_bushen(
             # 滤 auxiliary：宾位/非日主参与之制非真做功（yanjiu:6192-6206 蒋介石
             # 命造「局中伤官庚金作为亥水的原神也在制当中，只是制之不净」——宾位
             # 干克不得塞入制局目标集，否则原神同制误净，「制之不净达不到四层功」）
-            if wa.get('auxiliary'):
+            if (wa.get('auxiliary')
+                    or wa.get('relation_direction') in ('mutual', 'unknown')):
                 continue
             to = wa.get('to_pos', '')
             elem = _elem_of(to, gans, zhis)
@@ -632,7 +483,7 @@ def detect_zeishen_bushen(
     # 有向制边候选（克方=doer；doer 在日支则 is_day_doer）
     for a, b, _t in _directed_control_edges(zhis, gans):
         wa_w, wb_w = ZHI_WX.get(a, ''), ZHI_WX.get(b, '')
-        if wa_w and wb_w:
+        if wa_w and wb_w and wa_w != wb_w:
             candidates.append((wa_w, wb_w, _party_strength(wa_w, gans, zhis),
                                a == day_zhi))
     # 合制候选

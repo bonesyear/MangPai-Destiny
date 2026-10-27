@@ -179,3 +179,9 @@ class TestChongSemantics:
         # 冲了卯禄…把人冲坏入院」（cj1:652）酉=七杀冲卯禄 -> 冲破
         r = _run('丙午辛卯乙酉戊寅', '乾', '乙酉', dy='乙未')
         assert _chong(r, '卯', pos='month_zhi') == '冲破'
+
+    def test_r4_gongju_between_liunian_dayun(self):
+        # 理象学:2498 亥未拱木：流年未与大运亥只出拱局事实，不新增做功。
+        r = _run('甲子乙亥丙寅丁卯', '乾', '乙未', dy='己亥')
+        hits = [i for i in r['dayun_interaction'] if i['type'] == '拱局']
+        assert hits and '拱木局' in hits[0]['desc']

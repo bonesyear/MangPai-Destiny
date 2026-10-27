@@ -118,19 +118,21 @@ class TestN1ShangguanJianguan:
         assert n1['detected'] is False
 
     def test_peiyin_exempt(self):
-        # 伤官配印豁免：丁日伤官（辰）见官（亥），寅印紧贴克辰伤官
-        # （第三方纯印位、主位参与非宾宾）-> 伤官被制伏，见官不凶
+        # 伤官配印豁免：丁日伤官（戌）见官（亥），寅印紧贴克戌伤官
+        # （第三方纯印位、主位参与非宾宾）-> 伤官被制伏，见官不凶。
+        # 旧辰盘被入墓覆盖，改戌保留本测试的「有克且佩印豁免」路径。
         n1 = detect_shangguan_jianguan('丁', ['甲', '丙', '丁', '甲'],
-                                       ['申', '寅', '辰', '亥'])
+                                       ['申', '寅', '戌', '亥'])
         assert n1['hits']  # 伤官见官动作存在
         assert n1['detected'] is False
         assert '伤官配印' in n1.get('exemption', '')
 
     def test_cai_tongguan_exempt(self):
         # 财星通关豁免：伤官见官动作为「克」（非冲穿实战）且财明现（申） ->
-        # 伤官贪生财忘克官。丁日：辰伤官克亥官，申财明现
-        n1 = detect_shangguan_jianguan('丁', ['丙', '丙', '丁', '甲'],
-                                       ['申', '巳', '辰', '亥'])
+        # 伤官贪生财忘克官。丁日：戌伤官克亥官，申财明现；月干甲印保身强，
+        # 月巳不取中气伤官冒充主战场，旧辰盘已被入墓覆盖。
+        n1 = detect_shangguan_jianguan('丁', ['丙', '甲', '丁', '甲'],
+                                       ['申', '巳', '戌', '亥'])
         assert n1['detected'] is False
         assert '财星通关' in n1.get('exemption', '')
 

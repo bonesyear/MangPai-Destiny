@@ -85,11 +85,14 @@ def test_a8_guanming_consumed():
 
 
 def test_a8_kongwang_gate():
-    """li112 足球队教练：申杀旬空（日/年并参）→ 不立支杀化印、不判官
-    （「可申杀空亡，不是真的兵刃相击」shouke:5768）。"""
+    """li112：申杀旬空不立支杀化印，申金克卯不作兵刃相击。
+    原文「格局为贵…国家足球队教练」不把贵格误判成一律非官命。
+    """
     wa = _rel(LI112)['work_actions']
     assert not [a for a in wa if a.get('type') == '支杀化印']
-    assert _analyze(LI112)['is_guanming'] is False
+    gans, zhis = _split(LI112)
+    combo = classify_guanming_combo(gans[2], gans, zhis)
+    assert '官杀制比劫' not in combo['zhiyong_combos']
 
 
 # ─────────── A19 食合官支（G9 扩展）───────────
@@ -109,6 +112,8 @@ def test_a19_entomb_gate():
     gans, zhis = _split(PU1)
     combo = classify_guanming_combo(gans[2], gans, zhis)
     assert '合制·食合官支' not in combo['zhiyong_combos']
+    # 书「火与燥土之势…仅仅是制时干之癸水」：弱癸水不得反算伤食制官杀。
+    assert '伤食制官杀' not in combo['zhiyong_combos']
     assert _analyze(PU1)['is_guanming'] is False
 
 

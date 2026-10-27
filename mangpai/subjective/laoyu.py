@@ -222,7 +222,7 @@ def detect_laoyu_zi(
     yang_zhi_yin = _yang_ke_he_zhi_laoyu(wa, gans, zhis)  # 阳火克合制（中级:5582）
     for a in wa:
         t = a.get('type', '')
-        if t not in control_types:
+        if t not in control_types or a.get('relation_direction') in ('mutual', 'unknown'):
             continue
         from_pos = a.get('from_pos', '')
         to_pos = a.get('to_pos', '')

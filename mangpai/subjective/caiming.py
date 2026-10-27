@@ -437,10 +437,10 @@ def _assess_caixing_path(
         out['blockers'].append('财星无原神且不在主位（浮财无源，财来财去不聚）')
 
     # 财众攻（A5 财统官量级判据）：本气财支被≥2个不同柱支冲/穿/破——寡不敌众，
-    # 财弱不能统官（书锚：gj-合财小康「财弱，故不发大财」双子破酉财；cj-平辛辛
-    # 苦苦「想要制财也制不了」双巳冲亥财；zj-护士长「无一方之势」巳破+亥穿申财）。
+    # 财弱不能统官（书锚：cj-平辛辛苦苦「想要制财也制不了」双巳冲亥财）。
+    # 破只供负面 guard，不回主功；传统六破已退出，不再充数。
     # 真阳对照（不计众攻）：reg67-例8 两申财仅一寅来冲、cj-巨富庄家巳财仅申一方
-    # 合刑破——财方得众或敌单者财不弱。合/刑不论（合可做功、刑含自刑伏吟歧义）。
+    # 合刑——财方得众或敌单者财不弱。合/刑不论（合可做功、刑含自刑伏吟歧义）。
     # 财支取本气口径（同 cai_count；透干柱之支仍算——支自身被攻与干透不透无关）。
     zhonggong: List[str] = []
     for i, z in enumerate(zhis):
@@ -449,7 +449,8 @@ def _assess_caixing_path(
         pk_i = f'{PILLAR_KEYS[i]}_zhi'
         attackers: Set[str] = set()
         for a in wa:
-            if a.get('auxiliary') or a.get('type', '') not in ('冲', '穿', '破'):
+            if ((a.get('auxiliary') and not a.get('relation_only'))
+                    or a.get('type', '') not in ('冲', '穿', '破')):
                 continue
             fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
             if tp == pk_i and fp:
@@ -892,9 +893,8 @@ def classify_caifu_view(
     # 旧「制不尽=破财（中级篇口径）」为冒称，中级原文并无破财断语，已移除）
     # 官统财/财统官（主制宾官得财）与过河拆桥（宾字拆宾官）为对偶互斥财命定式：
     # 主位已制宾官得财（官杀当财）则不再重计过河拆桥。
-    guohe = {}
-    if '财统官' not in views and '官统财（官杀当财）' not in views:
-        guohe = _detect_guohe_chaiqiao(day_gan, gans, zhis, cats, wa, _active_ku)
+    # 先按实际桥接结构检测；主位直接制宾官的互斥由检测器自身处理。
+    guohe = _detect_guohe_chaiqiao(day_gan, gans, zhis, cats, wa, _active_ku)
     guohe_type = guohe.get('type') if guohe else None
     if guohe:
         views.append(f'过河拆桥·{guohe_type}')
@@ -1197,12 +1197,11 @@ def _detect_guohe_chaiqiao(
             f'{cai_pos_cn}{cai_zhi}（财）生宾位{pos_cn}官杀，宾官又被宾字{desc}且制尽（净制），'
             f'过河拆桥富格——制官得财（七杀当财量级），巨富')}
     # 主位制宾官豁免（K3-294批4，famous-索罗斯书锚）：主位（日/时）以非辅助
-    # 制用动作直制该宾官者，为「主制宾官得财」官杀当财做功（双午制申，书明文
-    # 「制七杀申金，制之干净功力十足」）——不入过河拆桥（与上官统财/财统官
-    # 互斥门同旨，彼以 views 计数守门、此以做功动作守门，索罗斯官财 3:3 平数
-    # 时 views 门漏、动作门兜住）。
+    # 相克动作直制该宾官者，为「主制宾官得财」官杀当财做功（双午制申，书明文
+    # 「制七杀申金，制之干净功力十足」）——不入过河拆桥。互斥仅限原书相克锚，
+    # 不把冲穿一并当成互斥证据（qi05/qi20 的巳亥冲不取消富格）。
     for a in wa:
-        if a.get('auxiliary') or a.get('type') not in _ZHI_CONTROL:
+        if a.get('auxiliary') or a.get('type') != '克':
             continue
         fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
         if _is_zhu(fp) and tp and not _is_zhu(tp) \
@@ -1264,43 +1263,52 @@ def classify_qucai_method(
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
 
-    # 做功：是否合财/制财（主制宾财 or 合财）
-    control_cai = False  # 制财
-    he_cai = False       # 合财
+    # 制财须方向明确；合财按合的两端取象，不把柱序当施受。
+    control_cai = False
+    he_cai = False
     for a in wa:
         t = a.get('type', '')
-        to_pos = a.get('to_pos', '')
-        from_pos = a.get('from_pos', '')
-        to_pk = _pos_pillar(to_pos)
-        if to_pk not in PILLAR_KEYS:
+        is_he = t in _HE_CONTROL
+        if t not in _ZHI_CONTROL and not is_he:
             continue
-        to_idx = PILLAR_KEYS.index(to_pk)
-        if '财' in cats[to_idx]:
-            if t in _ZHI_CONTROL and _is_zhu(from_pos) and not _is_zhu(to_pos):
-                control_cai = True
-            if t in _HE_CONTROL:
+        if not is_he and a.get('relation_direction') in ('mutual', 'unknown'):
+            continue
+        from_pos, to_pos = a.get('from_pos', ''), a.get('to_pos', '')
+        for pos in ((from_pos, to_pos) if is_he else (to_pos,)):
+            pk = _pos_pillar(pos)
+            if pk not in PILLAR_KEYS or '财' not in cats[PILLAR_KEYS.index(pk)]:
+                continue
+            if is_he:
                 he_cai = True
-    # 食伤生财做功
-    shishang_sheng_cai = any(a.get('type') == '食伤' for a in wa)
+            elif _is_zhu(from_pos) and not _is_zhu(to_pos):
+                control_cai = True
+    # 纯泄秀不等于食伤生财，不能据此推出智力取财。
+    shishang_sheng_cai = any(
+        a.get('type') == '食伤' and a.get('action') == '生用'
+        and '生财' in str(a.get('subtype', '')) for a in wa)
     # 制官得官（主制宾官，非官统财语境）
     zhi_guan_for_gong = False
     for a in wa:
-        if a.get('type') in _ZHI_CONTROL:
-            to_pk = _pos_pillar(a.get('to_pos', ''))
-            if to_pk in PILLAR_KEYS and '官杀' in cats[PILLAR_KEYS.index(to_pk)]:
-                if _is_zhu(a.get('from_pos', '')) and not _is_zhu(a.get('to_pos', '')):
-                    zhi_guan_for_gong = True
-                    break
+        if (a.get('type') not in _ZHI_CONTROL
+                or a.get('relation_direction') in ('mutual', 'unknown')):
+            continue
+        to_pk = _pos_pillar(a.get('to_pos', ''))
+        if to_pk in PILLAR_KEYS and '官杀' in cats[PILLAR_KEYS.index(to_pk)]:
+            if _is_zhu(a.get('from_pos', '')) and not _is_zhu(a.get('to_pos', '')):
+                zhi_guan_for_gong = True
+                break
     # 劫刃制财
     jieyang_zhi_cai = False
     for a in wa:
-        if a.get('type') in _ZHI_CONTROL:
-            from_pk = _pos_pillar(a.get('from_pos', ''))
-            to_pk = _pos_pillar(a.get('to_pos', ''))
-            if from_pk in PILLAR_KEYS and to_pk in PILLAR_KEYS:
-                if '比劫' in cats[PILLAR_KEYS.index(from_pk)] and '财' in cats[PILLAR_KEYS.index(to_pk)]:
-                    jieyang_zhi_cai = True
-                    break
+        if (a.get('type') not in _ZHI_CONTROL
+                or a.get('relation_direction') in ('mutual', 'unknown')):
+            continue
+        from_pk = _pos_pillar(a.get('from_pos', ''))
+        to_pk = _pos_pillar(a.get('to_pos', ''))
+        if from_pk in PILLAR_KEYS and to_pk in PILLAR_KEYS:
+            if '比劫' in cats[PILLAR_KEYS.index(from_pk)] and '财' in cats[PILLAR_KEYS.index(to_pk)]:
+                jieyang_zhi_cai = True
+                break
 
     # 视图优先序 -> 取财法映射；primary_method 跟随 primary_view
     # 官统财/财统官二者皆官杀当财（源文2819），取财法同为风险（七杀当财，投机/武职/偏门）

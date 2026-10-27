@@ -262,3 +262,12 @@ def test_liunian_chong_tomb_exempt():
                         natal_work_actions=[], natal_gong_shen=['month_zhi'],
                         natal_fei_shen=[], natal_work_types=[])
     assert any('破坏功神' in t for t in _ln_fan_types(r2))
+
+
+def test_r4_gongju_interaction_marker():
+    from mangpai.subjective.yunfan import _op_interactions
+    hits = _op_interactions('己', '未', ['甲', '丙', '戊', '庚'],
+                            ['亥', '子', '午', '辰'])
+    gong = [x for x in hits if x['type'] == '拱局']
+    assert len(gong) == 1 and gong[0]['relation_only'] is True
+    assert '拱木局' in gong[0]['desc']

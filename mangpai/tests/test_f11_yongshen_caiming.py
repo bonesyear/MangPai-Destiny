@@ -98,3 +98,9 @@ def test_qi02_qi20_guoting_guohe_hold():
     v2 = classify_caifu_view('丁', ['甲', '乙', '丁', '庚'], ['寅', '亥', '卯', '戌'])
     assert '过河拆桥·富格' in v2['views']      # qi20-歌厅小姐：戌中辛财生亥官
     assert v2['guohe_zhi_jin'] is True
+
+
+def test_suoluosi_zhiguan_not_guohe():
+    # 双午相克申官仍走主位制官，不因财统官互斥改写为过河拆桥。
+    r = classify_caifu_view('甲', ['庚', '甲', '甲', '辛'], ['午', '申', '午', '未'])
+    assert r['guohe_chaiqiao'] is False

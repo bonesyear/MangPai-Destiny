@@ -144,6 +144,20 @@ def test_parse_kb_line_authoritative_vs_stale(mod):
     stale2 = "（旧记 1129 collected（1129 passed+1 xfailed），均已作废）"
     assert mod.parse_kb_pytest_line(stale2) is None
 
+    pending = "1509 collected（1501 passed + 8 xfailed，保留未决项）"
+    assert mod.parse_kb_pytest_line(pending) == (1509, 1501)
+
+
+def test_collect_xfail_includes_parametrized_marks(mod, tmp_path):
+    (tmp_path / "test_xfail_count.py").write_text(
+        "import pytest\n"
+        "@pytest.mark.xfail\n"
+        "def test_function(): pass\n"
+        "@pytest.mark.parametrize('x', [0, pytest.param(1, marks=pytest.mark.xfail)])\n"
+        "def test_parameter(x): pass\n", encoding="utf-8")
+    assert mod._collect_count(sys.executable, tmp_path) == (3, 3)
+    assert mod._collect_xfail_count(sys.executable, tmp_path) == 2
+
 
 def test_parse_missing_returns_none(mod):
     assert mod.parse_readme_headline("没有任何数字") is None

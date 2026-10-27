@@ -185,19 +185,28 @@ def _yingqi_anchor(features: dict) -> str:
     if dys:
         seg = []
         for d in dys:
-            pos = '、'.join(str(x) for x in (d.get('positive_signals') or [])[:2])
-            neg = '、'.join(str(x) for x in (d.get('negative_signals') or [])[:2])
-            sig = ''
-            if pos or neg:
-                sig = f'（{"吉:" + pos if pos else ""}{"；" if pos and neg else ""}{"凶:" + neg if neg else ""}）'
-            age = (f'{d["start_age"]}-{d["end_age"]}岁'
-                   if d.get('start_age') is not None else f'第{d.get("order")}步')
-            seg.append(f'{d.get("gz")}运[{age}]={d.get("overall")}{sig}')
+            nodes = (d.get('segments')
+                     if d.get('start_age') is not None and d.get('segments') else [d])
+            for node in nodes:
+                pos = '、'.join(str(x) for x in (node.get('positive_signals') or [])[:2])
+                neg = '、'.join(str(x) for x in (node.get('negative_signals') or [])[:2])
+                sig = ''
+                if pos or neg:
+                    sig = f'（{"吉:" + pos if pos else ""}{"；" if pos and neg else ""}{"凶:" + neg if neg else ""}）'
+                if node.get('part'):
+                    age = f'{node["part"]}{node["start_age"]}-{node["end_age"]}岁'
+                else:
+                    age = (f'{node["start_age"]}-{node["end_age"]}岁'
+                           if node.get('start_age') is not None else f'第{d.get("order")}步')
+                seg.append(f'{d.get("gz")}运[{age}]={node.get("overall")}{sig}')
         lines.append('大运逐运锚（dayun_analysis.dayun）：' + '；'.join(seg))
     lns = (features.get('liunian_analysis') or {}).get('liunian') or []
     if lns:
         lines.append('流年逐年锚（liunian_analysis.liunian）：'
                      + '；'.join(f'{e.get("gz")}={e.get("overall")}' for e in lns))
+    phase = (features.get('liunian_analysis') or {}).get('dayun_phase')
+    if phase:
+        lines.append(f'大运分统：{phase.get("phase", "")}（{phase.get("reason", "")}）')
     if not lines:
         return ''
     return ('【本案应期锚定】' + '\n'.join(lines) + '\n'

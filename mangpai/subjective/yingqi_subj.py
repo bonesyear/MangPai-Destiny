@@ -170,6 +170,21 @@ def _classify_lu(ln_lu: List[str], gans: List[str], day_gan: str) -> Dict:
     }
 
 
+def liunian_interactions(liunian_analysis: Optional[Dict]) -> List[Dict]:
+    """提取当前流年与命局/大运的互动，供综合应期统一消费。"""
+    entries = (liunian_analysis or {}).get('liunian') or []
+    if not entries:
+        return []
+    current = entries[0]
+    interactions = []
+    for key in ('zhi_relations', 'gan_relations', 'dayun_interaction'):
+        interactions.extend(current.get(key) or [])
+    tomb = current.get('tomb_effect') or {}
+    if tomb.get('opens') or tomb.get('closes'):
+        interactions.append({'type': '墓', 'target': 'tomb_effect'})
+    return interactions
+
+
 def infer_comprehensive_yingqi(
     day_gan: str = '',
     gans: Optional[List[str]] = None,
@@ -199,7 +214,7 @@ def infer_comprehensive_yingqi(
         dayun_gan/dayun_zhi: 当前大运干支
         liunian_gan/liunian_zhi: 流年干支
         age: 当前年龄（定位大限柱）
-        liunian_interaction: 流年-大运互动（来自 liunian.py，可选，透传为路车配合信号）
+        liunian_interaction: 流年与命局/大运互动（liunian_interactions 提取，可选）
 
     Returns:
         {
@@ -273,7 +288,7 @@ def infer_comprehensive_yingqi(
     else:
         dayun_signals.append('大运应期：无大运干支，路未到')
 
-    # ── 流年应期（触发点）：透干 + 禄/原身 ──
+    # ── 流年应期（触发点）：透干 + 禄/原身 + 冲合刑穿墓 ──
     liunian_signals: List[str] = []
     if liunian_gan or liunian_zhi:
         # 透干应期：流年干透某柱藏干
@@ -291,8 +306,10 @@ def infer_comprehensive_yingqi(
                 liunian_signals.append(
                     f'流年应期：流年支{liunian_zhi}为{ "、".join(ln_lu) }之禄，{ln_cls["who"]}原神触发'
                 )
-        if not liunian_signals:
-            liunian_signals.append('流年应期：流年干支无透干/禄触发')
+        if liunian_interaction:
+            liunian_signals.append(f'流年关系应期：{len(liunian_interaction)}项冲合刑穿墓互动')
+        elif not liunian_signals:
+            liunian_signals.append('流年应期：流年干支无透干/禄/关系触发')
     else:
         liunian_signals.append('流年应期：无流年干支')
 
@@ -319,7 +336,13 @@ def infer_comprehensive_yingqi(
     has_daxian = active is not None
     has_dayun = bool(dayun_gan or dayun_zhi)
     # 见禄即原神到场（含外神禄），计流年触发；归属由 ln_lu_cls['who'] 标签区分。
-    has_liunian_trigger = bool(tou.get('tougan_hits')) or bool(ln_lu_all)
+    relation_trigger = any(
+        item.get('type') in ('冲', '刑', '穿', '墓')
+        or '合' in (item.get('type') or '')
+        for item in liunian_interaction or []
+    )
+    has_liunian_trigger = (
+        bool(tou.get('tougan_hits')) or bool(ln_lu_all) or relation_trigger)
     # 交集：大限结构兑现 + 大运路到 + 流年触发三者齐备为真应期；
     # 原局优先：大限柱见禄原身时，原局应期已强，大运流年仅作承载即可成立。
     daxian_pillar_lu = bool(active) and any(
@@ -835,6 +858,7 @@ def detect_shouyuan_jixie(
 __all__ = [
     'judge_lu_yuanshen_priority',
     'infer_comprehensive_yingqi',
+    'liunian_interactions',
     'detect_ganzhi_huying',
     'detect_daxian_dayun_jiaotuo',
     'detect_shouyuan_jixie',

@@ -22,14 +22,16 @@ import json
 import logging
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from mangpai.feishu.client import FeishuClient
+from mangpai.feishu.client import FeishuClient, FeishuError
 from mangpai.feishu.router import handle as route
 
 log = logging.getLogger(__name__)
 
 _seen_mids = {}  # ponytail: 内存去重上限 2000，超出滚出最老（不整窗清空）；重启即清，量级上来换外部存储
+_seen_lock = threading.Lock()
 _SEEN_MAX = 2000
 _client = None
 
@@ -50,17 +52,19 @@ def _check_token(token):
 def _respond(client, message_id, text):
     try:
         reply = route(text)
-    except Exception:  # 边界兜底：引擎/网络异常也要回用户一句（脱敏：不回显 str(e) 内部详情，与 500 口径一致）
-        log.exception('排盘异常 mid=%s', message_id)
+    except Exception as e:  # 边界兜底：引擎/网络异常也要回用户一句；日志只记类型，脱敏
+        log.error('排盘异常 mid=%s: %s', message_id, type(e).__name__)
         reply = '排盘失败：内部错误，请稍后重试'
     try:
         client.reply(message_id, 'interactive', reply)
-    except Exception as e:  # reply 失败不能静默死线程：记日志 + 尽力纯文本兜底
-        log.error('reply 发送失败 mid=%s: %s', message_id, e)
+    except FeishuError as e:  # 仅明确 API 拒绝才兜底；网络结果未知不重发，防重复回复
+        log.error('reply 发送失败 mid=%s: %s', message_id, type(e).__name__)
         try:
             client.reply(message_id, 'text', reply)
         except Exception as e2:
-            log.error('reply 兜底也失败 mid=%s: %s', message_id, e2)
+            log.error('reply 兜底也失败 mid=%s: %s', message_id, type(e2).__name__)
+    except Exception as e:
+        log.error('reply 发送失败 mid=%s: %s', message_id, type(e).__name__)
 
 
 def handle_event(body: dict, client=None, background=True) -> dict:
@@ -78,11 +82,12 @@ def handle_event(body: dict, client=None, background=True) -> dict:
     _check_token(header.get('token') or body.get('token'))
     msg = (body.get('event') or {}).get('message') or {}
     mid = msg.get('message_id')
-    if not mid or mid in _seen_mids:
-        return {}
-    _seen_mids[mid] = None
-    while len(_seen_mids) > _SEEN_MAX:
-        _seen_mids.pop(next(iter(_seen_mids)))  # 滚动清最老一条，窗口内近期消息仍去重
+    with _seen_lock:
+        if not mid or mid in _seen_mids:
+            return {}
+        _seen_mids[mid] = None
+        while len(_seen_mids) > _SEEN_MAX:
+            _seen_mids.pop(next(iter(_seen_mids)))  # 滚动清最老一条，窗口内近期消息仍去重
     if (msg.get('message_type') or msg.get('msg_type')) == 'text':
         try:
             text = json.loads(msg.get('content') or '{}').get('text', '')
@@ -90,7 +95,7 @@ def handle_event(body: dict, client=None, background=True) -> dict:
             return {}
         client = client or _get_client()
         if background:
-            threading.Thread(target=_respond, args=(client, mid, text), daemon=True).start()
+            _executor.submit(_respond, client, mid, text)
         else:
             _respond(client, mid, text)
     return {}
@@ -100,6 +105,7 @@ _MAX_WORKERS = 32       # ponytail: 并发回调上限，超出排队；量级�
 _MAX_BODY = 1_048_576   # 回调 body 上限 1MB，超出 413
 _READ_TIMEOUT = 15.0    # 慢连接读超时（秒）
 _sem = threading.BoundedSemaphore(_MAX_WORKERS)
+_executor = ThreadPoolExecutor(max_workers=_MAX_WORKERS)
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -116,8 +122,8 @@ class _Handler(BaseHTTPRequestHandler):
                     code, data = 200, json.dumps(resp).encode('utf-8')
             except PermissionError as e:
                 code, data = 401, str(e).encode('utf-8')
-            except Exception:  # 回调必须尽量 200 之外的明确错误也要返回，避免飞书重试风暴
-                log.exception('回调处理异常')
+            except Exception as e:  # 回调必须尽量 200 之外的明确错误也要返回，避免飞书重试风暴
+                log.error('回调处理异常: %s', type(e).__name__)
                 code, data = 500, b'{"error":"internal error"}'  # 不回显内部错误详情
             self.send_response(code)
             self.send_header('Content-Type', 'application/json; charset=utf-8')

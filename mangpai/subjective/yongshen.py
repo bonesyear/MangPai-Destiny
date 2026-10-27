@@ -51,6 +51,8 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.shishen import wx_cat as _wx_cat
 from mangpai.objective.zihe import detect_zihe
+from mangpai.objective.bazi_calc import get_di_zhi_relations
+from mangpai.objective.muku import analyze_muku
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.zhengfan import analyze_zhengfan
 from mangpai.subjective.laoyu import analyze_laoyu, detect_guansha_rumu
@@ -614,10 +616,12 @@ def detect_bijiao_duocai(
     # 之位——该位比劫被官制住、不能夺财（官星护财/官制劫）。
     guanhu_pos: Set[str] = set()
     for a in wa:
-        if a.get('auxiliary'):
+        if a.get('auxiliary') or a.get('relation_direction') == 'unknown':
             continue
         t = a.get('type', '')
         if t not in ('冲', '克', '穿', '破', '刑'):
+            continue
+        if a.get('relation_direction') == 'mutual' and t != '冲':
             continue
         fp0, tp0 = a.get('from_pos', ''), a.get('to_pos', '')
         if not (fp0 and tp0):
@@ -636,7 +640,8 @@ def detect_bijiao_duocai(
     duocai_hits = 0
     hit_descs: List[str] = []
     for a in wa:
-        if a.get('auxiliary'):
+        if (a.get('auxiliary')
+                or a.get('relation_direction') in ('mutual', 'unknown')):
             continue
         t = a.get('type', '')
         if t not in ('冲', '克', '穿', '破', '刑'):
@@ -921,7 +926,9 @@ def detect_jishen_zhiyongshen(
 
     hits: List[str] = []
     for a in wa:
-        if a.get('auxiliary'):
+        if (a.get('auxiliary') or a.get('relation_direction') == 'unknown'
+                or (a.get('relation_direction') == 'mutual'
+                    and a.get('type') not in ('冲', '穿'))):
             continue
         t = a.get('type', '')
         if t not in ('冲', '克', '穿', '破', '刑'):
@@ -931,6 +938,10 @@ def detect_jishen_zhiyongshen(
             continue
         if fp in _js_heban:
             continue  # (a) 忌神被合绊失能，不能制用神
+        if strength in ('从强', '从弱') and fp.endswith('_gan'):
+            _fwx = _pos_main_wx(fp, gans, zhis)
+            if not any(ZHI_WX.get(z) == _fwx for z in zhis if z):
+                continue  # 从格虚透无本气根，从化无力，不作实制（同 R1c）
         if fp == 'day_zhi' and _zihe_js_dayzhi:
             continue  # (c) 日主自合之财（忌神同类）为我所得，不论忌神制用神
         fc = _wx_cat(dw, _pos_main_wx(fp, gans, zhis))
@@ -1158,8 +1169,17 @@ def detect_shangguan_jianguan(
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
         return {'detected': False, 'severity': None, 'reason': ''}
     strength = classify_strength(day_gan, gans, zhis)
-    shang_pos = _mingxian_shishen_positions(day_gan, gans, zhis, {'伤官'})
-    guan_pos = _mingxian_shishen_positions(day_gan, gans, zhis, {'正官'})
+
+    def _benqi_only(positions: Set[str], ten_god: str) -> Set[str]:
+        return {p for p in positions if p.endswith('_gan') or (
+            _shishen_full(day_gan, get_canggan_mangpai(
+                zhis[_PK4.index(p.split('_')[0])])[0][0]) == ten_god)}
+
+    # N1 的「明现」取透干/本气，不拿中气藏干冒充伤官见官主战场。
+    shang_pos = _benqi_only(
+        _mingxian_shishen_positions(day_gan, gans, zhis, {'伤官'}), '伤官')
+    guan_pos = _benqi_only(
+        _mingxian_shishen_positions(day_gan, gans, zhis, {'正官'}), '正官')
     if not (shang_pos and guan_pos):
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
 
@@ -1349,10 +1369,8 @@ def detect_caisheng_sha_gongshen(
     # 杀——合杀之象不论主宾皆化杀；军官师级 己甲合杀、厅级 丁壬合杀俱有制
     # 化不论）+ 印化无力（印明现≤1位，单印难化方局之杀；li207 壬癸两印化杀
     # 有力不论）。severe：方局之杀攻身无救，凶重于普通财生杀（normal）。
-    _SAN_HUI = (('寅', '卯', '辰'), ('巳', '午', '未'),
-                ('申', '酉', '戌'), ('亥', '子', '丑'))
     huiju = None
-    for _trio in _SAN_HUI:
+    for _trio in get_di_zhi_relations(zhis)['三会']:
         if all(_t in zhis for _t in _trio) and ZHI_WX.get(_trio[0], '') == sha_wx:
             huiju = set(_trio)
             break
@@ -1542,10 +1560,10 @@ def detect_heban_yongshen(
         不触发，如 李嘉诚 未午合）；
       - 天干五合：互绊（合即双方失去原性），但只判他干紧贴（年干×月干）；
         日干参与之合属 zuogong「合用」做功层（合财/合官），不在此论。
-    **做功参与抑制**：受绊方若同时参与非辅助**冲/穿**（from/to 任一），则该神
+    **做功参与抑制**：受绊方若同时参与非辅助**冲**（from/to 任一），则该神
     已入局交战、未「失去原性」，合不能废其用——不触发（段氏「相冲可破局破合…
     相合与相冲兼论」之义；奥纳西斯 未午合而未入丑未冲做功，段氏论巨富不论绊）。
-    克/刑/破不参与抑制：克为单向施力，被克非入局、克他亦不证其用。
+    穿与合兼论，不自动解合；克/刑/破不参与抑制。
     **合化豁免已删（书明文禁止化气读法）**：理象学:2311「地支六合并不讲合化，
     只讲合」；shouke:2574「千万不要理解成卯戌合化火助日主，六合以合为主，
     化是极其微弱的」。合绊受害照判，不再以「合化出喜用」豁免凶绊（旧豁免的
@@ -1564,12 +1582,12 @@ def detect_heban_yongshen(
     if not ys:
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
 
-    # 做功参与抑制：收集非辅助冲/穿的参与柱位（from/to 任一，双向交战）
+    # 做功参与抑制：收集非辅助冲的参与柱位；穿与合兼论，不自动解合。
     engaged: Set[str] = set()
     for a in _ensure_work_actions(day_gan, gans, zhis, work_actions):
         if a.get('auxiliary'):
             continue
-        if a.get('type', '') not in ('冲', '穿'):
+        if a.get('type', '') != '冲':
             continue
         fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
         if fp:
@@ -1707,6 +1725,27 @@ def detect_zhuwei_ti_chonghuai(
     dw = GAN_WX.get(day_gan, '')
     if not dw:
         return {'detected': False, 'severity': None, 'reason': ''}
+
+    yin_wx = _yin_wx(dw)
+    sha_wx = WX_KE_ME.get(dw, '')
+    has_sha = any(GAN_WX.get(g, '') == sha_wx or ZHI_WX.get(z, '') == sha_wx
+                  for g, z in zip(gans, zhis))
+    if yin_wx and sha_wx and has_sha:
+        for rel in analyze_muku(zhis, gans).get('tomb_relations', []):
+            from_z = rel['from']['zhi']
+            to_z = rel['to']['zhi']
+            if (rel['from']['pillar'] == '日柱'
+                    and rel['to']['pillar'] in ('年柱', '月柱')
+                    and ZHI_WX.get(from_z, '') == yin_wx
+                    and ZHI_WX.get(to_z, '') == dw
+                    and zhis.count(from_z) >= 2):
+                # shortcut: 只接两午见戌的直接书例，其他墓坏组合待 R6 书证扩展。
+                return {
+                    'detected': True, 'severity': 'severe',
+                    'reason': ('主位体坏：主位重复印入比劫墓（宾位），印不能化杀，'
+                               '主凶（理象学:3058「印星入比劫墓，印星被坏，'
+                               '印不能化杀」）'),
+                }
 
     def _cang_wxs(z: str) -> Set[str]:
         return {GAN_WX.get(cg, '') for cg, _q in get_canggan_mangpai(z)} - {''}

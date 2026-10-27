@@ -120,31 +120,48 @@ class TestPutongCap:
         assert r['level'] == 1
         assert r['penalty'] == '相生之功'
 
-    def test_putong5_xiangke_capped_at_2(self):
+    def test_putong5_food_tomb_two_layers(self):
+        # 理象学:6370-6374 寅木制辰、辰为食神之库，两层功成立；
+        # 目标修正后不再把同制成立误标为普通「相克之制」降档。
         r = _run(PUTONG5)
         assert r['level'] == 2
-        assert r['penalty'] == '相克之制'
+        assert r['penalty'] is None
+        assert any('原神用神同制' in reason for reason in r['reasons'])
 
 
 class TestSourceRegression:
-    """源文第6章命例层数回归（已知局限例标 xfail）。"""
+    """源文第6章命例层数回归；例七的金木冲突单列，不混入普通钉值。"""
 
     @pytest.mark.parametrize('case,expected', [
         (LIJIACHENG, 4),
         (LIU6, 2),
-        (LIU7, 2),
         (LIU8, 3),
         (LIU9, 3),
         (AONAXIXI, 4),
         (YANXISHAN, 3),
         (PUTONG1, 1),
         (PUTONG2, 1),
-        (PUTONG3, 1),
+        (PUTONG3, 2),  # R4 对拍已为 2（气势浪费），不是 R5 抬升
         (PUTONG4, 2),
         (PUTONG5, 2),
     ])
     def test_level_matches_source(self, case, expected):
         assert _run(case)['level'] == expected
+
+    def test_liu7_metal_direction_conflict(self):
+        # 原书例七以木势制申记两层，但理象学:2617-2619 明定金木冲只能金克木。
+        # R5 采用总则，申→寅；此 3 层是新口径结果，不宣称与原例结论相同。
+        result = _run(LIU7)
+        assert result['level'] == 3
+        chong = [a for a in result['reasons'] if '同制' in a]
+        assert chong
+
+    @pytest.mark.xfail(strict=True,
+                       reason='R8 合制墓库/原神同制权重未重建，不能以弱势泛化豁免凑四层')
+    def test_premier_near_four_layers_pending_r8(self):
+        result = analyze_gongliang(day_gan='乙', gans=['戊', '壬', '乙', '己'],
+                                   zhis=['辰', '戌', '未', '卯'])
+        assert result['level'] == 4
 
     # 以下例因 zuogong 对入墓/包制/冲链检出不足而偏低一层（待贼神捕神 P0 模块）。
     # 蒋介石巳午入戌墓(tomb_works)已检出，达 3 层，不再 xfail。
@@ -246,23 +263,20 @@ class TestG2Sanli:
 
 
 class TestS2YuelingJianyinNarrow:
-    """批S2（2026-10-20）规则3 收窄哨兵：「强有力的印」要件补「三合局所化
-    五行≠月令印本气」——书例慈禧月令亥（水印）合化入亥卯未木局（所化≠印
-    本行），印化入制杀做功之局；印局自旺者（所化=印本行）唯旺身不做功
-    （理象学:8284-8302「日主过旺…看的还是做功；既没有象也没有功的四柱，
-    不管从的多么好，都不会有大的富贵」），维持 +0.5。"""
+    """月令见印规则与 R4 入墓优先：慈禧整层保留；重复中神入墓时取消半合双计。"""
 
     ZB14B = (['戊', '戊', '戊', '甲'], ['戌', '午', '午', '寅'])   # 珍宝14期·贪财坐牢
     CIXI  = (['乙', '丁', '乙', '己'], ['未', '亥', '丑', '卯'])   # 慈禧（批G2 闭合锚）
 
     def test_zb14b_yinju_ziwang_no_full_layer(self):
-        # 14b 寅午戌三合火局=印本行自旺（从强），非书「强有力的印」做功之局
-        # → 月令计 +0.5 不整层，层功 3→2（郝断「贪财坐牢」凶局不合 L3 大富大贵）。
+        # 理象学:3058 两午见戌以入墓看，旧入墓+半合双计取消后为 L1；
+        # 月令未再参与三合成势，不补旧 +0.5 文案。
         g, z = self.ZB14B
         r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
-        assert r['level'] <= 2
+        assert r['level'] == 1
         assert not any('月令见印' in x for x in r['reasons'])
-        assert any('月令做功' in x and '+0.5' in x for x in r['reasons'])
+        assert any('入墓为功' in x for x in r['reasons'])
+        assert not any('月令做功' in x for x in r['reasons'])
 
     def test_cixi_still_four_layers_after_narrow(self):
         # 收窄后慈禧仍命中整层（亥水印化入木局，所化≠印本行）→ L4 不动。

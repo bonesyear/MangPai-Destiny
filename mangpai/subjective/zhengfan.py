@@ -208,7 +208,8 @@ def _day_control_elements(work_actions: List[Dict],
     for wa in work_actions:
         if wa.get('auxiliary'):
             continue  # 辅助动作（生扶/伏吟/反吟/S1去重/S2降级）不计入正反局气势
-        if wa.get('type') not in ('克', '冲'):
+        if (wa.get('type') not in ('克', '冲')
+                or wa.get('relation_direction') in ('mutual', 'unknown')):
             continue
         from_pos = wa.get('from_pos', '')
         if not from_pos.startswith('day_'):
@@ -281,7 +282,7 @@ def analyze_zhengfan(
     # 非相背）不再作为反局（五行方向）之日柱做功指向；日柱另有他类做功
     # （日支冲穿制、泄秀生财等）指向相克者，仍照常判反。合时干官（被官控制，
     # 官即日主意向）不在此豁免；官杀克日主非「日柱做功」（日主为受方），
-    # 仅在合年/月官（官为我用结构）下排除，避免全局放宽（li101 反局不动）。
+    # 仅在合年/月官（官为我用结构）下排除；li101 只按原书贫命，不强加反局。
     _k25_exempt = he_guan_pos in ('year', 'month')
     _guan_wx = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '') if day_gan else ''
 
@@ -294,49 +295,40 @@ def analyze_zhengfan(
             return bool(_guan_wx) and _pos_element(from_pos, gans, zhis) == _guan_wx
         return False
 
-    # 日柱主动做功存在性（R-a 门控）：非辅助动作由 day_gan/day_zhi 发起≥1
+    # 双向关系按日柱端点计参与；未知方向不能冒充日柱主动做功。
     _day_has_active_work = any(
-        not wa.get('auxiliary') and wa.get('from_pos', '') in ('day_gan', 'day_zhi')
+        not wa.get('auxiliary') and wa.get('relation_direction') != 'unknown'
+        and ((wa.get('relation_direction') != 'mutual'
+              and wa.get('from_pos', '') in ('day_gan', 'day_zhi'))
+             or (wa.get('relation_direction') == 'mutual'
+                 and 'day' in (wa.get('from_pos', '') + wa.get('to_pos', ''))))
         for wa in work_actions
     )
 
+    def _is_zhu(pos: str) -> bool:
+        return pos.startswith(('day_', 'hour_'))
+
     for wa in work_actions:
-        if wa.get('auxiliary'):
-            continue  # 辅助动作不计入正反局做功方向（全局气势/正反局只看实质做功）
+        if wa.get('auxiliary') or wa.get('relation_direction') == 'unknown':
+            continue
         from_pos = wa.get('from_pos', '')
         to_pos = wa.get('to_pos', '')
-        # 日柱参与的做功（from 或 to 含 'day'，涵盖 day_gan 和 day_zhi）
-        if 'day' in from_pos or 'day' in to_pos:
-            target = to_pos if 'day' in from_pos else from_pos
-            if target and 'day' not in target:
+        if _is_zhu(from_pos) or _is_zhu(to_pos):
+            target = to_pos if _is_zhu(from_pos) else from_pos
+            if target and not _is_zhu(target):
                 day_targets.append(target)
-                # R-a（P2 推广）：日主受克（克动作以 day_gan 为目标）不计入
-                # 反局（五行方向）之日柱做功指向——「日柱做功」主语是日柱
-                # 主动做功，日主被克为受方非做功（K2-5「官杀克日主非日柱
-                # 做功（日主为受方）」之一般化：K2-5 限于合年/月官，此处
-                # 推广至一切日主受克；li101 红线复验——其反局由杀印相生/
-                # 申克卯木等余证维持，不受本推广影响）。限日柱另有主动做功
-                # 者方适用（有功论功、无功论受：日柱纯受动之局——如戊午日
-                # 寅午戌不入局三戊造（14期贪财坐牢），日主受杀克即局之主要
-                # 动态，仍计入方向判据）。day_targets 全量仍供「无功不为局」。
+                # 日主受克非日主主动做功；时柱参与则按主位归入，不另算全局。
                 if not _k25_skip(wa, from_pos, to_pos) and not (
                         wa.get('type') == '克' and to_pos == 'day_gan'
                         and _day_has_active_work):
                     day_fan_targets.append(target)
-            elif target:
-                # target 也是 day 位置（日干合日支等罕见情况），跳过
-                pass
-        elif he_guan_pos == 'hour' and from_pos == 'hour_zhi' and to_pos:
-            # K2-2 时支做功归日主：日主合时干官时，时官为统领领地支，
-            # 时支（官之兵卒）发起的实质做功即日主自己做的功
-            # （《中高级命理学》：「坐支是否做功，如做功，这个功也是日主自己做的功」）。
-            day_targets.append(to_pos)
+            elif target and from_pos.split('_')[0] != to_pos.split('_')[0]:
+                day_targets.append(target)  # 日时互作也是主位做功，非自身空目标。
         else:
-            # 非日柱的做功
             if to_pos:
                 global_targets.append(to_pos)
                 _gsrc.setdefault(to_pos, (wa.get('type', ''), from_pos))
-            if from_pos:
+            if wa.get('relation_direction') == 'mutual' and from_pos:
                 global_targets.append(from_pos)
                 _gsrc.setdefault(from_pos, (wa.get('type', ''), to_pos))
 
@@ -400,7 +392,8 @@ def analyze_zhengfan(
                 qwxs |= set(qishi.get('pair') or [])
             if qwxs and not fan_reason:
                 for wa in work_actions:
-                    if wa.get('auxiliary'):
+                    if (wa.get('auxiliary')
+                            or wa.get('relation_direction') == 'unknown'):
                         continue
                     if wa.get('type') not in ('冲', '刑', '穿', '破', '克'):
                         continue
@@ -434,6 +427,8 @@ def analyze_zhengfan(
             return ''
         ym_rel = _pair_rel(zhis[0], zhis[1])
         dh_rel = _pair_rel(zhis[2], zhis[3])
+        if not dh_rel and TIAN_GAN_HE.get(gans[2]) == gans[3]:
+            dh_rel = '合'  # 日时干合也是冲合矛盾的一端，不限官合。
         if (ym_rel, dh_rel) in (('冲', '合'), ('合', '冲')):
             # 冲合联网守卫（中级冲合并见/贪合忘冲锚，K3 批1）：冲对与合对共享
             # 支字者，两种关系同属一个做功网络（同链制化/合解冲），非两党自乱
@@ -493,13 +488,17 @@ def analyze_zhengfan(
     if not fan_reason and len(zhis) == 4:
         _month_z = zhis[1]
         for wa in work_actions:
-            if wa.get('auxiliary'):
+            if wa.get('auxiliary') and wa.get('relation_direction') != 'unknown':
                 continue
             if wa.get('type') != '冲':
                 continue
-            if wa.get('from_pos') != 'day_zhi':
+            fp, tp = wa.get('from_pos', ''), wa.get('to_pos', '')
+            if (wa.get('relation_direction') not in ('mutual', 'unknown')
+                    and fp != 'day_zhi'):
                 continue
-            _xz = _pos_zhi(wa.get('to_pos', ''), zhis)
+            if 'day_zhi' not in (fp, tp):
+                continue
+            _xz = _pos_zhi(tp if fp == 'day_zhi' else fp, zhis)
             if not _xz or _xz != _month_z or zhis.count(_xz) < 2:
                 continue
             if _xz == zhis[2]:
@@ -507,10 +506,13 @@ def analyze_zhengfan(
             if ZHI_WX.get(_xz) != ZHI_WX.get(zhis[2]):
                 continue  # 非同性相冲不论力量反制（zhenbao-05 卯辰穿/异行锚）
             _rev = any(
-                (not w2.get('auxiliary'))
+                (not w2.get('auxiliary') or w2.get('relation_direction') == 'unknown')
                 and w2.get('type') in ('冲', '刑', '穿', '破', '克')
-                and w2.get('to_pos') == 'day_zhi'
-                and _pos_zhi(w2.get('from_pos', ''), zhis) == _xz
+                and 'day_zhi' in (w2.get('from_pos', ''), w2.get('to_pos', ''))
+                and w2.get('type') == '冲'
+                and _pos_zhi(
+                    w2.get('from_pos', '') if w2.get('to_pos') == 'day_zhi'
+                    else w2.get('to_pos', ''), zhis) == _xz
                 for w2 in work_actions
             )
             if _rev:
@@ -546,7 +548,8 @@ def analyze_zhengfan(
         #   反局不动）。
         day_elems: Set[str] = set()
         for wa in work_actions:
-            if wa.get('auxiliary'):
+            if (wa.get('auxiliary')
+                    or wa.get('relation_direction') in ('mutual', 'unknown')):
                 continue
             if wa.get('type') not in ('克', '冲', '穿', '刑', '破'):
                 continue

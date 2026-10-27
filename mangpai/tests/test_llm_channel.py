@@ -786,7 +786,7 @@ def test_demo_cases_path_cwd_independent(tmp_path):
 
 def test_nonjson_degrade_no_raw_echo(monkeypatch, caplog):
     """红1：非 JSON 降级不回显原文（未校验原文直达用户=死亡红线全旁路），
-    原文仅日志留痕；返回前缀契约不变（feishu service 靠它兜底降级）。"""
+    原文不写日志；返回前缀契约不变（feishu service 靠它兜底降级）。"""
     import logging
     from mangpai.subjective.llm_channel import render_structured_reading
     raw = '你六十八岁寿终——这段非 JSON 原文修复前会原样回显'
@@ -799,7 +799,7 @@ def test_nonjson_degrade_no_raw_echo(monkeypatch, caplog):
     assert out.startswith('[LLM 输出非合法 JSON')
     assert '寿终' not in out and '原始输出' not in out  # 原文不回显
     assert '命理分析仅供参考' in out                    # 免责行保留
-    assert '寿终' in caplog.text                        # 原文日志留痕
+    assert '寿终' not in caplog.text                    # 原文不写日志
 
 
 def test_l2_qianyi_redline_all_dims():

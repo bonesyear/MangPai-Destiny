@@ -10,7 +10,12 @@
   不制。初级:322-324「子午是力量相当的对冲，是能量的湮灭，效率不高」——
   水火字数相等（双方势力相当的工程近似）时子午冲标「湮灭」。
 """
+from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.zuogong_confirm import _tiyong_of, analyze_zuogong
+
+
+def _dr(*args):
+    return detect_relations(*args)['work_actions']
 
 
 class TestTiyongShishangSplit:
@@ -71,14 +76,115 @@ class TestZhifaEfficiencyTags:
 
 
 class TestZhifaEfficiencyAggregate:
-    def test_high_ratio_lifts_low_to_mid(self):
-        # 唯一非辅助动作=卯戌合（高）：原动作数阈值判「低」（兜底保留），
-        # 高效率制法占比 1/1 ≥1/2 → 升「中」
+    def test_hour_host_discount_follows_high_ratio(self):
+        # R5 时支纳主后，巳申合与时干克都保留；四个动作中两个折扣，
+        # 既有效率规则最终由高降中，不再沿用时干被过滤时的低档结果。
         r = analyze_zuogong('甲', '戌', '丙', '巳', '壬', '卯', '癸', '申')
+        assert any(a['type'] == '地支合' and a['to_pos'] == 'hour_zhi'
+                   and not a.get('auxiliary') for a in r['work_actions'])
         assert r['work_efficiency'] == '中'
 
     def test_all_low_caps_high_to_mid(self):
-        # 子午湮灭×2 + 天干克×2（未分级）共 4 动作，原阈值判「高」；
-        # 已分级制法全部低效（湮灭）→ 让位「中」
+        # 等势子午冲是互克而非单向冲；低效制法仍按原规则让位「中」。
         r = analyze_zuogong('丙', '子', '壬', '子', '丙', '午', '壬', '午')
         assert r['work_efficiency'] == '中'
+
+
+class TestR5DirectionAndQualification:
+    def test_water_strong_reverses_si_hai(self):
+        wa = _dr('壬', '巳', '癸', '午', '壬', '子', '壬', '亥')
+        hit = next(a for a in wa if a['type'] == '冲'
+                   and {a['from_pos'], a['to_pos']} == {'day_zhi', 'hour_zhi'})
+        assert (hit['from_pos'], hit['to_pos']) == ('hour_zhi', 'day_zhi')
+        assert not hit.get('auxiliary')
+
+    def test_fire_strong_keeps_si_hai(self):
+        wa = _dr('丙', '巳', '丁', '午', '丙', '子', '丁', '亥')
+        hit = next(a for a in wa if a['type'] == '冲'
+                   and {a['from_pos'], a['to_pos']} == {'day_zhi', 'hour_zhi'})
+        assert (hit['from_pos'], hit['to_pos']) == ('day_zhi', 'hour_zhi')
+        assert not hit.get('auxiliary')
+
+    def test_metal_wood_cannot_reverse_by_pillar_order(self):
+        wa = _dr('甲', '寅', '甲', '申', '甲', '戌', '甲', '子')
+        hit = next(a for a in wa if a['type'] == '冲'
+                   and {a['from_pos'], a['to_pos']} == {'year_zhi', 'day_zhi'})
+        # 理象学:2617-2619 只能金克木，旧审计的“木势强制申”不成立。
+        assert (hit['from_pos'], hit['to_pos']) == ('year_zhi', 'day_zhi')
+
+    def test_equal_earth_chong_has_no_fake_direction(self):
+        wa = _wa('戊', '辰', '戊', '戌', '戊', '辰', '戊', '戌')
+        hit = next(a for a in wa if a['type'] == '冲'
+                   and a['from_pos'] == 'year_zhi' and a['to_pos'] == 'month_zhi')
+        assert hit['relation_direction'] == 'unknown'
+        assert hit['auxiliary'] is True
+
+    def test_hour_is_host_not_global_qi(self):
+        # 壬亥、癸午、丁巳、壬子：水强，时支子冲月支午，不降宾宾全局气。
+        wa = _wa('丁', '巳', '壬', '亥', '癸', '午', '壬', '子')
+        hit = next(a for a in wa if a['type'] == '冲'
+                   and a['from_pos'] == 'hour_zhi' and a['to_pos'] == 'month_zhi')
+        assert not hit.get('auxiliary')
+        assert not hit.get('global_qi')
+
+    def test_self_lu_does_not_create_work(self):
+        wa = _wa('甲', '寅', '癸', '卯', '庚', '申', '辛', '未')
+        assert not any(a['type'] == '禄' for a in wa)
+        wa = _wa('庚', '申', '癸', '未', '丁', '戌', '丙', '酉')
+        assert not any(a['type'] == '禄' for a in wa)
+
+    def test_strong_water_side_controls_day(self):
+        result = analyze_zuogong('壬', '巳', '癸', '午', '壬', '子', '壬', '亥')
+        hit = next(a for a in result['work_actions'] if a['type'] == '冲'
+                   and {a['from_pos'], a['to_pos']} == {'day_zhi', 'hour_zhi'})
+        assert (hit['from_pos'], hit['to_pos']) == ('hour_zhi', 'day_zhi')
+        assert hit in result['passive_work'] and hit not in result['active_work']
+
+    def test_fixed_metal_direction_and_weak_faction(self):
+        result = analyze_zuogong('甲', '寅', '甲', '申', '甲', '戌', '甲', '子')
+        hit = next(a for a in result['work_actions'] if a['type'] == '冲'
+                   and a['from_pos'] == 'year_zhi' and a['to_pos'] == 'day_zhi')
+        assert hit['relation_direction'] == 'directed'
+        assert hit['auxiliary'] is True and hit['weak_faction'] is True
+
+    def test_premier_binbin_ganke_not_weak(self):
+        # 理象学:7332-7336 明言「戊克壬，制去印星，制印得权」。
+        result = analyze_zuogong('乙', '未', '戊', '辰', '壬', '戌', '己', '卯')
+        hit = next(a for a in result['work_actions'] if a['type'] == '克'
+                   and a['from_pos'] == 'year_gan' and a['to_pos'] == 'month_gan')
+        assert not hit.get('weak_faction')
+
+    def test_mutual_he_does_not_invent_actor(self):
+        wa = _dr('甲', '辰', '甲', '子', '丙', '丑', '庚', '巳')
+        hit = next(a for a in wa if a['type'] == '地支合')
+        assert (hit['from_pos'], hit['to_pos']) == ('year_zhi', 'month_zhi')
+        assert hit['relation_direction'] == 'mutual'
+
+    def test_earth_tie_has_no_directed_work_but_relation_kept(self):
+        from mangpai.objective.gongfei import classify_gongshen
+        result = analyze_zuogong('戊', '辰', '戊', '戌', '戊', '辰', '戊', '戌')
+        chong = [a for a in result['work_actions'] if a['type'] == '冲']
+        assert all(a.get('relation_direction') == 'unknown'
+                   and a.get('auxiliary') for a in chong)
+        # 未知方向仍是辅助关系，不等于 relation_only 或全局无主之宾宾动作。
+        gong_shen = classify_gongshen(chong, ['year', 'month'], ['戊', '戊'],
+                                      ['戌', '辰'])['gong_shen']
+        assert {'year_zhi', 'month_zhi'} <= set(gong_shen)
+        assert '制用' not in result['work_types']
+
+    def test_qianlong_natural_direction_without_single_party(self):
+        # 理象学:6156-6166 乾隆没有一方之势，子水伤官制主位午火官星。
+        result = analyze_zuogong('庚', '午', '辛', '卯', '丁', '酉', '丙', '子')
+        hit = next(a for a in result['work_actions'] if a['type'] == '冲'
+                   and {a['from_pos'], a['to_pos']} == {'day_zhi', 'hour_zhi'})
+        assert (hit['from_pos'], hit['to_pos']) == ('hour_zhi', 'day_zhi')
+        assert not hit.get('auxiliary')
+        assert hit in result['passive_work']
+
+    def test_tomb_covered_pair_not_normal_ke(self):
+        result = analyze_zuogong('庚', '午', '戊', '辰', '己', '未', '丁', '亥')
+        hit = next(a for a in result['work_actions']
+                   if a['type'] == '克' and a['from_pos'] == 'year_zhi'
+                   and a['to_pos'] == 'hour_zhi')
+        assert hit['auxiliary'] is True and hit['tomb_covered'] is True
+        assert not hit.get('efficiency_discount')

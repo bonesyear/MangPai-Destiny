@@ -105,6 +105,8 @@ from mangpai.objective.constants import (
     is_pillars,
 )
 from mangpai.objective.muku import is_entomb
+from mangpai.objective.bazi_calc import get_di_zhi_relations
+from mangpai.objective._relation_utils import he_control_target
 from mangpai.objective.shishen import wx_cat as _shishen_cat
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
@@ -347,7 +349,8 @@ def analyze_gongliang(
     rules = _apply_gong_point_rules(
         day_gan, day_wx, gans, zhis,
         gshen=gshen, san_he_formed=san_he_formed,
-        non_aux=non_aux, active_tomb_works=active_tomb_works,
+        non_aux=non_aux, all_work_actions=zg.get('work_actions'),
+        active_tomb_works=active_tomb_works,
         involved_positions=involved_positions, zhi_targets=zhi_targets,
         gan_cats=gan_cats, strong_positions=strong_positions,
         destructive_positions=destructive_positions,
@@ -495,14 +498,8 @@ def _compute_position_sets(
     # ── 非辅助做功动作 ──
     non_aux = [wa for wa in wa_list if not wa.get('auxiliary')]
 
-    # ── 制局涉及位置（from + to 双方）──
-    # 段氏制局：冲/克/穿/刑/破/合制/墓用 的双方均参与制局。取「双方」而非仅
-    # to_pos——势-based 制局中 zuogong 的冲/克方向（按柱序/五行克）未必与
-    # 「强方制弱方」的势方向一致（如蒋介石 亥冲巳，实为火土势制亥），故取双方
-    # 以覆盖被制方的十神大类（含藏干：亥含甲(官)又主气水(财)，制亥即制官与官之
-    # 原神财，蒋介石两层功即此）。
+    # 制局参与位取双方；受方按有向、互克、克合分别判定。
     involved_positions: Set[str] = set()
-    # 严格制用目标：to_pos of 冲克穿刑破（用于制墓库/制净的「被制」判定）
     zhi_targets: Set[str] = set()
     control_action_count = 0
     for wa in non_aux:
@@ -514,13 +511,36 @@ def _compute_position_sets(
             involved_positions.add(f)
         if t:
             involved_positions.add(t)
-            control_action_count += 1
-        if tp in _ZHI_TYPES and t:
-            zhi_targets.add(t)
-    # 墓用做功：入墓目标亦属被制方（被墓制）。
-    # M4 注记：detect 已放开日柱参与限制（宾位入墓亦检出），confirm S2 将非日柱
-    # 入墓标 auxiliary（global_qi）。本模块功量只认 confirm 判定为真做功之墓用
-    # （非 auxiliary），宾位入墓（如普例3 戌入辰）仅作结构事实，不加点、不入被制方。
+            if t.endswith('_zhi'):
+                control_action_count += 1
+        if tp in _ZHI_TYPES:
+            if wa.get('relation_direction') == 'mutual':
+                if tp == '冲':
+                    zhi_targets.update(p for p in (f, t) if p)
+            elif wa.get('relation_direction') != 'unknown' and t:
+                zhi_targets.add(t)
+        elif tp in _HE_ZHI_TYPES and gans and zhis:
+            fe, te = _elem_of(f, gans, zhis), _elem_of(t, gans, zhis)
+            day_marker = gans[2] if tp == '天干合' else zhis[2]
+            target = he_control_target(fe, te, day_marker, gans, zhis)
+            if target == fe:
+                zhi_targets.add(f)
+            elif target == te:
+                zhi_targets.add(t)
+
+    # 方向未知的墓库冲/刑只作既有库关系的双端证据，不进入普通单向主功。
+    tomb_relation_actions = [
+        wa for wa in wa_list
+        if wa.get('relation_direction') == 'unknown'
+        and wa.get('type') in ('冲', '刑') and not wa.get('global_qi')
+        and any(p in ('day_zhi', 'hour_zhi')
+                for p in (wa.get('from_pos', ''), wa.get('to_pos', '')))
+    ]
+    for wa in tomb_relation_actions:
+        for p in (wa.get('from_pos', ''), wa.get('to_pos', '')):
+            if p:
+                involved_positions.add(p)
+
     active_tomb_works = [tw for tw in tomb_works if not tw.get('auxiliary')]
     for tw in active_tomb_works:
         for fld in ('to_pos', 'entombed_pos', 'pos'):
@@ -529,28 +549,24 @@ def _compute_position_sets(
                 involved_positions.add(v)
                 zhi_targets.add(v)
 
-    # 制局涉及十神大类（含藏干，用于原神用神同制判定）
     involved_cats: Set[str] = set()
     if day_wx and gans and zhis:
         for pos in involved_positions:
             elem = _elem_of(pos, gans, zhis)
             if elem:
                 involved_cats |= _elem_cats(day_wx, elem)
-    # 功神十神大类（主气+透干，不含藏干；用于七杀当财等判定）
     gong_cats: Set[str] = set()
     if day_wx and gans and zhis:
         for pos in gshen:
             elem = _elem_of(pos, gans, zhis)
             if elem:
                 gong_cats |= _elem_cats(day_wx, elem, include_canggan=False)
-    # 透干十神大类（pos -> cats，用于制净：透干原神未被制）
     gan_cats: Dict[str, Set[str]] = {}
     if day_wx and gans:
         for pk in PILLAR_KEYS:
             idx = PILLAR_KEYS.index(pk)
             if idx < len(gans) and gans[idx]:
                 gan_cats[f'{pk}_gan'] = _elem_cats(day_wx, gans[idx], include_canggan=False)
-    # 废神十神大类（主气+透干，用于制净：同党废神残存）
     fei_cats: Set[str] = set()
     if day_wx and gans and zhis:
         for pos in fei:
@@ -558,10 +574,6 @@ def _compute_position_sets(
             if elem:
                 fei_cats |= _elem_cats(day_wx, elem, include_canggan=False)
 
-    # 强制参与位置：经 冲/克/穿/合制 作用的位置（from 或 to）。
-    # 段氏原神用神同制须落在一个真实制局目标上--强方制弱方经冲克穿合实现，
-    # 刑/破/墓用偏弱或为相生/孤立结构（如普通例三未土经刑/墓用而实为相生命），
-    # 不单独支撑原神用神同制，故仅认强制参与位。
     _STRONG_TYPES: Set[str] = (_ZHI_TYPES | _HE_ZHI_TYPES) - {'刑', '破'}
     strong_positions: Set[str] = set()
     for wa in non_aux:
@@ -573,12 +585,6 @@ def _compute_position_sets(
         if t:
             strong_positions.add(t)
 
-    # 实制佐证位：冲/克/穿（非辅助，双方）。段氏三分法以冲制/穿制/包制为真制，
-    # 合族（六合/半合/暗合）亦可为合绊/相拱之相生结构而非制——源文普通例二：
-    # 丑经酉丑相拱（半合成金局，生扶丑中辛金七杀）、子丑合（合绊），书判
-    # 「相生之功」非制局。同制为 +2 核心铁律，保守须冲/克/穿实制佐证，
-    # 合族单独不支撑同制（正当同制案例俱有实制：蒋介石亥巳亥冲、李嘉诚亥亥克午、
-    # 例八申寅申冲、奥纳西斯丑丑未冲、森田健亥戌克亥）。
     destructive_positions: Set[str] = set()
     for wa in non_aux:
         if wa.get('type') not in ('冲', '克', '穿'):
@@ -621,6 +627,7 @@ def _apply_gong_point_rules(
     _zb_bao: Optional[Dict],
     _zb_clian: Optional[Dict],
     _zb_jing: str,
+    all_work_actions: Optional[List[Dict]] = None,
 ) -> Dict:
     """计分规则集中执行（H-fix-5 ③，H11 方案）：原神用神同制+2/制墓库+2/
     七杀当财+1/入墓为功+1/库源连墓+1/包局+1/克链+1/zb 包制冲链有条件计入/
@@ -666,7 +673,8 @@ def _apply_gong_point_rules(
                 el = _elem_of(pos, gans, zhis)
                 has_gs = bool(el) and '官杀' in _elem_cats(day_wx, el)
                 return (yong_prio, 0 if has_gs else 1)
-            candidates.sort(key=_rank)
+            # 保留制局参与位，实际受方优先，避免施力端抢走同制标签。
+            candidates.sort(key=lambda c: (c[0] not in zhi_targets, _rank(c)))
             pos, yong, yuan = candidates[0]
             elem = _elem_of(pos, gans, zhis)
             # ── G2 规则1：日支合中心「三种功≠三层功」（理象学:6898-6912 副总案）──
@@ -675,9 +683,11 @@ def _apply_gong_point_rules(
             # 一层，不是三层功」——日支为合中心（涉≥3 合：地支合/暗合/半合，同
             # zuogong_detect._apply_he_center_skip 既有口径）时，其力尽归于合，
             # 同制族（同制+七杀当财）同出一字，并计一层、不重复计层。
+            # relation_only 半合只作合中心的结构证据，不进入做功计分。
             _he_cnt = sum(
-                1 for wa in non_aux
-                if wa.get('type') in ('地支合', '暗合', '半合')
+                1 for wa in (non_aux if all_work_actions is None else all_work_actions)
+                if (not wa.get('auxiliary') or wa.get('relation_only'))
+                and wa.get('type') in ('地支合', '暗合', '半合')
                 and ('day_zhi' in wa.get('from_pos', '')
                      or 'day_zhi' in wa.get('to_pos', '')))
             _he_center_merged = bool(pos == 'day_zhi' and _he_cnt >= 3)
@@ -714,12 +724,24 @@ def _apply_gong_point_rules(
     if yuanshen_hit and day_wx and gans and zhis:
         _ys_elem_zk = _elem_of(yuanshen_pos, gans, zhis) if yuanshen_pos else ''
         _zk_pos: Set[str] = set()
-        for wa in non_aux:
+        for wa in (non_aux if all_work_actions is None else all_work_actions):
             if wa.get('type') not in ('冲', '刑'):
                 continue
-            _zk_pos.add(wa.get('to_pos', ''))
-            if wa.get('type') == '冲':  # 冲互向，from 端亦被制
-                _zk_pos.add(wa.get('from_pos', ''))
+            relation_direction = wa.get('relation_direction')
+            if wa.get('auxiliary') and relation_direction != 'unknown':
+                continue
+            if relation_direction == 'unknown' and (
+                    wa.get('global_qi') or not any(
+                        p in ('day_zhi', 'hour_zhi')
+                        for p in (wa.get('from_pos', ''), wa.get('to_pos', '')))):
+                continue
+            if relation_direction in ('mutual', 'unknown'):
+                if wa.get('type') == '冲':
+                    _zk_pos.update((wa.get('from_pos', ''), wa.get('to_pos', '')))
+            else:
+                _zk_pos.add(wa.get('to_pos', ''))
+                if wa.get('type') == '冲':
+                    _zk_pos.add(wa.get('from_pos', ''))
         for pos in sorted(_zk_pos):  # sorted：首个命中即 break，理由文本须定序
             elem = _elem_of(pos, gans, zhis) if pos else ''
             if elem and _is_tomb(elem) and elem != _ys_elem_zk:
@@ -824,8 +846,7 @@ def _apply_gong_point_rules(
     #   制化动作（「进而制之或化之」）方计。
     _fang_ju_formed = False
     if not san_he_formed and day_wx and gans and zhis and len(zhis) == 4:
-        for _fj in ({'寅', '卯', '辰'}, {'巳', '午', '未'},
-                    {'申', '酉', '戌'}, {'亥', '子', '丑'}):
+        for _fj in (set(group) for group in get_di_zhi_relations(zhis)['三会']):
             if _fj <= set(zhis):
                 for wa in non_aux:
                     # 方局支以冲/刑作用于方局外之支（围制/被制之制化链接；
@@ -852,7 +873,11 @@ def _apply_gong_point_rules(
     #   入墓惰性（K3 base3 批）：入墓之物不做功（审计 P1 既定原则，源文「入墓
     #   则失去作用」）——已入墓元素不能再主动克他字充当中继，其出边不入链
     #   （qi15-伤官当财造：亥入辰墓在案，亥克午之边惰性，辰→亥→午链不成立）。
-    _entombed_pos: Set[str] = {tw.get('to_pos', '') for tw in active_tomb_works}
+    _entombed_pos: Set[str] = {
+        wa.get('to_pos', '')
+        for wa in (all_work_actions if all_work_actions is not None else non_aux)
+        if wa.get('type') == '墓用'
+    }
     #   日主无功弃之不看（理象学:6898 副总案「日主丁火没有功，弃之不看」；
     #   :1490 既有先例——日主自克非制）：日主所出之克（我去取财之意向）与所受之克
     #   （七杀攻身）皆日主之事而非命局做功，其边不入克链。
@@ -1089,10 +1114,23 @@ def _apply_gong_point_rules(
                 if el and _is_tomb(el):
                     _work_tombs.add(el)
         _opened = False
-        for wa in non_aux:
+        for wa in (non_aux if all_work_actions is None else all_work_actions):
             if wa.get('type') not in ('冲', '刑'):
                 continue
-            for pk in (wa.get('from_pos', ''), wa.get('to_pos', '')):
+            relation_direction = wa.get('relation_direction')
+            if wa.get('auxiliary') and relation_direction != 'unknown':
+                continue
+            if relation_direction == 'unknown':
+                if wa.get('global_qi') or not any(
+                        p in ('day_zhi', 'hour_zhi')
+                        for p in (wa.get('from_pos', ''), wa.get('to_pos', ''))):
+                    continue
+            elif relation_direction == 'mutual' and wa.get('type') != '冲':
+                continue
+            positions = (wa.get('from_pos', ''), wa.get('to_pos', ''))
+            if wa.get('type') == '刑' and relation_direction not in ('mutual', 'unknown'):
+                positions = (wa.get('to_pos', ''),)
+            for pk in positions:
                 el = _elem_of(pk, gans, zhis)
                 if el and el in _work_tombs:
                     _opened = True
@@ -1110,11 +1148,8 @@ def _apply_gong_point_rules(
     #   段氏化用成局（zuogong_confirm 的 Level 4）为高层功量：杀印相生（官杀->印->
     #   日主链）化用成功、官杀五行成党势(≥3字)、日主(比劫)无根从弱(≤2字)，且原神
     #   用神同制未成立（纯化用/从杀路径，非制局）-> 化用成局计 +2 层。
-    #   权重校准：原 +3 过计（阎锡山造 +1 偏高），降为 +2。
-    #   检测独立性：杀印相生链（官杀透干+印透干/印居月令）+ 从杀格（官杀党势≥3、
-    #   日主比劫≤2）独立判定，不依赖 work_actions 的 auxiliary 标记--即使命局另有
-    #   制用/墓用做功（杀印相生被 zuogong_detect 标 auxiliary），从杀格之化用成局
-    #   功量仍独立计 +2（如阎锡山造：制用+墓用基底+1，化用成局+2，合三层）。
+    #   纯化用门：非辅助动作只能是杀印相生/支杀化印；另有生用、制用、墓用等
+    #   实际做功时不叠加独立从杀 +2，避免普通例一的过旺之势被误抬层级。
     hua_chengju = False
     if yuanshen_hit is None and day_wx and gans and zhis and len(gans) == 4:
         _yin_wx_7d = ''
@@ -1141,7 +1176,9 @@ def _apply_gong_point_rules(
                     break
             if not _yin_active_7d and ZHI_WX.get(zhis[1], '') == _yin_wx_7d:
                 _yin_active_7d = True  # 印居月令（司令之印）
-        if _sha_gan_idx_7d >= 0 and _yin_active_7d and _sha_wx_7d:
+        if (_sha_gan_idx_7d >= 0 and _yin_active_7d and _sha_wx_7d
+                and all(wa.get('type') in ('杀印相生', '支杀化印')
+                        for wa in non_aux)):
             sha_cnt = sum(1 for gg in gans if GAN_WX.get(gg) == _sha_wx_7d)
             sha_cnt += sum(1 for zz in zhis if ZHI_WX.get(zz) == _sha_wx_7d)
             sha_cnt += sum(1 for zz in zhis
@@ -1427,7 +1464,7 @@ def _apply_caps_and_direction(
     # （「若是功神相战克，平生忙碌事难调」）。复合之格局高低已体现于各做功
     # 子项累加（书无独立加层法则），此处只出协同/矛盾标注，供叙事层消费。
     fuhe: Dict = {'detected': False, 'types': [], 'synergy': False, 'conflicts': []}
-    _WT5 = [t for t in ('制用', '化用', '生用', '合用', '墓用') if t in wtypes]
+    _WT5 = [t for t in ('制用', '化用', '生用', '泄用', '合用', '墓用') if t in wtypes]
     if len(_WT5) >= 2:
         fuhe['detected'] = True
         fuhe['types'] = _WT5
@@ -1442,7 +1479,8 @@ def _apply_caps_and_direction(
         for wa in non_aux:
             t = wa.get('type', '')
             f, tp = wa.get('from_pos', ''), wa.get('to_pos', '')
-            if t in _ZHI_TYPES and f and tp:
+            if (t in _ZHI_TYPES and f and tp
+                    and wa.get('relation_direction') not in ('mutual', 'unknown')):
                 fe = _elem_of(f, gans, zhis)
                 te = _elem_of(tp, gans, zhis)
                 if fe and te:
@@ -1667,12 +1705,12 @@ def _assess_penalty(
     # 三：仅以相生做功（生用/化用，无制用）-> 功量较小
     #   日干无功弃之不看（源文普通例三「日干无功，弃之不看，专看日支未土」）：
     #   日主自克（from_pos=day_gan 之克，我去取财之意向）非做功之制——普通例二
-    #   乙克己在局而书判「相生之功」即此。故相生之功的「无制局」以实制动作
-    #   （剔日主自克）为准，而非 zuogong 的制用 work_type。
+    #   乙克己在局而书判「相生之功」即此。「无制局」看地支实制关系，
+    #   不以天干远克推翻相生；日主天干自克也由地支条件自然排除。
     real_zhi = [wa for wa in non_aux
                 if wa.get('type') in _ZHI_TYPES and not wa.get('auxiliary')
-                and wa.get('from_pos') != 'day_gan']
-    if wset and not real_zhi and (wset & {'生用', '化用', '禄', '合用'}):
+                and wa.get('from_pos', '').endswith('_zhi')]
+    if wset and not real_zhi and (wset & {'生用', '泄用', '化用', '禄', '合用'}):
         return '相生之功', '仅以相生做功，无制局，功量较小'
 
     # 二：有气势但气势浪费（做功少）-> 功小（M5：回接 zeishen_bushen 党势判定）
@@ -1689,21 +1727,20 @@ def _assess_penalty(
 
 # ── 层层相制链长（保守：仅认有向「克」链）──
 def _chain_length(non_aux: List[Dict], inert: Optional[Set[str]] = None) -> int:
-    """计算有向「克」链最长长度（A克B、B克C、C克D -> 3）。
+    """计算地支有向「克」链最长长度（A克B、B克C、C克D -> 3）。
 
-    仅取 type='克'（克方->被克方方向明确）建图求最长简单路径边数。
-    冲为互向、其势方向须党势(贼神捕神)判定，本模块不臆断，故不计入链。
-    乾隆式金字塔(子制午、午制酉、酉制卯)多为冲/势结构，克链未必覆盖，
-    属已知局限（见模块 docstring）。
-    inert: 惰性位置（入墓之物不做功）——其出边不入链（被克入边保留）。
+    仅取地支克建图；天干远克不与地支拼链。冲由贼神捕神模块另建冲链，
+    mutual/unknown 不冒充有向克。inert 的出边不入链，入边保留。
     """
     inert = inert or set()
     edges: Dict[str, Set[str]] = {}
     for wa in non_aux:
-        if wa.get('type') != '克':
+        if (wa.get('type') != '克'
+                or wa.get('relation_direction') in ('mutual', 'unknown')):
             continue
         f, t = wa.get('from_pos', ''), wa.get('to_pos', '')
-        if f and t and f != t and f not in inert:
+        if (f.endswith('_zhi') and t.endswith('_zhi')
+                and f != t and f not in inert):
             edges.setdefault(f, set()).add(t)
 
     best = 0

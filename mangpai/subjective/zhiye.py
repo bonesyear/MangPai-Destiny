@@ -27,7 +27,7 @@ zhiye - 盲派职业象法·主观层（subjective）
   - objective.constants（五行生克/藏干）
   - objective.canggan.get_canggan_mangpai（藏干，十神定位）
   - objective.xiangfa.get_liushi_ganzhi_xiang（六十干支组合象 person 字段，行业象）
-  - objective.zuogong_detect.detect_relations（克/合/冲/穿/破，做功组合）
+  - objective.zuogong_detect.detect_relations（克/合/冲/穿做功，破只作关系/取象）
   - objective.shensha.compute_shensha_ext（羊刃/灾煞/桃花，军警与演艺象）
   - subjective.xiangfa_ops.analyze_xiangfa_ops（合象 hexiang/换象 huanxiang/局象 juxiang
     互证：换官象→律师/公门/军职，换财象→商人，换食伤象→演艺/医生/教师；
@@ -40,7 +40,7 @@ zhiye - 盲派职业象法·主观层（subjective）
 
 M2 基础职业类目（七桶未成象时的第二梯队，段氏《中级》取财方法·体力取财）：
   「体力取财做功之神应是比肩、劫财与禄神」，做功效率低者「八亿的农民与民工
-  都在这一阶层」——贫/小康 + 功神含比劫（合/冲/穿两端、克/刑/破制方）或
+  都在这一阶层」——贫/小康 + 功神含比劫（合/冲/穿两端、克/刑制方）或
   禄神当财 + 无工薪/经营/风险路径 -> laborer（农民/工人·体力劳动者，
   田土参与做功提示农、金参与提示工）；严重破财凶向（比劫夺财 severe）或
   贫而全局无做功 -> unemployed（无业）。七桶最高分 < 阈值时不再硬塞，
@@ -640,7 +640,22 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
     ev: List[str] = []
     has_cai = _has_cat(day_gan, gans, zhis, '财')
     has_shishang = _has_cat(day_gan, gans, zhis, '食伤')
-    non_aux = [a for a in wa if not a.get('auxiliary')]
+    _guan_wx = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '')
+    _guan_main = sum(GAN_WX.get(g) == _guan_wx for g in gans) + sum(
+        ZHI_WX.get(z) == _guan_wx for z in zhis)
+
+    def _tomb_cai_chong(a):
+        if a.get('type') != '冲' or _guan_main < 2:
+            return False
+        fi, ti = _pos_idx(a.get('from_pos', '')), _pos_idx(a.get('to_pos', ''))
+        if fi < 0 or ti < 0:
+            return False
+        # 官杀成势时先辨库藏，不把杀库冲比劫库误作经营财（阎锡山丑统杀）。
+        return (ZHI_WX.get(zhis[fi]) == ZHI_WX.get(zhis[ti]) == '土'
+                and any(_guan_wx in TOMB_MAP.get(z, [])
+                        for z in (zhis[fi], zhis[ti])))
+
+    non_aux = [a for a in wa if not a.get('auxiliary') and not _tomb_cai_chong(a)]
 
     def _end_cats(a):
         fi, ti = _pos_idx(a.get('from_pos', '')), _pos_idx(a.get('to_pos', ''))
@@ -758,6 +773,8 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
         if fp in cai_root_broken or tp in cai_root_broken:
             continue  # 财根被坏，做功为虚
         if t == '冲':
+            if a.get('relation_direction') == 'unknown':
+                continue
             cai_work = True
             chong_cai = True
         elif t in _HE_TYPES:
@@ -774,6 +791,8 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
                     cai_work = True
                     break
         else:  # 克/穿/刑/破：主位发动方为我得财之制
+            if a.get('relation_direction') in ('mutual', 'unknown'):
+                continue
             if not _is_zhu_pos(fp):
                 continue
             if qunbi_duocai and {'日主', '比劫', '财'} & fa:
@@ -801,6 +820,8 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
             continue  # 财根被坏，做功为虚
         zhu_f, zhu_t = _is_zhu_pos(fp), _is_zhu_pos(tp)
         if t in _ZHI_TYPES:
+            if a.get('relation_direction') in ('mutual', 'unknown'):
+                continue
             # 主制宾财：主位发动、财在宾位端、功神端主气净
             if zhu_f and not zhu_t and '财' in ta and not ({'印', '官杀', '比劫'} & fa):
                 if qunbi_duocai and {'日主', '比劫'} & fa:
@@ -909,6 +930,8 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
         for a in non_aux:
             t = a.get('type', '')
             if t not in _HE_TYPES and t not in {'克', '刑', '穿', '破'}:
+                continue
+            if t not in _HE_TYPES and a.get('relation_direction') in ('mutual', 'unknown'):
                 continue
             fi, ti, fa, ta = _act_cats(a)
             if fi < 0:
@@ -1295,8 +1318,8 @@ def _classify_base_career(
                 'evidence': ['用神被坏+贫（段氏：用神被坏则被迫离职下岗），无业']}
 
     # ── 体力劳动者（农/工）──
-    # 反局命局为非常态（格局破），不适用正常职业取象，回未分类。
-    if ds.get('fanju'):
+    # 反局或 severe 命局凶向为非常态，不适用正常职业取象，回未分类。
+    if ds.get('fanju') or ds.get('mingju_xiong_severe'):
         return {}
     if tier not in ('贫', '小康'):
         return {}

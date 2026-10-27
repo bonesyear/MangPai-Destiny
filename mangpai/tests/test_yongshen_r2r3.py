@@ -49,8 +49,8 @@ class TestR2JishenZhiyongshen:
         assert not r['detected']
 
     def test_r2_non_day_auxiliary_no_fire(self):
-        """宾位（非日柱）做功 confirm 已降 auxiliary，不触发。
-        阎锡山 癸辛乙丁/未酉酉丑：从弱，癸(印)克丁(食)系宾位干克（aux）。"""
+        """从格虚透无本气根，从化无力，不作实制（R1c 同口径）。
+        阎锡山 癸辛乙丁/未酉酉丑：癸印虚透，四支无水本气根。"""
         r = detect_jishen_zhiyongshen('乙', ['癸', '辛', '乙', '丁'],
                                       ['未', '酉', '酉', '丑'])
         assert not r['detected']
@@ -294,6 +294,24 @@ class TestDirectionAggregate:
         zy = classify_zhiye('甲', ['癸', '乙', '甲', '己'], ['未', '卯', '子', '巳'])
         assert zy['scores'].get('military', 0) == 0
         assert '军警gating' in str(zy['evidence'].get('military', ''))
+
+
+class TestR4TombEvidence:
+    def test_yin_ru_bijie_mu_replaces_self_xing_false_evidence(self):
+        """理象学:3058 主位印入比劫墓且不能化杀，才是14b凶向书证。"""
+        from mangpai.subjective.yongshen import detect_zhuwei_ti_chonghuai
+        hit = detect_zhuwei_ti_chonghuai(
+            '戊', ['戊', '戊', '戊', '甲'], ['戌', '午', '午', '寅'])
+        assert hit['detected'] and hit['severity'] == 'severe'
+        assert '印入比劫墓' in hit['reason']
+
+        no_sha = detect_zhuwei_ti_chonghuai(
+            '戊', ['戊', '戊', '戊', '丙'], ['戌', '午', '午', '巳'])
+        assert not no_sha['detected']
+
+        single_wu = detect_zhuwei_ti_chonghuai(
+            '戊', ['戊', '戊', '戊', '甲'], ['戌', '午', '寅', '卯'])
+        assert not single_wu['detected']
 
 
 if __name__ == '__main__':

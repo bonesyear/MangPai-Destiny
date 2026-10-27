@@ -7,11 +7,11 @@ KB 验证口径行 / KB §8 工具表 pytest 行），不做全量 grep——KB 
 
 实测来源（脚本内自算，不信任声明）：
 - pytest：`python3 -m pytest --collect-only -q`（~0.5s，不真跑全量）；
-  xfail 数 = `-m xfail --collect-only` 计数；passed = collected - xfail。
+  xfail 数 = 收集后逐项遍历 `iter_markers()`（含参数化标记）；passed = collected - xfail。
 - 模块数：foundation（仓库根，递归）/ mangpai/objective（递归）/
   mangpai/subjective（只算顶层，prompts/ 子目录不计入，README 既有口径）。
 
-verify 四件套（432/70/64/20）为低频项：各 verify 脚本总数由运行期动态累计，
+verify 四件套（402/70/64/20）为低频项：各 verify 脚本总数由运行期动态累计，
 静态解析不可靠，本闸门跳过；需核对时实际运行对应 verify 脚本。
 
 用法：
@@ -46,7 +46,7 @@ KB_PATH = REPO_ROOT / "docs" / "knowledge-base.md"
 
 _RE_HEADLINE = re.compile(r"(\d+)\s*模块[^。\n]*?(\d+)\s*验证用例")
 _RE_README_PYTEST_ROW = re.compile(r"\|\s*pytest[^|\n]*?\|\s*\**(\d+)\s*passed")
-_RE_KB_PYTEST = re.compile(r"(\d+)\s*collected（[^\d（）]*?(\d+)\s*passed\s*\+\s*1\s*xfailed")
+_RE_KB_PYTEST = re.compile(r"(\d+)\s*collected（[^\d（）]*?(\d+)\s*passed\s*\+\s*\d+\s*xfailed")
 _RE_STALE_CTX = re.compile(r"旧记|作废")
 _RE_COLLECTED = re.compile(r"(?:(\d+)/)?(\d+) tests? collected")
 
@@ -74,7 +74,7 @@ def parse_readme_headline(text):
 
 
 def parse_readme_pytest_row(text):
-    """README 验证表 pytest 行「| pytest（…） | N passed + 1 xfailed |」→ passed 数。"""
+    """README 验证表 pytest 行「| pytest（…） | N passed + M xfailed |」→ passed 数。"""
     m = _RE_README_PYTEST_ROW.search(text)
     return int(m.group(1)) if m else None
 
@@ -134,7 +134,7 @@ def _pytest_interpreter():
 
 
 def _collect_count(interp, root, extra=()):
-    """→ (选中数, 总数)。普通 collect: N tests collected；-m xfail: X/N tests collected。"""
+    """→ (选中数, 总数)。pytest --collect-only 的摘要为 N tests collected。"""
     r = subprocess.run([interp, "-m", "pytest", "--collect-only", "-q", *extra],
                        capture_output=True, text=True, cwd=str(root), timeout=300)
     out = r.stdout + r.stderr
@@ -145,12 +145,29 @@ def _collect_count(interp, root, extra=()):
     return (int(selected) if selected else int(total)), int(total)
 
 
+def _collect_xfail_count(interp, root):
+    program = (
+        "import pytest\n"
+        "class Counter:\n"
+        "    def pytest_collection_modifyitems(self, items):\n"
+        "        count = sum(any(m.name == 'xfail' for m in item.iter_markers()) for item in items)\n"
+        "        print(f'MANGPAI_XFAIL_COUNT={count}')\n"
+        "raise SystemExit(pytest.main(['--collect-only', '-q'], plugins=[Counter()]))"
+    )
+    r = subprocess.run([interp, "-c", program], capture_output=True, text=True,
+                       cwd=str(root), timeout=300)
+    matches = re.findall(r"^MANGPAI_XFAIL_COUNT=(\d+)$", r.stdout, re.M)
+    if r.returncode or len(matches) != 1:
+        raise RuntimeError("pytest xfail 收集失败：\n" + (r.stdout + r.stderr)[-800:])
+    return int(matches[0])
+
+
 def gather_actuals(root=REPO_ROOT):
     interp = _pytest_interpreter()
     if interp is None:
         raise RuntimeError("找不到可用的 pytest 解释器（试过 sys.executable / python3 / /usr/bin/python3）")
     collected, _ = _collect_count(interp, root)
-    xfail, _ = _collect_count(interp, root, ("-m", "xfail"))
+    xfail = _collect_xfail_count(interp, root)
     mods = count_modules(root)
     return {
         "collected": collected,
@@ -327,4 +344,5 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
     sys.exit(main())

@@ -33,6 +33,17 @@ class TestGenderRequired:
             assert ra['da_yun']['direction'] == rb['da_yun']['direction']
             assert ra['da_yun']['dayun'] == rb['da_yun']['dayun']
 
+    @pytest.mark.parametrize('canonical,alias', [
+        ('男', 'male'), ('男', '乾'), ('女', 'female'), ('女', '坤'),
+    ])
+    def test_aliases_match_full_engine(self, canonical, alias):
+        """性别别名须归一：婚姻、六亲等下游结果与中文性别完全一致。"""
+        from mangpai.engine import calc_mangpai_full
+
+        expected = calc_mangpai_full(1992, 10, 9, 13, 58, canonical, 114.09)
+        actual = calc_mangpai_full(1992, 10, 9, 13, 58, alias, 114.09)
+        assert actual == expected
+
 
 class TestYearRange:
     @pytest.mark.parametrize('y', [1899, 2101, 0, -1, 9999])

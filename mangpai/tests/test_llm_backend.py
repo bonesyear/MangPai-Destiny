@@ -106,3 +106,39 @@ def test_malformed_url_wrapped_as_backend_error(monkeypatch):
     from mangpai.subjective.llm_channel import render_structured_reading
     out = render_structured_reading({'bazi': {}, 'input': {}}, validate='mark')
     assert out.startswith('[LLM 不可用')
+
+
+def test_error_paths_do_not_echo_sensitive_content(monkeypatch):
+    """HTTP 错误、非 JSON 响应和畸形 URL 均不得回显敏感内容。"""
+    monkeypatch.setattr(_lb, '_load_api_key', lambda: 'k')
+    monkeypatch.setenv('MANGPAI_LLM_RETRIES', '0')
+    marker = 'sensitive-birth-data'
+
+    def bad_request(req, timeout=None):
+        raise urllib.error.HTTPError(
+            req.full_url, 400, 'Bad Request', {}, io.BytesIO(marker.encode()))
+
+    monkeypatch.setattr('urllib.request.urlopen', bad_request)
+    with pytest.raises(_lb.LLMBackendError) as exc:
+        _lb.call_deepseek('s', 'u')
+    assert marker not in str(exc.value)
+
+    class BadJSON:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return marker.encode()
+
+    monkeypatch.setattr('urllib.request.urlopen', lambda req, timeout=None: BadJSON())
+    with pytest.raises(_lb.LLMBackendError) as exc:
+        _lb.call_deepseek('s', 'u')
+    assert marker not in str(exc.value)
+
+    monkeypatch.setenv('MANGPAI_LLM_BASE_URL', 'not-a-url-' + marker)
+    with pytest.raises(_lb.LLMBackendError) as exc:
+        _lb.call_deepseek('s', 'u')
+    assert marker not in str(exc.value)

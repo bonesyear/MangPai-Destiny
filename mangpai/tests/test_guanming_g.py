@@ -28,9 +28,14 @@ def _details(g, z, **kw):
 # ── 处级误判四例（金标准：非官命）──────────────────────────────────
 
 class TestOverFireFixed:
-    def test_zhenbao23b_farmer(self):
-        # 壬子癸卯壬子甲辰：杀刃类从格豁免仍被 G0（辅助做功）收口
-        assert _is(['壬', '癸', '壬', '甲'], ['子', '卯', '子', '辰']) is False
+    @pytest.mark.xfail(strict=True, reason='R7 印重泄杀与正常化用尚不可分，shouke:1316-1322')
+    def test_qi29_yin_over_shed_not_guanming(self):
+        # qi29 戊辛壬癸/辰酉子卯：印绶两重泄尽杀气，无法为官或入公门
+        # （shouke:1316-1322），不是壬癸壬甲/子卯子辰婚姻例。
+        c = classify_guanming_combo('壬', ['戊', '辛', '壬', '癸'],
+                                    ['辰', '酉', '子', '卯'])
+        assert '印化官杀' not in c['shengyong_huayong']
+        assert c['is_guanming'] is False
 
     def test_chuzhong_soldier_painter(self):
         # 壬子丙午壬辰丁未（庭长孪生造）：F12 起 G5「杀无制化」条款废除（刃制杀
@@ -215,7 +220,8 @@ class TestRule2MarkerP2:
 #     刑警队长主制宾、岳飞/厅级-2 制方未无金）。
 class TestS2G1Zhenbao01FalsePositive:
     def test_zhenbao01_not_guanming(self):
-        # 红→绿：假阳四路径（藏杀被制/伤食制印/财制印/印制伤食）全收归位
+        # 目标：藏杀/伤食印/财印/印伤食四路径均不得假立官命。
+        # 主功为食伤生财时，次要财制印不得独立立官；其余三路径也不得假立。
         c = classify_guanming_combo('乙', ['戊', '己', '乙', '丁'],
                                     ['戌', '未', '巳', '亥'])
         assert c['is_guanming'] is False
@@ -241,22 +247,34 @@ class TestS2G1Zhenbao01FalsePositive:
         # 藏杀被制腿真阳锚：多方围制或单方成势，收窄后官命不翻
         assert _is(g, z) is True, name
 
-    def test_cixi_hitler_jianchachang_leg_combo_kept(self):
-        # 腿 combo 本体保留：慈禧丑支三方、希特勒丑支两方、检察长午支单方但
-        # 寅木成势（壬壬癸甲/午寅卯寅：木干支主气计数=甲+寅寅卯≥2）
+    def test_cixi_hitler_leg_combo_kept(self):
+        # 慈禧丑支三方、希特勒丑支两方，藏杀被制本体保留。
         for g, z in [(['乙', '丁', '乙', '己'], ['未', '亥', '丑', '卯']),
-                     (['己', '戊', '丙', '丁'], ['丑', '辰', '寅', '酉']),
-                     (['壬', '壬', '癸', '甲'], ['午', '寅', '卯', '寅'])]:
+                     (['己', '戊', '丙', '丁'], ['丑', '辰', '寅', '酉'])]:
             c = classify_guanming_combo(g[2], g, z)
             assert '藏杀被制' in c['zhiyong_combos']
 
+    def test_jianchachang_shangguan_jue_not_fake_zangsha(self):
+        # 理象学:7993-8006「看不出任何做功…水木伤官成局」——不伪造藏杀做功。
+        c = classify_guanming_combo('癸', ['壬', '壬', '癸', '甲'],
+                                    ['午', '寅', '卯', '寅'])
+        assert '藏杀被制' not in c['zhiyong_combos']
+        assert '伤官诀' in c['shengyong_huayong']
+        assert c['is_guanming'] is True
+
+    def test_neishishen_does_not_borrow_shangguan_jue(self):
+        # 理象学:6616-6619 内食神有功，不借:7993-8006 的无功纯局伤官诀解释。
+        c = classify_guanming_combo('壬', ['壬', '癸', '壬', '壬'],
+                                    ['寅', '卯', '子', '寅'])
+        assert '伤官诀' not in c['shengyong_huayong']
+
     def test_yin_combo_anchors_kept(self):
-        # ②反锚：reg67-市长（午藏丁己无金）/cj-县长（亥藏壬甲无火）印制伤食不伤；
+        # ②反锚：reg67-市长按书为伤食制印；cj-县长（亥藏壬甲无火）印制伤食不伤；
         # 岳飞子克巳无互战，印制伤食=贵格做功保留（test_yongshen_r2r3 同盘锚）
         c1 = classify_guanming_combo('甲', ['乙', '丁', '甲', '丙'],
                                      ['未', '亥', '午', '子'])
         assert c1['is_guanming'] is True
-        assert '印制伤食' in c1['zhiyong_combos']
+        assert '伤食制印' in c1['zhiyong_combos']  # 理象学:7354 伤官星制印
         c2 = classify_guanming_combo('辛', ['戊', '壬', '辛', '甲'],
                                      ['戌', '戌', '亥', '午'])
         assert c2['is_guanming'] is True

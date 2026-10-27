@@ -26,10 +26,10 @@ jiaoyun - 盲派交运时间模块
   （理象学:3875-3877 虚岁口径；书例 2005 生 3 虚岁 → 2007）。
 
 实现：
-  - _ming_wx() 取年干支纳音五行定命五行
+  - _ming_wx(year_gz) 取实际出生年柱纳音五行定命五行，不以公历年替代
   - sxtwl 求节气精确儒略日时刻，按时辰偏移与天数偏移得交运精确时刻
-  - compute_jiaoyun_timeline(year, dayun_list, start_age, span) 产出各步大运
-    的干/支交运时刻序列，干支与起运岁复用上游 dayun_list
+  - compute_jiaoyun_timeline 产出各步大运的干/支交运时刻序列；
+    缺 year_gz 或 dayun_list 时返回数据不足，不伪造大运与交运时间
 
 置信度：高（有段氏原文支持）
 """
@@ -86,14 +86,14 @@ def _year_gz(year: int) -> str:
     return TIAN_GAN[(year - 4) % 10] + DI_ZHI[(year - 4) % 12]
 
 
-def _ming_wx(year: int) -> str:
-    """用年柱【纳音五行】定命五行（段氏明训）。
+def _ming_wx(year_gz: str) -> str:
+    """用实际出生年柱【纳音五行】定命五行（段氏明训）。
 
     交运五行按出生年纳音五行定，非年干五行：
       年干支 -> NAYIN_TABLE -> 纳音名 -> NAYIN_WUXING -> 五行
     如乙酉年=泉中水=水命->冬至前三天亥时交运。
     """
-    nayin = NAYIN_TABLE.get(_year_gz(year), '')
+    nayin = NAYIN_TABLE.get(year_gz, '')
     if not nayin:
         return ''
     return NAYIN_WUXING.get(nayin, '')
@@ -155,15 +155,7 @@ def _apply_offset(jieqi_dt: datetime, offset_days: int, zhi: str) -> datetime:
 
 
 def _advance_gz(gz: str, step: int) -> str:
-    """干支顺推 step 位（六十甲子）。step 可为负表示逆推。
-
-    仅用于无上游 dayun_list 时的兼容退路；正常路径应直接复用上游 dayun_list，
-    不在此自算顺逆。
-
-    Raises:
-        ValueError: 非法干支输入（H-fix-2a 入口校验，原裸 index()/IndexError
-            穿透）。
-    """
+    """干支顺推 step 位（六十甲子），非法干支明确抛 ValueError。"""
     if (not isinstance(gz, str) or len(gz) != 2
             or gz[0] not in TIAN_GAN or gz[1] not in DI_ZHI):
         raise ValueError(f'非法干支 gz={gz!r}：须为 2 字合法干支（如 甲子）')
@@ -173,44 +165,27 @@ def _advance_gz(gz: str, step: int) -> str:
 
 
 def _normalize_dayun_entries(
-    dayun_list: Optional[List[Dict[str, Any]]],
-    month_gz: Optional[str],
+    dayun_list: List[Dict[str, Any]],
     span: int,
     start_age: Optional[int],
 ) -> List[Dict[str, Any]]:
-    """归一化大运条目，供交运时刻计算复用。
-
-    优先复用上游 dayun_list（含 gz 与 start_age，已依性别、年干阴阳排好顺逆）；
-    仅当未提供 dayun_list 时，退化为从月柱顺推 span 步（兼容旧调用，非推荐路径）。
-
-    每个归一化条目：{'gz': '丁丑', 'start_age': 5, 'order': 1}
-    """
-    if dayun_list:
-        items = dayun_list if not span else list(dayun_list)[:span]
-        entries: List[Dict[str, Any]] = []
-        for i, e in enumerate(items):
-            if not isinstance(e, dict):
-                continue
-            gz = e.get('gz', '') or f"{e.get('gan', '')}{e.get('zhi', '')}"
-            if len(gz) < 2:
-                continue
-            sa = e.get('start_age')
-            if sa is None:
-                sa = (start_age if start_age is not None else 0) + 10 * i
-            entries.append({
-                'gz': gz,
-                'start_age': int(sa),
-                'order': e.get('order', i + 1),
-            })
-        return entries
-
-    # 兼容退路：无上游 dayun_list，从月柱顺推 span 步
-    base = start_age if start_age is not None else 0
-    mg = month_gz or ''
-    entries = []
-    for i in range(span):
-        gz = _advance_gz(mg, i + 1) if mg else ''
-        entries.append({'gz': gz, 'start_age': base + 10 * i, 'order': i + 1})
+    """归一化上游已排定的大运条目，供交运时刻计算复用。"""
+    items = dayun_list if not span else list(dayun_list)[:span]
+    entries: List[Dict[str, Any]] = []
+    for i, e in enumerate(items):
+        if not isinstance(e, dict):
+            continue
+        gz = e.get('gz', '') or f"{e.get('gan', '')}{e.get('zhi', '')}"
+        if len(gz) < 2:
+            continue
+        sa = e.get('start_age')
+        if sa is None:
+            sa = (start_age if start_age is not None else 0) + 10 * i
+        entries.append({
+            'gz': gz,
+            'start_age': int(sa),
+            'order': e.get('order', i + 1),
+        })
     return entries
 
 
@@ -220,6 +195,7 @@ def compute_jiaoyun_timeline(
     start_age: Optional[int] = None,
     span: int = 9,
     month_gz: Optional[str] = None,
+    year_gz: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """计算各步大运的交运时刻序列（段氏盲派交运时间）。
 
@@ -232,13 +208,13 @@ def compute_jiaoyun_timeline(
 
     Args:
         year: 出生公历年
-        dayun_list: 上游大运列表，每项含 gz（如 '丁丑'）与 start_age；
-                    提供则直接复用其干支序列与起运岁（推荐路径）。
-        start_age: 起运岁（上游传入）；dayun_list 条目缺 start_age 时以此兜底，
-                   未提供 dayun_list 时作为首步起运岁。
+        dayun_list: 上游已排定的大运列表，每项含 gz（如 '丁丑'）与 start_age；
+                    复用其干支、顺逆与起运岁，缺失时返回数据不足。
+        start_age: 起运岁（上游传入）；dayun_list 条目缺 start_age 时以此兜底。
         span: 计算多少步大运（每步产出干/支两个交运点）。dayun_list 不足则
               按实际条数计算。
-        month_gz: 月柱干支（兼容旧调用：未提供 dayun_list 时从月柱顺推）。
+        month_gz: 保留旧签名；不再用于从月柱伪造大运序列。
+        year_gz: 实际出生年柱，交运命五行按其纳音计算，缺失时返回数据不足。
 
     Returns:
         交运时刻列表，按时间顺序排列。每项含：
@@ -259,14 +235,18 @@ def compute_jiaoyun_timeline(
         }
         若 sxtwl 不可用或计算失败，对应项含 'error' 字段。
     """
-    ming_wx = _ming_wx(year)
+    if not year_gz:
+        return [{'error': '缺少 year_gz：须按实际出生年柱纳音计算交运'}]
+    if not dayun_list:
+        return [{'error': '缺少 dayun_list：无法确定大运干支与顺逆'}]
+    ming_wx = _ming_wx(year_gz)
     rule = JIAOYUN_RULES.get(ming_wx)
     if rule is None:
         return [{'error': f'命五行 {ming_wx} 无对应交运规则', 'ming_wx': ming_wx}]
 
     jieqi_name, offset_days, offset_zhi = rule
     rule_desc = _rule_desc(jieqi_name, offset_days, offset_zhi)
-    entries = _normalize_dayun_entries(dayun_list, month_gz, span, start_age)
+    entries = _normalize_dayun_entries(dayun_list, span, start_age)
 
     timeline: List[Dict[str, Any]] = []
     point = 0
@@ -318,12 +298,17 @@ def compute_jiaoyun_analysis(
     start_age: Optional[int] = None,
     span: int = 9,
     month_gz: Optional[str] = None,
+    year_gz: Optional[str] = None,
 ) -> Dict[str, Any]:
     """交运分析聚合：时间线 + 摘要。
 
     供 MangpaiEngine.compute_all() 调用，产出 jiaoyun_analysis 字段。
     """
-    ming_wx = _ming_wx(year)
+    if not year_gz:
+        return {'ming_wx': '', 'error': '缺少 year_gz：须按实际出生年柱纳音计算交运'}
+    ming_wx = _ming_wx(year_gz)
+    if not dayun_list:
+        return {'ming_wx': ming_wx, 'error': '缺少 dayun_list：无法确定大运干支与顺逆'}
     rule = JIAOYUN_RULES.get(ming_wx)
     if rule is None:
         return {'ming_wx': ming_wx, 'error': f'命五行 {ming_wx} 无对应交运规则'}
@@ -331,7 +316,7 @@ def compute_jiaoyun_analysis(
     jieqi_name, offset_days, offset_zhi = rule
     timeline = compute_jiaoyun_timeline(
         year, dayun_list=dayun_list, start_age=start_age,
-        span=span, month_gz=month_gz,
+        span=span, month_gz=month_gz, year_gz=year_gz,
     )
 
     valid = [t for t in timeline if 'jiaoyun_dt' in t]
@@ -372,6 +357,7 @@ def safe_compute_jiaoyun(
     dayun_list: Optional[List[Dict[str, Any]]] = None,
     start_age: Optional[int] = None,
     span: int = 9,
+    year_gz: Optional[str] = None,
 ) -> Dict[str, Any]:
     """安全计算交运（兜底返回，供 compute_all() _safe_compute 调用）。
 
@@ -381,12 +367,12 @@ def safe_compute_jiaoyun(
     try:
         return compute_jiaoyun_analysis(
             year, dayun_list=dayun_list, start_age=start_age,
-            span=span, month_gz=month_gz,
+            span=span, month_gz=month_gz, year_gz=year_gz,
         )
     except Exception as e:
         logger.warning(f"交运计算失败: {e}", exc_info=True)
         return {
-            'ming_wx': _ming_wx(year) if year else '',
+            'ming_wx': _ming_wx(year_gz) if year_gz else '',
             'error': str(e),
         }
 

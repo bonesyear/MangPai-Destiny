@@ -233,7 +233,7 @@ def test_token_mismatch_rejected(monkeypatch):
 
 # ---------------------------------------------------------------- 修批 E1 哨兵
 def test_reply_failure_fallback_not_silent(caplog):
-    """client.reply 首次失败 → 记日志 + 兜底重发，不静默死线程。"""
+    """client.reply 明确 API 拒绝 → 记日志 + 纯文本兜底，不静默死线程。"""
     class FlakyClient:
         def __init__(self):
             self.calls = []
@@ -241,13 +241,45 @@ def test_reply_failure_fallback_not_silent(caplog):
         def reply(self, mid, msg_type, text):
             self.calls.append(msg_type)
             if len(self.calls) == 1:
-                raise RuntimeError('network down')
+                raise FeishuError('interactive rejected')
 
     fc = FlakyClient()
     with caplog.at_level('ERROR', logger='mangpai.feishu.bot'):
         bot._respond(fc, 'om_x', '/help')  # 不抛
     assert fc.calls == ['interactive', 'text']
     assert any('reply' in r.message for r in caplog.records)
+
+
+def test_reply_network_error_does_not_retry():
+    """网络结果未知时不盲发第二次，避免服务端已成功后重复回复。"""
+    class TimeoutClient:
+        def __init__(self):
+            self.calls = []
+
+        def reply(self, mid, msg_type, text):
+            self.calls.append(msg_type)
+            raise TimeoutError('timeout after server accept')
+
+    fc = TimeoutClient()
+    bot._respond(fc, 'om_x', '/help')
+    assert fc.calls == ['interactive']
+
+
+def test_error_logs_do_not_include_sensitive_content(monkeypatch, caplog):
+    """路由与回复异常只记错误类型，不写生辰或模型/服务商原文。"""
+    marker = 'sensitive-birth-data'
+
+    class FailClient:
+        def reply(self, mid, msg_type, text):
+            raise FeishuError(marker)
+
+    def bad_route(text):
+        raise ValueError(marker)
+
+    monkeypatch.setattr(bot, 'route', bad_route)
+    with caplog.at_level('ERROR', logger='mangpai.feishu.bot'):
+        bot._respond(FailClient(), 'om_x', '/help')
+    assert marker not in caplog.text
 
 
 def test_main_requires_verification_token(monkeypatch):
@@ -277,6 +309,75 @@ def test_dedupe_window_rolls_not_clears():
     bot.handle_event(_msg_event(mid='om_r0', text='/help'), client=fc, background=False)
     assert len(fc.replies) == n + 1  # 最老一条已滚出窗口，重放按新消息处理
     bot._seen_mids.clear()
+
+
+def test_background_jobs_respect_worker_limit(monkeypatch):
+    """40 个后台任务同时到达：执行中不超过 32 个，并最终全部完成。"""
+    condition = threading.Condition()
+    release = threading.Event()
+    state = {'active': 0, 'peak': 0, 'completed': 0}
+
+    def blocking_route(text):
+        with condition:
+            state['active'] += 1
+            state['peak'] = max(state['peak'], state['active'])
+        release.wait(5)
+        with condition:
+            state['active'] -= 1
+            state['completed'] += 1
+            condition.notify_all()
+        return 'ok'
+
+    monkeypatch.setattr(bot, 'route', blocking_route)
+    bot._seen_mids.clear()
+    fc = FakeClient()
+    for i in range(40):
+        bot.handle_event(_msg_event(mid=f'om_limit{i}', text='/help'),
+                         client=fc, background=True)
+    time.sleep(0.5)
+    assert state['peak'] <= 32, state
+    release.set()
+    with condition:
+        assert condition.wait_for(lambda: state['completed'] == 40, timeout=5), state
+    bot._seen_mids.clear()
+
+
+def test_concurrent_duplicate_message_processed_once(monkeypatch):
+    """同一 message_id 并发到达也只能处理一次，去重检查与登记须原子化。"""
+    entered = set()
+    gate = threading.Event()
+    captured = set()
+    captured_gate = threading.Event()
+    lock = threading.Lock()
+
+    class RacingDict(dict):
+        def __contains__(self, key):
+            with lock:
+                entered.add(threading.get_ident())
+                if len(entered) == 8:
+                    gate.set()
+            gate.wait(0.5)
+            result = super().__contains__(key)
+            with lock:
+                captured.add(threading.get_ident())
+                if len(captured) == 8:
+                    captured_gate.set()
+            captured_gate.wait(0.5)
+            return result
+
+    monkeypatch.setattr(bot, 'route', lambda text: 'ok')
+    bot._seen_mids = RacingDict()
+    fc = FakeClient()
+    try:
+        with ThreadPoolExecutor(8) as ex:
+            list(ex.map(
+                lambda _: bot.handle_event(
+                    _msg_event(mid='om_dup', text='/help'),
+                    client=fc, background=False),
+                range(8)))
+        assert len(fc.replies) == 1, fc.replies
+    finally:
+        bot._seen_mids = {}
 
 
 def test_token_refresh_locked_concurrent():
