@@ -175,10 +175,9 @@ python3 -m mangpai.subjective.llm_channel b67-李嘉诚 "财运"
 
 ## 知识库 & 审计
 
-- `docs/remaining-tasks-20260717.md` — 待修复项清单（含人机交互依赖标注）
-- `docs/layer2-9gap-analysis-20260713.md` — 第二层 67 例架构分析
+- [知识库](docs/knowledge-base.md) — 模块、规则与验证口径
+- [原著对照审计](docs/audit-vs-originals-20261017.md) — 当前规则、历史差异与 R0–R5 修整记录
 - `docs/layer3-haojin-yang-audit-20260713.md` — 第三层郝金阳案例审计
-- `docs/k3-shouke-jiaocheng-audit-20260717.md` — 授课教程逐章审计
 
 ## 理论来源
 
