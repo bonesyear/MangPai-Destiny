@@ -193,12 +193,46 @@ class TestR3HebanYongshen:
                                   ['申', '丑', '申', '亥'])
         assert not r['detected']
 
-    def test_r3_shuangshun_exempt(self):
-        """双侧顺势豁免：六合双方俱为用神类=顺势内部生合（原神合财），不论绊。
-        22期例1 从财格（辛亥庚寅庚寅己卯，从弱）：寅亥合，亥=食伤(原神)、
-        寅=财俱顺势，不触发（书：乙亥年发财）。"""
+    def test_r3_yuanshen_shengcai_not_generic_heban(self):
+        """亥为食伤、寅为财，原神直接生财属组合做功；非泛化“用用相合”豁免。"""
         r = detect_heban_yongshen('庚', ['辛', '庚', '庚', '己'],
                                   ['亥', '寅', '寅', '卯'])
+        assert not r['detected']
+
+    @pytest.mark.parametrize('zhis,strength,expected', [
+        (['卯', '戌', '子', '午'], '身弱', True),   # 宾位用神受绊：不吉
+        (['卯', '戌', '子', '午'], '身强', False),  # 宾位忌神受绊：吉
+        (['子', '午', '卯', '戌'], '身弱', False),  # 主位用神受绊：吉
+        (['子', '午', '卯', '戌'], '身强', True),   # 主位忌神受绊：凶
+    ])
+    def test_r3_binzhu_xiji_matrix(self, monkeypatch, zhis, strength, expected):
+        """授课:108 的宾主×喜忌四象限，卯戌合只以戌为受害方。"""
+        monkeypatch.setattr(
+            'mangpai.subjective.yongshen.classify_strength',
+            lambda *_args: strength,
+        )
+        r = detect_heban_yongshen('己', ['辛', '戊', '己', '癸'], zhis)
+        assert r['detected'] is expected
+    def test_r3_bijie_tomb_not_generic_cai_heban(self):
+        """理象学:11591「合劫刃之库」：未是甲木之墓，不按本气财星合绊。"""
+        r = detect_heban_yongshen('甲', ['庚', '甲', '甲', '辛'],
+                                  ['午', '申', '午', '未'])
+        assert not r['detected']
+    def test_r3_caiku_chong_work_not_generic_heban(self):
+        """资本运营：丑未冲制财库及印库，子丑合不按一般食伤合绊。"""
+        r = detect_heban_yongshen('丙', ['丁', '癸', '丙', '壬'],
+                                  ['未', '丑', '子', '辰'])
+        assert not r['detected']
+
+    def test_r3_day_zhi_he_cai_not_generic_heban(self):
+        """合例六：日支戌得卯财来合，不按戌印为忌的通用合绊。"""
+        r = detect_heban_yongshen('庚', ['己', '丁', '庚', '己'],
+                                  ['酉', '卯', '戌', '卯'])
+        assert not r['detected']
+    def test_r3_shishang_xiuxiu_not_generic_heban(self):
+        """li158：日支寅为食伤泄秀、秀气流通，不按从强食伤忌的通用合绊。"""
+        r = detect_heban_yongshen('壬', ['癸', '癸', '壬', '癸'],
+                                  ['亥', '亥', '寅', '卯'])
         assert not r['detected']
 
 
@@ -235,6 +269,27 @@ class TestR1Precision:
         r = detect_bijiao_duocai('辛', ['己', '丙', '辛', '壬'],
                                  ['丑', '寅', '酉', '辰'])
         assert r['detected']
+
+
+    @pytest.mark.parametrize('g,z', [
+        (['辛', '戊', '甲', '丁'], ['卯', '戌', '申', '卯']),  # 第24期例1：财多身弱无印用劫
+        (['辛', '戊', '庚', '乙'], ['亥', '戌', '午', '酉']),  # 例2：身弱官忌、财虚受制
+        (['戊', '戊', '庚', '己'], ['戌', '午', '申', '卯']),  # 例3：财忌弱而被制
+        (['丙', '丁', '丁', '乙'], ['子', '酉', '酉', '巳']),  # 例4：主位比劫制宾位财
+    ])
+    def test_bijiao_qucai_book_examples(self, g, z):
+        """珍宝:785-807 的比劫去财格不得再归为比劫夺财。"""
+        from mangpai.subjective.yongshen import detect_bijiao_duocai
+        result = detect_bijiao_duocai(g[2], g, z)
+        assert result['qucai_detected']
+        assert not result['detected']
+
+    def test_buffett_cai_yuanshen_joint_control(self):
+        """理象学:11333-11341 的制财与财原神组合，不套夺财/印夺食。"""
+        ds = assess_direction_signals('壬', ['庚', '甲', '壬', '壬'],
+                                      ['午', '申', '子', '寅'])
+        assert not ds['pocai']
+        assert not ds['yongshen_xiong']
 
 
 # ───────────────────── 聚合与下游 ─────────────────────

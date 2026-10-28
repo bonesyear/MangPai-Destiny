@@ -96,6 +96,37 @@ def test_yingqi_anchor_uses_segments_and_phase():
     assert '大运分统：分看（流年未与大运刑冲合）' in text, text
 
 
+def test_yingqi_anchor_tongkan_uses_overall_not_segments():
+    """统看只引整运，分看才拆干支；逐年 overall 不被十年总评覆盖。"""
+    from mangpai.subjective.llm_prompt import _yingqi_anchor
+
+    features = {
+        'dayun_analysis': {'dayun': [{
+            'gz': '甲寅', 'start_age': 1, 'end_age': 11,
+            'overall': '吉凶参半',
+            'segments': [
+                {'part': '干', 'start_age': 1, 'end_age': 6, 'overall': '吉'},
+                {'part': '支', 'start_age': 6, 'end_age': 11, 'overall': '凶'},
+            ],
+        }]},
+        'liunian_analysis': {
+            'dayun_phase': {'phase': '统看', 'reason': '己未年甲己合', 'gz': '甲寅'},
+            'liunian': [{'gz': '己未', 'overall': '吉', 'dayun_phase_active': '干支'}],
+        },
+    }
+    text = _yingqi_anchor(features)
+    assert '甲寅运[1-11岁]=吉凶参半' in text, text
+    assert '甲寅运[干' not in text, text
+    assert '己未=吉' in text, text
+
+
+def test_dayun_phase_includes_current_gz():
+    from mangpai.subjective.liunian import determine_dayun_phase
+
+    phase = determine_dayun_phase('甲', '寅', [{'gz': '己未', 'year': 1979}])
+    assert phase['gz'] == '甲寅'
+
+
 def test_liunian_relation_types_are_triggers():
     """冲合刑穿墓任一关系都算流年触发，不要求必须透干或到禄。"""
     from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi

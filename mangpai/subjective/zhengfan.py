@@ -24,6 +24,7 @@ from mangpai.objective.constants import (
     PILLAR_KEYS, GAN_WX, ZHI_WX, WX_SHENG, WX_KE, WX_KE_ME,
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP, CANG_GAN_MANGPAI,
 )
+from mangpai.objective.zihe import detect_zihe
 
 
 def _ss_cat(day_gan: str, gan: str) -> str:
@@ -272,7 +273,8 @@ def analyze_zhengfan(
 
     # 提取日柱做功的 target 柱位（日干合、日支冲克等均计入）
     day_targets: List[str] = []
-    day_fan_targets: List[str] = []  # K2-5 精化后仍计入反局（五行方向）的日柱指向
+    gan_targets: List[str] = []
+    zhi_targets: List[str] = []
     global_targets: List[str] = []
     _gsrc: Dict[str, tuple] = {}  # 全局指向来源动作（K3-294批6 A1 残留用）
 
@@ -313,15 +315,20 @@ def analyze_zhengfan(
             continue
         from_pos = wa.get('from_pos', '')
         to_pos = wa.get('to_pos', '')
+        if (wa.get('type') == '克' and from_pos == 'day_gan'
+                and to_pos and not _k25_skip(wa, from_pos, to_pos)):
+            gan_targets.append(to_pos)
+        if from_pos == 'day_zhi' and to_pos:
+            zhi_targets.append(to_pos)
+        elif wa.get('relation_direction') == 'mutual' and to_pos == 'day_zhi' and from_pos:
+            zhi_targets.append(from_pos)
+        if (he_guan_pos == 'hour' and from_pos == 'hour_zhi'
+                and to_pos and not _is_zhu(to_pos)):
+            gan_targets.append(to_pos)
         if _is_zhu(from_pos) or _is_zhu(to_pos):
             target = to_pos if _is_zhu(from_pos) else from_pos
             if target and not _is_zhu(target):
                 day_targets.append(target)
-                # 日主受克非日主主动做功；时柱参与则按主位归入，不另算全局。
-                if not _k25_skip(wa, from_pos, to_pos) and not (
-                        wa.get('type') == '克' and to_pos == 'day_gan'
-                        and _day_has_active_work):
-                    day_fan_targets.append(target)
             elif target and from_pos.split('_')[0] != to_pos.split('_')[0]:
                 day_targets.append(target)  # 日时互作也是主位做功，非自身空目标。
         else:
@@ -343,6 +350,34 @@ def analyze_zhengfan(
 
     # 反局判定：日柱做功方向与全局气势相背
     fan_reason = ''
+    gan_elems = {e for e in (_pos_element(t, gans, zhis) for t in gan_targets) if e}
+    zhi_elems = {e for e in (_pos_element(t, gans, zhis) for t in zhi_targets) if e}
+    main_guest_qucai = False
+    day_wx = GAN_WX.get(day_gan, '')
+    cai_wx = WX_KE.get(day_wx, '')
+    day_zihe = detect_zihe(gans, zhis).get('day_zihe') or {}
+    day_cai_zihe = bool(day_zihe.get('activated')
+                        and GAN_WX.get(day_zihe.get('he_shen', ''), '') == cai_wx)
+    for wa in work_actions:
+        if wa.get('auxiliary') or wa.get('relation_direction') == 'unknown':
+            continue
+        t = wa.get('type', '')
+        if t not in ('冲', '克', '穿', '破', '刑', '暗合', '地支合', '天干合'):
+            continue
+        if wa.get('relation_direction') == 'mutual' and t not in ('暗合', '地支合'):
+            continue
+        fp, tp = wa.get('from_pos', ''), wa.get('to_pos', '')
+        pairs = [(fp, tp)]
+        if t in ('暗合', '地支合', '天干合'):
+            pairs.append((tp, fp))
+        for actor, target in pairs:
+            if (_is_zhu(actor) and not _is_zhu(target)
+                    and _pos_element(actor, gans, zhis) == day_wx
+                    and _pos_element(target, gans, zhis) == cai_wx):
+                main_guest_qucai = True
+                break
+        if main_guest_qucai:
+            break
     k24_chong_zhis: List[str] = []  # A15：K2-4 冲合矛盾之冲对支字
     k24_chong_zhuwei = False        # A15：冲对是否在主位（日时）
 
@@ -358,6 +393,17 @@ def analyze_zhengfan(
         is_ti = bool(hz_wx and day_wx and
                      (hz_wx == day_wx or WX_SHENG.get(hz_wx) == day_wx))
         if is_ti:
+            cai_wx = WX_KE.get(day_wx, '')
+            source_wx = {w for w, child in WX_SHENG.items() if child == cai_wx}
+            controlled = {
+                _pos_element(wa.get('to_pos', ''), gans, zhis)
+                for wa in work_actions
+                if not wa.get('auxiliary')
+                and wa.get('relation_direction') not in ('mutual', 'unknown')
+                and wa.get('type') in ('冲', '克', '穿', '破', '刑')
+                and wa.get('from_pos') == 'hour_zhi'
+            }
+            hour_joint_control = cai_wx in controlled and bool(source_wx & controlled)
             # 合坏（F7，中级:200「申不能制官反被局中巳火官制了，反局了」、
             # 闲注:215「财生了巳火，又巳申合，坏了申」——案例3 乙巳庚辰辛卯丙申）：
             # 时支体被**所合时干官坐实之支**克合所坏（地支六合，坏方藏干含该官
@@ -407,7 +453,10 @@ def analyze_zhengfan(
                     de_shi = actor_wx in qwxs or bool(
                         actor_zhi in TOMB_MAP
                         and set(TOMB_MAP[actor_zhi]) & qwxs)
-                    if de_shi:
+                    # 时支已直接制财及原神时，互刑是共同做功而非体坏；日支反制不豁免。
+                    joint_work = (hour_joint_control and actor_pos != 'day_zhi'
+                                  and wa.get('relation_direction') == 'mutual')
+                    if de_shi and not joint_work:
                         fan_reason = (
                             f'日主合时干官，时支{hz}为体（印/劫）不可坏，'
                             f'被{_pos_zhi(actor_pos, zhis) or actor_pos}'
@@ -521,6 +570,14 @@ def analyze_zhengfan(
                     f'（{zhis.count(_xz)}重）反制日支，日支做功被得势方反制{he_note}'
                 )
                 break
+
+    # 规则②次于专用反局规则：主劫客财/日主自合财属组合，不冒充相反意向。
+    if (not fan_reason and not main_guest_qucai and not day_cai_zihe
+            and gan_elems and zhi_elems and any(
+            WX_KE.get(ge) == ze or WX_KE.get(ze) == ge
+            for ge in gan_elems for ze in zhi_elems)):
+        fan_reason = (f'日主之功与日支之功相反（日主指向{",".join(sorted(gan_elems))}，'
+                      f'日支指向{",".join(sorted(zhi_elems))}，以日主为主）{he_note}')
 
     # 反局（五行方向）：日柱做功目标五行 vs 全局做功主要目标五行，相克即相背。
     #   比和（同五行）/相生为同向、顺势，不判反局；五行信息缺失则不论。

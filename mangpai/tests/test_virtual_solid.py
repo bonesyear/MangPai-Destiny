@@ -39,8 +39,19 @@ def test_book_table_spot_checks():
     cases = [
         ('庚', '辰', True), ('辛', '丑', True), ('甲', '辰', True),
         ('庚', '戌', False), ('辛', '未', False),
+        ('戊', '申', False), ('戊', '寅', False), ('辛', '巳', False),
     ]
     for gan, zhi, solid in cases:
         r = analyze_virtual_solid('丙', '寅', gan, zhi, '壬', '午', '癸', '亥')
         e = _entry(r, '年柱')
         assert e['is_solid'] is solid, f'{gan}{zhi} 应{"实" if solid else "虚"}'
+
+
+def test_cross_pillar_yin_does_not_change_virtual_state():
+    # 甲坐午书定虚；他柱壬子之印不得把本柱洗成有气（理象学:5647-5649）
+    r = analyze_virtual_solid('壬', '子', '甲', '午', '庚', '申', '辛', '酉')
+    jia = _entry(r, '年柱')
+    assert jia['is_solid'] is False
+    assert jia['has_yin_support'] is False
+    assert jia['type'] != '有气偏虚'
+    assert jia['vulnerable_to_ke']['level'] == '重'

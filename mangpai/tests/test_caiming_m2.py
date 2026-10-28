@@ -416,3 +416,24 @@ class TestCaihuaiyinTongguanCap:
             '甲', self.GANS, self.ZHIS, dict(gl), cv,
             direction_signals=dict(ds, heban_yongshen={'detected': True}))
         assert lv['tier'] == '小康'
+
+
+class TestYinHuanCai:
+    def test_overseas_trade_yin_also_represents_wealth(self):
+        from mangpai.subjective.caiming import _detect_yin_huan_cai
+        gans, zhis = ['壬', '丙', '己', '己'], ['子', '午', '巳', '巳']
+        assert _detect_yin_huan_cai('己', gans, zhis)
+        r = analyze_caiming('己', gans, zhis)
+        assert r['tier_static'] == '富'
+        assert '换象' in r['level_static']['adjust']
+        assert not any('浮财' in x for x in r['level_static']['blockers'])
+
+    def test_same_trade_structure_detected(self):
+        from mangpai.subjective.caiming import _detect_yin_huan_cai
+        assert _detect_yin_huan_cai(
+            '己', ['壬', '丙', '己', '辛'], ['子', '午', '巳', '未'])
+
+    def test_yin_huan_cai_requires_actual_chong(self):
+        from mangpai.subjective.caiming import _detect_yin_huan_cai
+        assert not _detect_yin_huan_cai(
+            '己', ['壬', '丙', '己', '己'], ['子', '巳', '巳', '午'])

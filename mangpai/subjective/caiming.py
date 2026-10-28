@@ -333,12 +333,14 @@ def _detect_caiku(
     消费 analyze_muku 的 tombs[].status：
       开库 -> 墓中之财复出，开财库主大发（发财之象）；
       闭库 -> 财被收藏，闭财库主守财储蓄；
+      制库 -> 刑冲有做功之用，但不等同开库得财；
+      动库 -> 遥冲为冲动、兼有冲开之意，不按明确开库计；
       墓库(未开未闭) -> 财入库，守而不发。
     段氏：财喜藏（入库守财）亦喜开（开库发财），开闭状态定财之聚散。
 
     Returns:
         财库记录列表，每项 {zhi, status, pillar, view, desc}。
-        view ∈ {'开财库', '闭财库', '财入库'}。
+        view ∈ {'开财库', '闭财库', '制财库', '财库动', '财入库'}。
     """
     if not (day_gan and len(zhis) == 4):
         return []
@@ -360,6 +362,12 @@ def _detect_caiku(
         elif status == '闭库':
             view = '闭财库'
             desc = f'{tomb.get("pillar", "")}{z}为财库（{cai_wx}）逢闭，财被收藏，主守财储蓄'
+        elif status == '制库':
+            view = '制财库'
+            desc = f'{tomb.get("pillar", "")}{z}为财库（{cai_wx}）刑冲为制库，不按开财复出主大发'
+        elif status == '动库':
+            view = '财库动'
+            desc = f'{tomb.get("pillar", "")}{z}为财库（{cai_wx}）遥冲为冲动，兼有冲开之意，不按已开计'
         else:
             view = '财入库'
             desc = f'{tomb.get("pillar", "")}{z}为财库（{cai_wx}）未开，财入库守而不发'
@@ -1489,6 +1497,28 @@ def _zeishen_jingzhi(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
         float(zb.get('zeishen_strength') or 0)
 
 
+def _detect_yin_huan_cai(day_gan: str, gans: List[str], zhis: List[str]) -> bool:
+    """月令印冲年支财且印强财弱，印换象为财（chuji:5208-5214）。"""
+    if not (day_gan and len(gans) == 4 and len(zhis) == 4):
+        return False
+    day_wx = GAN_WX.get(day_gan, '')
+    yin_wx = next((w for w, gen in WX_SHENG.items() if gen == day_wx), '')
+    cai_wx = WX_KE.get(day_wx, '')
+    if not (yin_wx and cai_wx):
+        return False
+    if (_wx_to_cat(day_gan, ZHI_WX.get(zhis[0], '')) != '财'
+            or _wx_to_cat(day_gan, ZHI_WX.get(zhis[1], '')) != '印'):
+        return False
+    rel = _ensure_relations(day_gan, gans, zhis, None)
+    if not any(a.get('type') == '冲'
+               and {a.get('from_pos'), a.get('to_pos')} == {'year_zhi', 'month_zhi'}
+               for a in (rel.get('work_actions') or [])):
+        return False
+    # 原书此例不看制净，仅取印强财弱的换象，不把净制作为额外门槛。
+    party = analyze_zeishen_bushen(day_gan, gans, zhis).get('party_strength') or {}
+    return party.get(yin_wx, 0) > party.get(cai_wx, 0)
+
+
 def assess_caiming_level(
     day_gan: str, gans: List[str], zhis: List[str],
     gongliang_result: Optional[Dict] = None,
@@ -1540,11 +1570,14 @@ def assess_caiming_level(
     # ——制尽级财命定式，量级同制尽（书锚=奥纳西斯船王巨富）。
     _zhiku = _detect_zhiku_decai(day_gan, gans or [], zhis or [], muku_result)
     has_zhiku = _zhiku.get('found', False)
+    has_yin_huan = _detect_yin_huan_cai(day_gan, gans or [], zhis or [])
     # 财库开闭（已由 classify_caifu_view 据传入 muku_result 检出，亦可直接读 caiku）
     has_open_caiku = bool(caifu_view.get('has_open_caiku'))
     # 财星源头/路径（M2：贫富三要素——原神/主位定浮实，合绊/入墓定阻通）
     cxp = caifu_view.get('caixing_path') or {}
     blockers: List[str] = list(cxp.get('blockers') or [])
+    if has_yin_huan:
+        blockers = [x for x in blockers if not x.startswith('财星无原神且不在主位')]
     # 从格（从财/从弱/从强）豁免：从格以所从之神为局主，扶抑系「浮财/身财平衡」
     # 口径不适用（段氏从财格=财成势从之，巨富潜质，非浮财）。
     strength = ''
@@ -1578,7 +1611,8 @@ def assess_caiming_level(
             cong_floor_blocked = _dc7 < 2 and not _zhh7
     # 凶向信号（反局/破财/用忌受制绊）：浮财升档抑制与下方封顶共用
     ds = direction_signals or {}
-    ds_xiong = bool(ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai')
+    ds_xiong = bool(ds.get('fanju') or ds.get('suiyun_fanju')
+                    or ds.get('pocai') or ds.get('guohe_pocai')
                     or ds.get('yongshen_xiong') or ds.get('mingju_xiong'))
 
     # 基阶：level 4→富(偏巨富), 3→富, 2→小康, 1→贫/普通
@@ -1696,6 +1730,10 @@ def assess_caiming_level(
     # 同库被制，净制量级同制尽，与过河拆桥·富格同级财命定式）：基阶不落
     # 富下，抗功量层低估；升档走下方财源 +1（仅 +1 不越级）。凶向封顶链
     # 在下方收尾，不受此 floor 影响（同富格口径：floor 只抗低估不抗方向）。
+    if has_yin_huan and tier_idx < 3:
+        tier_idx = 3
+        adjust = (adjust + '；' if adjust != '持平' else '') + \
+            '换象（印强财弱，印也表财），基阶不落下富'
     if has_zhiku and tier_idx < 3 and not cong_cai_pin:
         tier_idx = 3
         adjust = (adjust + '；' if adjust != '持平' else '') + \
@@ -1939,15 +1977,16 @@ def assess_caiming_level(
     _r2 = ds.get('jishen_zhiyongshen') or {}
     _tg: Dict = {}
     if (ds.get('yongshen_xiong')
-            and not (ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai')
+            and not (ds.get('fanju') or ds.get('suiyun_fanju')
+                     or ds.get('pocai') or ds.get('guohe_pocai')
                      or ds.get('mingju_xiong'))
             and not (ds.get('heban_yongshen') or {}).get('detected')
             and _r2.get('detected') and _r2.get('kind') == '财坏印'
             and _r2.get('severity') == 'severe'):
         _tg = detect_cangguan_tongguan(day_gan, gans or [], zhis or [])
     _r2_tongguan = bool(_tg.get('detected'))
-    if ds.get('fanju') or ds.get('pocai') or ds.get('guohe_pocai') \
-            or ds.get('yongshen_xiong') or ds.get('mingju_xiong'):
+    if ds.get('fanju') or ds.get('suiyun_fanju') or ds.get('pocai') \
+            or ds.get('guohe_pocai') or ds.get('yongshen_xiong') or ds.get('mingju_xiong'):
         cap = 1 if (ds.get('pocai_severe') or ds.get('mingju_xiong_severe')
                     or ds.get('fanju_caixing')) else 2
         if _r2_tongguan:
@@ -1960,7 +1999,8 @@ def assess_caiming_level(
                 tier_idx = cap
                 sev = '严重' if cap == 1 else '一般'
                 adjust = (adjust + '；' if adjust != '持平' else '') + \
-                    f'下浮封顶{cap}阶（{sev}凶向：' + '；'.join(ds.get('reasons') or []) + '）'
+                    f'下浮封顶{cap}阶（{sev}凶向：' + '；'.join(
+                        (ds.get('reasons') or []) + (ds.get('suiyun_reasons') or [])) + '）'
             # 富档跟随凶向（避免坐牢破财仍标千万-亿级荒谬）：凶向命中即抹富档——
             # 阶位被压者自不待言，本在低位者（乞丐/清家荡产）亦不标百万级；
             # 岁运反局（全量轨）同口径。
@@ -2024,8 +2064,8 @@ def analyze_caiming(
     gongliang_result 缺省时自动调用 gongliang.analyze_gongliang 取四档定性。
     muku_result 缺省时自动调用 muku.analyze_muku 取财库开闭（缺省自调，只读消费）。
     shensha_result: engine 透传的神煞结果（预留，财命尚未直接消费；备后用）。
-    yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1）。
-      岁运反局命中即入凶向否决链（层级封顶/富档抹除），与原局反局同口径。
+    yunfan_result: 「当前运岁」反局切片，只进入全量运岁轨；
+      tier_static/summary_static 终身轨不读取，tier/yunsui_delta 显式记录增量。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
       免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
 
@@ -2126,6 +2166,10 @@ def analyze_caiming(
         _wg_erased = bool(level_static.get('wealth_grade')) and not level.get('wealth_grade')
         yunsui_delta = {
             'suiyun_fanju': True,
+            'dayun_fanju': bool(direction.get('dayun_fanju')),
+            'liunian_fanju': bool(direction.get('liunian_fanju')),
+            'dayun_reasons': list(direction.get('dayun_reasons') or []),
+            'liunian_reasons': list(direction.get('liunian_reasons') or []),
             'tier_static': level_static.get('tier', ''),
             'tier_final': level.get('tier', ''),
             'capped': level.get('tier') != level_static.get('tier'),
@@ -2155,10 +2199,12 @@ def analyze_caiming(
     # 未触发「下浮封顶」文本）时，全量轨 summary 仍携带凶向理由——流年事件断语
     # （破财/凶）评分依赖全量轨凶向标记。严禁写入静态轨（P0-a 假阳陷阱：原局
     # 层级断语评 summary_static，静态轨误入凶向词会把 ⚠️ 误杀 ❌）。
-    if (direction.get('fanju') or direction.get('pocai') or direction.get('guohe_pocai')
+    if (direction.get('fanju') or direction.get('suiyun_fanju')
+            or direction.get('pocai') or direction.get('guohe_pocai')
             or direction.get('yongshen_xiong') or direction.get('mingju_xiong')) \
             and '下浮封顶' not in (level.get('desc') or ''):
-        _xr = '；'.join(direction.get('reasons') or [])
+        _xr = '；'.join((direction.get('reasons') or [])
+                        + (direction.get('suiyun_reasons') or []))
         summary += f'；凶向在档（{_xr}）' if _xr else '；凶向在档'
     summary_static = _assemble_summary(level_static)
     # 官非牢狱（N4 复合）静态轨标注：N4=魁罡逢冲官∧枭神夺食，原局定性信号

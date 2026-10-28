@@ -34,10 +34,10 @@ def test_zaihuo_chehuo_year_ref_jiesha():
 
 
 def test_zaihuo_siwang_year_ref_sansha():
-    """zaihuo 死亡：year-only 劫煞/灾煞须入 xiong_sha（凶性三煞）。"""
+    """year-only 劫煞/亡神入 xiong_sha；无书据灾煞只展示，不进死亡风险链。"""
     r = detect_siwang('辛', _GANS, _ZHIS)
     assert '劫煞' in r['xiong_sha']
-    assert '灾煞' in r['xiong_sha']
+    assert '灾煞' not in r['xiong_sha']
 
 
 def test_laoyu_year_ref_jiesha():

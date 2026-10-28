@@ -8,7 +8,7 @@
   - 并入顶层版独有检查：天乙口诀分组 5 项、天乙月支/年月/丙干年支 3 场景、
     文昌庚干月支 1 场景（华盖两版语义等价，采 objective 版）。
 
-现行为 402 项检查；R8 未决项单列 xfailed，不计入 failed。
+现行为 404 项检查；R8 书证项已全部转为正式通过项。
 
 验证项：
 1. 桃花（咸池）查表正确性 + 年支兼看
@@ -591,11 +591,11 @@ print('\n── 11. 做功层次（gongliang 书锚）──')
 # G1 新增四锚（设计稿 docs/design-gongliang-merge-20261017.md §3；层数为实测回填，
 # 偏差例已预注册备案 docs/kimi-g1-gongliang-merge-prereg-20261017.md，不为单例改权重）
 # 总理例（理象学:7332-7336「墓库做功功量很大…近四层功…总理」）：
-# R8 合制墓库/原神同制权重未决；不用弱势泛化豁免凑四层。
+# R8 以两个独立墓用、包制、冲链与月令证据组合计点，不用弱势豁免凑层。
 _gl_zl = analyze_gongliang(day_gan='乙', gans=['戊', '壬', '乙', '己'],
                            zhis=['辰', '戌', '未', '卯'])
-check('总理例 戊壬乙己/辰戌未卯 → 四层功（书近四层，R8 未决）', _gl_zl['level'] == 4,
-      f"got level={_gl_zl['level']}", expected_failure=True)
+check('总理例 戊壬乙己/辰戌未卯 → 四层功（书近四层，R8 证据组合）', _gl_zl['level'] == 4,
+      f"got level={_gl_zl['level']}")
 
 # 慈禧（理象学:10595-10611「双层…又加一层…月令见印…共四层」）：G2 规则3 落地
 # （月令见印强有力的印计整层 + 三合成势围制+制库书判制之彻底不净封顶不适用）→ 四层合书
@@ -779,10 +779,10 @@ check('work_types保留日制用', '制用' in zg_wt.get('work_types', []),
 print('\n── 16. 四库入墓（四库之土直接入辰墓）──')
 
 # is_entomb 单元验证
-# 四库之土入辰墓无「多」前提：理象学:3008「丑入辰墓，未也入辰墓」——
-# 盘上仅一戌（非多）亦直接入辰墓（F2 批改锁：旧锁「非多不入」所托注释与段书原文相反）
-check('is_entomb 四库之土直接入辰墓(戌入辰)',
-      is_entomb('戌', '辰', ['子', '寅', '辰', '戌']) is True)
+# 原则5仅列丑、未，单戌无透干不得直接套用入辰特例（R6 纠偏）；
+# 戌支与戊干合计同五行≥2时，另按:3002「多而墓之」处理，不混为直接特例。
+check('is_entomb 单戌不直接入辰墓(原则5不套戌)',
+      is_entomb('戌', '辰', ['子', '寅', '辰', '戌']) is False)
 # 书例直锁：理象学:3080-3084 卯未辰寅「未入辰墓，自己控制着军队」
 check('is_entomb 四库之土直接入辰墓(未入辰书例)',
       is_entomb('未', '辰', ['卯', '未', '辰', '寅']) is True)
@@ -796,11 +796,10 @@ check('is_entomb 四正非多不入墓(子入辰)',
 check('is_entomb 四正多而入墓(两酉见丑)',
       is_entomb('酉', '丑', ['酉', '酉', '丑', '午']) is True)
 
-# 端到端：辰戌冲的盘，戌（土）仍直接入辰墓（书:3008 原则5 无「多」前提；
-# 辰戌冲=开库，开库不碍入墓关系）
+# 单戌不套原则5；但戌支加戊干合计同五行≥2，按:3002 多而墓之入辰。
 zg_cv = analyze_zuogong('戊', '辰', '甲', '子', '丙', '寅', '庚', '戌')
 cv_tombs = zg_cv.get('tomb_works', [])
-check('辰戌冲盘戌直接入辰墓',
+check('辰戌冲盘戌以多而墓入辰',
       any(wa.get('type') == '墓用' and '戌' in wa.get('to', '')
           and '辰' in wa.get('from', '') for wa in cv_tombs),
       f'tomb_works={cv_tombs}')
@@ -845,10 +844,12 @@ check('空亡动作标 kong_wang=True', wa_kw_list.get('kong_wang') is True)
 wa_kw_dict = _kw_chong(zg_kw_dict)
 check('空亡(dict)地支参与做功打折',
       wa_kw_dict.get('efficiency_discount') is True, f"action={wa_kw_dict}")
-# 结果透传空亡地支集合
+# 结果透传空亡地支集合：显式子支与年柱己巳并参（理象学:5084）
+from mangpai.objective.bazi_calc import get_kong_wang
+kw_expected = {'子'} | set(get_kong_wang('己', '巳')['zhi'])
 check('kong_wang_zhis 透传',
-      zg_kw_list.get('kong_wang_zhis') == ['子'],
-      f"got {zg_kw_list.get('kong_wang_zhis')}")
+      set(zg_kw_list.get('kong_wang_zhis', [])) == kw_expected,
+      f"got {zg_kw_list.get('kong_wang_zhis')} expected={kw_expected}")
 # 空亡仅作用于地支动作：天干层面(食伤)不标 kong_wang
 shishang_kw = [wa for wa in zg_kw_list.get('work_actions', [])
                if wa.get('type') == '食伤']
@@ -864,8 +865,8 @@ bazi_data_kw = {
 }
 res_kw = MangpaiEngine(bazi_data_kw).compute_all()
 check('MangpaiEngine 透传 kong_wang',
-      res_kw.get('zuogong', {}).get('kong_wang_zhis') == ['子'],
-      f"got {res_kw.get('zuogong', {}).get('kong_wang_zhis')}")
+      set(res_kw.get('zuogong', {}).get('kong_wang_zhis', [])) == kw_expected,
+      f"got {res_kw.get('zuogong', {}).get('kong_wang_zhis')} expected={kw_expected}")
 check('MangpaiEngine 空亡做功打折',
       _kw_chong(res_kw.get('zuogong', {})).get('efficiency_discount') is True,
       f"action={_kw_chong(res_kw.get('zuogong', {}))}")
@@ -1061,7 +1062,7 @@ check('合对(甲己)不计天干克', len(jiaji_gk) == 0,
 # ── 22. 透干引拔开库判定 ──
 print('\n── 22. 透干引拔开库判定 ──')
 
-# 盲师口传：墓库逢冲须天干透出所收五行方为真开；无透干则虽冲亦闭。
+# 透干引拔用于标识引出与开库，不是开库必要条件；无透干刑冲亦有用，遥冲无引拔仅动库。
 # 辰(水/土)需壬癸或戊己，戌(火)需丙丁，丑(金)需庚辛，未(木)需甲乙。
 
 
@@ -1081,24 +1082,25 @@ check('开库 desc含透干引拔', t1 and '透干引拔' in t1.get('desc', ''),
       f"desc={t1 and t1.get('desc')}")
 check('辰在open_tombs', any(t['zhi'] == '辰' for t in mk1.get('open_tombs', [])))
 
-# 辰+戌冲 + 无水/土透干 → 闭库（虽冲不开）
+# 辰+戌遥冲 + 无水/土透干 → 动库（初级:3447，遥冲为冲动兼有冲开之意）
 mk2 = analyze_muku(['辰', '午', '子', '戌'], ['丙', '丁', '甲', '庚'])
 t2 = _tomb_of(mk2, '辰')
-check('辰逢戌冲+无透干 → 闭库', t2 and t2['status'] == '闭库',
+check('辰逢戌遥冲+无透干 → 动库', t2 and t2['status'] == '动库',
       f"got {t2}")
-check('闭库 desc含无透干引拔', t2 and '无透干引拔' in t2.get('desc', ''),
+check('动库 desc含遥冲', t2 and '遥冲' in t2.get('desc', ''),
       f"desc={t2 and t2.get('desc')}")
-check('辰在closed_tombs', any(t['zhi'] == '辰' for t in mk2.get('closed_tombs', [])))
+check('辰在touched_tombs', any(t['zhi'] == '辰' for t in mk2.get('touched_tombs', [])))
 
 # 未+丑冲 + 甲(木)透干 → 开库（午未合并存，冲+透干优先开）
 mk3 = analyze_muku(['未', '午', '子', '丑'], ['甲', '丙', '庚', '辛'])
 t3 = _tomb_of(mk3, '未')
 check('未逢丑冲+木透干 → 开库', t3 and t3['status'] == '开库', f"got {t3}")
 
-# 未+丑冲 + 无木透干 → 闭库
+# 未+丑遥冲 + 无木透干 → 动库
 mk4 = analyze_muku(['未', '午', '子', '丑'], ['丙', '丁', '庚', '辛'])
 t4 = _tomb_of(mk4, '未')
-check('未逢丑冲+无透干 → 闭库', t4 and t4['status'] == '闭库', f"got {t4}")
+check('未逢丑遥冲+无透干 → 动库', t4 and t4['status'] == '动库', f"got {t4}")
+check('未在touched_tombs', any(t['zhi'] == '未' for t in mk4.get('touched_tombs', [])))
 
 # 戌+辰冲 + 丙(火)透干 → 开库
 mk5 = analyze_muku(['戌', '午', '子', '辰'], ['丙', '甲', '庚', '壬'])
@@ -1124,10 +1126,12 @@ check('辰酉合(有透干)仍闭', t8 and t8['status'] == '闭库', f"got {t8}"
 check('合闭 desc含合而闭', t8 and '合而闭' in t8.get('desc', ''),
       f"desc={t8 and t8.get('desc')}")
 
-# 未提供天干（旧签名）→ 逢冲即开（兼容）
+# 未提供天干（旧签名）：遥冲无引拔 → 动库（初级:3447）
 mk9 = analyze_muku(['辰', '午', '子', '戌'])
 t9 = _tomb_of(mk9, '辰')
-check('无gans旧签名 逢冲即开', t9 and t9['status'] == '开库', f"got {t9}")
+check('无gans旧签名 遥冲为动库', t9 and t9['status'] == '动库', f"got {t9}")
+check('无gans旧签名 辰在touched_tombs',
+      any(t['zhi'] == '辰' for t in mk9.get('touched_tombs', [])))
 
 # 端到端：透干引拔影响墓用做功
 # 日甲辰、年壬亥、月丁午、时庚戌：辰(day)逢戌冲+壬水透干 → 开库 → 亥(四生水)入辰墓
@@ -1138,12 +1142,12 @@ check('透干开库 → 亥入辰墓产生',
           and '辰' in wa.get('from', '') for wa in tg_tombs),
       f"tomb_works={tg_tombs}")
 
-# 同盘但年干壬→丙（无水/土透干）：辰闭库 → 亥不入辰墓
+# 同盘但年干壬→丙：无透干逢近冲亦有用（理象学:2039-2041），仍产亥入辰墓
 zg_tg2 = analyze_zuogong('甲', '辰', '丙', '亥', '丁', '午', '庚', '戌')
 tg_tombs2 = zg_tg2.get('tomb_works', [])
-check('无透干闭库 → 亥不入辰墓（抑制）',
-      not any(wa.get('type') == '墓用' and '亥' in wa.get('to', '')
-              and '辰' in wa.get('from', '') for wa in tg_tombs2),
+check('无透干刑冲亦有用 → 亥入辰墓产生',
+      any(wa.get('type') == '墓用' and '亥' in wa.get('to', '')
+          and '辰' in wa.get('from', '') for wa in tg_tombs2),
       f"tomb_works={tg_tombs2}")
 
 # ── 23. 正反局修正（气势扩展 + 无功不为局）──

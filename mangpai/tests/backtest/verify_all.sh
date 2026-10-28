@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../../.." || exit 1
 PYTHON="${PYTHON:-python}"
 export PYTHONIOENCODING="${PYTHONIOENCODING:-utf-8}"
-echo "=== verify checks（402 + 70 + 64 + 20）==="
+echo "=== verify checks（404 + 70 + 64 + 20）==="
 VERIFY_MANGPAI_OUT="$("$PYTHON" mangpai/verify_mangpai.py 2>&1 | grep 验证结果)"
 echo "verify_mangpai: $VERIFY_MANGPAI_OUT"
 VERIFY_DAYUN_OUT="$("$PYTHON" mangpai/verify_dayun.py 2>&1 | grep 验证结果)"

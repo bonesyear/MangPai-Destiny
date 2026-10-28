@@ -165,9 +165,6 @@ class TestChongSemantics:
         r = _run('丁亥乙巳乙卯辛巳', '乾', '乙酉', dy='庚子')
         assert _chong(r, '卯', pos='day_zhi') == '冲破'
 
-    @pytest.mark.xfail(reason='收档：戌为墓库冲开规则在先；「夫宫无合被冲='
-                              '冲破」仅此一锚（cj1:2355），且与 ch3 冲开官库'
-                              '同构反例+「墓库被太岁冲谓冲开」书诀冲突')
     def test_ch8_chen_chong_xu_po(self):
         # 乙巳辛巳甲戌壬申 坤，甲申运庚辰年离婚：「辰戌冲坏了夫宫戌土，
         # 此年离婚」（cj1:2355） -> 冲破（书判）

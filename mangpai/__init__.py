@@ -58,6 +58,7 @@ __all__ = [
     'compute_jiaoyun_timeline', 'safe_compute_jiaoyun',
     'analyze_shipaige',
     'get_gan_xiang', 'get_zhi_xiang', 'get_shishen_xiang',
-    'get_gongwei_xiang',
+    'get_gongwei_xiang', 'get_shensha_xiang', 'get_liushi_ganzhi_xiang',
     'GAN_XIANG', 'ZHI_XIANG', 'SHISHEN_XIANG', 'GONG_WEI_XIANG',
+    'SHENSHA_XIANG', 'LIUSHI_GANZHI_XIANG',
 ]

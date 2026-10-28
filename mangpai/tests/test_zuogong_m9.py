@@ -84,3 +84,8 @@ class TestDeclaredVetoes:
         # 自坐禄 fallback 不受规则表影响（verify zg_lu 同口径）
         pw = _pw('甲', '寅', '丙', '子', '丁', '丑', '辛', '未')
         assert pw['type'] in ('禄比', '制用', '合用')
+
+
+def test_hitler_chou_ru_chen_is_primary_tomb_work():
+    pw = _pw('丙', '寅', '己', '丑', '戊', '辰', '丁', '酉')
+    assert pw['type'] == '墓用'

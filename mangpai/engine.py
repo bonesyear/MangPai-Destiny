@@ -378,7 +378,7 @@ class MangpaiEngine:
 
         self._write(result, 'shensha', self._safe_compute(
             'shensha', compute_shensha_ext, self.day_gan, self.zhis,
-            reference=self.shensha_reference,
+            reference=self.shensha_reference, gans=self.gans,
         ))
         # 神煞单源透传（R2 复核后口径）：hunyin/zhiye/gongmen_wuzhi/zaihuo/
         # laoyu 经 resolve_shensha 优先取本值、随 shensha_reference 联动
@@ -677,7 +677,7 @@ class MangpaiEngine:
                 cur_ln_gan, cur_ln_zhi = gz[0], gz[1]
 
         # 岁运反局：原局做功数据透传（缺省时 analyze_yunfan 自调 zuogong）。
-        # 前置于 caiming/guanming/zhiye：其方向否决链（A1）消费「当前运岁」切片。
+        # 前置于领域模块：运岁切片供运岁财档/风险/灾祸，终身判定只读原局。
         self._write(result, 'yunfan', self._safe_compute(
             'yunfan', analyze_yunfan,
             self.gans, self.zhis, self.day_gan,
@@ -692,9 +692,8 @@ class MangpaiEngine:
             kong_wang=self.kong_wang,
         ))
 
-        # A1 岁运反局切片：仅显式输入的运岁入否决链——大运须 da_yun 实给
-        # （dy_list 非空），流年须外部注入（自动构造的三岁窗口仅作展示锚点，
-        # 启发式命中率高，入否决会污染终身财命/官命口径）。
+        # 运岁切片仅取显式输入：大运须 da_yun 实给，流年须外部注入；
+        # 自动三岁窗口只作展示。运岁供运岁财档/风险/灾祸，不进入终身否决链。
         yunfan_slice = current_fan_slice(
             result['yunfan'],
             f'{cur_dy_gan}{cur_dy_zhi}' if cur_dy_gan else '',

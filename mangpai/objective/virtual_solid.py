@@ -16,7 +16,7 @@ virtual_solid - 盲派虚实分析
                        坐实        -> level='无'（不怕克）
                        虚透+印生扶 -> level='轻'（印化杀生身，损害减轻）
                        虚透(无印)  -> level='重'（被克损害加重）
-  has_yin_support   虚透得印生扶（生我者=印现于干支）-> 转有气偏虚。
+  has_yin_support   坐支本气为印 -> 转有气偏虚，不跨柱找印。
 """
 from typing import Dict, List
 
@@ -32,6 +32,8 @@ _WEAK_STAGES = {'死', '墓', '绝'}
 # 生我者为印：WX_SHENG 反查（木印水、火印木、土印火、金印土、水印金）。
 # 虚透得印生扶 -> 转有气偏虚；印化杀生身，被克损害由“重”减为“轻”。
 _YIN_WX: Dict[str, str] = {v: k for k, v in WX_SHENG.items()}
+# 理象学:5687-5689/5712-5714 虚表特例；余气藏根不能推翻原表。
+_BOOK_VIRTUAL = {('戊', '申'), ('戊', '寅'), ('辛', '巳')}
 
 
 def _pillar_gen_sheng(gan_wx: str, zhi: str) -> tuple:
@@ -69,46 +71,6 @@ def _pillar_gen_sheng(gan_wx: str, zhi: str) -> tuple:
     return has_root, has_sheng, details
 
 
-def _find_yin_support(
-    gan: str, gan_wx: str,
-    all_gans: List[tuple], all_zhis: List[tuple],
-) -> tuple:
-    """查找虚透天干的印生扶来源（生我者=印）。
-
-    印可来自天干（含日干，日主亦生扶他干）或地支（本气/藏干）。
-    虚透得印生扶 -> 转有气偏虚；印化杀生身，被克损害减轻。
-
-    Returns:
-        (是否有印生扶, 印来源详情列表)
-    """
-    yin_wx = _YIN_WX.get(gan_wx, '')
-    if not yin_wx:
-        return False, []
-    has_yin = False
-    sources: List[str] = []
-    # 天干印（pg==gan 自身排除；印五行≠日干五行，故不会误纳比劫）
-    for pn, pg in all_gans:
-        if not pg or pg == gan:
-            continue
-        if GAN_WX.get(pg, '') == yin_wx:
-            has_yin = True
-            sources.append(f'{pn}干{pg}')
-    # 地支印（本气 + 藏干）
-    for pn, pz in all_zhis:
-        if not pz:
-            continue
-        if ZHI_WX.get(pz, '') == yin_wx:
-            has_yin = True
-            sources.append(f'{pn}支({pz})')
-        else:
-            for cg, _q in CANG_GAN_MANGPAI.get(pz, []):
-                if GAN_WX.get(cg, '') == yin_wx:
-                    has_yin = True
-                    sources.append(f'{pn}支({pz}藏{cg})')
-                    break
-    return has_yin, sources
-
-
 def analyze_virtual_solid(
     day_gan: str, day_zhi: str,
     year_gan: str = '', year_zhi: str = '',
@@ -122,7 +84,7 @@ def analyze_virtual_solid(
     坐实（坐支有同五行根或坐支本气为印，:5659/初级:2461）= 实体财富、实权
     长生参考（P2-3）：天干在其坐支的长生位为生旺（长生/临官/帝旺）-> 偏实，
     为死/墓/绝 -> 偏虚。长生态作为根气强弱的微调，叠加于五行通根判定之上。
-    印生扶：虚透（无根无生）得印（生我者现于干支）-> 转有气偏虚；
+    印生扶：本柱坐支本气为印 -> 转有气偏虚，不跨柱找印；
     印化杀生身，被克损害由“重”减为“轻”（虚透怕克落地于 vulnerable_to_ke）。
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
@@ -148,24 +110,18 @@ def analyze_virtual_solid(
         ('时', hour_gan, hour_zhi),
     ]
 
-    all_gans = [
-        ('年', year_gan), ('月', month_gan),
-        ('日', day_gan), ('时', hour_gan),
-    ]
-    all_zhis = [
-        ('年', year_zhi), ('月', month_zhi),
-        ('日', day_zhi), ('时', hour_zhi),
-    ]
-
     results: List[Dict] = []
     for pk, gan, _zhi in pillars:
         if gan == day_gan:
             continue
         gan_wx = GAN_WX.get(gan, '')
-        # 只就一柱（理象学:5647-5649）：坐支查根/生，不跨柱找根
         has_root, has_sheng, root_details = _pillar_gen_sheng(gan_wx, _zhi)
+        if (gan, _zhi) in _BOOK_VIRTUAL:
+            has_root = has_sheng = False
+            root_details = ['原著虚实表列虚']
         is_solid = has_root or has_sheng
-        has_yin, yin_sources = _find_yin_support(gan, gan_wx, all_gans, all_zhis)
+        has_yin = has_sheng
+        yin_sources = [d for d in root_details if '本气印生' in d]
 
         # 长生微调：天干在其坐支的长生位定根气偏实/偏虚
         stage = get_changsheng_mangpai(gan, _zhi) if (_zhi and gan) else ''

@@ -86,11 +86,11 @@ def test_fp_guards_no_kuzhiku():
 
 def test_anchors_margin_unchanged():
     """既有 military ✅ 锚 margin 检验：例二（未 1 单见不命中）military==10、
-    例九（未 1 单见不命中）military==11，逐字不动。"""
+    例九（未 1 单见不命中）military==10；旧 11 含无书据灾煞 1 分，R6 已移除。"""
     r2 = _run('己', '丁辛己甲', '未亥卯戌')
     assert r2['primary'] == 'military' and r2['scores']['military'] == 10
     r9 = _run('癸', '丁己癸丁', '未酉巳巳')
-    assert r9['primary'] == 'military' and r9['scores']['military'] == 11
+    assert r9['primary'] == 'military' and r9['scores']['military'] == 10
 
 
 def test_li5_gating_kept():

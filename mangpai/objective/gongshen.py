@@ -31,6 +31,7 @@ from mangpai.objective._relation_utils import pair_in
 from mangpai.objective.xiangfa import (
     get_gan_xiang, get_zhi_xiang, get_gongwei_xiang,
 )
+from mangpai.objective.body_parts import PILLAR_BODY as _PILLAR_BODY
 
 
 # ── 宫位名（柱位 -> 六亲宫）──
@@ -39,14 +40,6 @@ _PALACE_NAME: Dict[str, str] = {
     'month': '父母宫',
     'day': '配偶宫',
     'hour': '子女宫',
-}
-
-# ── 柱位身体部位（段氏：年主头颈、月主胸背、日主腹腰、时主腿足）──
-_PILLAR_BODY: Dict[str, str] = {
-    'year': '头、颈',
-    'month': '胸、背、上肢',
-    'day': '腹、腰',
-    'hour': '腿、足、下阴',
 }
 
 # ── 六亲星 -> (本命宫位, 六亲名) ──
@@ -66,8 +59,8 @@ _LIUQING_FEMALE: Dict[str, tuple] = {
     '偏财': ('month', '父亲'),
     '正官': ('day', '丈夫'),
     '七杀': ('day', '偏夫/情人'),
-    '食神': ('hour', '儿子'),
-    '伤官': ('hour', '女儿'),
+    '食神': ('hour', '女儿'),
+    '伤官': ('hour', '儿子'),
     '比肩': ('month', '姐妹'),
     '劫财': ('month', '兄弟'),
 }
@@ -193,7 +186,7 @@ def analyze_gongshen(
             'gongwei': get_gongwei_xiang(f'{pillar_cn}柱'),
             'gan_body': gan_body,
             'zhi_body': zhi_body,
-            'pillar_body': _PILLAR_BODY[pk],
+            'pillar_body': '、'.join(_PILLAR_BODY[pk]),
         }
 
     # ── 2. 星宫关系（六亲星与所在宫位同位/异位）──
@@ -292,9 +285,8 @@ def analyze_gongshen(
     if palace_interactions:
         parts.append(f'宫位互动{len(palace_interactions)}处')
 
-    # F1 标注（批8/批10 审计定）：palaces/star_palace/spouse_palace/
-    # palace_interactions 四子字段全库零消费，仅 summary 经 narrative 出文本；
-    # 字段保留不删（输出契约），gongshen 年/时身段颠倒备案详见 KB §6.4。
+    # F1 标注：palaces/star_palace/spouse_palace/palace_interactions 仅展示，
+    # 不自动进入吉凶计分；身体表已统一为 body_parts.PILLAR_BODY，不混用 ch11 变体。
     return {
         'palaces': palaces,
         'star_palace': star_palace,

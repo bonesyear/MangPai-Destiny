@@ -4,10 +4,10 @@ muku — 盲派墓库规则
 理论来源：《渊海子平》墓库篇 + 盲师口传墓库体系
 核心思想：墓库是盲派重要的做功手段。
   木墓在未, 火墓在戌, 金墓在丑, 水墓在辰, 土墓在辰、戌（盲派，理象学:2035 双位）
-  开库：墓库逢冲或刑则开（段氏「不冲不刑是墓（死的）」），开则可用
+  开库：刑冲可使墓库发挥作用；遥冲仅记动库，远刑可开（初级:3447、授课:418）
   闭库：墓库逢合则闭，闭则不可用
   多而墓之：天干地支合在一起同类≥2，见墓即入（理象学:3002-3005）
-  四库之土直接入辰墓：丑入辰墓，未也入辰墓，无「多」前提（理象学:3008）
+  丑未之土直接入辰墓：丑入辰墓，未也入辰墓，无「多」前提（理象学:3008）
   透干引拔：墓库透干则引出
   坐墓不墓：自坐墓库不入墓
 已知争议：土墓流派有争议（土无墓/土墓在戌诸说）；段氏明言双位「土墓在辰、戌」
@@ -36,7 +36,10 @@ _PILLAR_NAMES = ['年柱', '月柱', '日柱', '时柱']
 
 
 # H-fix-4b：三特化判定与 _check_pair/pair_in 复制等价，下沉 _relation_utils。
-def _is_chong(a: str, b: str) -> bool:
+def _is_chong(a: str, b: str, all_zhis: Optional[List[str]] = None) -> bool:
+    # 仅丑未辰三者同现时，丑未不以冲论；其他辰戌冲不受影响。
+    if all_zhis and '辰' in all_zhis and {a, b} == {'丑', '未'}:
+        return False
     return pair_in(a, b, LIU_CHONG)
 
 
@@ -52,21 +55,17 @@ def _is_xing(a: str, b: str) -> bool:
 
 
 def _is_tomb_opened(tomb_zhi: str, all_zhis: List[str]) -> bool:
-    """墓库是否被他支冲或刑开（段氏「不冲不刑是墓（死的）」，冲/刑皆开库）。
+    """非遥冲或刑可开墓；遥冲仅动，远刑仍可开（chuji:3447、shouke:418）。
 
-    仅判地支层面冲/刑，不涉透干引拔--透干引拔管"开库之物是否引出可用"，
-    由 analyze_muku 据天干透出另判开/闭；本函数只判墓库是否被冲/刑触动而开。
-    合闭（墓库逢合而闭）不在本函数判定，由调用方处理（如 zuogong 闭库不收纳）。
-
-    Args:
-        tomb_zhi: 墓库地支
-        all_zhis: 四柱全部地支
-
-    Returns:
-        墓库是否被他支冲或刑开
+    仅判地支层面冲/刑，不涉透干引拔。合闭由调用方处理。
     """
-    for z in all_zhis:
-        if z and z != tomb_zhi and (_is_chong(z, tomb_zhi) or _is_xing(z, tomb_zhi)):
+    tomb_indices = [i for i, z in enumerate(all_zhis) if z == tomb_zhi]
+    for j, z in enumerate(all_zhis):
+        if not z or z == tomb_zhi:
+            continue
+        if _is_xing(z, tomb_zhi):
+            return True
+        if _is_chong(z, tomb_zhi, all_zhis) and any(abs(i - j) < 3 for i in tomb_indices):
             return True
     return False
 
@@ -131,8 +130,8 @@ def is_gan_entombed(gan: str, zhi: str) -> bool:
 def _tou_gan_elements(elements: List[str], gans: List[str]) -> List[str]:
     """墓库所收五行中，已有天干透出（透干引拔）的五行。
 
-    盲师口传墓库体系："墓库透干引拔方为真开"。墓库逢冲须天干透出所收五行，
-    方把库中之物引出可用；无透干则虽冲亦闭。对应关系：
+    透干引拔只标注库中物是否引出，不是开库的必要条件；无透干逢刑冲亦有用
+    （理象学:2039-2041）。对应关系：
       辰为水/土库 → 壬癸（水）或 戊己（土）透
       戌为火/土库 → 丙丁（火）或 戊己（土）透（土墓在辰、戌，理象学:2035）
       丑为金库   → 庚辛透
@@ -159,7 +158,7 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
       - 基础条件：tombed_zhi 的五行须为 tomb_zhi 所收之五行（TOMB_MAP；
         土墓在辰、戌双位，理象学:2035）
       - 生位（四生 寅申巳亥）见墓库 → 入墓
-      - 四库之土见辰 → 直接入墓，无「多」前提（理象学:3008「丑入辰墓，未也
+      - 丑、未见辰 → 直接入墓，无「多」前提（理象学:3008「丑入辰墓，未也
         入辰墓」；书例 :3080-3084 卯未辰寅「未入辰墓，自己控制着军队」）
       - 旺位（四正 子午卯酉）/ 墓位（四库见戌）→ 多而墓之：天干地支合在
         一起同五行 ≥ 2，见墓即入（理象学:3002-3005「多而墓之，即只要是
@@ -204,10 +203,8 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
     # 生位（四生）见墓库 → 入墓
     if tombed_zhi in SI_SHENG:
         return True
-    # 四库之土直接入辰墓（理象学:3008「丑入辰墓，未也入辰墓」，无「多」前提；
-    # 书例 :3080-3084 卯未辰寅「未入辰墓」）。土支即四库（辰戌丑未），
-    # 排除辰自身（辰不入辰墓）。
-    if tomb_zhi == '辰' and tombed_wx == '土' and tombed_zhi != '辰':
+    # 丑、未之土直接入辰墓（理象学:3008），戌不套用这条特例。
+    if tomb_zhi == '辰' and tombed_zhi in ('丑', '未'):
         return True
     # 旺位（四正）/ 墓位（四库见戌）：多而墓之——天干地支合在一起，除墓库
     # 自身外同五行 ≥ 2（理象学:3002-3005）
@@ -246,7 +243,7 @@ def sanhe_tomb_priority(group: str, zhis: List[str],
 #   「戌未相刑，刑开官杀库……刑杀库做功，乃入兵营掌权之象」；gaoji:11785-11788
 #   丑戌刑「丑为阴库（犯罪、隐蔽），戌为火库（正义、光明），刑之有扫黑、破案
 #   象」。
-# 收=is_entomb（四库之土直接入辰墓，理象学:3008；戌论冲开不入墓故土支入戌不
+# 收=is_entomb（丑未之土直接入辰墓，理象学:3008；戌论冲开不入墓故土支入戌不
 #   成立，收式唯辰）；刑=丑戌/戌未。阳库冲阴库十二支不存在（辰戌冲=阳阳、丑未
 #   冲=阴阴），kind∈{收,刑} 两式完备。
 # 纯增量函数：analyze_muku/is_entomb 等既有输出零改动（muku 消费方契约不变）。
@@ -291,25 +288,21 @@ def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
     """分析四柱中的墓库关系。
 
     支持两种签名：旧位置参数（四柱地支列表），或首个参数为 Pillars 对象。
-    gans 用于"透干引拔"判定——墓库逢冲须天干透出所收五行方为真开，
-    无透干则虽冲亦闭（盲师口传墓库体系）。传 Pillars 对象时自动取其 gans。
+    gans 只标注透干引拔，不是开库必要条件；无透干逢刑冲亦有用（理象学:2039-2041）。
+    遥冲记动库，远刑可开；传 Pillars 对象时自动取其 gans。
 
     Args:
         zhis: 四柱地支列表 [year_zhi, month_zhi, day_zhi, hour_zhi]
             （或 Pillars 对象）
-        gans: 四柱天干列表（可选）；缺省时不做透干引拔判定，
-            逢冲即开（兼容旧调用方）
+        gans: 四柱天干列表（可选）；缺省时不标注透干引拔
 
     Returns:
-        墓库分析结果，含 tombs/tomb_relations/open_tombs/closed_tombs
+        墓库分析结果，含 tombs/tomb_relations/open_tombs/closed_tombs/touched_tombs
     """
     if is_pillars(zhis):
         if gans is None:
             gans = zhis.gans
         zhis = zhis.zhis
-    # gans 为 None：调用方未提供天干，无法判透干引拔，逢冲即开（兼容旧签名）；
-    # gans 非 None（含空列表）：按透干引拔严格判定，无透干则虽冲亦闭。
-    tou_gan_available = gans is not None
 
     tombs: List[Dict] = []
     tomb_relations: List[Dict] = []
@@ -327,15 +320,13 @@ def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
             for j, z2 in enumerate(zhis):
                 if i == j:
                     continue
-                if _is_chong(z, z2):
+                if _is_chong(z, z2, zhis):
                     chong_parts.append(z2)
                 if _is_xing(z, z2):
                     xing_parts.append(z2)
                 if _is_he(z, z2):
                     he_parts.append(z2)
 
-            # 开库触发：冲、刑皆可开库（段氏「不冲不刑是墓（死的）」）。
-            # 同一对可能既冲又刑（如丑未），合并去重后统一描述。
             open_parts = list(chong_parts)
             for z2 in xing_parts:
                 if z2 not in open_parts:
@@ -345,21 +336,33 @@ def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
                 open_kinds.append('冲')
             if xing_parts:
                 open_kinds.append('刑')
-            open_kind_str = '、'.join(open_kinds)  # '冲' | '刑' | '冲、刑'
+            open_kind_str = '、'.join(open_kinds)
+            remote_chong = [z2 for j, z2 in enumerate(zhis)
+                            if j != i and abs(i - j) == 3 and _is_chong(z, z2, zhis)]
+            near_chong = [z2 for j, z2 in enumerate(zhis)
+                          if j != i and abs(i - j) < 3 and _is_chong(z, z2, zhis)]
+            near_xing = [z2 for j, z2 in enumerate(zhis)
+                         if j != i and abs(i - j) < 3 and _is_xing(z, z2)]
 
-            # 透干引拔：墓库逢冲/刑须天干透出所收五行方为真开；无透干则虽冲/刑亦闭
-            # （盲师口传：开库须引拔，闭库虽冲/刑不开）。合而闭优先级最低。
-            if open_parts and tou_gan_available:
+            if remote_chong and not near_chong and not xing_parts:
+                touched = _tou_gan_elements(elements, gans)
+                if touched:
+                    status = '开库'
+                    desc = f'{z}墓库逢{"、".join(remote_chong)}遥冲，{"、".join(touched)}透干引拔而开'
+                else:
+                    status = '动库'
+                    desc = f'{z}墓库逢{"、".join(remote_chong)}遥冲为冲动，兼有冲开之意'
+            elif open_parts:
                 touched = _tou_gan_elements(elements, gans)
                 if touched:
                     status = '开库'
                     desc = f'{z}墓库逢{"、".join(open_parts)}{open_kind_str}，{"、".join(touched)}透干引拔而开'
+                elif near_chong or near_xing:
+                    status = '制库'
+                    desc = f'{z}墓库逢{"、".join(open_parts)}{open_kind_str}，刑冲为制库，不作开库论'
                 else:
-                    status = '闭库'
-                    desc = f'{z}墓库逢{"、".join(open_parts)}{open_kind_str}，无透干引拔，闭而不开'
-            elif open_parts:
-                status = '开库'
-                desc = f'{z}墓库逢{"、".join(open_parts)}{open_kind_str}而开'
+                    status = '开库'
+                    desc = f'{z}墓库逢{"、".join(open_parts)}{open_kind_str}，刑冲亦有用而开'
             elif he_parts:
                 status = '闭库'
                 desc = f'{z}墓库逢{"、".join(he_parts)}合而闭'
@@ -375,7 +378,7 @@ def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
     # tomb_relations: 检测哪些地支入了哪些墓库
     # 单遍历上三角，双向检查（z1入z2墓 或 z2入z1墓）
     # 入墓判定遵循盲派规则：四正多而墓之（天干地支合计数），四生入墓，
-    # 四库之土直接入辰墓（见 muku.is_entomb）
+    # 丑未之土直接入辰墓（见 muku.is_entomb）
     for i in range(len(zhis)):
         for j in range(i + 1, len(zhis)):
             z1, z2 = zhis[i], zhis[j]
@@ -402,4 +405,6 @@ def analyze_muku(zhis: List[str], gans: Optional[List[str]] = None) -> Dict:
         'tomb_relations': tomb_relations,
         'open_tombs': [t for t in tombs if t['status'] == '开库'],
         'closed_tombs': [t for t in tombs if t['status'] == '闭库'],
+        'controlled_tombs': [t for t in tombs if t['status'] == '制库'],
+        'touched_tombs': [t for t in tombs if t['status'] == '动库'],
     }

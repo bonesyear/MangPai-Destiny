@@ -347,7 +347,8 @@ def analyze_zuogong(
             continue
         _fp = _wa.get('from_pos', '')
         _tp2 = _wa.get('to_pos', '')
-        if not {_pillar_of(_fp), _pillar_of(_tp2)} & binzhu_zhu:
+        if not {_pillar_of(_fp), _pillar_of(_tp2)} & binzhu_zhu \
+                and not _wa.get('book_tomb_primary'):
             _wa['auxiliary'] = True
             _wa['global_qi'] = True
 
@@ -591,7 +592,8 @@ def analyze_zuogong(
         wa for wa in work_actions
         if not wa.get('auxiliary')
         and (wa.get('from_pos', '').startswith('day_zhi')
-             or wa.get('to_pos', '').startswith('day_zhi'))
+             or wa.get('to_pos', '').startswith('day_zhi')
+             or wa.get('book_tomb_primary'))
         and wa.get('action') in ('冲', '克', '穿', '刑', '墓用', '半成势', '合用')
     ]
     _active_zhi = [
@@ -637,7 +639,9 @@ def analyze_zuogong(
     def _cand_zhi(c):
         if not c['zhi_actions']:
             return None
-        pa = (c['active_zhi'] or c['zhi_actions'])[0]
+        pa = next(
+            (wa for wa in c['zhi_actions'] if wa.get('book_tomb_primary')),
+            (c['active_zhi'] or c['zhi_actions'])[0])
         _pa = pa.get('action')
         if _pa == '墓用':
             ptype, _path = '墓用', '弃干看支（日支墓用做功）'
@@ -645,7 +649,8 @@ def analyze_zuogong(
             ptype, _path = '合用', '弃干看支（日支合用做功）'
         else:
             ptype, _path = '制用', '弃干看支（日支刑冲穿做功）'
-        strength = 5 if c['chuan_yields'] else (2 if c['active_zhi'] else 1)
+        strength = 4 if pa.get('book_tomb_primary') else (
+            5 if c['chuan_yields'] else (2 if c['active_zhi'] else 1))
         return {'type': ptype, 'path': _path, 'action': pa, 'strength': strength}
 
     # 声明式规则表（priority=表序）

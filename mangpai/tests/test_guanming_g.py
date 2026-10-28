@@ -28,7 +28,6 @@ def _details(g, z, **kw):
 # ── 处级误判四例（金标准：非官命）──────────────────────────────────
 
 class TestOverFireFixed:
-    @pytest.mark.xfail(strict=True, reason='R7 印重泄杀与正常化用尚不可分，shouke:1316-1322')
     def test_qi29_yin_over_shed_not_guanming(self):
         # qi29 戊辛壬癸/辰酉子卯：印绶两重泄尽杀气，无法为官或入公门
         # （shouke:1316-1322），不是壬癸壬甲/子卯子辰婚姻例。
@@ -36,6 +35,20 @@ class TestOverFireFixed:
                                     ['辰', '酉', '子', '卯'])
         assert '印化官杀' not in c['shengyong_huayong']
         assert c['is_guanming'] is False
+
+    def test_normal_shayin_with_cai_not_over_shed(self):
+        # 正常化用壬甲丙戊/子寅午申：申金财星制寅印，非 qi29 无财泄杀。
+        c = classify_guanming_combo('丙', ['壬', '甲', '丙', '戊'],
+                                    ['子', '寅', '午', '申'])
+        assert '印化官杀' in c['shengyong_huayong']
+        assert c['is_guanming'] is True
+
+    def test_shayin_with_shishang_outlet_not_over_shed(self):
+        # 食伤透干可顺生泄秀，不按无财泄杀；li141 原文「无忌神，同气顺生」。
+        c = classify_guanming_combo('癸', ['戊', '庚', '癸', '乙'],
+                                    ['戌', '申', '亥', '卯'])
+        assert '印化官杀' in c['shengyong_huayong']
+        assert c['is_guanming'] is True
 
     def test_chuzhong_soldier_painter(self):
         # 壬子丙午壬辰丁未（庭长孪生造）：F12 起 G5「杀无制化」条款废除（刃制杀

@@ -9,7 +9,7 @@ shensha — 盲派扩展神煞
 神煞三层收口（高级篇灾祸章+中级篇核心5）：
   盲派核心5（禄神/羊刃/墓库/驿马/空亡）= 盲派默认取用；羊刃/驿马/马星在本模块，
     禄神=constants.LU、墓库=muku.py、空亡=detect_relations(kong_wang=) 消费侧。
-  凶性三煞（空亡/亡神/劫煞/灾煞）= 应事路由灾祸模块；亡神/劫煞/灾煞在本模块。
+  凶性三煞（空亡/亡神/劫煞）= 应事路由灾祸模块；灾煞只作传统展示，不进风险计分。
   传统6（天乙/文昌/华盖/桃花/孤辰/寡宿）= 降级 traditional_shensha，本模块保留计算。
   本函数所算各项均带 'layer' 字段（见 SHENSHA_LAYER），供消费侧按层取用/裁剪。
 置信度：中
@@ -46,6 +46,9 @@ _YANG_REN_FULL: Dict[str, List[str]] = {
     '甲': ['卯'], '丙': ['午'], '戊': ['午', '未'],
     '庚': ['酉'], '壬': ['子'],
 }
+# 理象学:4977 五个阳干的天干刃，与地支刃位分开记录。
+_GAN_REN: Dict[str, str] = {'甲': '乙', '丙': '丁', '戊': '己',
+                            '庚': '辛', '壬': '癸'}
 
 _JIE_SHA: Dict[str, str] = {
     '申': '巳', '子': '巳', '辰': '巳',
@@ -150,7 +153,7 @@ _YI_MA_MANGPAI: Dict[str, List[str]] = dict(_YI_MA)
 # ── 神煞三层收口（高级篇灾祸章 + 中级篇核心5 口径）──
 #   盲派核心5：禄神/羊刃/墓库/驿马/空亡（盲派默认取用，必算）；
 #   凶性三煞：空亡/亡神/劫煞（应事路由灾祸模块；空亡兼核心5，必算但凶应入灾祸）；
-#   传统6（降级）：天乙/文昌/华盖/桃花/孤辰/寡宿（书房派，降级 traditional_shensha）。
+#   传统6（降级）：天乙/文昌/华盖/桃花/孤辰/寡宿；灾煞另作传统展示，不进风险计分。
 #   禄神=constants.LU、墓库=muku.py、空亡=detect_relations(kong_wang=) 消费侧，
 #   此三者不在本函数结果中，仅于此表标注层级；本函数所算各项均加 'layer' 字段。
 SHENSHA_LAYER: Dict[str, str] = {
@@ -158,7 +161,7 @@ SHENSHA_LAYER: Dict[str, str] = {
     '禄神': '盲派核心', '羊刃': '盲派核心', '墓库': '盲派核心',
     '驿马': '盲派核心', '马星': '盲派核心', '空亡': '盲派核心',
     # 凶性三煞 → 灾祸模块
-    '亡神': '灾祸', '劫煞': '灾祸', '灾煞': '灾祸',
+    '亡神': '灾祸', '劫煞': '灾祸', '灾煞': '传统(降级)',
     # 传统6 → 降级 traditional_shensha
     '天乙贵人': '传统(降级)', '文昌': '传统(降级)', '华盖': '传统(降级)',
     '桃花': '传统(降级)', '孤辰': '传统(降级)', '寡宿': '传统(降级)',
@@ -216,7 +219,8 @@ def detect_lu_ban_taohua_zhi(day_gan: str, zhis: List[str]) -> List[Dict]:
     return hits
 
 
-def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day') -> Dict:
+def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day',
+                        gans: Optional[List[str]] = None) -> Dict:
     """计算盲派扩展神煞。
 
     Args:
@@ -225,6 +229,7 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day') -
         reference: 神煞参考柱，'day' 用日支（盲派做法），
             'year' 用年支（传统做法）。默认 'day'
             （gaoji:7912「先以日支（为主）查空亡、亡神、劫煞。年支亦需同查」）。
+        gans: 可选四柱天干，用于天干刃定位（理象学:4977）。
 
     Returns:
         含羊刃/天乙贵人/文昌/劫煞/灾煞/亡神/孤辰/寡宿/桃花/驿马/华盖/马星
@@ -262,9 +267,8 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day') -
         if d and y and year_zhi != day_zhi:
             same = set(d.get('zhis', [d['zhi']])) == set(y.get('zhis', [y['zhi']]))
             if not same:
-                # R2 死数据备案：year_ref/day_ref 子键多数无生产读者（驿马消费
-                # 全走主键 in_pillars；亡神/劫煞/桃花读主键/day_ref；灾煞
-                # year_ref 为唯一活读者 zhiye.py:955）。保留供 verify/payload。
+                # year_ref/day_ref 保留兼容输出；灾煞仅作传统展示，不再作为
+                # zhiye/zaihuo 的计分依据。
                 result[name]['year_ref'] = y
                 result[name]['day_ref'] = d
 
@@ -279,11 +283,16 @@ def compute_shensha_ext(day_gan: str, zhis: List[str], reference: str = 'day') -
             'zhi': _YANG_REN[day_gan],
             'zhi_all': yr_zhis,
             'in_pillars': in_pillars,
+            'gan': _GAN_REN.get(day_gan, ''),
+            'gan_in_pillars': [_PILLAR_KEYS[i] for i, g in enumerate(gans or [])
+                               if i != 2 and g == _GAN_REN.get(day_gan)],
         }
     else:
         result['羊刃'] = {
             'zhi': '',
             'in_pillars': [],
+            'gan': '',
+            'gan_in_pillars': [],
             'note': '阴干无羊刃（盲派严格做法）',
         }
 
@@ -405,13 +414,14 @@ def resolve_shensha(
     day_gan: str, zhis: List[str],
     shensha_result: Optional[Dict] = None,
     reference: str = 'day',
+    gans: Optional[List[str]] = None,
 ) -> Dict:
     """神煞结果解析：优先用 engine 透传的 shensha_result，未传入则就地重算。
 
     下游主观模块（caiming/guanming/hunyin/zhiye/gongmen_wuzhi/zaihuo）经此函数
     取神煞，可避免与 engine 的 shensha_reference 口径不一致（engine 已按设定
-    reference 算过一次，下游不再以默认 'day' 重算覆盖）。
+    reference 算过一次，下游不再以默认 'day' 重算覆盖）。gans 用于天干刃定位。
     """
     if shensha_result is not None:
         return shensha_result
-    return compute_shensha_ext(day_gan, zhis, reference=reference)
+    return compute_shensha_ext(day_gan, zhis, reference=reference, gans=gans)

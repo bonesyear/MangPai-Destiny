@@ -27,7 +27,7 @@ zaihuo - 盲派灾祸专辑·主观层（subjective）
   - objective.constants（五行生克/穿破刑冲/禄/墓库）
   - objective.canggan.get_canggan_mangpai（藏干，寿元星定位）
   - objective.zuogong_detect.detect_relations（穿破刑冲合，疾病/车祸/死亡触发）
-  - objective.shensha.compute_shensha_ext（凶性三煞：亡神/劫煞/灾煞；多马星；羊刃）
+  - objective.shensha.compute_shensha_ext（凶性三煞：亡神/劫煞；多马星；羊刃；灾煞仅传统展示）
   - objective.muku.analyze_muku（墓库开闭，寿星入墓/官杀入墓）
   - objective.changsheng.get_changsheng_mangpai（绝地，寿星见绝）
   - subjective.yunfan.analyze_yunfan（岁运反局联动，灾祸急性触发：天地合/三刑/双冲）
@@ -508,8 +508,8 @@ def detect_siwang(
 
     寿元星三级（源文 16154-16160）：第一食神、第二印、第三日主/禄。
     按命局所现之星取最高级为寿元星，判其刑破穿害/入墓/见绝/空亡。
-    墓绝空亡三者合见为最凶。凶性三煞（亡神/劫煞/灾煞）并空亡为凶兆。
-    （灾煞系传统神煞移入，段氏书无载。）
+    墓绝空亡三者合见为最凶。凶性三煞（亡神/劫煞）并空亡为凶兆；
+    灾煞无书据，只作传统展示，不进死亡风险链。
     yunfan_result（岁运反局联动：天地合/三刑/双冲）为急性触发。
 
     Returns:
@@ -638,11 +638,10 @@ def detect_siwang(
                         if _msg not in markers:
                             markers.append(_msg)
 
-    # 凶性三煞（亡神/劫煞/灾煞）并空亡
-    # （灾煞系传统神煞移入，段氏书无载——段氏全部 7 本书零命中，全书 grep 证实）
+    # 凶性三煞（亡神/劫煞）并空亡；灾煞无书据，只作传统展示，不进死亡风险链。
     ss = resolve_shensha(day_gan, zhis, shensha_result)
     xiong_sha: List[str] = []
-    for key in ('亡神', '劫煞', '灾煞'):
+    for key in ('亡神', '劫煞'):
         v = ss.get(key)
         if not v:
             continue

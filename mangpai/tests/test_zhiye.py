@@ -98,3 +98,90 @@ class TestMinScoreThreshold:
         assert r['primary'] == ''
         assert r['primary_label'] == ''
         assert r['fallback_no_clear'] is False
+
+
+def test_zaisha_does_not_change_military_score():
+    from copy import deepcopy
+    from mangpai.objective.shensha import compute_shensha_ext
+    gans, zhis = YANXISHAN
+    ss = compute_shensha_ext(gans[2], zhis)
+    without = deepcopy(ss)
+    without['灾煞']['year_ref']['in_pillars'] = []
+    with_fake = deepcopy(without)
+    with_fake['灾煞']['year_ref']['in_pillars'] = ['year']
+    base = classify_zhiye(gans[2], gans, zhis, shensha_result=without)
+    fake = classify_zhiye(gans[2], gans, zhis, shensha_result=with_fake)
+    assert fake['scores']['military'] == base['scores']['military']
+    assert '灾煞（凶险/非常之职）' not in fake['evidence']['military']
+
+
+def test_xianchi_does_not_change_performer_score():
+    from copy import deepcopy
+    from mangpai.objective.shensha import compute_shensha_ext
+    from mangpai.subjective.zhiye import _score_performer
+    gans, zhis = ['乙', '辛', '辛', '壬'], ['卯', '巳', '酉', '辰']
+    ss = compute_shensha_ext('辛', zhis)
+    base_ss = deepcopy(ss)
+    base_ss['桃花']['lu_ban']['is_lu_ban'] = False
+    fake_ss = deepcopy(base_ss)
+    fake_ss['桃花'].setdefault('day_ref', {})['in_pillars'] = ['day']
+    fake_ss['桃花']['lu_ban']['is_lu_ban'] = False
+    base, _ = _score_performer('辛', gans, zhis, [], base_ss)
+    fake, _ = _score_performer('辛', gans, zhis, [], fake_ss)
+    assert fake == base
+
+
+def test_lu_ban_does_not_create_performer_score():
+    from mangpai.objective.shensha import compute_shensha_ext
+    from mangpai.subjective.zhiye import _score_performer
+    gans, zhis = ['乙', '辛', '辛', '壬'], ['卯', '巳', '酉', '辰']
+    ss = compute_shensha_ext('辛', zhis)
+    assert ss['桃花']['lu_ban']['is_lu_ban'] is True
+    score, evidence = _score_performer('辛', gans, zhis, [], ss)
+    # 禄绊桃花是关系 marker，不独立等于演艺职业；只保留时柱食伤的一项。
+    assert score == 1
+    assert not any('食伤+桃花' in item for item in evidence)
+
+
+class TestSpecialCareerEvidence:
+    def test_actor_with_hidden_wealth_only_in_hour(self):
+        r = _run((['癸', '甲', '癸', '甲'], ['卯', '子', '卯', '寅']))
+        assert r['primary'] == 'performer'
+        assert any('从儿格喜见财' in x for x in r['evidence']['performer'])
+        other = _run((['壬', '癸', '壬', '壬'], ['寅', '卯', '子', '寅']))
+        assert not any('从儿格喜见财' in x for x in other['evidence']['performer'])
+
+    def test_menglu_performer_without_real_military_control(self):
+        r = _run((['丙', '癸', '辛', '癸'], ['寅', '巳', '酉', '巳']))
+        assert r['primary'] == 'performer'
+        assert r['scores']['military'] == 0
+
+    def test_military_without_performer_evidence_kept(self):
+        r = _run((['癸', '辛', '乙', '丁'], ['未', '酉', '酉', '丑']))
+        assert r['primary'] == 'military'
+        assert r['scores']['military'] > 0
+
+    def test_meilanfang_three_art_facts(self):
+        r = _run((['甲', '甲', '丁', '壬'], ['午', '戌', '酉', '寅']))
+        assert r['primary'] == 'performer'
+        assert any('丁壬合彩' in x and '火克金嗓' in x
+                   for x in r['evidence']['performer'])
+
+    def test_meilanfang_requires_ding_ren_he(self):
+        from mangpai.subjective.zhiye import _score_performer
+        score, evidence = _score_performer(
+            '丁', ['甲', '甲', '丁', '庚'], ['午', '戌', '酉', '寅'], [], {})
+        assert not any('丁壬合彩' in x for x in evidence)
+
+    def test_reporter_useful_pianyin(self):
+        r = _run((['甲', '庚', '己', '丁'], ['午', '午', '未', '卯']))
+        assert r['primary'] == 'teacher'
+        assert any('偏印有用' in x for x in r['evidence']['teacher'])
+
+    def test_maya_primary_follows_actual_wealth_method(self):
+        from mangpai.subjective.caiming import analyze_caiming
+        gans, zhis = ['甲', '甲', '丁', '戊'], ['辰', '戌', '酉', '申']
+        r = analyze_zhiye('丁', gans, zhis,
+                          caiming_result=analyze_caiming('丁', gans, zhis))
+        assert r['primary'] == 'merchant'
+        assert r['scores']['teacher'] > 0

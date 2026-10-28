@@ -38,6 +38,8 @@ from mangpai.objective.constants import (
     XING_PAIRS, AN_HE, LU, PILLAR_KEYS, SAN_HE,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.zihe import detect_zihe
+from mangpai.objective.muku import is_entomb
 from mangpai.objective._relation_utils import pair_in as _check_pair, GONG_JU
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
 from mangpai.subjective.yongshen import classify_strength, _shishen_full
@@ -366,6 +368,23 @@ def _ln_spouse_related(ln_zhi: str, day_gan: str, gender: Optional[str]) -> bool
     return False
 
 
+def _spouse_zihe_entombed(
+    day_gan: str, gender: Optional[str], target_zhi: str,
+    natal_gans: List[str], natal_zhis: List[str],
+) -> bool:
+    """配偶星自合且其支入目标墓，区别于普通官库冲开（cj1:2359 vs :2299）。"""
+    if not gender:
+        return False
+    for p in detect_zihe(natal_gans, natal_zhis).get('pillars', []):
+        if not p.get('activated'):
+            continue
+        if not _is_spouse_star(_shishen_full(day_gan, p['gan']), gender):
+            continue
+        if is_entomb(p['zhi'], target_zhi, natal_zhis, natal_gans):
+            return True
+    return False
+
+
 def classify_chong_semantic(
     ln_zhi: str,
     target_zhi: str,
@@ -424,6 +443,11 @@ def classify_chong_semantic(
             # 女命七杀=夫星豁免（冲入夫宫主婚，见下条）
             chong_type = '冲破'
             desc_tail = '七杀冲禄，主凶死/伤灾，大凶'
+        elif (day_zhi and target_zhi == day_zhi
+                and _spouse_zihe_entombed(day_gan, gender, target_zhi,
+                                          natal_gans, natal_zhis)):
+            chong_type = '冲破'
+            desc_tail = '配偶星自合入墓，流年冲破夫宫，主婚姻破裂'
         elif (day_zhi and target_zhi == day_zhi
                 and _zhi_has_natal_he(day_zhi, natal_zhis)
                 and _ln_spouse_related(ln_zhi, day_gan, gender)):
@@ -750,6 +774,7 @@ def determine_dayun_phase(
 
     return {
         'phase': phase,
+        'gz': f'{dy_gan}{dy_zhi}',
         'reason': reason,
         'active': '干支' if phase == '统看' else '',
         'per_year': per_year,
@@ -842,6 +867,7 @@ def analyze_liunian_mangpai(
             natal_fei_shen=natal_fei_shen,
             kong_wang=kong_wang,
             tomb_extra_gans=[gan],  # 流年干纳入墓库透干引拔（段氏墓库篇）
+            is_liunian=True,
         )
         result['year'] = entry.get('year', 0)
 

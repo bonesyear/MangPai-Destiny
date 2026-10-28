@@ -150,18 +150,20 @@ def _analyze_pillar_with_signals(
     natal_fei_shen: Optional[List[str]] = None,
     kong_wang: Any = None,
     tomb_extra_gans: Optional[List[str]] = None,
+    is_liunian: bool = False,
 ) -> Dict:
     """检测 + 吉凶信号（dayun/liunian 共用入口）。
 
     objective._analyze_pillar_interaction 产出纯检测事实，本函数叠加
     judge_pillar_signals 的解释性判断，返回含 positive_signals/negative_signals/
-    overall/desc 的完整单柱结果。
+    overall/desc 的完整单柱结果。is_liunian=True 时不套本命空亡。
     """
     result = _analyze_pillar_interaction(
         pillar_gan, pillar_zhi, natal_gans, natal_zhis, day_gan,
         natal_fei_shen=natal_fei_shen,
         kong_wang=kong_wang,
         tomb_extra_gans=tomb_extra_gans,
+        is_liunian=is_liunian,
     )
     result.update(judge_pillar_signals(result))
     return result

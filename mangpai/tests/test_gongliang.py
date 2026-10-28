@@ -156,9 +156,7 @@ class TestSourceRegression:
         chong = [a for a in result['reasons'] if '同制' in a]
         assert chong
 
-    @pytest.mark.xfail(strict=True,
-                       reason='R8 合制墓库/原神同制权重未重建，不能以弱势泛化豁免凑四层')
-    def test_premier_near_four_layers_pending_r8(self):
+    def test_premier_near_four_layers(self):
         result = analyze_gongliang(day_gan='乙', gans=['戊', '壬', '乙', '己'],
                                    zhis=['辰', '戌', '未', '卯'])
         assert result['level'] == 4
@@ -182,15 +180,55 @@ class TestSourceRegression:
         assert _run(YUEFEI)['level'] == 3
 
 
+class TestR6TombActivation:
+    def test_remote_chong_does_not_add_open_tomb_point(self):
+        result = analyze_gongliang(day_gan='戊', gans=['庚', '庚', '庚', '甲'],
+                                   zhis=['辰', '午', '午', '戌'])
+        assert not any('开库加层' in reason for reason in result['reasons'])
+
+    def test_remote_chong_with_tougan_keeps_independent_open(self):
+        from mangpai.subjective.gongliang import (
+            _apply_gong_point_rules, _compute_position_sets, _prepare_inputs,
+        )
+        gans, zhis = ['戊', '戊', '戊', '甲'], ['辰', '午', '午', '戌']
+        inp = _prepare_inputs(None, '戊', gans, zhis, work_actions=None,
+                              work_types=None, fei_shen=None, gong_shen=None,
+                              zeishen_bushen_result=None)
+        pos = _compute_position_sets('土', gans, zhis, inp['wa_list'], [], [],
+                                     inp['tomb_works'])
+        result = _apply_gong_point_rules(
+            '戊', '土', gans, zhis, gshen=[], san_he_formed=False, non_aux=[],
+            active_tomb_works=pos['active_tomb_works'], involved_positions=set(),
+            zhi_targets=set(), gan_cats=pos['gan_cats'], strong_positions=set(),
+            destructive_positions=set(), _zb_bao=None, _zb_clian=None, _zb_jing='',
+            all_work_actions=inp['wa_list'])
+        assert any('开库加层' in reason for reason in result['reasons'])
+
+    def test_near_chong_does_not_double_count_controlled_tomb(self):
+        result = analyze_gongliang(day_gan='戊', gans=['戊', '戊', '戊', '甲'],
+                                   zhis=['午', '辰', '午', '戌'])
+        assert not any('开库加层' in reason for reason in result['reasons'])
+
+    def test_near_chong_without_tougan_is_not_open(self):
+        result = analyze_gongliang(day_gan='戊', gans=['庚', '庚', '庚', '甲'],
+                                   zhis=['午', '辰', '午', '戌'])
+        assert not any('开库加层' in reason for reason in result['reasons'])
+
+
 class TestBoundaryAnnotation:
     """边界区标注：score 在层边界 ±5 内或经包制 distrust 翻转 decisive 时标注，
     不强制二选一。boundary 为附加字段，不改变 level/tier_name。"""
 
-    def test_kelintun_boundary_via_bao_decisive(self):
-        # 克林顿 L4 score96（距 L3/L4 下沿90为6，超±5），经包制 distrust 翻转
-        # decisive（剔除翻转加分后功量点<4）标注 L3/L4 边界。
+    def test_bao_decisive_boundary_rule(self):
+        # 包制 decisive 机制单测，不绑定克林顿新增的独立墓用事实。
+        from mangpai.subjective.gongliang import _compute_boundary
+        assert _compute_boundary(4, 98, 5.5, True, 2.0) == 'L3/L4边界'
+
+    def test_kelintun_bao_remains_decisive_for_four_layers(self):
+        # 书证总账为包制1+入墓1+刑制墓库2；去掉包制后不足四层。
         r = _run(KELINTUN)
         assert r['boundary'] == 'L3/L4边界'
+        assert any('入墓为功' in reason for reason in r['reasons'])
 
     def test_yuefei_boundary_via_score_edge(self):
         # 岳飞 L3 score84（F4 批：wood_type 修书「岳飞为死木」（理象学:3187-3189）后
@@ -250,6 +288,8 @@ class TestG2Sanli:
         r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
         assert r['level'] == 0
         assert r['tier_name'] == '无功'
+        assert r['gong_points'] == 0
+        assert r['evidence'] == []
         assert any('天干坏' in x for x in r['reasons'])
 
     def test_cixi_yueling_jianyin_four_layers(self):
@@ -316,3 +356,59 @@ class TestYongshenXiongAnnotation:
         r = _run(YUEFEI)
         x = r['yongshen_xiong'][0]
         assert set(x) >= {'kind', 'severity', 'reason'}
+
+
+class TestR8Evidence:
+    @pytest.mark.parametrize('case,expected', [
+        (AONAXIXI, 4.0),
+        (KELINTUN, 4.0),
+        (YANXISHAN, 3.5),
+    ])
+    def test_book_bundles(self, case, expected):
+        r = _run(case)
+        assert r['gong_points'] == expected
+        assert r['level'] == case[2]
+
+    def test_cixi_bundle(self):
+        r = analyze_gongliang(day_gan='乙', gans=['乙', '丁', '乙', '己'],
+                              zhis=['未', '亥', '丑', '卯'])
+        assert r['gong_points'] == 4.0
+        assert r['level'] == 4
+
+    def test_premier_near_four_layers(self):
+        r = analyze_gongliang(day_gan='乙', gans=['戊', '壬', '乙', '己'],
+                              zhis=['辰', '戌', '未', '卯'])
+        assert r['gong_points'] >= 4.0
+        assert r['level'] == 4
+
+    def test_evidence_arithmetic_and_unique_ids(self):
+        for case in (AONAXIXI, KELINTUN, YANXISHAN):
+            r = _run(case)
+            assert r['gong_points'] == sum(e['points'] for e in r['evidence'])
+            ids = [e['id'] for e in r['evidence']]
+            assert len(ids) == len(set(ids))
+            assert isinstance(r['annotations'], list)
+
+    def test_yanxishan_no_huayong_or_open_tomb_padding(self):
+        r = _run(YANXISHAN)
+        assert not any('化用成局' in x or '开库加层' in x for x in r['reasons'])
+
+    def test_half_layer_and_zero_are_distinct(self):
+        from mangpai.subjective.gongliang import _build_result
+        half = _build_result(level=1, points=0.5, score=20, reasons=[],
+                             zhi_jing='净', controls=[], gong_cats=[], chain=0,
+                             penalty=None, raw_level=0.5)
+        zero = _build_result(level=0, points=0, score=0, reasons=[],
+                             zhi_jing='无制', controls=[], gong_cats=[], chain=0,
+                             penalty=None, raw_level=0)
+        assert half['boundary'] == '半层功'
+        assert zero['tier_name'] == '无功'
+        assert zero['boundary'] != '半层功'
+
+    def test_level_does_not_infer_wealth_or_rank(self):
+        from mangpai.subjective.gongliang import _build_result
+        r = _build_result(level=4, points=4, score=95, reasons=[],
+                          zhi_jing='净', controls=[], gong_cats=[], chain=0,
+                          penalty=None, raw_level=4)
+        assert r['wealth_grade'] == ''
+        assert r['rank_grade'] == ''

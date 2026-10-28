@@ -208,15 +208,17 @@ def test_current_fan_slice_filters_current_dayun():
 
 
 def test_direction_signals_suiyun_fanju():
-    """岁运反局切片使 fanju=True 并带岁运理由；无切片时行为不变。"""
+    """原局与运岁分域：流年反局不回写 fanju/reasons，运岁字段独立保留。"""
     gans, zhis = ['戊', '己', '乙', '丁'], ['戌', '未', '巳', '亥']
     base = assess_direction_signals('乙', gans, zhis)
     assert not base['suiyun_fanju']
     slice_ = current_fan_slice(_zhenbao1_yunfan(), '壬戌')
     ds = assess_direction_signals('乙', gans, zhis, yunfan_result=slice_)
-    assert ds['suiyun_fanju'] and ds['fanju']
-    assert any(r.startswith('岁运') for r in ds['reasons'])
-    assert ds['direction'] == '凶'
+    assert ds['suiyun_fanju'] and not ds['fanju']
+    assert ds['liunian_fanju'] and not ds['dayun_fanju']
+    assert not any(r.startswith('岁运') for r in ds['reasons'])
+    assert any(r.startswith('岁运') for r in ds['suiyun_reasons'])
+    assert ds['direction'] == base['direction']
 
 
 def test_caiming_capped_by_suiyun_fanju():
@@ -231,7 +233,7 @@ def test_caiming_capped_by_suiyun_fanju():
 
 
 def test_guanming_veto_threshold_protects_positive_structure():
-    """第5期（乙巳庚辰辛卯壬辰，官杀有根=正向官命结构）：岁运反局不误否决官命。"""
+    """第5期（乙巳庚辰辛卯壬辰）：运岁另存，终身官命不被单步运岁否决。"""
     gans, zhis = ['乙', '庚', '辛', '壬'], ['巳', '辰', '卯', '辰']
     yf = analyze_yunfan(gans, zhis, '辛',
                         dayun_list=[{'gz': '丙子', 'start_age': 5}],
@@ -239,8 +241,28 @@ def test_guanming_veto_threshold_protects_positive_structure():
                         current_dayun={'gz': '丙子'})
     slice_ = current_fan_slice(yf, '丙子')
     assert slice_['liunian_fan']  # 壬午年确有反局/联动
+    natal = analyze_guanming('辛', gans, zhis)
     gm = analyze_guanming('辛', gans, zhis, yunfan_result=slice_)
-    assert gm['is_guanming']  # 门槛保护：岁运反局理由被剥离，不否决
+    assert gm['is_guanming'] == natal['is_guanming']
+    assert gm['suiyun_fanju']
+
+
+def test_lifetime_zhiye_not_gated_by_suiyun():
+    """戊寅年反局仍可展示，但不得清零丁未/丙午/庚申/丁丑的终身职业分。"""
+    from mangpai.subjective.zhiye import classify_zhiye
+
+    gans, zhis = ['丁', '丙', '庚', '丁'], ['未', '午', '申', '丑']
+    yf = analyze_yunfan(gans, zhis, '庚',
+                        dayun_list=[{'gz': '癸卯', 'start_age': 1}],
+                        liunian_list=[{'gz': '戊寅', 'year': 1998}],
+                        current_dayun={'gz': '癸卯'})
+    slice_ = current_fan_slice(yf, '癸卯')
+    assert slice_['liunian_fan']
+    natal = classify_zhiye('庚', gans, zhis)
+    current = classify_zhiye('庚', gans, zhis, yunfan_result=slice_)
+    assert current['scores'] == natal['scores']
+    assert current['primary'] == natal['primary']
+    assert current['suiyun_fanju']
 
 
 def test_liunian_chong_tomb_exempt():

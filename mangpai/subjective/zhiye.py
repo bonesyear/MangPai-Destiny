@@ -18,7 +18,7 @@ zhiye - 盲派职业象法·主观层（subjective）
   5. 商人/经营：财星做功，财印门户（开店），食伤生财（贸易），内食神（办厂），
      相冲做功（运输），官杀当财被制（大生意）；五行行业（金水金融物流/木火
      文教餐饮/土金地产矿/火土能源化工）。
-  6. 军警/军阀/武职（非常规）：官杀成势 + 羊刃/灾煞 + 申酉金/辛 + 全阳；
+  6. 军警/军阀/武职（非常规）：官杀成势 + 羊刃 + 申酉金/辛 + 全阳；
      局象官杀包局/夹官/全阳、换官象加权。
   7. 演艺/演员（非常规）：食伤+桃花+财（色相求财），桃花居夫妻宫，丙丁火+桃花；
      局象食伤包局、换食伤象加权。
@@ -28,7 +28,7 @@ zhiye - 盲派职业象法·主观层（subjective）
   - objective.canggan.get_canggan_mangpai（藏干，十神定位）
   - objective.xiangfa.get_liushi_ganzhi_xiang（六十干支组合象 person 字段，行业象）
   - objective.zuogong_detect.detect_relations（克/合/冲/穿做功，破只作关系/取象）
-  - objective.shensha.compute_shensha_ext（羊刃/灾煞/桃花，军警与演艺象）
+  - objective.shensha.compute_shensha_ext（羊刃/禄绊桃花，军警与演艺象；灾煞/咸池仅传统展示）
   - subjective.xiangfa_ops.analyze_xiangfa_ops（合象 hexiang/换象 huanxiang/局象 juxiang
     互证：换官象→律师/公门/军职，换财象→商人，换食伤象→演艺/医生/教师；
     官杀包局/全阳/夹官→军职公门，食伤包局→演艺(配官杀→公检法)；合象产新象印证组合）
@@ -66,6 +66,7 @@ from mangpai.subjective.utils import ensure_relations as _ensure_relations
 from mangpai.subjective.caiming import analyze_caiming
 from mangpai.subjective.xiangfa_ops import analyze_xiangfa_ops
 from mangpai.subjective.yongshen import assess_direction_signals, classify_strength
+from mangpai.subjective.zeishen_bushen import analyze_zeishen_bushen
 
 _logger = logging.getLogger(__name__)
 
@@ -482,6 +483,11 @@ def _score_teacher(day_gan, gans, zhis, wa, ss=None) -> Tuple[int, List[str]]:
             and _has_cat(day_gan, gans, zhis, '印')):
         score += 1
         ev.append('金水伤官见印（数理理科）')
+    if (gan_muhuo and _has_cat(day_gan, gans, zhis, '食伤')
+            and _compute_shishen(day_gan, gans[3]) == '偏印'
+            and zhis[3] == '卯'):
+        score += 1
+        ev.append('偏印有用（记者/编辑/情报，chuji:537）')
     # 印重馆阁 +2（K3 职业批1 新通道）：主气印≥2柱 + 主气食伤0柱 + 金不重型
     # （申酉庚辛<3）——印重无泄之纯学问/馆阁文职象（书锚 yx-6061 翰林院学士，
     # 印重成象贫而贵）；金重者归金融/律令不归文，食伤主气在局者走吐秀/门户
@@ -502,7 +508,7 @@ def _score_teacher(day_gan, gans, zhis, wa, ss=None) -> Tuple[int, List[str]]:
                       if '财' in _main_qi_cats(day_gan, gans, zhis, i))
     _n_gs_main = sum(1 for i in range(4)
                      if '官杀' in _main_qi_cats(day_gan, gans, zhis, i))
-    _has_tao = bool(_tao_day(ss).get('in_pillars'))
+    _has_tao = _has_yiren_taohua(day_gan, gans, zhis, wa)
     if _n_ss_main >= 3 and _n_cai_main >= 2 and not _has_tao and _n_yin_main == 0:
         score += 3
         ev.append(f'食伤{_n_ss_main}柱吐秀+财{_n_cai_main}位（食伤鬻文，以文为业）')
@@ -962,10 +968,11 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
 
 
 def _score_military(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
-    """军警/军阀/武职象：官杀成势 + 羊刃/灾煞 + 申酉金/辛 + 全阳。
+    """军警/军阀/武职象：官杀成势 + 羊刃 + 申酉金/辛 + 全阳。
 
-    非常规职业命中路径（源文 7.3 五行行业+象法）：杀旺成势、七杀透干、羊刃灾煞
-    并现、申酉金/辛律令兵刃，主军警/武职/权柄。与 juxiang 官杀包局/夹官/全阳互证。
+    非常规职业命中路径（源文 7.3 五行行业+象法）：杀旺成势、七杀透干、羊刃、
+    申酉金/辛律令兵刃，主军警/武职/权柄。与 juxiang 官杀包局/夹官/全阳互证。
+    灾煞无书据，只作传统展示，不进入本评分。
     """
     score = 0
     ev: List[str] = []
@@ -977,18 +984,10 @@ def _score_military(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     if any(_compute_shishen(day_gan, g) == '七杀' for g in gans if g):
         score += 1
         ev.append('七杀透干（肃杀/兵威）')
-    if (ss.get('羊刃') or {}).get('in_pillars'):
+    yr = ss.get('羊刃') or {}
+    if yr.get('in_pillars') or yr.get('gan_in_pillars'):
         score += 1
         ev.append('羊刃（武斗/兵刃）')
-    # 灾煞：三书无「灾煞」明文（批8 P1，入灾祸层无据），本条款系象法自造、
-    # 校准于旧年支供给口径（阎锡山年支未→灾煞酉在局锚；复例四日支巳→灾煞卯
-    # 若计入则 military 7:7 tie 翻掉 merchant 书锚「经商」）——F13 供给默认
-    # 改日支后，本条款固定读 year_ref 保持校准口径；牢狱/灾祸域（gaoji:7912
-    # 书锚所在）经 zaihuo 走日支主查+年支同查。
-    _zs = ss.get('灾煞') or {}
-    if ((_zs.get('year_ref') or _zs).get('in_pillars')):
-        score += 1
-        ev.append('灾煞（凶险/非常之职）')
     if any(z in ('申', '酉') for z in zhis) or any(g == '辛' for g in gans):
         score += 1
         ev.append('申酉金/辛（律令/兵刃）')
@@ -1117,12 +1116,16 @@ def _score_military(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
     return score, ev
 
 
-def _tao_day(ss: Optional[Dict]) -> Dict:
-    """桃花取日支起算口径（F13 day-ref 接线：gaoji:7912「先以日支为主」；
-    shensha 侧 day_ref 子键年日异支时恒在，engine 默认 reference='day'
-    时主键即日支口径，两者取一即得日支锚）。"""
-    tao = ((ss or {}).get('桃花')) or {}
-    return tao.get('day_ref') or tao
+def _has_yiren_taohua(day_gan, gans, zhis, wa):
+    """只取直接演艺书证：丙火食伤透干或坐禄从艺，不拿禄绊桃花代替。"""
+    if any(g == '丙' and _cat(_compute_shishen(day_gan, g)) == '食伤'
+           for g in gans if g):
+        return True
+    return (zhis[2] == LU.get(day_gan, '')
+            and any(_cat(_compute_shishen(day_gan, g)) == '食伤'
+                    for g in gans if g)
+            and any('day_zhi' in (a.get('from_pos', ''), a.get('to_pos', ''))
+                    for a in wa if not a.get('auxiliary')))
 
 
 def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
@@ -1130,38 +1133,16 @@ def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
 
     非常规职业命中路径（源文 7.3 象法）：食伤+桃花主演艺/色情，配财为卖身/色相
     求财；桃花居夫妻宫（日柱）=色相入婚位。与 juxiang 食伤包局/换食伤象互证。
+    禄绊桃花仅作关系 marker，不独立制造演艺分数；咸池只作传统展示。
     """
     score = 0
     ev: List[str] = []
     has_shishang = _has_cat(day_gan, gans, zhis, '食伤')
     has_cai = _has_cat(day_gan, gans, zhis, '财')
-    tao = _tao_day(ss)
-    # F13 桃花重建（书口径；咸池=传统降级层，仅日支起一路信号）：
-    #   ① 咸池日支起在局（传统层）；
-    #   ② 丙火食伤透干（zhenbao14期「丙火主艺术，演技」；gaoji:1610 刘晓庆
-    #     「丙火食神透出泄秀…丙火为表演、光芒之象」；shouke:6170 li154 摇滚
-    #     歌星「伤官旺而透干泄秀」；zhenbao-14a 名演员丙透同型——壬食透=文
-    #     （梁羽生）、丁食透+财重=商（zhenbao-01 反锚）不入此路，故限丙）；
-    #   ③ 日主坐禄+禄参与做功+食伤透（chuji:5871 吕丽萍「日主坐禄…禄神与
-    #     食神做功，应是个艺人」/5877 梦露同型）。
-    _ss_bing_tou = any(g == '丙' and _cat(_compute_shishen(day_gan, g)) == '食伤'
-                       for g in gans if g)
-    _ss_any_tou = any(_cat(_compute_shishen(day_gan, g)) == '食伤'
-                      for g in gans if g)
+    has_tao = _has_yiren_taohua(day_gan, gans, zhis, wa)
     _lu_day = zhis[2] == LU.get(day_gan, '')
-    _lu_yiren = _lu_day and _ss_any_tou and any(
-        'day_zhi' in (a.get('from_pos', ''), a.get('to_pos', ''))
-        for a in wa if not a.get('auxiliary'))
-    has_tao = bool(tao.get('in_pillars')) or _ss_bing_tou or _lu_yiren
-    # 桃花居日柱：咸池日支起落日柱 / 日主坐禄从艺（③即日柱象）/ 日主坐沐浴
-    # 败地（gaoji:13311-13313「甲子、乙巳…亦主风流多情，然不可一见便断」
-    # ——沐浴不独立成立桃花，仅作 has_tao 已立时的居日柱修饰）。
-    tao_in_day = 'day' in (tao.get('in_pillars') or [])
-    if not tao_in_day and has_tao:
-        if _lu_day:
-            tao_in_day = True
-        elif get_changsheng_mangpai(day_gan, zhis[2]) == '沐浴':
-            tao_in_day = True
+    # 坐禄从艺或沐浴只作居日柱修饰；咸池不再独立制造桃花及分数。
+    tao_in_day = has_tao and (_lu_day or get_changsheng_mangpai(day_gan, zhis[2]) == '沐浴')
     cnt = _wx_count(day_gan, gans, zhis)
     if has_shishang and has_tao and has_cai:
         score += 4
@@ -1199,6 +1180,13 @@ def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
         if n_ss_pillars >= 2 and ss_work and not cai_ming:
             score += 3
             ev.append('食伤成势做功（无桃花之艺，凭技艺立身）')
+        cai_positions = {i for i in range(4)
+                         if '财' in _pillar_cats(day_gan, gans[i], zhis[i])}
+        if (not cai_ming and cai_positions == {3} and ss_work
+                and _main_qi_char_count(day_gan, gans, zhis, '食伤') >= 3
+                and classify_strength(day_gan, gans, zhis) == '从弱'):
+            score += 2
+            ev.append('从儿格喜见财，财仅藏时支（shouke:6718 名演员）')
     # 金水声音 +4（K3 职业批2 歌坛通道）：日主为金 + 水食伤主气在局 + 食伤
     # 主气≥2柱 + 比劫主气≥3柱（身旺任泄）——象法金水相生主声音/歌喉（金=
     # 钟磬之声、水=婉转流动），身旺食伤泄秀者以声为业（书锚 cj-歌星：辛日
@@ -1225,6 +1213,16 @@ def _score_performer(day_gan, gans, zhis, wa, ss) -> Tuple[int, List[str]]:
         if _shui_ss and _n_ss_main >= 2 and _n_bj_main >= 3:
             score += 4
             ev.append('金水声音（金水伤官身旺泄秀，以歌喉/声音为业）')
+    if (cnt.get('木', 0) + cnt.get('火', 0) >= 5
+            and any(a.get('type') == '天干合'
+                    and {gans[_pos_idx(a.get('from_pos', ''))],
+                         gans[_pos_idx(a.get('to_pos', ''))]} == {'丁', '壬'}
+                    for a in wa
+                    if a.get('from_pos', '').endswith('_gan')
+                    and a.get('to_pos', '').endswith('_gan'))
+            and _action_between_wx(wa, gans, zhis, '火', '金', {'克'})):
+        score += 6
+        ev.append('木火成党、丁壬合彩、火克金嗓（chuji:5911-5923 演艺）')
     return score, ev
 
 
@@ -1279,7 +1277,7 @@ def _classify_base_career(
     """
     ds = direction or {}
     cm = caiming_result or {}
-    tier = cm.get('tier', '')
+    tier = cm.get('tier_static') or cm.get('tier', '')
     views = (cm.get('caifu_view') or {}).get('views') or []
     methods = (cm.get('qucai_method') or {}).get('methods') or []
     non_aux = [a for a in wa if not a.get('auxiliary')]
@@ -1365,8 +1363,8 @@ def classify_zhiye(
       换食伤象/食伤包局→演艺/医生/教师加权（食伤包局配官杀→公检法）。
     消费 objective.xiangfa.get_liushi_ganzhi_xiang 的 person 字段（六十干支组合象
     行业象，如辛酉→法律/外科、戊戌→教师、甲申→交警/司法）作辅证。
-    yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1），
-      军警 gating 的凶向信号源之一（与原局反局同链）。
+    yunfan_result: 「当前运岁」反局切片，仅作运岁风险展示；
+      终身 scores/primary 只读原局方向，不被单步运岁直接否决。
     caiming_result: 财命综合结果（M2 基础职业类目消费 tier/取财法/财看法；
       缺省时于七桶未成象的 fallback 区自调 analyze_caiming）。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
@@ -1401,7 +1399,7 @@ def classify_zhiye(
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
     muku = analyze_muku(zhis, gans)
-    ss = resolve_shensha(day_gan, zhis, shensha_result)
+    ss = resolve_shensha(day_gan, zhis, shensha_result, gans=gans)
 
     scores: Dict[str, int] = {}
     evidence: Dict[str, List[str]] = {}
@@ -1479,7 +1477,7 @@ def classify_zhiye(
                                  shensha_result=ss)
         has_guansha = _has_cat(day_gan, gans, zhis, '官杀')
         has_cai = _has_cat(day_gan, gans, zhis, '财')
-        has_tao = bool(_tao_day(ss).get('in_pillars'))
+        has_tao = _has_yiren_taohua(day_gan, gans, zhis, wa)
         # 换象（制尽则换）：换官象→律师/公门/军职，换财象→商人，换食伤象→演艺/医生/教师
         for f in (xo.get('huanxiang') or []):
             dom = f.get('domain', '')
@@ -1537,11 +1535,19 @@ def classify_zhiye(
         if _n > 2:
             corroborate.append(f'{_b}互证加权{_n}封顶+2（防堆叠虚高）')
 
+    if scores.get('performer', 0) >= 6 and scores.get('military', 0) > 0 and has_tao:
+        party = analyze_zeishen_bushen(day_gan, gans, zhis).get('party_strength') or {}
+        guan_wx = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '')
+        ss_wx = WX_SHENG.get(GAN_WX.get(day_gan, ''), '')
+        if party.get(guan_wx, 0) > party.get(ss_wx, 0):
+            scores['military'] = 0
+            evidence['military'] = ['虚透食伤压不住旺官，演艺象优先（shouke:5394）']
+
     # 军警/武职 gating（P0 B/C + M1）：军警为官命之武职，反局/比劫夺财破财
     # /忌神制用神(R2)/用神被合绊(R3) 等凶向命中者不得判武职（坐牢的、破财的、
     # 乞丐不开军警车）。须置于象法互证加权之后，方不被全阳/夹官等再加分覆盖。
     # 凶向信号缺省自调（laoyu 过火不计入）。
-    # 岁运反局（A1）经 yunfan_result 透传，与原局反局同链 gating。
+    # 运岁只作独立展示，不进入终身 gating；基础职业类目只读原局方向与 tier_static。
     # M2：ds 提前算好，同时供基础职业类目（无业/体力劳动者）消费。
     ds = assess_direction_signals(
         day_gan, gans, zhis, relations=rel,
@@ -1653,7 +1659,7 @@ def classify_zhiye(
     # 压平 3 分——同一书锚命带桃花（子居日柱）而书判「做帐的」：财入印墓
     # 之象优先于桃花演艺之象（压平幅度≈桃花居日柱+桃花+财两条之量；桃花
     # 条款本身不动，仅财入印墓命中者让位）。
-    if _acc_mu_hit and _tao_day(ss).get('in_pillars') \
+    if _acc_mu_hit and has_tao \
             and scores.get('performer', 0) > 0:
         scores['performer'] = max(scores.get('performer', 0) - 3, 0)
         evidence['performer'] = evidence.get('performer', []) + [
@@ -1721,10 +1727,18 @@ def classify_zhiye(
     _tie_pri = ('performer', 'military', 'merchant', 'accountant', 'doctor',
                 'teacher', 'lawyer')
     primary = max(scores, key=lambda k: (scores[k], -_tie_pri.index(k))) if scores else ''
+    wealth_primary = ((caiming_result or {}).get('primary_method') == '经营'
+                      and (caiming_result or {}).get('tier_static') in ('富', '巨富')
+                      and scores.get('merchant', 0) > 0
+                      # 戊土伤官独透兼有讲台/平台之象；教师证据保留，主职随实际经营取财。
+                      and gans[3] == '戊' and gans.count('戊') == 1
+                      and _compute_shishen(day_gan, '戊') == '伤官')
+    if wealth_primary:
+        primary = 'merchant'
     top_score = scores[primary] if scores else 0
     # 最低分阈值：最高分低于阈值时各桶均为弱信号共现、不足成象，fallback
     # 「无明确职业倾向」而非硬塞最像的一桶（乞丐/坐牢/破财等非标命局）。
-    fallback_no_clear = bool(scores) and top_score < _MIN_SCORE_THRESHOLD
+    fallback_no_clear = bool(scores) and top_score < _MIN_SCORE_THRESHOLD and not wealth_primary
     hint_bucket = primary if (fallback_no_clear and primary) else ''
     hint_label = _CAREER_LABELS.get(hint_bucket, '')
     base_career: Dict = {}
@@ -1772,6 +1786,12 @@ def classify_zhiye(
         'hint_bucket': hint_bucket,      # 未分类时的最高分桶提示（M2）
         'hint_label': hint_label,
         'base_career': base_career,      # M2 基础职业类目命中（laborer/unemployed）
+        'dayun_fanju': bool(ds.get('dayun_fanju')),
+        'liunian_fanju': bool(ds.get('liunian_fanju')),
+        'suiyun_fanju': bool(ds.get('suiyun_fanju')),
+        'dayun_reasons': list(ds.get('dayun_reasons') or []),
+        'liunian_reasons': list(ds.get('liunian_reasons') or []),
+        'suiyun_reasons': list(ds.get('suiyun_reasons') or []),
         'fallback_no_clear': fallback_no_clear,
         'min_score_threshold': _MIN_SCORE_THRESHOLD,
         'desc': desc,
@@ -1794,7 +1814,7 @@ def analyze_zhiye(
 
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
     shensha_result: engine 透传的神煞结果，优先用传入值、缺省才就地重算。
-    yunfan_result: 「当前运岁」反局切片（A1），军警 gating 凶向信号源。
+    yunfan_result: 「当前运岁」反局切片，仅作独立风险展示，不进终身 gating。
     caiming_result: 财命综合结果（M2 基础职业类目消费），缺省 fallback 区自调。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传）。
     """

@@ -82,10 +82,10 @@ def test_verify_mangpai_reports_only_known_xfail():
                        capture_output=True, text=True, encoding='utf-8', errors='replace',
                        env=env, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
-    assert '验证结果: 401 passed, 0 failed, 1 xfailed, total 402' in r.stdout
+    assert '验证结果: 404 passed, 0 failed, 0 xfailed, total 404' in r.stdout
 
 
-def test_famous_r7_regressions_are_explicit_pending():
+def test_famous_r7_regressions_closed():
     import subprocess
 
     r = subprocess.run([sys.executable,
@@ -93,7 +93,7 @@ def test_famous_r7_regressions_are_explicit_pending():
                        capture_output=True, text=True, encoding='utf-8', errors='replace',
                        timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
-    assert '预期未决（R7，2）' in r.stdout
+    assert '预期未决（R7' not in r.stdout
     assert 'REGRESSION (' not in r.stdout
 
 

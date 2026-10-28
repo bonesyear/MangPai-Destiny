@@ -91,9 +91,8 @@ yan = gm_results.get('第12期·阎锡山半壁天下/勿冒头', {})
 tingji = gm_results.get('第5期·厅级官壬午升丁亥到顶', {})
 check('阎锡山 官命成立(is=True,门槛保护)', yan.get('is_guanming')==True, f"is={yan.get('is_guanming')}")
 check('厅级 官命成立(is=True)', tingji.get('is_guanming')==True, f"is={tingji.get('is_guanming')}")
-# 阎锡山官阶未被否决降级（F6：层功 L3 合书「三层强一点」理象学7188；
-# guanming grade_map L3->中高(处级) 与 gongliang _RANK_GRADE L3->厅级-省部级
-# 的口径差为 F12 联动项，本批不动 grade_map，仅锁「未被否决」）
+# 阎锡山官阶未被否决降级（层功 L3 合书「三层强一点」理象学7188；
+# R8 起具体官级只读独立 rank_grade，缺证据不从 level 直推，此处仅锁「未被否决」）
 yan_grade = str(yan.get('level',{}).get('grade',''))
 check('阎锡山 官阶未被否决(grade非否决/非官命)', '否决' not in yan_grade and '非官命' not in yan_grade, f'grade={yan_grade}')
 

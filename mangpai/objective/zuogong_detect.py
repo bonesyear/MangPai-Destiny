@@ -869,12 +869,12 @@ def _scan_tomb(zhis: List[str], gans: List[str]) -> Tuple[List[Dict], Set[str]]:
     work_types: Set[str] = set()
 
     # ── 墓用 ──
-    # 入墓遵循盲派规则：四生入墓、四库之土直接入辰墓、四正/四库见戌多而墓之
+    # 入墓遵循盲派规则：四生入墓、丑未之土直接入辰墓、四正/四库见戌多而墓之
     # （天干地支合计数，见 muku.is_entomb）
     # from=墓库(做功方/功神)，to=入墓方(被做功方)
     # 日柱为墓库->主动做功；日柱被入墓->被动受制
     # 闭库之墓不收纳：墓库逢合则闭，闭则不能收物入库（见 muku.analyze_muku）
-    # 透干引拔：逢冲无透干亦闭（muku.analyze_muku 据天干透出判定开闭）
+    # 刑冲无透干亦可有用；透干引拔只作引出标注，不作开库必要条件
     # M4：放开日柱参与限制——非日柱入墓（如李嘉诚亥入辰、蒋介石午入戌）同为
     # 真实墓库关系，一并检出；主被动/宾宾权重由 confirm S2 过滤判定。
     muku_analysis = analyze_muku(zhis, gans)
@@ -883,8 +883,8 @@ def _scan_tomb(zhis: List[str], gans: List[str]) -> Tuple[List[Dict], Set[str]]:
         z = zhis[i]
         if not z or z not in TOMB_MAP:
             continue
-        if z in closed_tomb_zhis:
-            continue  # 闭库之墓不收纳
+        if z in closed_tomb_zhis and z != '辰':
+            continue  # 闭库之墓不收纳；丑入辰的书证主功另列
         for j in range(4):
             if i == j:
                 continue
@@ -892,7 +892,10 @@ def _scan_tomb(zhis: List[str], gans: List[str]) -> Tuple[List[Dict], Set[str]]:
             if not z2:
                 continue
             if is_entomb(z2, z, zhis, gans):  # M4：不再要求日柱参与（i==2 or j==2）
-                _non_day_tomb = not (i == 2 or j == 2)
+                _book_tomb_primary = z == '辰' and z2 == '丑'
+                if z in closed_tomb_zhis and not _book_tomb_primary:
+                    continue
+                _non_day_tomb = not (i == 2 or j == 2) and not _book_tomb_primary
                 tomb_works.append({
                     'type': '墓用',
                     'action': '墓用',
@@ -902,7 +905,7 @@ def _scan_tomb(zhis: List[str], gans: List[str]) -> Tuple[List[Dict], Set[str]]:
                     'to_pos': f'{PILLAR_KEYS[j]}_zhi',
                     'desc': f'{z2}({ZHI_WX.get(z2, "")})入{z}墓'
                             + ('（宾位入墓，不做主功）' if _non_day_tomb else ''),
-                    # M4：非日柱入墓检出但标 auxiliary（与 confirm S2 同口径提前）
+                    **({'book_tomb_primary': True} if _book_tomb_primary else {}),
                     **({'auxiliary': True, 'non_day_tomb': True} if _non_day_tomb else {}),
                 })
                 work_types.add('墓用')
@@ -1083,8 +1086,12 @@ def _collect_raw_facts(day_gan: str, gans: List[str], zhis: List[str],
         if is_gan_entombed(g, z):
             entombed_gan_pillars.add(PILLAR_KEYS[i])
 
-    # 空亡地支集合（段氏：空亡之地做事落空，做功减损；折扣标注由 confirm 完成）
+    # 原局以日柱或年柱查空亡（理象学:5084），不把流年纳入此集合。
     kong_wang_zhis = _kong_wang_zhis(kong_wang)
+    if isinstance(kong_wang, dict):
+        kong_wang_zhis |= _kong_wang_zhis(kong_wang.get('year_ref'))
+    if kong_wang and gans[0] and zhis[0]:
+        kong_wang_zhis |= set(get_kong_wang(gans[0], zhis[0]).get('zhi', []))
 
     return {
         'day_changsheng': day_changsheng,

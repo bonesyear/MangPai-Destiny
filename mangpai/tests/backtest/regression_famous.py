@@ -132,10 +132,6 @@ def compute():
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     write_baseline = '--write-baseline' in sys.argv
-    pending_r7 = {
-        'cm:巴菲特': '做功与扶抑用忌分域：原文明言枭劫为喜，不能在定向修正后机械封顶',
-        'cm:保尔森': '日主合时干官的时支特判与穿制做功分域，留 R7 合官规则复核',
-    }
     cur = compute()
     base_path = args[0] if args else DEFAULT_BASELINE
     from collections import Counter
@@ -162,16 +158,13 @@ def main():
         with open(base_path, encoding='utf-8') as f:
             base = json.load(f)
         print(f"\n=== vs baseline ({os.path.basename(base_path)}) ===")
-        reg, imp, pending = [], [], []
+        reg, imp = [], []
         for k, (v, d) in cur.items():
             bv = base.get(k, {}).get('verdict')
             if bv and bv != v:
                 order = {'✅': 0, '⚠️': 1, '❌': 2}
                 if order[v] > order[bv]:
-                    if k in pending_r7:
-                        pending.append((k, bv, v, d, pending_r7[k]))
-                    else:
-                        reg.append((k, bv, v, d))
+                    reg.append((k, bv, v, d))
                 else:
                     imp.append((k, bv, v, d))
         n_reg = len(reg)
@@ -183,11 +176,7 @@ def main():
             print(f"  ✅ IMPROVE ({len(imp)}):")
             for k, bv, v, d in imp:
                 print(f"    {k}: {bv}->{v}  [{d}]")
-        if pending:
-            print(f"  预期未决（R7，{len(pending)}）:")
-            for k, bv, v, d, reason in pending:
-                print(f"    {k}: {bv}->{v}  [{d}]；{reason}")
-        if not reg and not imp and not pending:
+        if not reg and not imp:
             print("  无变化")
     else:
         print(f"\n(baseline 不存在: {base_path}，仅打印当前判定)")

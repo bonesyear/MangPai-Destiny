@@ -17,8 +17,7 @@
                     shouke:6392），慈禧 坤 乙未丁亥乙丑己卯「时上见禄…官都大到了极点」
   主位字门槛        书规则三「印星、官杀、伤食或财星做功，其中必须有主位的字，其它
                     位置做功所话容易是发财的」（zhongji:3683-3684）
-  grade 映射        「一层功能达到科级到处级；二层处级到厅级；三层厅级到省部级；
-                    四层总理或元首级」（理象学研究版:6103-6104＝理象学版:6022，修批C 标注，R3），与 gongliang._RANK_GRADE 同口径
+  grade 证据        R8 起仅消费独立 rank_grade，不再由 level 反推具体官级
   juefa 断语7       「提纲（月）克年，亦主父母不全」（gaoji:20230）——旧码方向接反
 """
 import pytest
@@ -85,7 +84,7 @@ class TestZhuweiGate:
         assert _is(['戊', '己', '丙', '丁'], ['子', '午', '酉', '申']) is False
 
 
-# ── grade 映射与书同口径（理象学研究版:6103-6104＝理象学版:6022，联动 F6 备案）──────────
+# ── 具体官级须由独立证据给出，不能由 level 反推 ──
 
 class TestGradeMap:
     @pytest.mark.parametrize("level,frag", [
@@ -94,8 +93,14 @@ class TestGradeMap:
     def test_grade_map(self, level, frag):
         r = assess_guanming_level('甲', ['甲', '丙', '甲', '戊'],
                                   ['子', '午', '辰', '申'],
-                                  gongliang_result={'level': level})
+                                  gongliang_result={'level': level, 'rank_grade': frag})
         assert frag in r['grade']
+
+    def test_level_alone_does_not_infer_grade(self):
+        r = assess_guanming_level('甲', ['甲', '丙', '甲', '戊'],
+                                  ['子', '午', '辰', '申'],
+                                  gongliang_result={'level': 4})
+        assert r['grade'] == '未定（缺官级独立证据）'
 
 
 # ── juefa 断语7：提纲（月）克年方向（gaoji:20230）──────────────────

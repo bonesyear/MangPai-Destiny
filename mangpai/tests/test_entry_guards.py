@@ -68,3 +68,14 @@ class TestCityLon:
     def test_valid_lon_ok(self, lon):
         r = calc_bazi_full(1990, 6, 15, 10, 0, '男', lon)
         assert r['input']['city_lon'] == lon
+
+
+class TestR6KongWang:
+    def test_day_and_year_references_are_separate(self):
+        from mangpai.objective.bazi_calc import get_kong_wang
+        r = calc_bazi_full(1990, 6, 15, 10, 0, '男', LON)
+        kw = r['kong_wang']
+        year_gz, day_gz = r['bazi']['year'], r['bazi']['day']
+        assert kw['day_ref'] == get_kong_wang(day_gz[0], day_gz[1])['zhi']
+        assert kw['year_ref'] == get_kong_wang(year_gz[0], year_gz[1])['zhi']
+        assert kw['zhi'] == kw['day_ref']

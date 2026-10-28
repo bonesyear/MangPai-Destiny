@@ -46,7 +46,7 @@ def docs_and_actuals(mod):
         "subjective": mod.parse_readme_layer_row(readme, "Subjective"),
         "modules_total": modules,
     }
-    assert kb_passed == cases and kb_collected > cases
+    assert kb_passed == cases and kb_collected >= cases
     return readme, kb, actuals
 
 

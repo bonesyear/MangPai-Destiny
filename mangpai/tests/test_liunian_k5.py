@@ -352,3 +352,20 @@ class TestHechongHuying:
             [{'gz': '庚辰', 'year': 2000}],
             ['甲', '丙', '戊', '庚'], ['子', '寅', '午', '戌'], '戊')
         assert 'hechong_yingqi' not in out2['liunian'][0]
+
+    def test_liunian_does_not_use_natal_kong_wang(self):
+        # 流年不讲空亡（中级:1591），不能把本命戌空套到甲戌流年；大运仍分域保留。
+        out = analyze_liunian_mangpai(
+            [{'gz': '甲戌', 'year': 2024}],
+            ['甲', '丙', '甲', '己'], ['戌', '午', '子', '巳'], '甲',
+            kong_wang={'zhi': ['戌']})
+        r = out['liunian'][0]
+        assert r['is_kong_wang'] is False
+        assert '地支空亡' not in r['desc']
+
+        from mangpai.subjective.dayun import analyze_dayun_mangpai
+        dy = analyze_dayun_mangpai(
+            [{'gz': '甲戌', 'start_age': 5}],
+            ['甲', '丙', '甲', '己'], ['戌', '午', '子', '巳'], '甲',
+            kong_wang={'zhi': ['戌']})
+        assert dy['dayun'][0]['is_kong_wang'] is True

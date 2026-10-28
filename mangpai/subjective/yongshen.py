@@ -572,8 +572,8 @@ def detect_bijiao_duocai(
     其功神(from_pos 主气)=比劫、被制(to_pos 主气)=财，且财弱（明现≤1柱）。
     严重度：比劫≥2柱 或 财被≥2处比劫制 -> severe（清家荡产/贫）。
 
-    段氏「制财得财」以功神非比劫为前提；功神=比劫即「夺财」破财，与
-    蒋介石（印制财=得财）、LIU8（印制财=七杀当财）相区别。
+    比劫制财须分域：身强财孤可夺为破财；财忌弱制、财多身弱无印用劫、
+    财虚受制或主劫客财则属第24期比劫去财格，不混入夺财。破从夺财优先。
 
     两道书锚豁免（G0-G5 模式，precision pass）：
       R1a 财旺夺不动：身强而财明现≥2柱（财有众），比劫夺之不动——
@@ -590,7 +590,8 @@ def detect_bijiao_duocai(
     Returns:
         {'detected': bool, 'severity': 'severe'|'normal'|None,
          'strength': str, 'cai_pillars': int, 'bijiao_pillars': int,
-         'reason': str}
+         'reason': str, 'qucai_detected': bool, 'qucai_kind': str,
+         'qucai_reason': str}
     """
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
         return {'detected': False, 'severity': None, 'reason': ''}
@@ -639,36 +640,33 @@ def detect_bijiao_duocai(
     heban_pos |= set(detect_zihe(gans, zhis).get('ban_gan_positions') or [])
     duocai_hits = 0
     hit_descs: List[str] = []
+    qucai_actions: List[tuple] = []
     for a in wa:
-        if (a.get('auxiliary')
-                or a.get('relation_direction') in ('mutual', 'unknown')):
+        if a.get('auxiliary') or a.get('relation_direction') == 'unknown':
             continue
         t = a.get('type', '')
-        if t not in ('冲', '克', '穿', '破', '刑'):
-            continue
         fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
         if not (fp and tp):
             continue
+        if a.get('relation_direction') == 'mutual' and t not in ('暗合', '地支合'):
+            continue
         # 排除 day_gan 作比劫 actor：日主克财=「我克者财」（得财），非比劫夺财。
-        # 段氏夺财特指他柱同辈（比劫星）制财；day_gan 命中一律跳过。
         if fp == 'day_gan':
             continue
-        # R1b：比劫功神位为紧贴合绊之受害方者失去原性，不能夺财
-        # （合绊者不克害；辰酉合等非受害方不受此限——合化反助者不豁免）。
-        if fp in heban_pos:
+        fc = _wx_cat(dw, _pos_main_wx(fp, gans, zhis))
+        tc = _wx_cat(dw, _pos_main_wx(tp, gans, zhis))
+        # 官星护财豁免只用于夺财；第24期卯申暗合去财不因此反删。
+        if t in ('冲', '克', '穿', '破', '刑', '暗合', '地支合', '天干合'):
+            if fc == '比劫' and tc == '财' and fp not in heban_pos:
+                qucai_actions.append((t, fp, tp))
+            elif (t in ('暗合', '地支合', '天干合') and fc == '财' and tc == '比劫'
+                  and tp not in heban_pos):
+                qucai_actions.append((t, tp, fp))
+        if t not in ('冲', '克', '穿', '破', '刑'):
             continue
-        # R1d（K3-294批6 A11）：夺财比劫被官杀明现制住者失能，不论夺财——
-        # 「官合劫/官制劫」=官星护财（书锚 gj-公门转商「财生官，官合劫，印
-        # 生身，五行流转有情，故能成小富之局」：酉刃夺寅财而午官制酉；
-        # 同法理 cj-富发财「官杀制比劫…发财」）。反锚：第9期群劫夺午财
-        # 无官制（清家荡产）/王亚樵酉刃无火制，俱不动。
-        if fp in guanhu_pos:
+        if fp in heban_pos or fp in guanhu_pos:
             continue
         # R1c（从弱·D类从格细则）：从弱财为顺势，比劫须「逆势有力」方破格。
-        # 功神干虚透无本气根者从化无力（《授课》「天干比肩再多也无用」，
-        # 22期例1 辛劫虚透、从财格乙亥年发财）；功神支入三合/半合而局五行
-        # =财者，比劫从化入财势（「巳顺从酉势」，例199/200 从财富有/发大财），
-        # 俱非逆势破格，不论夺财。
         if strength == '从弱':
             fp_elem = _pos_main_wx(fp, gans, zhis)
             if fp.endswith('_gan'):
@@ -689,11 +687,44 @@ def detect_bijiao_duocai(
                             break
                 if _cong_hua:
                     continue  # 比劫从化入财势
-        fc = _wx_cat(dw, _pos_main_wx(fp, gans, zhis))
-        tc = _wx_cat(dw, _pos_main_wx(tp, gans, zhis))
         if fc == '比劫' and tc == '财':
             duocai_hits += 1
             hit_descs.append(f'{t} {fp}(比劫)→{tp}(财)')
+
+    qucai_kind = ''
+    if qucai_actions:
+        has_yin = any(
+            _wx_cat(dw, GAN_WX.get(g, '')) == '印'
+            or _wx_cat(dw, ZHI_WX.get(z, '')) == '印'
+            for g, z in zip(gans, zhis)
+        )
+        cai_mentions = sum(GAN_WX.get(g, '') == caiwx for g in gans) \
+            + sum(ZHI_WX.get(z, '') == caiwx for z in zhis)
+        cai_xu_tou = any(
+            GAN_WX.get(g, '') == caiwx
+            and not any(ZHI_WX.get(z, '') == caiwx for z in zhis)
+            for g in gans if g
+        )
+        cai_xu = cai_pillars <= 1 or cai_xu_tou
+        guan_count = sum(
+            1 for g, z in zip(gans, zhis)
+            if _wx_cat(dw, GAN_WX.get(g, '')) == '官杀'
+            or _wx_cat(dw, ZHI_WX.get(z, '')) == '官杀'
+        )
+        main_guest = any(
+            fp.startswith(('day_', 'hour_')) and tp.startswith(('year_', 'month_'))
+            for _t, fp, tp in qucai_actions
+        )
+        if strength == '身弱' and cai_mentions >= 2 and not has_yin:
+            qucai_kind = '财多身弱无印用劫'
+        elif strength == '身弱' and guan_count >= 2 and cai_xu:
+            qucai_kind = '官杀多身弱财虚受制'
+        elif strength in ('身弱', '从强') and cai_xu:
+            qucai_kind = '财忌弱制'
+        elif cai_xu_tou:
+            qucai_kind = '财虚受制'
+        elif main_guest and bijiao_pillars >= 2:
+            qucai_kind = '主劫客财'
 
     # R1a：身强须财孤（明现≤1柱）方可夺；财明现≥2柱为财有众，比劫夺之
     # 不动（「身旺财旺…发财」，例134），其制财动作归「制财得财」财命域。
@@ -707,9 +738,11 @@ def detect_bijiao_duocai(
     pocong = strength == '从强' and cai_pillars <= 1 and bijiao_pillars >= 2 \
         and any(h.startswith('冲') for h in hit_descs) \
         and any(ZHI_WX.get(z, '') == caiwx for z in zhis if z)
-    detected = pocong or bool(hit_descs) and (
+    if pocong:
+        qucai_kind = ''
+    detected = pocong or (not qucai_kind and bool(hit_descs) and (
         (strength == '身强' and cai_pillars <= 1) or strength == '从弱'
-    )
+    ))
     severity = None
     reason = ''
     if detected:
@@ -731,6 +764,10 @@ def detect_bijiao_duocai(
         'detected': detected, 'severity': severity, 'strength': strength,
         'cai_pillars': cai_pillars, 'bijiao_pillars': bijiao_pillars,
         'hits': hit_descs, 'reason': reason,
+        'qucai_detected': bool(qucai_kind),
+        'qucai_kind': qucai_kind,
+        'qucai_reason': (f'比劫去财格·{qucai_kind}：财星为忌或主劫客财，'
+                         f'虚弱财星被比劫制取（珍宝24期:787-807）' if qucai_kind else ''),
     }
 
 
@@ -924,6 +961,15 @@ def detect_jishen_zhiyongshen(
         _dzh and _dzh.get('activated')
         and _wx_cat(dw, GAN_WX.get(_dzh.get('he_shen', ''), '')) == js_cat)
 
+    cai_chong = any(
+        a.get('type') in ('冲', '穿')
+        and not a.get('auxiliary')
+        and a.get('relation_direction') not in ('mutual', 'unknown')
+        and a.get('from_pos') != 'day_gan'
+        and _wx_cat(dw, _pos_main_wx(a.get('from_pos', ''), gans, zhis)) == '比劫'
+        and _wx_cat(dw, _pos_main_wx(a.get('to_pos', ''), gans, zhis)) == '财'
+        for a in wa
+    )
     hits: List[str] = []
     for a in wa:
         if (a.get('auxiliary') or a.get('relation_direction') == 'unknown'
@@ -949,6 +995,8 @@ def detect_jishen_zhiyongshen(
         if fc == js_cat and tc == ys_cat:
             if _same_sanhe(fp, tp):
                 continue  # (b) 贪合忘克：同入三合局，局内不论相克
+            if kind == '印夺食' and t in ('冲', '穿') and cai_chong:
+                continue  # 两组冲/穿分制财与财之原神，属投资组合作功（理象学:11333）
             hits.append(f'{t} {fp}({js_cat})→{tp}({ys_cat})')
 
     detected = bool(hits)
@@ -1555,9 +1603,10 @@ def detect_heban_yongshen(
     """用神被合绊检测（R3）。
 
     判定：扶抑定用忌（中和/不明不定，不触发）；扫原局**紧贴**（相邻柱）合：
-      - 地支六合：受害方（_LIUHE_VICTIMS，合克/合伤/闭气之被伤侧）十神为
-        用神 -> 命中（化例三中堂 子丑合绊丑根 正例；受害方为忌神=忌神被绊吉，
-        不触发，如 李嘉诚 未午合）；
+      - 地支六合按受绊字的宾主×喜忌：宾忌吉、主忌凶、宾喜不吉、主喜吉；
+        逐侧处理双方，不再只凭「用神受绊」或「用用相合」一刀切；原神直接生
+        受绊用神、财库刑冲、日支得财来合、日支泄秀及主位合日主比劫之墓，
+        均有直接书证属组合做功，不按通用合绊处理；
       - 天干五合：互绊（合即双方失去原性），但只判他干紧贴（年干×月干）；
         日干参与之合属 zuogong「合用」做功层（合财/合官），不在此论。
     **做功参与抑制**：受绊方若同时参与非辅助**冲**（from/to 任一），则该神
@@ -1599,10 +1648,8 @@ def detect_heban_yongshen(
     _PK = ['year', 'month', 'day', 'hour']
     _PK_CN = ['年', '月', '日', '时']
     # ── 地支六合（紧贴，受害方判定）──
-    # 双侧顺势豁免：受害方为用神，但合之对方亦属用神类（顺势）者——两用神
-    # 相合为顺势内部生合（如原神合财：从财格亥合寅，原神生财非失用，22期
-    # 例1 乙亥年发财正例），不论绊；合之对方为忌神者方论绊（qi03「戊寅年
-    # 本寅为喜神来生火，逢寅亥相合，喜神被合绊，故不吉」——彼造亥为忌神）。
+    # 四象限按受绊字宾主×喜忌判定；仅原神直接生受绊用神的组合不按合绊
+    # （22期例1 亥合寅=食伤生财），不恢复泛化的“用用相合”豁免。
     # 从格异党合去豁免（G5，30期作业答案 ans30 从禄格「丁火合去壬水财星」/
     # 32期「两忌神合绊主吉」）：从格一方成势，合对中异党（忌神）方**孤立**
     # （明现≤1）者，合去即成净——忌神被合去为主导语义（去忌得忌喜），不单论
@@ -1632,25 +1679,52 @@ def detect_heban_yongshen(
                 if k != 2 and GAN_WX.get(g) == wx) + \
             sum(1 for z in zhis if ZHI_WX.get(z) == wx)
         return n <= 1
+    cai_wx = WX_KE.get(dw, '')
+    cai_ku_work = set()
+    for action in _ensure_work_actions(day_gan, gans, zhis, work_actions):
+        if action.get('type') not in ('冲', '刑') \
+                or action.get('relation_direction') == 'unknown':
+            continue
+        for pos in (action.get('from_pos', ''), action.get('to_pos', '')):
+            if pos.endswith('_zhi') and pos[:-4] in _PK:
+                z = zhis[_PK.index(pos[:-4])]
+                if cai_wx in TOMB_MAP.get(z, []):
+                    cai_ku_work.add(z)
+    xie_xiu_positions = {
+        a.get('to_pos', '') for a in _ensure_work_actions(day_gan, gans, zhis, work_actions)
+        if a.get('type') == '食伤' and not a.get('auxiliary')
+    }
     for i in range(3):
         a, b = zhis[i], zhis[i + 1]
         victims = _LIUHE_VICTIMS.get(frozenset(a + b)) if a and b else None
         if not victims:
             continue
         for j, z in ((i, a), (i + 1, b)):
-            if z in victims and f'{_PK[j]}_zhi' not in engaged:
+            if (z in victims and f'{_PK[j]}_zhi' not in engaged
+                    and f'{_PK[j]}_zhi' not in xie_xiu_positions):
                 cat = _wx_cat(dw, ZHI_WX.get(z, ''))
                 if j == 2 and _day_cai_zihe and cat == '财':
                     continue  # G9 财合日主：日支自合之财已合入我身，邻合不夺其用
-                if cat in ys:
+                is_main = j >= 2
+                if z in cai_ku_work:
+                    continue  # 财库逢刑冲是做功，不按一般合绊（中级:2373-2376）
+                if (is_main and cat in js and ZHI_WX.get(z) != GAN_WX.get(day_gan)
+                        and GAN_WX.get(day_gan) in TOMB_MAP.get(z, [])):
+                    continue  # 主位合日主比劫之墓是做功，不按本气财星合绊（理象学:11591）
+                if (is_main and cat in js) or (not is_main and cat in ys):
                     partner = zhis[i + 1] if j == i else zhis[i]
                     pcat = _wx_cat(dw, ZHI_WX.get(partner, ''))
-                    if pcat in ys:
-                        continue  # 双侧顺势生合，不论绊
+                    if j == 2 and cat in js and pcat == '财' and pcat in ys:
+                        continue  # 日支得财来合是得财，不按本气为忌合绊（理象学:6757）
+                    if (cat in ys and pcat in ys
+                            and WX_SHENG.get(ZHI_WX.get(partner, '')) == ZHI_WX.get(z, '')):
+                        continue  # 原神直接生受绊用神是组合做功，非泛化的“用用相合”豁免
                     if cong_hequ_exempt and pcat in js \
                             and _ji_isolated(ZHI_WX.get(partner, '')):
                         continue  # 从格异党孤立合去=吉（忌神被合去成净），不论绊
-                    hits.append(f'{a}{b}合绊 {_PK_CN[j]}支{z}({cat}为用神受绊)')
+                    side = '主' if is_main else '宾'
+                    kind = '忌' if cat in js else '用'
+                    hits.append(f'{a}{b}合绊 {side}位{_PK_CN[j]}支{z}({cat}为{kind}神受绊)')
     # ── 天干五合（他干紧贴=年干×月干，互绊）──
     # 日主争合整对豁免（K3-294批4，限扶抑格）：日主与该五合之一方相合者，
     # 合对两干皆在日主争合/合用之境（zuogong「合用」做功层：合财/合官），
@@ -1910,12 +1984,18 @@ def direction_brief(direction_result: Optional[Dict]) -> Dict:
     return {
         'direction': d.get('direction', '中性'),
         'fanju': bool(d.get('fanju')),
+        'natal_fanju': bool(d.get('natal_fanju')),
+        'dayun_fanju': bool(d.get('dayun_fanju')),
+        'liunian_fanju': bool(d.get('liunian_fanju')),
         'suiyun_fanju': bool(d.get('suiyun_fanju')),
         'pocai': bool(d.get('pocai')),
         'pocai_severe': bool(d.get('pocai_severe')),
         'yongshen_xiong': bool(d.get('yongshen_xiong')),
         'mingju_xiong': bool(d.get('mingju_xiong')),
         'reasons': list(d.get('reasons') or []),
+        'dayun_reasons': list(d.get('dayun_reasons') or []),
+        'liunian_reasons': list(d.get('liunian_reasons') or []),
+        'suiyun_reasons': list(d.get('suiyun_reasons') or []),
         # G5/G1 标注（不影响吉凶判定）
         'cong_label': (d.get('cong_target') or {}).get('label', ''),
         'gan_xiji_fit': (d.get('gan_xiji') or {}).get('month_fit', ''),
@@ -1934,14 +2014,12 @@ def assess_direction_signals(
 ) -> Dict:
     """聚合「凶向」信号，供 caiming/guanming/zhiye 反哺降档/否决。
 
-    凶向 = 反局(fan，原局反局 OR 当前运岁反局) OR 坐牢(risk≥中) OR 比劫夺财(R1)
-    OR 忌神制用神(R2) OR 用神被合绊(R3)。（旧「过河拆桥破财」冒称中级口径，
-    zhongji:2976-2978 明文发大财，已移除；guohe_pocai 键保留兼容，恒 False。）
+    原局凶向 = 原局反局 OR 比劫夺财(R1) OR 忌神制用神(R2) OR 用神被合绊(R3)
+    OR 原局凶式；比劫去财格不计夺财，破从优先。（guohe_pocai 保留兼容，恒 False。）
 
-    yunfan_result（A1）：「当前运岁」反局切片（yunfan.current_fan_slice 产出，
-    含 dayun_fan/liunian_fan/sui_yun_liandong 三键）。原局本正而运岁引动反局
-    者，其岁为凶（《高级命理学》3.3「变而反局，灾祸立现」）——与原局反局同链
-    消费：财命封顶/官命否决（同受正向官命结构门槛保护）/军警 gating。
+    yunfan_result 只用于分域：fanju/reasons/direction 只表示原局；
+    dayun_fanju/liunian_fanju 及各自 reasons 独立返回，suiyun_* 仅作当前运岁汇总，
+    供全量运岁财档、灾祸和应期显式消费，不并入终身财/官/职否决链。
 
     Returns:
         {'direction': '吉'|'凶'|'中性',
@@ -1952,13 +2030,15 @@ def assess_direction_signals(
          'yongshen_xiong': bool, 'reasons': [str], 'suiyun_reasons': [str]}
     """
     if not (day_gan and gans and zhis and len(gans) == 4 and len(zhis) == 4):
-        return {'direction': '中性', 'fanju': False, 'fanju_caixing': False,
+        return {'direction': '中性', 'fanju': False, 'natal_fanju': False,
+                'dayun_fanju': False, 'liunian_fanju': False, 'fanju_caixing': False,
                 'suiyun_fanju': False,
                 'laoyu_risk': '无',
                 'bijiao_duocai': {}, 'pocai': False, 'pocai_severe': False,
                 'guohe_pocai': False,
                 'jishen_zhiyongshen': {}, 'heban_yongshen': {},
-                'yongshen_xiong': False, 'reasons': [], 'suiyun_reasons': []}
+                'yongshen_xiong': False, 'reasons': [], 'dayun_reasons': [],
+                'liunian_reasons': [], 'suiyun_reasons': []}
 
     gl = gongliang_result or {}
     # R1：优先读 gongliang 已算得的 pocai_signal；缺省自算
@@ -2026,24 +2106,25 @@ def assess_direction_signals(
                 for z in (zf.get('k24_chong_zhis') or [])
             )
 
-    # 岁运反局（A1）：当前运/岁反局 + 岁运联动，接入同一否决链。
-    # 流年 fans 内已含岁运联动条目（fans.extend(sui_fans)），故流年段跳过
-    # 「岁运联动」前缀，联动单独列段，避免同一信号双计。
-    suiyun_reasons: List[str] = []
+    # 原局、运、岁分域：运岁理由只进运岁字段，不回写原局 fanju/reasons。
+    dayun_reasons: List[str] = []
+    liunian_reasons: List[str] = []
     sy = yunfan_result or {}
     for d in (sy.get('dayun_fan') or []):
         for f in (d.get('fans') or []):
-            suiyun_reasons.append(f"岁运反局·大运{d.get('gz', '')}：{f.get('fan_type', '')}")
+            dayun_reasons.append(f"岁运反局·大运{d.get('gz', '')}：{f.get('fan_type', '')}")
     for d in (sy.get('liunian_fan') or []):
         for f in (d.get('fans') or []):
             ft = f.get('fan_type', '')
-            if ft.startswith('岁运联动'):
-                continue
-            suiyun_reasons.append(f"岁运反局·流年{d.get('gz', '')}({d.get('year', '')})：{ft}")
+            if not ft.startswith('岁运联动'):
+                liunian_reasons.append(f"岁运反局·流年{d.get('gz', '')}({d.get('year', '')})：{ft}")
     for d in (sy.get('sui_yun_liandong') or []):
         for f in (d.get('liandong') or []):
-            suiyun_reasons.append(f"岁运联动·{d.get('gz', '')}({d.get('year', '')})：{f.get('fan_type', '')}")
-    suiyun_fanju = bool(suiyun_reasons)
+            liunian_reasons.append(f"岁运联动·{d.get('gz', '')}({d.get('year', '')})：{f.get('fan_type', '')}")
+    suiyun_reasons = dayun_reasons + liunian_reasons
+    dayun_fanju = bool(dayun_reasons)
+    liunian_fanju = bool(liunian_reasons)
+    suiyun_fanju = dayun_fanju or liunian_fanju
     # G5 岁运吉向标注（合去/合绊忌神=去忌得忌喜；标注层，不入凶向否决链）
     suiyun_ji_reasons: List[str] = []
     for d in (sy.get('dayun_ji') or []):
@@ -2053,7 +2134,7 @@ def assess_direction_signals(
         for f in (d.get('jis') or []):
             suiyun_ji_reasons.append(f"岁运吉向·流年{d.get('gz', '')}({d.get('year', '')})：{f.get('ji_type', '')}")
 
-    fanju = natal_fanju or suiyun_fanju
+    fanju = natal_fanju
     laoyu_risk = ly.get('risk', '无') if ly else '无'
     # 注：laoyu(牢狱)检测在富贵局上系统性过火（如李嘉诚/克林顿/例八皆判 risk=高
     # 而实非牢狱），故仅作信息保留，不计入凶向否决/降档触发，避免误伤正当富贵。
@@ -2071,11 +2152,6 @@ def assess_direction_signals(
         reasons.append(f"反局（{zf.get('configuration', '')}）")
         if fanju_caixing:
             reasons.append('财星反局（财本气支在冲对中被坏，主大凶）')
-    if suiyun_fanju:
-        # 岁运反局条目多（一运/岁可命中多类型），截取前 3 条示意见 suiyun_reasons
-        reasons.extend(suiyun_reasons[:3])
-        if len(suiyun_reasons) > 3:
-            reasons.append(f'岁运反局等共{len(suiyun_reasons)}条')
     if bijiao.get('detected'):
         reasons.append(bijiao.get('reason', '比劫夺财破财'))
     if guohe_pocai:
@@ -2096,6 +2172,9 @@ def assess_direction_signals(
     return {
         'direction': direction,
         'fanju': fanju,
+        'natal_fanju': natal_fanju,
+        'dayun_fanju': dayun_fanju,
+        'liunian_fanju': liunian_fanju,
         'fanju_caixing': fanju_caixing,  # A15 财星反局（severe 级，封顶贫）
         'suiyun_fanju': suiyun_fanju,
         'laoyu_risk': laoyu_risk,
@@ -2117,6 +2196,8 @@ def assess_direction_signals(
         'cong_target': cong_target,        # G5 从格所从分类（标注/消费两用）
         'gan_xiji': gan_xiji,              # G1 十干喜忌月令标注（辅助票）
         'reasons': reasons,
+        'dayun_reasons': dayun_reasons,
+        'liunian_reasons': liunian_reasons,
         'suiyun_reasons': suiyun_reasons,
         'suiyun_ji_reasons': suiyun_ji_reasons,  # G5 岁运吉向标注（不入凶链）
     }

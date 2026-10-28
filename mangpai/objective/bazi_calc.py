@@ -786,7 +786,10 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
         pillars['year_gz'], pillars['month_gz'],
         pillars['day_gz'], pillars['hour_gz'],
     )
-    kong_wang = get_kong_wang(day_gan, day_zhi)
+    day_kw = get_kong_wang(day_gan, day_zhi)
+    year_kw = get_kong_wang(pillars['year_gz'][0], pillars['year_gz'][1])
+    kong_wang = {**day_kw, 'day_ref': day_kw.get('zhi', []),
+                 'year_ref': year_kw.get('zhi', [])}
     zhis = [pillars[k][1] for k in ('year_gz', 'month_gz', 'day_gz', 'hour_gz')]
     rels = get_di_zhi_relations(zhis)
     da_yun = compute_da_yun(year, month, day, hour, minute, gender, fp)

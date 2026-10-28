@@ -554,14 +554,14 @@ def _check_kong_wang(
     dy_zhi: str,
     kong_wang: Any,
 ) -> bool:
-    """检查大运地支是否空亡。"""
+    """原局日/年参照下，大运地支是否空亡；流年不调用。"""
     if not kong_wang:
         return False
     if isinstance(kong_wang, list):
         return dy_zhi in kong_wang
     if isinstance(kong_wang, dict):
         zhis = kong_wang.get('zhi', kong_wang.get('zhis', []))
-        return dy_zhi in zhis
+        return dy_zhi in zhis or dy_zhi in (kong_wang.get('year_ref') or [])
     return False
 
 
@@ -574,6 +574,7 @@ def _analyze_pillar_interaction(
     natal_fei_shen: Optional[List[str]] = None,
     kong_wang: Any = None,
     tomb_extra_gans: Optional[List[str]] = None,
+    is_liunian: bool = False,
 ) -> Dict:
     """分析单个外部柱（大运/流年）与本命的互动--纯检测层。
 
@@ -583,6 +584,7 @@ def _analyze_pillar_interaction(
 
     tomb_extra_gans：透干引拔的额外天干（如流年干），纳入墓库开库引拔判定；
     默认 None 保持大运分析既有行为（仅本命天干透干引拔）。
+    is_liunian=True 时不套本命空亡（中级:1591「流年不讲空亡」）。
     """
     gan_relations = _analyze_gan_relations(pillar_gan, natal_gans, day_gan)
     zhi_relations = _analyze_zhi_relations(pillar_zhi, natal_zhis)
@@ -591,7 +593,7 @@ def _analyze_pillar_interaction(
     qishi_change = _analyze_qishi_change(pillar_gan, pillar_zhi, natal_gans, natal_zhis)
     lu_blade = _analyze_lu_blade(pillar_zhi, day_gan)
     changsheng = _analyze_changsheng(pillar_zhi, day_gan)
-    is_kong = _check_kong_wang(pillar_zhi, kong_wang)
+    is_kong = False if is_liunian else _check_kong_wang(pillar_zhi, kong_wang)
 
     fei_shen_activated: List[Dict] = []
     if natal_fei_shen:

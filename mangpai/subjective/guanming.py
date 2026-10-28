@@ -789,6 +789,19 @@ def classify_guanming_combo(
                 shengyong.append('伤官诀')
                 details.append(sg['desc'])
 
+    # 印重须佩财：月令干支同印、无财佩印且无处泄秀，才是杀被印泄尽。
+    yin_over_shed = bool(
+        yin_wx and cai_wx and '印化官杀' in shengyong
+        and GAN_WX.get(gans[1]) == yin_wx and ZHI_WX.get(zhis[1]) == yin_wx
+        and not any(GAN_WX.get(g) == cai_wx or ZHI_WX.get(z) == cai_wx
+                    for g, z in zip(gans, zhis))
+        and not any(GAN_WX.get(g) == shishang_wx for g in gans if g)
+    )
+    if yin_over_shed:
+        shengyong = [s for s in shengyong if s != '印化官杀']
+        details.append('印绶两重无财佩印且无处泄秀：杀被月令印星泄尽，官杀及印类组合不立官'
+                       '（shouke:1322/5700-5704）')
+
     # 官命成立：制用组合、印化官杀或书证伤官诀（化用真功/局象）命中。
     # G4：官禄格/印带官帽单独不立官命；伤官诀是独立书例，不在此限。
     shengyong_core = [s for s in shengyong if s in ('印化官杀', '伤官诀')]
@@ -883,7 +896,7 @@ def classify_guanming_combo(
             '官被收墓不作功，不立官命（chuji:1405/1409/3161）')
     is_guanming = bool(combos or shengyong_core) and (
         has_guansha or _yin_combo_hit or bool(shengyong)) and not guan_zhi_zhikong \
-        and not guan_rumu_bukai
+        and not guan_rumu_bukai and not yin_over_shed
 
     return {
         'zhiyong_combos': combos,
@@ -1152,11 +1165,7 @@ def assess_guanming_level(
 ) -> Dict:
     """官命层次量化（高级篇 8.3）：消费 gongliang 四档定性 + 有根判据。
 
-    层次映射（理象学:6019-6022「一层功能达到科级到处级；二层处级到厅级；
-    三层厅级到省部级；四层总理或元首级」，与 gongliang._RANK_GRADE 同口径
-    ——F6 备案的 grade_map L3 口径差本批收口）：
-      gongliang level 4 → 总理-元首级；3 → 厅级-省部级；
-      2 → 处级-厅级；1 → 科级-处级。
+    功量层只提供定性层级；具体官级须另有 rank_grade 证据，不从 level 直推。
     叠加虚透判据：有根=实权落实；虚透=虚名（名誉职位非实权）。
 
     Returns:
@@ -1173,9 +1182,7 @@ def assess_guanming_level(
         day_gan = p.day_gan
     gl = gongliang_result or {}
     level = gl.get('level', 0) if gl else 0
-    grade_map = {4: '总理-元首级', 3: '厅级-省部级',
-                 2: '处级-厅级', 1: '科级-处级'}
-    grade = grade_map.get(level, '未定（缺 gongliang 功量层）')
+    grade = gl.get('rank_grade') or '未定（缺官级独立证据）'
 
     yg = detect_guansha_yougen(day_gan, gans or [], zhis or [])
     if yg['xutou']:
@@ -1254,8 +1261,8 @@ def analyze_guanming(
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
     gongliang_result 缺省时自动调用 gongliang.analyze_gongliang 取四档定性。
     shensha_result: engine 透传的神煞结果（预留，官命尚未直接消费；备后用）。
-    yunfan_result: 「当前运岁」反局切片（yunfan.current_fan_slice 产出，A1）。
-      岁运反局入凶向否决链，与原局反局同受正向官命结构门槛保护。
+    yunfan_result: 「当前运岁」反局切片，仅作运岁风险展示；
+      终身 is_guanming 只读原局方向，运/岁字段独立返回，不直接否决。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
       免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
     gender: 性别（A12 女命夫宫域分流用，P2）；缺省 None 不触发，零行为变化。
@@ -1296,10 +1303,8 @@ def analyze_guanming(
         gl = analyze_gongliang(zg, day_gan, gans, zhis)
     level = assess_guanming_level(day_gan, gans or [], zhis or [], gl)
 
-    # ── 官命否决（P0 B 反 over-fire + M1）：反局/牢狱/比劫夺财破财/过河拆桥破财
-    # /忌神制用神(R2)/用神被合绊(R3) 任一凶向命中即否决官命（坐牢的、破财的、
-    # 乞丐不当官）。凶向信号缺省自调 zhengfan/laoyu/R1/R2/R3（engine 未透传
-    # laoyu，calib 直调亦可用）。
+    # ── 官命否决：仅读原局反局/破财/用忌及原局凶式；运岁只作独立展示字段。
+    # 凶向信号缺省自调 zhengfan/laoyu/R1/R2/R3，engine 可透传同一份结果。
     direction = assess_direction_signals(
         day_gan, gans or [], zhis or [],
         relations=relations, gongliang_result=gl,
@@ -1414,6 +1419,12 @@ def analyze_guanming(
         'is_guanming': is_guanming,
         'vetoed': vetoed,
         'veto_reasons': veto_reasons,
+        'dayun_fanju': bool(direction.get('dayun_fanju')),
+        'liunian_fanju': bool(direction.get('liunian_fanju')),
+        'suiyun_fanju': bool(direction.get('suiyun_fanju')),
+        'dayun_reasons': list(direction.get('dayun_reasons') or []),
+        'liunian_reasons': list(direction.get('liunian_reasons') or []),
+        'suiyun_reasons': list(direction.get('suiyun_reasons') or []),
         'primary_combo': primary_combo,
         'primary_hangye': hangye.get('primary', ''),
         'summary': summary,

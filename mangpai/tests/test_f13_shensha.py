@@ -120,3 +120,29 @@ def test_chehuo_guansha_label_l1():
     # 丙丁同透（官杀混杂）→ 「七杀」「正官」并标
     r2 = detect_chehuo('庚', ['丙', '丁', '庚', '甲'], ['酉', '亥', '午', '寅'])
     assert '七杀' in r2['xiong_shen'] and '正官' in r2['xiong_shen']
+
+
+def test_gan_yangren_all_five():
+    """理象学:4977 五个阳干均有天干刃；仅有对应天干而无地支刃也要检出。"""
+    for day_gan, blade in [('甲', '乙'), ('丙', '丁'), ('戊', '己'),
+                           ('庚', '辛'), ('壬', '癸')]:
+        ss = compute_shensha_ext(day_gan, ['寅', '午', '子', '戌'],
+                                 gans=[blade, '戊', day_gan, '戊'])
+        assert ss['羊刃']['gan'] == blade
+        assert ss['羊刃']['gan_in_pillars'] == ['year']
+
+
+def test_gan_yangren_engine_passes_all_stems():
+    from mangpai import MangpaiEngine
+    r = MangpaiEngine({
+        'bazi': {'year': '甲寅', 'month': '丙午', 'day': '甲子', 'hour': '乙戌'},
+        'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {},
+        'input': {'gender': '男', 'year': 1960},
+    }).compute_all()
+    assert r['shensha']['羊刃']['gan_in_pillars'] == ['hour']
+
+
+def test_zaisha_is_traditional_marker_not_scoring_signal():
+    ss = compute_shensha_ext('辛', ['申', '丑', '午', '巳'])
+    assert ss['灾煞']['layer'] == '传统(降级)'
+    assert ss['桃花']['layer'] == '传统(降级)'

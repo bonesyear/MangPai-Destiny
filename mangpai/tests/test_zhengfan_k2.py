@@ -148,6 +148,53 @@ def test_wuxiang_ricai_qiucai_no_fan():
     assert '五行相克相背' not in (zf.get('reason') or '')
 
 
+def test_rule2_day_gan_and_day_zhi_opposite():
+    """中级:152-157：日主克戊土、日支申冲寅木，两种意向相克则反局。"""
+    wa = [
+        {'type': '克', 'from_pos': 'day_gan', 'to_pos': 'hour_gan'},
+        {'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'year_zhi',
+         'relation_direction': 'directed'},
+    ]
+    zf = analyze_zhengfan(wa, None, ['丙', '庚', '甲', '戊'], ['寅', '午', '申', '寅'])
+    assert '日主之功与日支之功相反' in (zf.get('reason') or '')
+    assert zf['type'] == 'fan'
+
+
+def test_rule2_day_gan_and_day_zhi_same_direction():
+    """日主与日支同指木，不得仅凭柱位不同伪造规则②反局。"""
+    wa = [
+        {'type': '克', 'from_pos': 'day_gan', 'to_pos': 'hour_gan'},
+        {'type': '冲', 'from_pos': 'day_zhi', 'to_pos': 'year_zhi',
+         'relation_direction': 'directed'},
+    ]
+    zf = analyze_zhengfan(wa, None, ['丙', '庚', '甲', '甲'], ['寅', '午', '申', '寅'])
+    assert '日主之功与日支之功相反' not in (zf.get('reason') or '')
+
+
+def test_buffett_control_cai_and_yuanshen_not_fan():
+    """理象学:11333-11341：子午制财、寅申制财之原神是组合，非反局。"""
+    zf = _zf(['庚', '甲', '壬', '壬'], ['午', '申', '子', '寅'])
+    assert zf['type'] != 'fan'
+
+
+def test_baoersen_hour_zhi_control_is_not_damage():
+    """理象学:11536-11560：未/戌穿制财与原神，不把做功时支误作被坏。"""
+    zf = _zf(['乙', '戊', '己', '甲'], ['未', '子', '酉', '戌'])
+    assert zf['type'] != 'fan'
+
+
+def test_fuchouyun_joint_hecai_not_rule2_fan():
+    """理象学:5927-5930：甲乙合制己财并得助力，不按日主日支相反判反。"""
+    zf = _zf(['甲', '乙', '甲', '己'], ['寅', '亥', '戌', '巳'])
+    assert zf['type'] != 'fan'
+
+
+def test_zihe_day_cai_not_rule2_fan():
+    """li133：戊子日主自合合财、身旺财旺，不拆成日主日支相反。"""
+    zf = _zf(['戊', '丁', '戊', '壬'], ['戌', '丑', '子', '子'])
+    assert zf['type'] != 'fan'
+
+
 def test_wuxiang_shenghe_gong_no_fan():
     """生合化泄等和合之功不构相背（reg67-复例四：戊申 丙辰 丁巳 癸卯，
     书明文「此命有两个不同的功」发财数百万，旧口径假阳）→ 不判反局。"""

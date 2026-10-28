@@ -150,3 +150,21 @@ def test_disease_tables():
     assert '顽疾难愈' in get_disease_by_xing(['丑', '未', '戌'])
     assert get_disease_by_xing(['子', '卯'])     # 子卯刑（亦作破）
     assert get_disease_by_xing(['寅', '巳']) == []  # 寅巳仅两支不成申局不收
+
+
+def test_gongshen_uses_validated_pillar_body_table():
+    from mangpai.objective.gongshen import analyze_gongshen
+    r = analyze_gongshen('甲', '子', '丙', '寅', '戊', '午', '壬', '戌')
+    for key in PILLAR_BODY:
+        assert r['palaces'][key]['pillar_body'] == '、'.join(PILLAR_BODY[key])
+    assert '腿' in r['palaces']['year']['pillar_body']
+    assert '头' in r['palaces']['hour']['pillar_body']
+
+
+def test_gongshen_female_children_stars_follow_book():
+    from mangpai.objective.gongshen import analyze_gongshen
+    r = analyze_gongshen('甲', '子', '丙', '寅', '戊', '午', '壬', '戌',
+                         shishen={'hour_gan': '伤官', 'hour_zhi': '食神'}, gender='女')
+    # 中级:1906「女以伤为儿，食为女」，不是食儿伤女。
+    roles = {item['star']: item['liuqing'] for item in r['star_palace']}
+    assert roles == {'伤官': '儿子', '食神': '女儿'}

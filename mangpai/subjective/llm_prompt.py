@@ -30,9 +30,9 @@ SCHEMA_SPEC = """\
 - basis 数组每项 = 输入特征 JSON 中**逐字照抄**的字段路径，点分隔（如 "caiming.tier_static"、"gongliang.level"、"zuogong.work_types"），程序会逐条回解析，路径不存在即判违规——只引真实存在的字段，子键拿不准宁缺毋编，不得按命理常识臆测键名（特征 JSON 里没有的键一律不写）。
 - 数组字段（如 xiangfa_ops.juxiang、xiangfa_ops.all_findings、zuogong.work_actions、liunian_analysis.liunian）只允许引用数组名本身；禁止任何形式的下标（如 "xiangfa_ops.juxiang[7]"、"juxiang.7"），也禁止把数组当字典按内容取键（如 "juxiang.寒湿"）。
 - conclusion 措辞强度不得超出引擎断言：引擎给档位/倾向（如财命四档、官命是/否、灾祸风险档），你只能用同级或更弱措辞；引擎未给的具体金额、次数、年份、岁数一律不许编造，宁可断方向不断数。
-- 财运维的档位词只允许「巨富/富/小康/贫」四选一（引擎财档无「平」档，不得使用），且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格。
+- 财运维的档位词只允许「巨富/富/小康/贫」四选一（引擎财档无「平」档，不得使用），且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。tier_static 是终身原局档，tier 与 yunsui_delta 是显式运岁档，不得互相冒用。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格；无独立 wealth_grade/rank_grade 证据时，不得仅由 gongliang.level 推具体金额或官级。
 - 事业维的职业部分：主荐职业必须取自 zhiye.primary 对应桶；zhiye.primary 为空=引擎无明确职业倾向，必须如实说「无明确职业倾向」，禁止断言任何具体职业（高分桶只能作「倾向性参考」并注明引擎未定）。
-- 应期维：逐运吉凶以 dayun_analysis.dayun 各运 overall 与正负信号为准，逐年以 liunian_analysis 逐年 overall 为准，吉凶性质不得相反（凶运说成吉=翻转），吉凶参半须两面并陈；禁止脱离大运/流年表的泛化套话（如「近年多有是非」「晚景渐佳」），表外年份不许断言吉凶。
+- 应期维：逐运吉凶以 dayun_analysis.dayun 各运 overall 与正负信号为准；liunian_analysis.dayun_phase 为分看时读各运 segments，为统看时读当前运整运 overall。逐年以 liunian_analysis 逐年 overall 为准，不得用整运总评替代逐年结论；吉凶性质不得相反（凶运说成吉=翻转），吉凶参半须两面并陈；禁止脱离大运/流年表的泛化套话（如「近年多有是非」「晚景渐佳」），表外年份不许断言吉凶。
 - 迁移维：只许依据 qianyi.qianyi_yuanju 的 marker 与 qianyi.qianyi_yingqi 的应期窗叙述；措辞上限「迁移/远行」，绝对禁止「出国/移民/海外/国外/外国」（任何形态均不许，含否定式、解释式提及）；conclusion 只写迁移/远行的象本身，不要声明或解释你在遵守禁令；marker 与应期窗均空=无迁移信号，必须如实说明、不得断言迁移，且该维 basis 必须给空数组 []（qianyi 各键均空=无出处，禁止引用）；应期窗为或然窗，凡引用应期窗该维 confidence 锁「低」。
 - 相貌维：只许引用 xiangmao 各线 marker 的原文描述（秀气透干/金水伤官/活木见火/眼象/魅力/身材）；叙述正文任何位置不得出现「漂亮/美/丑/帅」字样，含「美/丑」的复合评价词（如曲线优美/体态柔美/秀美/俊美）同禁，不含美丑字的相貌结论词（标致/水灵/清秀/端庄/甜美）亦同禁（任何形态均不许，含否定式、解释式提及；相貌无档位，只述象不定性）；conclusion 只写象描述本身，不要声明或解释你在遵守禁令（「不评/不涉/不可写」类元表述也不许写）；marker 原文如遇「漂亮」二字（如秀气线性别分流语），引用时一律改写为「秀气」；各线均未命中=如实说无显著相貌特征，不得给任何相貌评价；弱线（魅力/身材）命中该维 confidence 锁「低」。
 - confidence 反映该维特征数据的完整度与一致性，不得全给「高」。
@@ -181,12 +181,16 @@ def _zhiye_anchor(features: dict) -> str:
 def _yingqi_anchor(features: dict) -> str:
     """本案应期锚定行（迭代 5，治 S1 应期维翻转/套话）：逐运+逐年吉凶锚。"""
     lines = []
+    phase = (features.get('liunian_analysis') or {}).get('dayun_phase')
     dys = (features.get('dayun_analysis') or {}).get('dayun') or []
     if dys:
         seg = []
         for d in dys:
-            nodes = (d.get('segments')
-                     if d.get('start_age') is not None and d.get('segments') else [d])
+            tongkan = bool(phase and phase.get('phase') == '统看'
+                           and phase.get('gz') == d.get('gz'))
+            nodes = ([d] if tongkan else
+                     (d.get('segments')
+                      if d.get('start_age') is not None and d.get('segments') else [d]))
             for node in nodes:
                 pos = '、'.join(str(x) for x in (node.get('positive_signals') or [])[:2])
                 neg = '、'.join(str(x) for x in (node.get('negative_signals') or [])[:2])
@@ -204,7 +208,6 @@ def _yingqi_anchor(features: dict) -> str:
     if lns:
         lines.append('流年逐年锚（liunian_analysis.liunian）：'
                      + '；'.join(f'{e.get("gz")}={e.get("overall")}' for e in lns))
-    phase = (features.get('liunian_analysis') or {}).get('dayun_phase')
     if phase:
         lines.append(f'大运分统：{phase.get("phase", "")}（{phase.get("reason", "")}）')
     if not lines:

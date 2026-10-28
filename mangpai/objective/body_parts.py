@@ -10,17 +10,12 @@ body_parts - 盲派干支身体部位映射·客观层（objective）·纯数据
   - 宫位身段主表取高级 4.5/中级共识（年腿足、时头面门户），
     ch11 宫位分野变体另存 PILLAR_BODY_CH11 备查。
 
-与既有模块关系（F1 批 2026-08-17 更正，原「唯一事实源」名不副实）：
-  - 本模块数据经逐项对书可信，但**未接线**：engine/subjective 零生产消费
-    （仅 __init__ re-export + 测试引用）。实际服役旧表 = gongshen.py
-    _PILLAR_BODY（年/时颠倒备案）与 zaihuo.py 自带四表。接线或收口决策
-    留后续批次，本批仅去冠名。
+与既有模块关系：
+  - gongshen 已复用 PILLAR_BODY（年腿足、时头面），不再另存年/时颠倒表；
+    zaihuo.py 疾病表（_HAI_DISEASE/_XING_DISEASE/_WX_ORGAN）仍各自维护，
+    尚未统一接入，不把本表自动当成未来吉凶信号。
   - xiangfa.py 的 'body' 字段为速记简版，保持不动、不回写、不互相 import
     （避免 objective 内部横向耦合）。
-  - zaihuo.py 疾病表（_HAI_DISEASE/_XING_DISEASE/_WX_ORGAN）与本表同构，
-    后续立项收口 import；本期不改 zaihuo。
-  - 已知存疑：gongshen._PILLAR_BODY 年/时柱身段与书中三处主表颠倒
-    （书：年=腿足、时=头面；码：年=头颈、时=腿足），另立 bug 单，不在本层迁就。
 置信度：高（主表直录原书；扩展层并录 ch4+中级类象，分键不合并）。
 """
 from typing import Dict, List

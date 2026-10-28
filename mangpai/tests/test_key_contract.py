@@ -155,3 +155,24 @@ def test_feature_only_keys_in_payload(payload):
     """特征直喂备案防腐：备案键须仍在 payload（被摘除则备案失效须同步删）。"""
     for key in LLM_FEATURE_ONLY_KEYS:
         assert key in payload, f'特征直喂备案键 {key!r} 已不在 payload（备案腐化）'
+
+
+def test_public_reexports_cover_existing_imports():
+    import mangpai
+    from mangpai import objective
+
+    xiang_exports = {
+        'get_shensha_xiang', 'get_liushi_ganzhi_xiang',
+        'SHENSHA_XIANG', 'LIUSHI_GANZHI_XIANG',
+    }
+    assert xiang_exports <= set(mangpai.__all__)
+    assert xiang_exports | {'detect_zihe'} <= set(objective.__all__)
+
+
+def test_prompt_uses_current_gongliang_contract():
+    text = (_REPO_ROOT / 'mangpai/subjective/prompts/mangpai.md').read_text(encoding='utf-8')
+    assert '伤官偏用' in text
+    assert '杀印相生' in text
+    assert '不得仅由 level 推具体金额或官级' in text
+    assert '富百万级' not in text
+    assert '天干合化' not in text

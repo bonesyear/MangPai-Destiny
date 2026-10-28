@@ -227,6 +227,14 @@ def test_scan_shengyong_empty_day_wx():
     assert r['work_actions'] == []
 
 
+def test_r6_natal_kong_wang_includes_year_reference():
+    from mangpai.objective.bazi_calc import get_kong_wang
+    det = detect_relations('甲', '子', '甲', '戌', '丙', '寅', '丁', '卯',
+                           get_kong_wang('甲', '子'))
+    # 日柱甲子空戌亥，年柱甲戌空申酉；原局以日/年柱并参（理象学:5084）
+    assert set(det['kong_wang_zhis']) >= {'戌', '亥', '申', '酉'}
+
+
 # ─────────── 3. _scan_shayin_huayong（杀印相生/化用）───────────
 
 def test_scan_shayin_huayong():
@@ -530,12 +538,15 @@ def test_collect_raw_facts_kong_wang_forms():
     gans, zhis = ['甲', '丙', '甲', '庚'], ['亥', '午', '未', '申']
     assert _collect_raw_facts('甲', gans, zhis, None)['kong_wang_zhis'] == set()
     assert _collect_raw_facts('甲', gans, zhis, [])['kong_wang_zhis'] == set()
-    assert _collect_raw_facts('甲', gans, zhis, ['子', '午'])['kong_wang_zhis'] == {'子', '午'}
-    assert _collect_raw_facts('甲', gans, zhis, {'zhi': ['寅']})['kong_wang_zhis'] == {'寅'}
+    from mangpai.objective.bazi_calc import get_kong_wang
+    year_kw = set(get_kong_wang(gans[0], zhis[0])['zhi'])
+    # 有效输入日/年并参，空输入仍不推断
+    assert _collect_raw_facts('甲', gans, zhis, ['子', '午'])['kong_wang_zhis'] == {'子', '午'} | year_kw
+    assert _collect_raw_facts('甲', gans, zhis, {'zhi': ['寅']})['kong_wang_zhis'] == {'寅'} | year_kw
     assert _collect_raw_facts('甲', gans, zhis,
-                              {'kong_wang_zhi': ['巳']})['kong_wang_zhis'] == {'巳'}
+                              {'kong_wang_zhi': ['巳']})['kong_wang_zhis'] == {'巳'} | year_kw
     # 脏数据过滤：非地支字符串被剔除
-    assert _collect_raw_facts('甲', gans, zhis, ['子', 'X'])['kong_wang_zhis'] == {'子'}
+    assert _collect_raw_facts('甲', gans, zhis, ['子', 'X'])['kong_wang_zhis'] == {'子'} | year_kw
 
 
 # ─────────── 13. 主函数编排契约 ───────────

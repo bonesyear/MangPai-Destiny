@@ -104,7 +104,7 @@ from mangpai.objective.constants import (
     CANG_GAN_MANGPAI, TOMB_MAP, PILLAR_KEYS,
     is_pillars,
 )
-from mangpai.objective.muku import is_entomb
+from mangpai.objective.muku import is_entomb, analyze_muku
 from mangpai.objective.bazi_calc import get_di_zhi_relations
 from mangpai.objective._relation_utils import he_control_target
 from mangpai.objective.shishen import wx_cat as _shishen_cat
@@ -166,15 +166,7 @@ _SCORE_BASE: Dict[int, int] = {0: 0, 1: 12, 2: 50, 3: 74, 4: 92}  # 0=无功（b
 # ── 高级篇1.4 补齐：带象所承之象限为 财/官杀/印（源文「其承载的象（财、官、印）」）──
 _DAIXIANG_XIANG: Set[str] = {'财', '官杀', '印'}
 
-# ── 高级篇1.4 补齐：富贵贫贱四档定性（与上文四层功 tier 表同口径，按 level 落档）──
-#   源文将富贵贫贱分四档（非三档），富/贵各按层功量化；此处把第六章 tier 表
-#   物化为结果字段，供领域层（财命/官命）直接消费。
-_WEALTH_GRADE: Dict[int, str] = {
-    1: '百万级', 2: '千万-亿级', 3: '亿-数十亿级', 4: '百亿-千亿级',
-}
-_RANK_GRADE: Dict[int, str] = {
-    1: '科级-处级', 2: '处级-厅级', 3: '厅级-省部级', 4: '总理-元首级',
-}
+# ── 富贵贫贱四档只保留定性层名，金额与官级由领域证据另行判定 ──
 _FUGUI_PINJIAN: Dict[int, str] = {
     1: '第一档·小富小贵（普通偏上）',
     2: '第二档·中富中贵',
@@ -292,9 +284,11 @@ def analyze_gongliang(
           'gong_shen_cats': [str, ...],  # 功神十神大类
           'chain_length': int,           # 层层相制最长链长
           'penalty': str|None,           # 普通四柱降档原因
-          'wealth_grade': str,           # 富量级（高级篇1.4 富贵贫贱四档）
-          'rank_grade': str,             # 贵量级（高级篇1.4 富贵贫贱四档）
+          'wealth_grade': str,           # 富量级（无独立证据时为空）
+          'rank_grade': str,             # 贵量级（无独立证据时为空）
           'fugui_pinjian': str,          # 富贵贫贱档名（四档定性，按 level 落档）
+          'evidence': [dict, ...],       # 最终计分的规则、目标、点数与理由
+          'annotations': [dict, ...],    # 被组合去重或否决撤销的证据
           'confidence': '中',
         }
     """
@@ -379,11 +373,12 @@ def analyze_gongliang(
         _tg_huai_struct=rules['_tg_huai_struct'],
         _tg_huai_note=rules['_tg_huai_note'],
         _yuanshen_family_pts=rules['_yuanshen_family_pts'],
+        evidence=rules['evidence'], annotations=rules['annotations'],
     )
     points = caps['points']  # G2：「天干坏之」否决成立后为撤销同制族之功量点
     zhi_jing: str = caps['zhi_jing']
     penalty: Optional[str] = caps['penalty']
-    raw_level: int = caps['raw_level']
+    raw_level: float = caps['raw_level']
     level: int = caps['level']
     pocai_signal: bool = caps['pocai_signal']
     pocai_severity: Optional[str] = caps['pocai_severity']
@@ -404,7 +399,8 @@ def analyze_gongliang(
         _strength_gl=caps['_strength_gl'],
         _zb_bao=zb_bao, _zb_clian=zb_clian, _zb_jing=zb_jing,
         pocai_signal=pocai_signal, pocai_severity=pocai_severity,
-        pocai_reason=pocai_reason,
+        pocai_reason=pocai_reason, evidence=rules['evidence'],
+        annotations=rules['annotations'],
     )
 
 
@@ -609,6 +605,72 @@ def _compute_position_sets(
     }
 
 
+def _reconcile_gong_evidence(
+    evidence: List[Dict],
+    *,
+    fang_ju_formed: bool,
+    san_he_formed: bool,
+    zb_bao_counted: bool,
+    zhiku_tombs: List[str],
+    active_tomb_works: List[Dict],
+    all_work_actions: List[Dict],
+    gans: List[str],
+    zhis: List[str],
+    day_wx: str,
+) -> tuple:
+    selected = list(evidence)
+    bundle: Optional[List[Dict]] = None
+    if fang_ju_formed and zhiku_tombs:
+        bundle = [
+            {'id': 'bundle:zhiku', 'target': zhiku_tombs[0], 'points': 2.0,
+             'reason': f'制墓库：制局冲/刑制墓库「{zhiku_tombs[0]}」（+2层）'},
+            {'id': 'bundle:shaku', 'target': zhiku_tombs[0], 'points': 1.0,
+             'reason': '杀库作功：杀库参与做功（+1层，理象学:6474）'},
+            {'id': 'bundle:baozhi', 'target': '方局', 'points': 1.0,
+             'reason': '包局/包制：方局（三会）成势围制（+1层）'},
+        ]
+    elif san_he_formed and zhiku_tombs and any(
+            _w for _w, _gen in WX_SHENG.items() if _gen == day_wx
+            and ZHI_WX.get(zhis[1], '') == _w):
+        bundle = [
+            {'id': 'bundle:zhiku', 'target': zhiku_tombs[0], 'points': 2.0,
+             'reason': '制去杀与杀的原神：双层功（理象学:10595-10601）'},
+            {'id': 'bundle:baozhi', 'target': '三合局', 'points': 1.0,
+             'reason': '包局/包制：三合局成势围制（+1层）'},
+            {'id': 'bundle:yueling_yin', 'target': zhis[1], 'points': 1.0,
+             'reason': f'月令见印：月令{zhis[1]}为强印，计整层（+1层）'},
+        ]
+    elif zb_bao_counted and active_tomb_works:
+        tomb_xing = next((wa for wa in all_work_actions
+                          if wa.get('type') == '刑'
+                          and any(_is_tomb(_elem_of(pos, gans, zhis))
+                                  for pos in (wa.get('from_pos', ''), wa.get('to_pos', ''))
+                                  if pos)), None)
+        if tomb_xing:
+            target = next((_elem_of(pos, gans, zhis)
+                           for pos in (tomb_xing.get('from_pos', ''), tomb_xing.get('to_pos', ''))
+                           if pos and _is_tomb(_elem_of(pos, gans, zhis))), '')
+            bundle = [
+                {'id': 'bundle:baozhi', 'target': '围制', 'points': 1.0,
+                 'reason': '包局/包制：围制结构（+1层）'},
+                {'id': 'bundle:rumu', 'target': active_tomb_works[0].get('to_pos', ''),
+                 'points': 1.0,
+                 'reason': f'入墓为功：{active_tomb_works[0].get("desc", "墓用做功")}（+1层）'},
+                {'id': 'bundle:zhiku', 'target': target, 'points': 2.0,
+                 'reason': f'制墓库：刑制墓库「{target}」（+2层）'},
+            ]
+    if bundle is not None:
+        selected = bundle
+    else:
+        drop_ids = {'rule:yuanshen'} if zhiku_tombs else set()
+        for e in selected:
+            if e['id'].startswith('rule:kaiku') and e.get('target') in zhiku_tombs:
+                drop_ids.add(e['id'])
+        selected = [e for e in selected if e['id'] not in drop_ids]
+    removed = [e for e in evidence if e not in selected]
+    return selected, removed
+
+
 def _apply_gong_point_rules(
     day_gan: str,
     day_wx: str,
@@ -632,11 +694,16 @@ def _apply_gong_point_rules(
     """计分规则集中执行（H-fix-5 ③，H11 方案）：原神用神同制+2/制墓库+2/
     七杀当财+1/入墓为功+1/库源连墓+1/包局+1/克链+1/zb 包制冲链有条件计入/
     金字塔冲链/包局2.6/带象/官统财/月令做功+0.5/墓库属性/开库/化用成局+2——
-    顺序、阈值、去重口径全部保持（体逐字搬移）；G2 增三条书证规则（合中心
-    并计/日主边剔链/天干坏之候选/月令见印整层，见模块 docstring G2 段）；
+    R8 逐项登记证据后按书证组合去重，点数只由最终选中证据求和；
+    G2 三条书证规则（合中心并计/日主边剔链/天干坏之候选/月令见印整层）；
     对 caiming 的消费保持函数内
     局部导入（H-fix-4c 循环依赖显式备案，gongliang⇢caiming 唯一回边）。"""
     reasons: List[str] = []
+    evidence: List[Dict] = []
+
+    def _emit(value: float) -> None:
+        evidence.append({'points': float(value)})
+
     points: float = 0.0
     # G2：同制族计分累计（同制/制墓库/七杀当财/库源连墓——「天干坏之」否决成立时
     #    整族撤销，见 caps 段；理象学:6354-6358）
@@ -694,7 +761,7 @@ def _apply_gong_point_rules(
             yuanshen_hit = f'{yong}+{yuan}'
             yuanshen_pos = pos
             if _he_center_merged:
-                points += 1
+                _emit(1)
                 _yuanshen_family_pts += 1
                 reasons.append(
                     f'原神用神同制：{pos}({elem})含用神「{yong}」与原神「{yuan}」同制，'
@@ -702,7 +769,7 @@ def _apply_gong_point_rules(
                     f'（理象学:6898-6912），同制族并计（+1层）'
                 )
             else:
-                points += 2
+                _emit(2)
                 _yuanshen_family_pts += 2
                 tier_hint = ('千万-亿级富命' if yong == '财'
                              else '厅级以上贵命' if yong == '官杀' else '两层功量')
@@ -745,7 +812,7 @@ def _apply_gong_point_rules(
         for pos in sorted(_zk_pos):  # sorted：首个命中即 break，理由文本须定序
             elem = _elem_of(pos, gans, zhis) if pos else ''
             if elem and _is_tomb(elem) and elem != _ys_elem_zk:
-                points += 2
+                _emit(2)
                 _yuanshen_family_pts += 2
                 _zhiku_tombs.append(elem)
                 reasons.append(f'制墓库：制局冲/刑制墓库「{elem}」（+2层）')
@@ -771,7 +838,7 @@ def _apply_gong_point_rules(
                         f'同根，惟日支合中心同族功量已并计一层，不重复计层（理象学:6912）'
                     )
                 else:
-                    points += 1
+                    _emit(1)
                     _yuanshen_family_pts += 1
                     reasons.append(
                         f'七杀当财：官杀透干({guansha_gan})与制局目标({yuanshen_pos}/{ys_elem})'
@@ -781,8 +848,8 @@ def _apply_gong_point_rules(
     # ── 4. 入墓为功 -> +1（局中有入墓(墓用)做功者算一层功）──
     #   只认 confirm 判定之真墓用（非 auxiliary，M4 放开后宾位入墓不计）。
     if active_tomb_works:
-        points += 1
-        reasons.append(f'入墓为功：局中墓用做功{len(active_tomb_works)}处（+1层）')
+        _emit(len(active_tomb_works))
+        reasons.append(f'入墓为功：局中墓用做功{len(active_tomb_works)}处（+{len(active_tomb_works)}层）')
 
     # ── 5. 库源/连墓 -> +1（被制元素之墓库在局，源头得库加一层）──
     #   源文（李嘉诚例）：「亥出自辰，从辰墓中引出，亥水有源头得到一个大的库，
@@ -813,7 +880,7 @@ def _apply_gong_point_rules(
                 if (z and _is_tomb(z) and ys_wx in _tomb_wx(z)
                         and z != ys_elem
                         and (ys_elem, z) not in _entombed_pairs):
-                    points += 1
+                    _emit(1)
                     _yuanshen_family_pts += 1
                     reasons.append(
                         f'库源/连墓：制局目标「{ys_elem}({ys_wx})」之墓库「{z}」在局，'
@@ -829,7 +896,7 @@ def _apply_gong_point_rules(
                     if (_mz and _mz != z
                             and is_entomb(_mz, z, zhis, gans)
                             and (_mz, z) not in _entombed_pairs):
-                        points += 1
+                        _emit(1)
                         _yuanshen_family_pts += 1
                         reasons.append(
                             f'连墓加层：月令「{_mz}」入墓于源头之库「{z}」，'
@@ -861,10 +928,10 @@ def _apply_gong_point_rules(
                         break
                 break
     if san_he_formed:
-        points += 1
+        _emit(1)
         reasons.append('包局/包制：三合局成势围制（+1层）')
     elif _fang_ju_formed:
-        points += 1
+        _emit(1)
         reasons.append('包局/包制：方局（三会）成势围制（+1层）')
 
     # ── 7. 层层相制 -> +1（乾隆式金字塔逐级相制，保守判定）──
@@ -886,7 +953,7 @@ def _apply_gong_point_rules(
                       and wa.get('to_pos') != 'day_gan']
     chain_len = _chain_length(_non_aux_chain, inert=_entombed_pos)
     if chain_len >= 2:
-        points += 1
+        _emit(1)
         reasons.append(f'层层相制：克链长{chain_len}级，逐级相制（+1层）')
 
     # ── 7'. 贼神捕神包制/冲链有条件计入（distrust 有条件翻转）──
@@ -901,12 +968,12 @@ def _apply_gong_point_rules(
     _zb_boost = 0.0  # bao/clian 计入的功量点（供边界判定：翻转是否 decisive）
     if (_zb_bao and _zb_bao.get('detected') and _zb_jing == '净'
             and not san_he_formed and not _fang_ju_formed):
-        points += 1
+        _emit(1)
         _zb_boost += 1
         _zb_bao_counted = True
         reasons.append('包局/包制：zb 净制佐证下采信围制（+1层）')
         if (_zb_clian and _zb_clian.get('detected') and chain_len < 2):
-            points += 1
+            _emit(1)
             _zb_boost += 1
             reasons.append('层层相制：zb 净制佐证下采信冲链（+1层）')
 
@@ -925,7 +992,7 @@ def _apply_gong_point_rules(
             and sum(1 for _lt, _la, _lb in _zb_clian.get('links', [])
                     if _lt == '冲') >= 2
             and _zb_jing == '净'):
-        points += 1
+        _emit(1)
         _zb_boost += 1
         _zb_pyramid = True
         reasons.append(
@@ -988,7 +1055,7 @@ def _apply_gong_point_rules(
                         _hit_forms.append(_name)
                         break
             if _hit_forms:
-                points += 1
+                _emit(1)
                 reasons.append(
                     f'包局2.6：年时{"/".join(_hit_forms)}，包围月日且制化所包（+1层）'
                 )
@@ -1013,7 +1080,7 @@ def _apply_gong_point_rules(
             if xiang not in _DAIXIANG_XIANG:
                 continue
             if f'{pk}_gan' in active_pos or f'{pk}_zhi' in active_pos:
-                points += 1
+                _emit(1)
                 reasons.append(
                     f'带象：{pk}柱{gg}{zz}干生支，承「{xiang}」象且参与做功（+1层）'
                 )
@@ -1031,7 +1098,7 @@ def _apply_gong_point_rules(
         cf = classify_caifu_view(day_gan, gans, zhis)
         tong = [v for v in (cf.get('views') or []) if '统' in v]
         if tong:
-            points += 1
+            _emit(1)
             reasons.append(f'统：{tong[0]}，官杀与财互统摄（+1层）')
 
     # ── M5 高级篇层功四余项（源文 mangpai-gaoji-ocr.txt 828-872「层功计算之基本法则」）──
@@ -1061,14 +1128,14 @@ def _apply_gong_point_rules(
                  if _trio <= set(zhis) and zhis[1] in _trio), '')
             if (_yue_wx and _yue_wx == _yin_wx_7e and _yue_trio_wx
                     and _yue_trio_wx != _yue_wx):
-                points += 1
+                _emit(1)
                 reasons.append(
                     f'月令见印：月令{zhis[1]}本气为日主之印、入三合局成势'
                     f'（化{_yue_trio_wx}非印本行，印化入做功之局），'
                     f'强有力的印，计整层（+1层，理象学:10600-10611）'
                 )
             else:
-                points += 0.5
+                _emit(0.5)
                 reasons.append(
                     f'月令做功：月令{zhis[1]}直接参与核心做功，提纲得时得令（+0.5层）'
                 )
@@ -1093,7 +1160,7 @@ def _apply_gong_point_rules(
     _zhiku_counted = bool(_zhiku_tombs)       # 制墓库已计（block 2）
     if (yuanshen_hit is None and not _rumu_counted and not _zhiku_counted
             and _tomb_elems_involved):
-        points += 1
+        _emit(1)
         reasons.append(
             f'墓库属性：墓库「{"、".join(_tomb_elems_involved)}」参与做功，'
             f'库之属性加层（+1层）'
@@ -1113,7 +1180,10 @@ def _apply_gong_point_rules(
                 el = _elem_of(pos, gans, zhis)
                 if el and _is_tomb(el):
                     _work_tombs.add(el)
-        _opened = False
+        _muku_result = analyze_muku(zhis, gans)
+        _touched_tombs = {t['zhi'] for t in _muku_result.get('touched_tombs', [])}
+        _controlled_tombs = {t['zhi'] for t in _muku_result.get('controlled_tombs', [])}
+        _opened: Set[str] = set()
         for wa in (non_aux if all_work_actions is None else all_work_actions):
             if wa.get('type') not in ('冲', '刑'):
                 continue
@@ -1130,19 +1200,23 @@ def _apply_gong_point_rules(
             positions = (wa.get('from_pos', ''), wa.get('to_pos', ''))
             if wa.get('type') == '刑' and relation_direction not in ('mutual', 'unknown'):
                 positions = (wa.get('to_pos', ''),)
+            if wa.get('type') == '冲':
+                indices = [PILLAR_KEYS.index(p.split('_')[0]) for p in positions
+                           if p.split('_')[0] in PILLAR_KEYS]
+                if len(indices) == 2 and abs(indices[0] - indices[1]) == 3:
+                    if {_elem_of(pk, gans, zhis) for pk in positions} & _touched_tombs:
+                        continue  # 遥冲无透干引拔仅动库，不记开库（初级:3447）
+            if {_elem_of(pk, gans, zhis) for pk in positions} & _controlled_tombs:
+                continue  # 近处无透干刑冲为制库，不记开库加层
             for pk in positions:
                 el = _elem_of(pk, gans, zhis)
-                if el and el in _work_tombs:
-                    _opened = True
-                    break
-            if _opened:
-                break
-        if _opened:
-            points += 1
-            reasons.append(
-                f'开库加层：做功墓库「{"、".join(sorted(_work_tombs))}」逢刑冲开库，'
-                f'功上加功（+1层）'
-            )
+                if (el and el in _work_tombs
+                        and pk in ('day_zhi', 'hour_zhi')):
+                    _opened.add(el)
+        for el in sorted(_opened):
+            _emit(1)
+            evidence[-1]['target'] = el
+            reasons.append(f'开库加层：做功墓库「{el}」逢刑冲开库，功上加功（+1层）')
 
     # ── 7d. 化用成局/从杀格 -> +2（化用成局为高层功量，与做功层次 L4 对齐）──
     #   段氏化用成局（zuogong_confirm 的 Level 4）为高层功量：杀印相生（官杀->印->
@@ -1187,7 +1261,7 @@ def _apply_gong_point_rules(
             dm_cnt = sum(1 for gg in gans if GAN_WX.get(gg) == day_wx)
             dm_cnt += sum(1 for zz in zhis if ZHI_WX.get(zz) == day_wx)
             if sha_cnt >= 3 and dm_cnt <= 2:
-                points += 2
+                _emit(2)
                 reasons.append(
                     f'化用成局/从杀格：杀印相生化用、官杀「{_sha_wx_7d}」党势成({sha_cnt}字)、'
                     f'日主从弱(比劫{dm_cnt}字)，纯化用路径（+2层，化用成局为高层功量）'
@@ -1214,7 +1288,7 @@ def _apply_gong_point_rules(
                     # 制局（段氏：化用成局可达四层）。+1 层使纯化用命越过制用三层
                     # 天花板。普通四柱（PUTONG）虽偶触发从杀格启发式，但被普通四柱
                     # 降档封顶覆盖，不受此加分影响。
-                    points += 1
+                    _emit(1)
                     reasons.append('化用成局高层功量：纯杀印相生化用、无制用做功竞争，'
                                    '化用路径效率高于制局（+1层，可达四层）')
     # ── G2 规则2候选：「天干坏之」结构检出（理象学:6354-6358 差例三）──
@@ -1253,8 +1327,29 @@ def _apply_gong_point_rules(
                         f'天干{"".join(_tou_sha)}并透（官杀混杂）来制日主、'
                         f'日主无印透干化杀'
                     )
+    for i, (item, reason) in enumerate(zip(evidence, reasons)):
+        item['reason'] = reason
+        if reason.startswith('原神用神同制'):
+            item['id'] = 'rule:yuanshen'
+        elif reason.startswith('开库加层'):
+            item['id'] = ('rule:kaiku' if item['target'] == sorted(_opened)[0]
+                          else f'rule:kaiku:{item["target"]}')
+        elif reason.startswith('层层相制：zb'):
+            item['id'] = 'chain:zb'
+        else:
+            item['id'] = f'rule_{i}'
+    evidence, annotations = _reconcile_gong_evidence(
+        evidence, fang_ju_formed=_fang_ju_formed,
+        san_he_formed=san_he_formed, zb_bao_counted=_zb_bao_counted,
+        zhiku_tombs=_zhiku_tombs, active_tomb_works=active_tomb_works,
+        all_work_actions=all_work_actions or non_aux, gans=gans, zhis=zhis,
+        day_wx=day_wx,
+    )
+    points = sum(item['points'] for item in evidence)
+    reasons = [item['reason'] for item in evidence]
     return {
         'points': points, 'reasons': reasons,
+        'evidence': evidence, 'annotations': annotations,
         'yuanshen_hit': yuanshen_hit, 'yuanshen_pos': yuanshen_pos,
         '_zhiku_tombs': _zhiku_tombs, '_fang_ju_formed': _fang_ju_formed,
         'chain_len': chain_len,
@@ -1297,6 +1392,8 @@ def _apply_caps_and_direction(
     _tg_huai_struct: bool,
     _tg_huai_note: str,
     _yuanshen_family_pts: float,
+    evidence: Optional[List[Dict]] = None,
+    annotations: Optional[List[Dict]] = None,
 ) -> Dict:
     """封顶/降档/方向标注（H-fix-5 ④，H11 方案）：制净程度判定+贼神捕神净制
     增强、普通四柱降档、层次映射+制不净/降档封顶、比劫夺财 R1 封顶/抑制、
@@ -1362,7 +1459,11 @@ def _apply_caps_and_direction(
     _tg_huai = False
     if _tg_huai_struct and zhi_jing == '不净':
         _tg_huai = True
-        points -= _yuanshen_family_pts
+        if evidence is not None:
+            if annotations is not None:
+                annotations.extend(evidence)
+            evidence.clear()
+        points = 0.0
         reasons.append(
             f'天干坏之否决：{_tg_huai_note}，且制不净——地支之制财官之局全被'
             f'天干坏，同制族计分撤销，一生没有富贵（无功，理象学:6354-6358）'
@@ -1377,8 +1478,9 @@ def _apply_caps_and_direction(
         reasons.append('普通四柱特征：' + penalty_note)
 
     # ── 层次映射 + 封顶 ──
-    raw_level = 4 if points >= 4 else 3 if points >= 3 else 2 if points >= 2 else 1
-    level = raw_level
+    raw_level = (0.0 if points <= 0 else 0.5 if points < 1
+                 else 4 if points >= 4 else 3 if points >= 3 else 2 if points >= 2 else 1)
+    level = int(raw_level)
     # 制不净 -> 封顶三层（段氏：制之不净达不到四层，如蒋介石）；
     #   化用成局/从杀格为化用路径非制局，制净框架不适用，不受此封顶；
     #   方局围制+制库双结构书明断四层（理象学 6470-6474），同不适用；
@@ -1402,7 +1504,7 @@ def _apply_caps_and_direction(
     # 段氏「制财得财」以功神非比劫为前提；功神=比劫制财（身强财为用神、财弱孤）
     # 即「比劫夺财」=破财凶，与印/食伤/官制财=得财吉对立（蒋介石印制财=贵，
     # 第9期比劫子冲午财=清家荡产）。命中即按严重度封顶：severe→一层（贫），
-    # 否则→二层（小康下），wealth_grade 随 level 落档自动跟随。
+    # 否则→二层（小康下），财档仍由财命独立规则决定。
     pocai_signal = False
     pocai_severity: Optional[str] = None
     pocai_reason = ''
@@ -1541,7 +1643,7 @@ def _build_gongliang_result(
     points: float,
     reasons: List[str],
     level: int,
-    raw_level: int,
+    raw_level: float,
     zhi_jing: str,
     penalty: Optional[str],
     involved_cats: Set[str],
@@ -1560,6 +1662,8 @@ def _build_gongliang_result(
     pocai_signal: bool,
     pocai_severity: Optional[str],
     pocai_reason: str,
+    evidence: Optional[List[Dict]] = None,
+    annotations: Optional[List[Dict]] = None,
 ) -> Dict:
     """装配输出（H-fix-5 ⑤，H11 方案）：层内分数、边界区标注、_build_result
     装配、可选字段（yongshen_xiong/fuhe/strength/cong_ge）录入、pocai 方向信号、
@@ -1582,6 +1686,8 @@ def _build_gongliang_result(
         chain=chain_len, penalty=penalty, yuanshen_hit=yuanshen_hit,
         day_wx_ok=bool(day_wx), boundary=boundary, raw_level=raw_level,
     )
+    result['evidence'] = evidence or []
+    result['annotations'] = annotations or []
     if yongshen_xiong:
         result['yongshen_xiong'] = yongshen_xiong
     if fuhe.get('detected') or fuhe.get('conflicts'):
@@ -1803,7 +1909,7 @@ def _compute_boundary(
 # ── 分数计算 ──
 def _compute_score(
     level: int,
-    raw_level: int,
+    raw_level: float,
     points: float,
     zg: Dict,
     gshen: List[str],
@@ -1814,7 +1920,7 @@ def _compute_score(
 ) -> int:
     """层内连续分数（0-100）。
 
-    base 取该层区间中点偏下，再按 功神占比/制净/折扣/势成/降档 微调，
+    base 取该层区间中点偏下，再按 功神占比/制净/折扣/降档 微调，
     最终 clamp 到 [lo, hi] 层区间。raw_level>level（被封顶）时压向层区间上沿之下。
     """
     lo, hi = _SCORE_BAND[level]
@@ -1830,9 +1936,6 @@ def _compute_score(
         adj += 6
     elif zhi_jing == '不净':
         adj -= 6
-    # 势成（三合局/成势）加分
-    if zg.get('san_he_formed') or '成势' in (zg.get('work_types') or []):
-        adj += 4
     # 折扣动作多 -> 减分
     disc = sum(1 for wa in non_aux if wa.get('efficiency_discount'))
     if disc:
@@ -1862,11 +1965,15 @@ def _build_result(
     yuanshen_hit: Optional[str] = None,
     day_wx_ok: bool = True,
     boundary: Optional[str] = None,
-    raw_level: Optional[int] = None,
+    raw_level: Optional[float] = None,
+    evidence: Optional[List[Dict]] = None,
+    annotations: Optional[List[Dict]] = None,
 ) -> Dict:
     tier = _TIER_NAMES.get(level, '小富小贵')
-    wealth_grade = _WEALTH_GRADE.get(level, '')
-    rank_grade = _RANK_GRADE.get(level, '')
+    wealth_grade = ''
+    rank_grade = ''
+    if 0 < points < 1:
+        boundary = '半层功'
     fugui_pinjian = _FUGUI_PINJIAN.get(level, '')
     lo, hi = _SCORE_BAND[level]
     if score is None:
@@ -1898,4 +2005,6 @@ def _build_result(
         'fugui_pinjian': fugui_pinjian,
         'boundary': boundary,
         'raw_level': raw_level if raw_level is not None else level,
+        'evidence': evidence or [],
+        'annotations': annotations or [],
     }
