@@ -44,8 +44,8 @@
   "detail": "types=['制用', '化用', '合用'] primary=合用"
  },
  "zg:合例八暗合": {
-  "verdict": "⚠️",
-  "detail": "types=['制用', '合用', '生用'] primary=生用"
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=制用"
  },
  "zg:墓例一经理": {
   "verdict": "✅",
@@ -136,20 +136,20 @@
   "detail": "level=1(书1) score=12"
  },
  "xf:共象:丁目": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=⚠️"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:共象:申机器": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=⚠️"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:合象:建筑设计": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=⚠️"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:合象:银行行长": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=⚠️"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:化象:纺织": {
   "verdict": "✅",
@@ -168,12 +168,12 @@
   "detail": "ok=True 审计档=✅"
  },
  "xf:制象:岳飞": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=⚠️"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:制象:资本运营": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=⚠️"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:带象:甲子": {
   "verdict": "✅",
@@ -200,8 +200,8 @@
   "detail": "ok=True 审计档=✅"
  },
  "xf:局象:公安": {
-  "verdict": "❌",
-  "detail": "ok=False 审计档=⚠️"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️"
  },
  "xf:局象:比劫包局": {
   "verdict": "✅",

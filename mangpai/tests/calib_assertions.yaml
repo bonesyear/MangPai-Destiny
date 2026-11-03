@@ -1,12 +1,12 @@
-# calib 金标准断言 — 郝金阳《命理珍宝》10例 × 46项
+# calib 金标准断言 — 郝金阳《命理珍宝》10例 × 45项
 # 金标准来源: 《命理珍宝》郝金阳原断 (mangpai/docs/duan-books/mingli-zhenbao-50qi.txt)
 # 矩阵来源: docs/layer3-haojin-yang-audit-20260713.md (36项) + 层功level 10项(郝断富贵程度)
 # runner: mangpai/tests/calib_assertions.py (--write-baseline 按行改写 baseline，保留本注释)
 # 注意: items 必须保持单行 flow 风格 (- {dim: ..., gold: {...}, baseline: X})，且 note 内
 #       禁止半角逗号 (flow mapping 分隔符)，用全角，代替。
 meta:
-  baseline_date: '2026-10-27'
-  baseline_counts: {✅: 32, ⚠️: 10, ❌: 4}
+  baseline_date: '2026-11-03'
+  baseline_counts: {✅: 35, ⚠️: 10, ❌: 0}
   rubric: |
     财命 direction: 破财=summary含凶向标记(破财/比劫夺财/坐牢/牢狱/官非/下浮封顶)或tier=贫 -> ✅,
       小康 -> ⚠️, 富/巨富无凶向 -> ❌; 凶(因财致祸)=有凶向标记 ✅, tier=贫 ⚠️, 否则 ❌;
@@ -38,10 +38,10 @@ cases:
     items:
       - {dim: 财命, gold: {direction: 破财, note: 戊辰年破财/不宜投资}, baseline: ✅}
       - {dim: 官命, gold: {is_guanming: false, note: 普通人有官司}, baseline: ✅}
-      - {dim: 婚姻, gold: {quality: 差, duohun: false, note: 书断婚差但不离婚(zhongji:4365-4371;shouke:7060)}, baseline: ❌}
+      - {dim: 婚姻, gold: {quality: 差, duohun: false, note: 书断婚差但不离婚(zhongji:4365-4371;shouke:7060)}, baseline: ✅}
       - {dim: 职业, gold: {partial_in: [merchant], note: 烧窑/不正当生意(个体经营)}, baseline: ⚠️}
       - {dim: 应期, gold: {commit: true, note: 戊辰年应}, baseline: ✅}
-      - {dim: 子息, gold: {has_zixi: true, note: 有子+怀胎}, baseline: ❌}
+      - {dim: 子息, gold: {has_zixi: true, note: 有子+怀胎}, baseline: ✅}
       - {dim: 层功, gold: {level_max: 2, note: 普通个体+破财}, baseline: ⚠️}
 
   - id: zhenbao-04
@@ -56,7 +56,7 @@ cases:
       - {dim: 财命, gold: {direction: 破财, note: 赔六万}, baseline: ⚠️}
       - {dim: 官命, gold: {is_guanming: false, note: 开车运输普通人}, baseline: ✅}
       - {dim: 婚姻, gold: {quality: 好, note: 妻好无事}, baseline: ✅}
-      - {dim: 职业, gold: {primary_in: [driver], note: 司机/运输(庚申日入时支丑库)}, baseline: ❌}
+      - {dim: 职业, gold: {primary_in: [driver], note: 司机/运输(庚申日入时支丑库)}, baseline: ✅}
       - {dim: 应期, gold: {commit: true, note: 戊寅年应}, baseline: ✅}
       - {dim: 层功, gold: {level_max: 2, note: 普通人赔钱}, baseline: ⚠️}
 

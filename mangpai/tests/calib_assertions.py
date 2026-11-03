@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""calib 金标准断言 runner — 郝金阳10例 × 46项 自动判定 + 回归对比。
+"""calib 金标准断言 runner — 郝金阳10例 × 45项 自动判定 + 回归对比。
 
 金标准与判定规则见 calib_assertions.yaml 头部注释。六维度+层功全部自动判定：
 财命方向 / 官命方向 / 应期commit / 层功level / 婚姻 / 职业 / 子息。
