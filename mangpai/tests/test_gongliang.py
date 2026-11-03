@@ -102,6 +102,37 @@ class TestZhiJingCap:
         assert r['zhi_jing'] == '净'
         assert r['level'] == 4
 
+    def test_lianmu_discount_does_not_cap_book_four_layers(self):
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        gans, zhis, _ = LIJIACHENG
+        zg = analyze_zuogong('庚', '午', '戊', '辰', '己', '未', '丁', '亥',
+                             kong_wang={'zhi': ['戌', '亥']})
+        r = analyze_gongliang(zg, day_gan='庚', gans=gans, zhis=zhis)
+        assert r['raw_level'] == 4
+        assert r['level'] == 4
+        assert any('连墓' in x and '不适用' in x for x in r['reasons'])
+
+    def test_lianmu_exemption_requires_wealth_target(self):
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        gans, zhis = ['甲', '甲', '戊', '壬'], ['辰', '戌', '子', '子']
+        zg = analyze_zuogong('戊', '子', '甲', '辰', '甲', '戌', '壬', '子',
+                             kong_wang={'zhi': ['戌', '亥']})
+        r = analyze_gongliang(zg, day_gan='戊', gans=gans, zhis=zhis)
+        assert r['yuanshen_yongshen'] == '食伤+比劫'
+        assert r['raw_level'] == 4
+        assert r['level'] == 3
+
+    def test_duowu_tomb_supports_book_four_layers(self):
+        from mangpai.objective.bazi_calc import get_kong_wang
+        from mangpai.subjective.zuogong_confirm import analyze_zuogong
+        gans, zhis = ['戊', '乙', '戊', '壬'], ['午', '丑', '午', '戌']
+        zg = analyze_zuogong('戊', '午', '戊', '午', '乙', '丑', '壬', '戌',
+                             kong_wang=get_kong_wang('戊', '午'))
+        r = analyze_gongliang(zg, day_gan='戊', gans=gans, zhis=zhis)
+        assert any('多而墓之' in x for x in r['reasons'])
+        assert r['raw_level'] == 4
+        assert r['level'] == 4
+
 
 class TestQishaDangCai:
     """七杀当财 -> +1（例八申中壬七杀当财达三层）。"""
@@ -291,6 +322,14 @@ class TestG2Sanli:
         assert r['gong_points'] == 0
         assert r['evidence'] == []
         assert any('天干坏' in x for x in r['reasons'])
+
+    def test_soros_discount_alone_does_not_trigger_total_veto(self):
+        # 理象学:11724-11726明断制杀干净；效率折扣不等于官杀残存反扑。
+        g = ['庚', '甲', '甲', '辛']
+        z = ['午', '申', '午', '未']
+        r = analyze_gongliang(day_gan=g[2], gans=g, zhis=z)
+        assert r['level'] > 0
+        assert not any('一生没有富贵' in x for x in r['reasons'])
 
     def test_cixi_yueling_jianyin_four_layers(self):
         # 规则3 月令见印整层 + 三合制库制之彻底：理象学:10595-10611——

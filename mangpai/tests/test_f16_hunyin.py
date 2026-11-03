@@ -418,3 +418,17 @@ class TestShangguanTeshuYingqi:
         j = infer_jiehun_yingqi('甲', ['癸', '辛', '甲', '乙'],
                                 ['亥', '酉', '子', '卯'], '女', dayun_gan='丁', dayun_zhi='卯')
         assert not any('特殊结婚应期' in s for s in j['signals'])
+
+
+def test_zhenbao01_bad_marriage_but_not_duohun():
+    # shouke:7054-7060：巳中戊财得正位作忌，书明婚姻不好但不离婚。
+    from mangpai.subjective.hunyin import analyze_hunyin, classify_duohun
+    gans, zhis = ['戊', '己', '乙', '丁'], ['戌', '未', '巳', '亥']
+    r = analyze_hunyin('乙', gans, zhis, gender='男')
+    assert r['quality']['quality'] == '差'
+    assert classify_duohun('乙', gans, zhis, '男')['is_duohun'] is False
+    # 同为正星坐宫受制，但缺本例的成势与对党克入条件，不套用豁免。
+    other = classify_duohun('甲', ['癸', '甲', '甲', '庚'],
+                            ['亥', '子', '丑', '戌'], '男')
+    assert other['is_duohun'] is False
+    assert not any('不直接判多婚' in f for f in other['factors'])

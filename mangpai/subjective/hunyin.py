@@ -617,7 +617,26 @@ def classify_duohun(
         if star_mingxian:
             factors.append(f'配偶星入{"".join(sorted(set(tombs)))}墓，婚缘受损')
 
-    return {'is_duohun': len(factors) >= 2 or star_count >= 3, 'factors': factors}
+    # shouke:7054-7060：正星藏宫作忌、受对党克，书断婚差但不离婚。
+    day_zhi = zhis[PILLAR_KEYS.index('day')]
+    dang = _qishi_dang(gans, zhis)['dang']
+    zhengxing_in_gong = any(
+        _compute_shishen(day_gan, cg) in ('正财', '正官')
+        for cg, _qi in get_canggan_mangpai(day_zhi))
+    incoming_ke_parties = {
+        _zhi_party(zhis[PILLAR_KEYS.index(a['from_pos'].split('_')[0])])
+        for a in wa
+        if a.get('type') == '克' and not a.get('auxiliary')
+        and a.get('to_pos') == 'day_zhi'
+        and a.get('from_pos', '').endswith('_zhi')
+        and a['from_pos'].split('_')[0] in PILLAR_KEYS
+    }
+    zhengxing_ke = (bool(dang) and _zhi_party(day_zhi) == dang
+                    and zhengxing_in_gong and bool(incoming_ke_parties - {'', dang}))
+    if zhengxing_ke:
+        factors.append('正星藏宫为忌、受对党克（婚差但不直接判多婚）')
+    return {'is_duohun': not zhengxing_ke and (len(factors) >= 2 or star_count >= 3),
+            'factors': factors}
 
 
 def _main_cat(day_gan, gans, zhis, idx, pos) -> str:

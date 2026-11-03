@@ -126,6 +126,18 @@ def test_zixi_yuanshen_guan_sha_shi_cai():
     assert any('原神（财）' in m for m in r['markers'])
 
 
+def test_zixi_hour_food_star_overrides_negative_markers():
+    r = detect_zixi_youwu('乙', list('戊己乙丁'), list('戌未巳亥'), gender='男')
+    assert r['has_zixi'] is True
+    assert r['child_star_cat'] == '食伤'
+    assert '食神明透临子女宫' in r['desc']
+
+
+def test_zixi_hour_food_star_exception_is_not_all_shishang():
+    r = detect_zixi_youwu('乙', list('戊己乙丙'), list('戌未巳亥'), gender='男')
+    assert r['has_zixi'] is False
+
+
 # ── liuqin：排行诀（gaoji:14412）──
 
 def test_paihang_yang_gan_yang_sheng():

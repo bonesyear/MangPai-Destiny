@@ -42,7 +42,8 @@ CAT1 = [
     ('生例四企业家',   ['壬','癸','壬','壬'], ['寅','卯','子','寅'], {'生用'}),
     ('合例一富命',     ['庚','丙','壬','丁'], ['子','戌','申','未'], {'合用'}),
     ('合例六两妻',     ['已','丁','庚','己'], ['酉','卯','戌','卯'], {'合用'}),
-    ('合例八暗合',     ['丙','甲','乙','甲'], ['申','午','卯','申'], {'合用'}),
+    # 理象学:6875-6877：伤官制官为功，被制官星合到主位是结果；例七同构句亦明言合非主功。
+    ('合例八暗合',     ['丙','甲','乙','甲'], ['申','午','卯','申'], {'制用'}),
     ('墓例一经理',     ['已','癸','壬','庚'], ['未','酉','寅','子'], {'墓用'}),
     ('墓例三电厂官',   ['壬','已','丁','已'], ['寅','酉','丑','酉'], {'墓用'}),
     ('墓例四曾国藩',   ['乙','己','丙','己'], ['未','亥','辰','亥'], {'墓用'}),
@@ -91,27 +92,27 @@ def judge_cat2(r, book_lv):
     if abs(d) == 1: return '⚠️'
     return '❌'
 
-# ── 类目3: xiangfa (18) ── (principle, name, gstr, zstr, book_verdict)
-# xiangfa 稳定，用审计 修复后 verdict 作基准；改动由 key-signal 监控
+# ── 类目3: xiangfa (18) ── (principle, name, gstr, zstr, book_verdict, expected_terms)
+# 七项补原书具体结论；expected_terms 全部出现才算命中，不再以 findings 非空代替。
 CAT3 = [
-    ('共象','丁目','丁辛乙丁','酉亥酉亥','⚠️'),
-    ('共象','申机器','辛丙辛丙','卯申巳申','⚠️'),
-    ('合象','建筑设计','壬癸丙戊','子丑寅戌','⚠️'),
-    ('合象','银行行长','庚乙癸庚','辰酉卯申','⚠️'),
-    ('化象','纺织','辛辛丙甲','卯丑辰午','✅'),
-    ('化象','服装','癸丁癸癸','卯巳丑亥','✅'),
-    ('墓象','军官','己辛戊甲','卯未辰寅','✅'),
-    ('墓象','建筑','丁癸辛丁','未卯卯酉','✅'),
-    ('制象','岳飞','癸乙甲己','未卯子巳','⚠️'),
-    ('制象','资本运营','丁癸丙壬','未丑子辰','⚠️'),
-    ('带象','甲子','癸甲戊癸','巳子午亥','✅'),
-    ('带象','癸巳','辛辛丙癸','丑卯寅巳','✅'),
-    ('借象','寅卯','庚己丁癸','寅丑卯卯','✅'),
-    ('借象','戊巳','癸庚癸戊','巳申丑午','✅'),
-    ('换象','银行行长','乙戊癸庚','巳子卯申','✅'),
-    ('换象','外贸商','壬丙己辛','子午巳未','✅'),
-    ('局象','公安','戊丙乙戊','申辰丑寅','⚠️'),
-    ('局象','比劫包局','庚乙庚乙','戌酉申酉','✅'),
+    ('共象','丁目','丁辛乙丁','酉亥酉亥','⚠️',('眼',)),
+    ('共象','申机器','辛丙辛丙','卯申巳申','⚠️',('机器',)),
+    ('合象','建筑设计','壬癸丙戊','子丑寅戌','⚠️',('建筑',)),
+    ('合象','银行行长','庚乙癸庚','辰酉卯申','⚠️',('金融',)),
+    ('化象','纺织','辛辛丙甲','卯丑辰午','✅',None),
+    ('化象','服装','癸丁癸癸','卯巳丑亥','✅',None),
+    ('墓象','军官','己辛戊甲','卯未辰寅','✅',None),
+    ('墓象','建筑','丁癸辛丁','未卯卯酉','✅',None),
+    ('制象','岳飞','癸乙甲己','未卯子巳','⚠️',('兵权',)),
+    ('制象','资本运营','丁癸丙壬','未丑子辰','⚠️',('反向做功',)),
+    ('带象','甲子','癸甲戊癸','巳子午亥','✅',None),
+    ('带象','癸巳','辛辛丙癸','丑卯寅巳','✅',None),
+    ('借象','寅卯','庚己丁癸','寅丑卯卯','✅',None),
+    ('借象','戊巳','癸庚癸戊','巳申丑午','✅',None),
+    ('换象','银行行长','乙戊癸庚','巳子卯申','✅',None),
+    ('换象','外贸商','壬丙己辛','子午巳未','✅',None),
+    ('局象','公安','戊丙乙戊','申辰丑寅','⚠️',('阳包阴','公门')),
+    ('局象','比劫包局','庚乙庚乙','戌酉申酉','✅',None),
 ]
 _P2K = {'共象':'gongxiang','合象':'hexiang','化象':'huaxiang','墓象':'muxiang',
         '制象':'zhixiang','带象':'daixiang','借象':'jiexiang','换象':'huanxiang','局象':'juxiang'}
@@ -142,12 +143,17 @@ def recompute_verdict_xf(book_v, nonempty):
         return '❌', True
     return '❌', False
 
-def judge_cat3(princ, gstr, zstr, book_v):
+def judge_cat3(princ, gstr, zstr, book_v, expected_terms=None):
     gans = list(gstr); zhis = list(zstr)
     r = run(gans, zhis)
     xo = r.get('xiangfa_ops', {})
     key = _P2K[princ]
     findings = xo.get(key, [])
+    if expected_terms:
+        text = ' '.join(str(f.get(k, '')) for f in findings
+                        for k in ('subject', 'desc', 'evidence'))
+        matched = all(term in text for term in expected_terms)
+        return ('✅' if matched else '❌', book_v == '✅' and not matched, matched)
     nonempty = bool(findings)
     return recompute_verdict_xf(book_v, nonempty) + (nonempty,)
 
@@ -224,8 +230,8 @@ def compute():
         v = judge_cat2(r, blv)
         out[f'gl:{name}'] = (v, f"level={r['level']}(书{blv}) score={r['score']}")
     # cat3
-    for princ, name, gs, zs, bv in CAT3:
-        v, alarm, nonempty = judge_cat3(princ, gs, zs, bv)
+    for princ, name, gs, zs, bv, expected_terms in CAT3:
+        v, alarm, nonempty = judge_cat3(princ, gs, zs, bv, expected_terms)
         out[f'xf:{princ}:{name}'] = (v, f"ok={nonempty} 审计档={bv}")
         if alarm:
             alarms.append(f'xf:{princ}:{name}')

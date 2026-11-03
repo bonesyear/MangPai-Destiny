@@ -226,3 +226,78 @@ def test_verify_all_propagates_verify_failure(tmp_path):
         env=env, timeout=30,
     )
     assert r.returncode != 0
+
+
+def test_cat3_specific_gold_requires_actual_book_conclusion(monkeypatch):
+    sys.path.insert(0, os.path.join(_HERE, 'backtest'))
+    import regression67
+
+    args = ('局象', '戊丙乙戊', '申辰丑寅', '⚠️', ('合成缺口词',))
+    assert regression67.judge_cat3(*args)[0] == '❌'
+    monkeypatch.setattr(regression67, 'run', lambda gans, zhis: {
+        'xiangfa_ops': {'juxiang': [{'desc': '合成缺口词'}]}
+    })
+    assert regression67.judge_cat3(*args)[0] == '✅'
+
+
+def test_gongxiang_ding_eye_and_shen_machine():
+    from mangpai.subjective.xiangfa_ops import gongxiang
+    eyes = gongxiang('乙', list('丁辛乙丁'), list('酉亥酉亥'))
+    assert any(f['subject'] == '眼睛' for f in eyes)
+    machines = gongxiang('辛', list('辛丙辛丙'), list('卯申巳申'))
+    assert any(f['subject'] == '机器' for f in machines)
+    no_machine = gongxiang('甲', list('辛丙辛丙'), list('卯申巳申'))
+    assert not any(f['subject'] == '机器' for f in no_machine)
+
+
+def test_hexiang_building_design_and_financial_officer():
+    from mangpai.subjective.xiangfa_ops import hexiang
+    building = hexiang('丙', list('壬癸丙戊'), list('子丑寅戌'))
+    assert any(f['subject'] == '建筑设计' for f in building)
+    no_building = hexiang('丙', list('壬癸丙戊'), list('子丑寅午'))
+    assert not any(f['subject'] == '建筑设计' for f in no_building)
+    finance = hexiang('癸', list('庚乙癸庚'), list('辰酉卯申'))
+    assert any(f['subject'] == '金融官员' for f in finance)
+    no_finance = hexiang('癸', list('庚乙癸庚'), list('辰酉卯午'))
+    assert not any(f['subject'] == '金融官员' for f in no_finance)
+
+
+def test_zhixiang_yuefei_captured_power_and_reverse_wealth():
+    from mangpai.subjective.xiangfa_ops import zhixiang
+    yuefei = zhixiang('甲', list('癸乙甲己'), list('未卯子巳'))
+    assert any('得兵权' in f['subject'] for f in yuefei)
+    assert not any(f['subject'] == '失/被制印文' for f in yuefei)
+    capital = zhixiang('丙', list('丁癸丙壬'), list('未丑子辰'))
+    assert any(f['direction'] == '反向做功' for f in capital)
+    no_reverse = zhixiang('庚', list('丁癸丙壬'), list('未丑子辰'))
+    assert not any(f['direction'] == '反向做功' for f in no_reverse)
+
+
+def test_juxiang_yang_cover_yin_with_yin_gongmen():
+    from mangpai.subjective.xiangfa_ops import juxiang
+    police = juxiang('乙', list('戊丙乙戊'), list('申辰丑寅'))
+    assert any(f.get('qi_xiang') == '阳包阴' and '公门' in f['desc']
+               for f in police)
+    no_gongmen = juxiang('乙', list('戊丙乙戊'), list('申辰丑卯'))
+    assert not any('公门' in f['desc'] for f in no_gongmen)
+
+
+def test_calib_not_applicable_dimension_is_skipped(monkeypatch, tmp_path):
+    from collections import Counter
+    import calib_assertions as ca
+    monkeypatch.setattr(ca, 'run_case', lambda case: (_ for _ in ()).throw(
+        AssertionError('不适用维度不应调用引擎')))
+    doc = {'cases': [{'id': 'official', 'items': [
+        {'dim': '职业', 'gold': {'not_applicable': True}}
+    ]}]}
+    assert ca.compute(doc) == {}
+    path = tmp_path / 'calib.yaml'
+    path.write_text('''meta: {baseline_counts: {✅: 0, ⚠️: 0, ❌: 0}}
+cases:
+  - id: official
+    items:
+      - {dim: 职业, gold: {not_applicable: true}, baseline: ❌}
+''', encoding='utf-8')
+    monkeypatch.setattr(ca, 'YAML_PATH', str(path))
+    ca._write_baseline({}, Counter())
+    assert 'not_applicable: true' in path.read_text(encoding='utf-8')

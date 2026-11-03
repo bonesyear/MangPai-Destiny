@@ -84,6 +84,7 @@ _BUCKET_LABELS = {
     'accountant': '会计/财务', 'doctor': '医生/医疗', 'teacher': '教师/教育',
     'lawyer': '律师/法务/公检法', 'merchant': '商人/经营',
     'military': '军警/军阀/武职', 'performer': '演艺/演员',
+    'driver': '司机/运输',
     'laborer': '农民/工人·体力劳动者', 'unemployed': '无业',
 }
 

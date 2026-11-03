@@ -102,3 +102,19 @@ def test_hygiene_catches_bad_dir(tmp_path):
         encoding='utf-8')
     problems = _check_dir(str(d))
     assert any('rubric=v0-old' in p for p in problems), problems
+
+
+def test_rescore_driver_and_rubric_version(tmp_path, monkeypatch):
+    source = tmp_path / '20261103_old.json'
+    source.write_text(json.dumps({
+        'trainset': {'driver-case': {
+            'verdict_labels': {'职业': '司机·开车运输'},
+            'engine': {'zhiye_primary': 'driver'}, 'scores': {},
+        }},
+        '_meta': {'git_sha': 'abc', 'rubric_version': 'v0-old', 'note': 'old'},
+    }), encoding='utf-8')
+    monkeypatch.setattr(sys, 'argv', ['blind_eval.py', '--rescore', str(source)])
+    blind_eval.main()
+    data = json.loads((tmp_path / '20261103_old_rescore.json').read_text(encoding='utf-8'))
+    assert data['_meta']['rubric_version'] == blind_eval.RUBRIC_VERSION
+    assert data['trainset']['driver-case']['scores']['职业'] == '✅'

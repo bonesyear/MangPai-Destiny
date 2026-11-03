@@ -43,7 +43,7 @@ from mangpai.objective._relation_utils import (
 )
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
-    PILLAR_NAMES_CN, PILLAR_KEYS, is_pillars,
+    PILLAR_NAMES_CN, PILLAR_KEYS, TOMB_MAP, is_pillars,
     EFFICIENCY_HIGH_ACTION_COUNT, EFFICIENCY_HIGH_TYPE_COUNT,
     EFFICIENCY_MID_ACTION_COUNT,
 )
@@ -54,6 +54,7 @@ from mangpai.objective.soil_type import analyze_soil
 from mangpai.objective.virtual_solid import analyze_virtual_solid
 from mangpai.objective.shishen import shishen_of as _shishen_of
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.muku import analyze_muku
 
 _logger = logging.getLogger(__name__)
 
@@ -587,13 +588,62 @@ def analyze_zuogong(
          and not (_chuan_yields and a.get('to_pos') == 'day_zhi')],
         key=lambda a: not a.get('inner_food'),
     )
+    def _target_ss(pos):
+        target = _elem_of(pos, gans, zhis)
+        return {_shishen_of(day_gan, cg) for cg, _ in get_canggan_mangpai(target)}
+
+    def _paired_wealth_control(wa):
+        if wa.get('action') != '克':
+            return False
+        target_ss = _target_ss(wa.get('to_pos', ''))
+        if not target_ss <= {'正财', '偏财', '食神', '伤官'}:
+            return False
+        if target_ss.isdisjoint(('正财', '偏财')) or target_ss.isdisjoint(('食神', '伤官')):
+            return False
+        return any(other.get('type') in ('地支合', '暗合')
+                   and other.get('to_pos') == wa.get('to_pos')
+                   and not other.get('auxiliary') for other in work_actions)
+
+    _open_tombs = analyze_muku(zhis, gans).get('open_tombs', [])
+
+    def _open_officer_tomb(wa):
+        if wa.get('action') not in ('冲', '克', '穿', '刑'):
+            return False
+        officer_wx = WX_KE_ME.get(day_wx, '')
+        if not he_actions or not any(
+                other.get('type') == '地支合' and not other.get('auxiliary')
+                for other in work_actions):
+            return False
+        return bool(officer_wx) and any(
+            officer_wx in (t.get('element_tombed') or [])
+            and t.get('zhi') in (_elem_of(wa.get('from_pos', ''), gans, zhis),
+                                 _elem_of(wa.get('to_pos', ''), gans, zhis))
+            for t in _open_tombs)
+
+    def _linked_officer_control(wa):
+        if wa.get('action') not in ('冲', '克', '穿', '刑'):
+            return False
+        target = wa.get('to_pos', '')
+        target_elem = _elem_of(target, gans, zhis)
+        if _shishen_elem(day_gan, target_elem) not in ('正官', '七杀'):
+            return False
+        return any(other.get('type') in ('地支合', '暗合') and not other.get('auxiliary')
+                   and {other.get('from_pos'), other.get('to_pos')} == {target, 'day_zhi'}
+                   for other in work_actions)
+
     # 弃干看支候选：日支的刑冲穿墓合（含被动受制/合制）；破只保留坏义。
     _zhi_actions = [
         wa for wa in work_actions
         if not wa.get('auxiliary')
         and (wa.get('from_pos', '').startswith('day_zhi')
              or wa.get('to_pos', '').startswith('day_zhi')
-             or wa.get('book_tomb_primary'))
+             or wa.get('book_tomb_primary')
+             or _paired_wealth_control(wa)
+             or _open_officer_tomb(wa)
+             or _linked_officer_control(wa)
+             or (wa.get('action') in ('冲', '刑') and zhis.count('午') >= 2
+                 and (_elem_of(wa.get('from_pos', ''), gans, zhis) in TOMB_MAP
+                      or _elem_of(wa.get('to_pos', ''), gans, zhis) in TOMB_MAP)))
         and wa.get('action') in ('冲', '克', '穿', '刑', '墓用', '半成势', '合用')
     ]
     _active_zhi = [
@@ -639,9 +689,79 @@ def analyze_zuogong(
     def _cand_zhi(c):
         if not c['zhi_actions']:
             return None
+
+        def _repeat_tomb(wa):
+            target = _elem_of(wa.get('to_pos', ''), gans, zhis)
+            return (wa.get('action') == '墓用' and target
+                    and sum(other.get('action') == '墓用'
+                            and _elem_of(other.get('to_pos', ''), gans, zhis) == target
+                            for other in c['zhi_actions']) >= 2)
+
+        def _strong_control(wa):
+            if (_paired_wealth_control(wa) or _open_officer_tomb(wa)
+                    or _linked_officer_control(wa)):
+                return True
+            if wa.get('action') == '墓用' and wa.get('to_pos') == 'day_zhi':
+                target = _elem_of(wa.get('to_pos', ''), gans, zhis)
+                cg = get_canggan_mangpai(target)
+                if not cg or _shishen_of(day_gan, cg[0][0]) not in ('食神', '伤官'):
+                    return False
+                return any(not other.get('auxiliary') and other.get('action') == '克'
+                           and other.get('from_pos') == wa.get('to_pos')
+                           and other.get('to_pos') == wa.get('from_pos')
+                           for other in work_actions)
+            if (wa.get('action') in ('冲', '刑') and zhis.count('午') >= 2
+                    and (_elem_of(wa.get('from_pos', ''), gans, zhis) in TOMB_MAP
+                         or _elem_of(wa.get('to_pos', ''), gans, zhis) in TOMB_MAP)):
+                return True
+            if wa.get('action') not in ('冲', '克', '穿', '刑'):
+                return False
+
+            def _main_ss(pos):
+                target = _elem_of(pos, gans, zhis)
+                cg = get_canggan_mangpai(target)
+                return _shishen_of(day_gan, cg[0][0]) if cg else ''
+
+            if (wa.get('from_pos') == 'day_zhi' and wa.get('to_pos') == 'year_zhi'
+                    and wa.get('action') in ('克', '穿')
+                    and _main_ss(wa.get('to_pos')) in ('食神', '伤官')):
+                return True
+            if (wa.get('from_pos') == 'day_zhi'
+                    and zhis.count(_elem_of(wa.get('from_pos', ''), gans, zhis)) >= 2
+                    and _main_ss(wa.get('to_pos')) in ('正官', '七杀')):
+                return True
+            if wa.get('action') == '冲':
+                target_positions = {other.get('to_pos', '') for other in work_actions
+                                    if not other.get('auxiliary') and other.get('action') == '冲'}
+                target_ss = {_main_ss(other.get('to_pos', '')) for other in work_actions
+                             if not other.get('auxiliary') and other.get('action') == '冲'}
+                if (len(target_positions) >= 2
+                        and any(ss in ('正财', '偏财') for ss in target_ss)
+                        and any(ss in ('食神', '伤官') for ss in target_ss)):
+                    return True
+            if wa.get('action') == '冲' and not c['hua_chengju'] and (
+                    _elem_of(wa.get('from_pos', ''), gans, zhis) in TOMB_MAP
+                    or _elem_of(wa.get('to_pos', ''), gans, zhis) in TOMB_MAP):
+                return True
+            target = wa.get('to_pos', '')
+            attackers = {other.get('from_pos', '') for other in work_actions
+                         if not other.get('auxiliary')
+                         and other.get('action') in ('冲', '克', '穿', '刑')
+                         and other.get('to_pos', '') == target}
+            attacker_wx = {GAN_WX.get(_elem_of(other.get('from_pos', ''), gans, zhis), '')
+                           or ZHI_WX.get(_elem_of(other.get('from_pos', ''), gans, zhis), '')
+                           for other in work_actions
+                           if not other.get('auxiliary')
+                           and other.get('action') in ('冲', '克', '穿', '刑')
+                           and other.get('to_pos', '') == target}
+            return len(attackers) >= 2 and len(attacker_wx) == 1
+
+        # 多而墓之、刑冲开库与成组控制，不让普通合/生抢占主功。
         pa = next(
-            (wa for wa in c['zhi_actions'] if wa.get('book_tomb_primary')),
-            (c['active_zhi'] or c['zhi_actions'])[0])
+            (wa for wa in c['zhi_actions']
+             if wa.get('book_tomb_primary') or _repeat_tomb(wa)),
+            next((wa for wa in c['zhi_actions'] if _strong_control(wa)),
+                 (c['active_zhi'] or c['zhi_actions'])[0]))
         _pa = pa.get('action')
         if _pa == '墓用':
             ptype, _path = '墓用', '弃干看支（日支墓用做功）'
@@ -649,7 +769,7 @@ def analyze_zuogong(
             ptype, _path = '合用', '弃干看支（日支合用做功）'
         else:
             ptype, _path = '制用', '弃干看支（日支刑冲穿做功）'
-        strength = 4 if pa.get('book_tomb_primary') else (
+        strength = 4 if pa.get('book_tomb_primary') or _repeat_tomb(pa) or _strong_control(pa) else (
             5 if c['chuan_yields'] else (2 if c['active_zhi'] else 1))
         return {'type': ptype, 'path': _path, 'action': pa, 'strength': strength}
 
@@ -663,8 +783,10 @@ def analyze_zuogong(
                 if (c['chuan_yields'] and not c['zhi_actions']) else []))},
         {'name': '化用成局', 'candidacy': _cand_hua,
          'vetoes': lambda c: (
-             ['日支穿制让位（穿动作已降级，弃干看支无候选）']
-             if (c['chuan_yields'] and not c['zhi_actions']) else [])},
+             (['日支穿制让位（穿动作已降级，弃干看支无候选）']
+              if (c['chuan_yields'] and not c['zhi_actions']) else [])
+             + (['财与原神同宫受克合围制，化用让位']
+                if any(_paired_wealth_control(wa) for wa in c['zhi_actions']) else []))},
         {'name': '生用泄秀', 'candidacy': _cand_sheng,
          'vetoes': lambda c: (
              ['食伤合制让位（食伤已用于合制，不做泄秀主功）']

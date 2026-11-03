@@ -38,12 +38,12 @@ zhiye - 盲派职业象法·主观层（subjective）
           的阈值各师有微调；商人象最宽，须结合五行行业细分。
 置信度：中
 
-M2 基础职业类目（七桶未成象时的第二梯队，段氏《中级》取财方法·体力取财）：
+M2 基础职业类目（行业桶未成象时的第二梯队，段氏《中级》取财方法·体力取财）：
   「体力取财做功之神应是比肩、劫财与禄神」，做功效率低者「八亿的农民与民工
   都在这一阶层」——贫/小康 + 功神含比劫（合/冲/穿两端、克/刑制方）或
   禄神当财 + 无工薪/经营/风险路径 -> laborer（农民/工人·体力劳动者，
   田土参与做功提示农、金参与提示工）；严重破财凶向（比劫夺财 severe）或
-  贫而全局无做功 -> unemployed（无业）。七桶最高分 < 阈值时不再硬塞，
+  贫而全局无做功 -> unemployed（无业）。行业桶最高分 < 阈值时不再硬塞，
   输出「未分类」+ 最高分桶名作提示（hint），fallback 升格为合法第一输出。
 """
 import logging
@@ -80,9 +80,7 @@ _logger = logging.getLogger(__name__)
 #     非标命局各桶弱信号共现，最高分≤5：乞丐(merchant5)/坐牢(teacher4)/破财(merchant4)/
 #       找二婚(doctor3) -> 抑制为「无明确职业倾向」；
 #     真职业成象，最高分≥6：律师7/军警10/演艺7/教师7/商人6 -> 保留。
-#   已知例外：开车(第4期 military9)为庚坐申禄+丑金库身有力抗杀，引擎理法自洽判武职，
-#   与郝断「申为传送主车=司机」金标准相左；该例无凶向信号(fanju/pocai)不触发军警
-#   gating，且分高(9)过阈值，非阈值可覆盖，属已知口径分歧（见 calib-zhenbao 注）。
+#   庚申日入时支丑库另由 driver 具体组合判定，不走泛化 military。
 _MIN_SCORE_THRESHOLD = 6
 
 
@@ -1236,9 +1234,10 @@ _CAREER_LABELS = {
     'merchant': '商人/经营',
     'military': '军警/军阀/武职',
     'performer': '演艺/演员',
+    'driver': '司机/运输',
 }
 
-# M2 基础职业类目（七桶未成象时的第二梯队，段氏《中级》体力取财）
+# M2 基础职业类目（行业桶未成象时的第二梯队，段氏《中级》体力取财）
 _BASE_CAREER_LABELS = {
     'laborer': '农民/工人·体力劳动者',
     'unemployed': '无业',
@@ -1259,7 +1258,7 @@ def _classify_base_career(
     caiming_result: Optional[Dict],
     direction: Optional[Dict],
 ) -> Dict:
-    """基础职业类目判定（七桶未成象时的第二梯队）。
+    """基础职业类目判定（行业桶未成象时的第二梯队）。
 
     段氏《中级》取财方法·体力取财：「体力取财做功之神应是比肩、劫财与禄神」，
     做功效率低者属「八亿的农民与民工」阶层。判定：
@@ -1366,7 +1365,7 @@ def classify_zhiye(
     yunfan_result: 「当前运岁」反局切片，仅作运岁风险展示；
       终身 scores/primary 只读原局方向，不被单步运岁直接否决。
     caiming_result: 财命综合结果（M2 基础职业类目消费 tier/取财法/财看法；
-      缺省时于七桶未成象的 fallback 区自调 analyze_caiming）。
+      缺省时于行业桶未成象的 fallback 区自调 analyze_caiming）。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
       免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
 
@@ -1418,6 +1417,14 @@ def classify_zhiye(
     scores['military'], evidence['military'] = s, e
     s, e = _score_performer(day_gan, gans, zhis, wa, ss)
     scores['performer'], evidence['performer'] = s, e
+    _driver = (day_gan == '庚' and zhis[2] == '申' and zhis[3] == '丑'
+               and any(a.get('action') == '墓用' and not a.get('auxiliary')
+                       and a.get('from_pos') == 'hour_zhi'
+                       and a.get('to_pos') == 'day_zhi'
+                       for a in rel.get('tomb_works', [])))
+    scores['driver'] = _MIN_SCORE_THRESHOLD if _driver else 0
+    evidence['driver'] = (['庚申日禄入时支丑库，申为传送、丑临门户主车（理象学:5129-5135）']
+                          if _driver else [])
 
     # 羊刃驾杀武职通道 +3（K3 职业批1 真军警 fn 侧）：成势门「官杀柱级≥3」
     # 在金标军警上召回仅 2/8（蒋介石/公安/刑警等 2 柱官杀够不着门）。段氏
@@ -1697,7 +1704,7 @@ def classify_zhiye(
     # 动作（书「若做功有力」限定，存在不计；寅支动作或甲寅/丙寅/戊寅柱干动作
     # 皆算，柱级口径同书）。印配官杀（gaoji:11604-11605「印星为单位，官杀为
     # 职务，二者结合，多在公家单位任职」）：印主气与官杀主气并见。
-    # 七桶无公门文官类目（书之公门文官=政府机关文职，非律令执法/非教职），
+    # 行业桶无公门文官类目（书之公门文官=政府机关文职，非律令执法/非教职），
     # 只出象法标记不加权（弱信号堆叠曾致 military/lawyer fp/fn 倒置——K3 职业
     # 批1 corro 封顶教训），输出于 gongmen_markers 键。
     gongmen_markers: List[str] = []
@@ -1724,7 +1731,7 @@ def classify_zhiye(
     # 属于经营、风险、智力、体力、工薪中哪一类…再精确定位」+ 引言「象法为宗」）：
     #   非常规象（performer/military，桃花/羊刃神煞驱动，象法最切）> 取财方式层
     #   （merchant=经营取财）> 行业桶（accountant/doctor/teacher/lawyer，保持原序）。
-    _tie_pri = ('performer', 'military', 'merchant', 'accountant', 'doctor',
+    _tie_pri = ('driver', 'performer', 'military', 'merchant', 'accountant', 'doctor',
                 'teacher', 'lawyer')
     primary = max(scores, key=lambda k: (scores[k], -_tie_pri.index(k))) if scores else ''
     wealth_primary = ((caiming_result or {}).get('primary_method') == '经营'
@@ -1735,6 +1742,8 @@ def classify_zhiye(
                       and _compute_shishen(day_gan, '戊') == '伤官')
     if wealth_primary:
         primary = 'merchant'
+    if _driver:
+        primary = 'driver'  # 具体车禄组合优先于泛化官杀武职。
     top_score = scores[primary] if scores else 0
     # 最低分阈值：最高分低于阈值时各桶均为弱信号共现、不足成象，fallback
     # 「无明确职业倾向」而非硬塞最像的一桶（乞丐/坐牢/破财等非标命局）。
@@ -1744,10 +1753,10 @@ def classify_zhiye(
     base_career: Dict = {}
     if fallback_no_clear or top_score == 0:
         primary = ''
-        # M2 基础职业类目：行业七桶未成象时，按取财方式+效率落 体力劳动者/无业
+        # M2 基础职业类目：行业行业桶未成象时，按取财方式+效率落 体力劳动者/无业
         # （段氏《中级》体力取财=比劫/禄神做功+效率低=农民民工阶层）。
         # fallback 由「无明确职业倾向」升格为合法第一输出：基础类目命中给类目，
-        # 未命中给「未分类」+ 最高分桶提示（hint），不再硬塞七桶。
+        # 未命中给「未分类」+ 最高分桶提示（hint），不再硬塞行业桶。
         cm = caiming_result
         if cm is None:
             cm = analyze_caiming(day_gan, gans, zhis, relations=rel,
@@ -1755,7 +1764,7 @@ def classify_zhiye(
         base_career = _classify_base_career(day_gan, gans, zhis, wa, cm, ds)
         if base_career:
             primary = base_career['bucket']
-            hint_bucket, hint_label = '', ''  # 已落基础类目，不再给七桶提示
+            hint_bucket, hint_label = '', ''  # 已落基础类目，不再给行业桶提示
 
     if primary in _BASE_CAREER_LABELS:
         primary_label = _BASE_CAREER_LABELS[primary]

@@ -22,6 +22,7 @@ meta:
     婚姻: quality 差/平/好 等级差0 ✅ 差1 ⚠️ 差2 ❌; gold.duohun 不符再降一档。
     职业: primary 命中 primary_in ✅; 命中 partial_in ⚠️; 空且 allow_empty ✅; 空 ⚠️; 其余 ❌。
       （M2 增补：allow_empty 与 unemployed 桶同义——「允许空」即金标准认可无正当职业，命中亦 ✅）
+      gold.not_applicable=true：该维度不适用，跳过计算、统计与回归比较，不等于命中 ✅。
     子息: has_zixi 与 gold 一致 ✅ 否则 ❌。
     回归定义: 判定比 baseline 差(✅->⚠️/❌, ⚠️->❌)即回归, runner 退出码 1。
 
@@ -37,7 +38,7 @@ cases:
     items:
       - {dim: 财命, gold: {direction: 破财, note: 戊辰年破财/不宜投资}, baseline: ✅}
       - {dim: 官命, gold: {is_guanming: false, note: 普通人有官司}, baseline: ✅}
-      - {dim: 婚姻, gold: {quality: 平, duohun: false, note: 有妻有子}, baseline: ❌}
+      - {dim: 婚姻, gold: {quality: 差, duohun: false, note: 书断婚差但不离婚(zhongji:4365-4371;shouke:7060)}, baseline: ❌}
       - {dim: 职业, gold: {partial_in: [merchant], note: 烧窑/不正当生意(个体经营)}, baseline: ⚠️}
       - {dim: 应期, gold: {commit: true, note: 戊辰年应}, baseline: ✅}
       - {dim: 子息, gold: {has_zixi: true, note: 有子+怀胎}, baseline: ❌}
@@ -55,7 +56,7 @@ cases:
       - {dim: 财命, gold: {direction: 破财, note: 赔六万}, baseline: ⚠️}
       - {dim: 官命, gold: {is_guanming: false, note: 开车运输普通人}, baseline: ✅}
       - {dim: 婚姻, gold: {quality: 好, note: 妻好无事}, baseline: ✅}
-      - {dim: 职业, gold: {primary_in: [], note: 司机/运输(无对应职业码)}, baseline: ❌}
+      - {dim: 职业, gold: {primary_in: [driver], note: 司机/运输(庚申日入时支丑库)}, baseline: ❌}
       - {dim: 应期, gold: {commit: true, note: 戊寅年应}, baseline: ✅}
       - {dim: 层功, gold: {level_max: 2, note: 普通人赔钱}, baseline: ⚠️}
 
@@ -69,7 +70,7 @@ cases:
     liunian: [壬, 午, 2002]
     items:
       - {dim: 官命, gold: {is_guanming: true, level: 3, note: 厅级(书断「居厅级之职」zhenbao50qi:157；L3=厅级-省部级 yanjiu:6103-6104)}, baseline: ⚠️}
-      - {dim: 职业, gold: {primary_in: [], note: 官员(伤官去官)，无对应职业码}, baseline: ❌}
+      - {dim: 职业, gold: {not_applicable: true, note: 行政官员由官命维评估，不适用职业桶}, baseline: ❌}
       - {dim: 应期, gold: {commit: true, note: 壬午年升}, baseline: ✅}
       - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 厅级官；书「伤官与官不紧贴故官职不大」无L4据}, baseline: ✅}
 

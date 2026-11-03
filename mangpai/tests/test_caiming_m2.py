@@ -437,3 +437,21 @@ class TestYinHuanCai:
         from mangpai.subjective.caiming import _detect_yin_huan_cai
         assert not _detect_yin_huan_cai(
             '己', ['壬', '丙', '己', '己'], ['子', '巳', '巳', '午'])
+
+
+class TestCaiTongguanLiangji:
+    def test_hecai_work_counts_as_main_position(self):
+        gans, zhis = ['甲', '丙', '己', '辛'], ['子', '寅', '丑', '未']
+        r = analyze_caiming('己', gans, zhis)
+        assert r['caifu_view']['caixing_path']['hecai_work'] is True
+        assert r['tier_static'] == '巨富'
+
+    def test_hecai_work_requires_open_guan_tomb(self):
+        r = analyze_caiming('丁', ['戊', '丙', '丁', '癸'], ['申', '辰', '巳', '卯'])
+        assert r['caifu_view']['caixing_path']['hecai_work'] is True
+        assert r['tier_static'] == '富'
+
+    def test_hecai_work_does_not_replace_yuanshen(self):
+        r = analyze_caiming('乙', ['庚', '己', '乙', '庚'], ['申', '卯', '酉', '辰'])
+        assert not r['caifu_view']['caixing_path']['has_yuanshen']
+        assert r['tier_static'] == '小康'

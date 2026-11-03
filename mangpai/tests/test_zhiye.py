@@ -1,6 +1,6 @@
 """zhiye 职业象法测试 - 最低分阈值 fallback + M2 基础职业类目。
 
-验证：七桶（医生/教师/律师/商人/军政，外加会计/演艺）取最高分定位职业，
+验证：行业桶（医生/教师/律师/商人/军政，外加会计/演艺）取最高分定位职业，
 但最高分低于阈值（_MIN_SCORE_THRESHOLD=6）时各桶均为弱信号共现、不足成象，
 不硬塞最像的一桶——M2 起 fallback 升格为合法第一输出：
   1. 基础职业类目命中（段氏《中级》体力取财：比劫/禄神做功+效率低=农民民工
@@ -68,7 +68,7 @@ class TestMinScoreThreshold:
         assert r['primary_label'] == '无业'
 
     def test_laborer_base_career(self):
-        # 找二婚：七桶未成象(top3<6)，禄神当财+比劫做功+小康 -> 体力劳动者（偏农）
+        # 找二婚：行业桶未成象(top3<6)，禄神当财+比劫做功+小康 -> 体力劳动者（偏农）
         r = _run(ZHAOERHUN)
         assert r['fallback_no_clear'] is True
         assert r['primary'] == 'laborer'
@@ -77,7 +77,7 @@ class TestMinScoreThreshold:
         assert r['base_career']['hint'] == '农'
 
     def test_real_profession_not_suppressed(self):
-        # 真职业最高分≥6，不被阈值抑制（七桶照常，不进基础类目）
+        # 真职业最高分≥6，不被阈值抑制（行业桶照常，不进基础类目）
         assert _run(LIFANDING)['primary'] == 'lawyer'      # 律师7
         assert _run(YANXISHAN)['primary'] == 'military'    # 军警10
         assert _run(YANYUAN)['primary'] == 'performer'     # 演艺7
@@ -185,3 +185,14 @@ class TestSpecialCareerEvidence:
                           caiming_result=analyze_caiming('丁', gans, zhis))
         assert r['primary'] == 'merchant'
         assert r['scores']['teacher'] > 0
+
+
+def test_gengshen_hour_chou_is_driver_not_generic_military():
+    # 理象学:5129-5135：庚申日主入时支丑库，申为传送、丑临门户主车。
+    gans = ['丁', '丙', '庚', '丁']
+    r = _run((gans, ['未', '午', '申', '丑']))
+    assert r['primary'] == 'driver'
+    assert r['primary_label'] == '司机/运输'
+    assert any('申' in line and '丑' in line for line in r['evidence']['driver'])
+    for zhis in (['丑', '午', '申', '未'], ['未', '午', '午', '丑']):
+        assert _run((gans, zhis))['primary'] != 'driver'

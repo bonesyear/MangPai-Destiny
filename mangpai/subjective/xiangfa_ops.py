@@ -373,6 +373,20 @@ def gongxiang(
                     'locked': True,
                     'desc': f'{PILLAR_NAMES_CN[i]}柱{dom}象被{len(uniq_layers)}层象（{"、".join(uniq_layers)}）共同指向，共象锁定',
                 })
+        if gan == '丁' and ss in ('食神', '伤官'):
+            findings.append({
+                'principle': '共象', 'subject': '眼睛', 'domain': '身体',
+                'layers': ['干支象', '十神象'], 'pillar': PILLAR_NAMES_CN[i],
+                'pos': pos_gan, 'evidence': ['丁表目', f'丁为{ss}'],
+                'locked': True, 'desc': f'丁表目，丁火{ss}为眼睛（中级:2140-2148）',
+            })
+        if zhi == '申' and '劫财' in _shishen_list_of_pos(f'{pk}_zhi', day_gan, gans, zhis):
+            findings.append({
+                'principle': '共象', 'subject': '机器', 'domain': '器物',
+                'layers': ['干支象', '十神象'], 'pillar': PILLAR_NAMES_CN[i],
+                'pos': f'{pk}_zhi', 'evidence': ['申为机器/运转', '申藏劫财主机械/运作'],
+                'locked': True, 'desc': '申与劫财共象为运转的机器（中级:2157-2163）',
+            })
     return findings
 
 
@@ -497,6 +511,39 @@ def hexiang(
                     findings[-1]['desc'] += '；合象定义：' + '；'.join(defs)
         # （三合局分支已移入 huaxiang——批4 归错原则：中级:2276-2278 三合成势
         #  属化象「转化」非合象互用）
+
+    # 中级:2191-2201：戊戌食神的作品象与戌建筑象复合为建筑设计。
+    if day_gan == '丙' and gans[3] == '戊' and zhis[3] == '戌':
+        findings.append({
+            'principle': '合象', 'subject': '建筑设计', 'domain': '职业',
+            'layers': ['干支象', '十神象'], 'pillar': '时柱', 'pos': 'hour_zhi',
+            'evidence': ['戌有建筑物之象', '戊戌为食神，食神主作品'],
+            'locked': True, 'desc': '戊戌食神的作品象与建筑象复合为建筑设计',
+        })
+    for a in wa:
+        if a.get('type') not in ('地支合', '暗合'):
+            continue
+        positions = [a.get('from_pos', ''), a.get('to_pos', '')]
+        if any(_pos_pillar(pos) not in PILLAR_KEYS for pos in positions):
+            continue
+        pairs = [(gans[PILLAR_KEYS.index(_pos_pillar(pos))]
+                  + zhis[PILLAR_KEYS.index(_pos_pillar(pos))],
+                  zhis[PILLAR_KEYS.index(_pos_pillar(pos))]) for pos in positions]
+        matched_pair = (any(column == '庚申' for column, _zhi in pairs)
+                        and any(zhi == '卯' for _column, zhi in pairs))
+        end_sets = [_end_ss(pos, True) for pos in positions]
+        has_cai = any(_end_ss(f'{pk}_{kind}', True) & {'正财', '偏财'}
+                      for pk in PILLAR_KEYS for kind in ('gan', 'zhi'))
+        if (matched_pair and not has_cai
+                and any('食神' in ss for ss in end_sets)
+                and any(ss & {'正印', '偏印'} for ss in end_sets)):
+            findings.append({
+                'principle': '合象', 'subject': '金融官员', 'domain': '职业',
+                'layers': ['干支象', '十神象'], 'pillar': '', 'pos': a.get('to_pos', ''),
+                'evidence': [a.get('desc', ''), '庚申印主金融与权力', '卯食神为财的原神'],
+                'locked': True,
+                'desc': '庚申印合卯食神财原神，四柱无财，为金融官员之象（中级:2236-2241）',
+            })
 
     # 非做功五合补扫：劫财合财/食神合印等非日干合且非合制之合，做功层不载
     # （zuogong_detect 非日干合只检合制「一方官杀另一方食伤/比劫」），而合象
@@ -764,6 +811,8 @@ def zhixiang(
 
     action_views: List[Dict] = []
     for action in wa:
+        if action.get('auxiliary'):
+            continue
         action_views.append(action)
         if (action.get('type') in _HE_CONTROL
                 or action.get('relation_direction') == 'mutual'):
@@ -789,8 +838,25 @@ def zhixiang(
         })
         if not controlled_cats:
             continue
+        from_pk = _pos_pillar(from_pos)
+        from_zhi = (zhis[PILLAR_KEYS.index(from_pk)]
+                    if from_pk in PILLAR_KEYS and from_pos.endswith('_zhi') else '')
+        from_ku_cats = {_wx_to_shishen_cat(day_gan, wx) for wx in TOMB_MAP.get(from_zhi, [])}
+        # 理象学:7677-7681：财库冲制含比劫与印之库，以用制体为反向做功。
+        reverse_ku = (t == '冲' and '财' in from_ku_cats
+                      and {'比劫', '印'} <= set(controlled_cats))
+        # 理象学:5551-5561：未羊刃库穿制子印贼神，得兵权而非失印。
+        zebu_power = (t in ('穿', '克') and day_gan == '甲'
+                      and from_pos == 'year_zhi' and to_pos == 'day_zhi'
+                      and zhis[0] == '未' and zhis[2] == '子')
         # 方向：主制宾=得，宾制主=失。同侧（主制主/宾制宾）=内部做功，中性得。
-        if from_zhu and not to_zhu:
+        if zebu_power:
+            direction = '贼捕制'
+            verb = '得'
+        elif reverse_ku:
+            direction = '反向做功'
+            verb = '得'
+        elif from_zhu and not to_zhu:
             direction = '主制宾'
             verb = '得'
         elif to_zhu and not from_zhu:
@@ -807,7 +873,7 @@ def zhixiang(
             subject_map = {
                 '财': '财', '官杀': '官', '印': '印文', '食伤': '才艺', '比劫': '比劫',
             }
-            subj = subject_map.get(cat, cat)
+            subj = '兵权' if zebu_power and cat == '印' else subject_map.get(cat, cat)
             findings.append({
                 'principle': '制象',
                 'subject': f'{verb}{subj}',
@@ -1258,6 +1324,17 @@ def juxiang(
             'wrapped_pillars': j.get('wrapped_pillars', []),
             'evidence': [j.get('desc', '')],
             'desc': f'夹局之象：{j.get("desc","")}（左右同气夹中间，机遇/压力并存）',
+        })
+
+    # 理象学:9492-9499：年月时天干阳盖日干阴，且寅作公门，方为警局为官之象。
+    yang_cover = (gans[2] not in _YANG_GANS
+                  and all(gans[i] in _YANG_GANS for i in (0, 1, 3)))
+    if yang_cover and zhis[3] == '寅':
+        findings.append({
+            'principle': '局象', 'type': '包局', 'qi_xiang': '阳包阴',
+            'domain': '官权',
+            'evidence': ['年月时天干阳盖日干阴', '时支寅作公门'],
+            'locked': True, 'desc': '阳包阴且天干阳盖阴，寅作公门，为警局为官之象',
         })
 
     # ── 3. 全阴全阳之象 ──

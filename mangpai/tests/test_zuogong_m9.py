@@ -89,3 +89,74 @@ class TestDeclaredVetoes:
 def test_hitler_chou_ru_chen_is_primary_tomb_work():
     pw = _pw('丙', '寅', '己', '丑', '戊', '辰', '丁', '酉')
     assert pw['type'] == '墓用'
+
+
+def test_muli3_repeated_tomb_outranks_other_work():
+    pw = _pw('丁', '丑', '壬', '寅', '己', '酉', '己', '酉')
+    assert pw['type'] == '墓用'
+
+
+def test_zengguofan_repeated_tomb_outranks_gan_he_and_sheng():
+    pw = _pw('丙', '辰', '辛', '未', '己', '亥', '己', '亥')
+    assert pw['type'] == '墓用'
+
+
+def test_aonaxixi_zhiku_outranks_day_he():
+    pw = _pw('己', '未', '乙', '巳', '己', '丑', '庚', '午')
+    assert pw['type'] == '制用'
+
+
+def test_simpson_two_attackers_same_target_outranks_gan_he():
+    pw = _pw('己', '丑', '丁', '亥', '丁', '未', '甲', '戌')
+    assert pw['type'] == '制用'
+
+
+def test_huali2_unrelated_attackers_do_not_override_hua():
+    pw = _pw('丙', '寅', '戊', '申', '壬', '戌', '壬', '辰')
+    assert pw['type'] == '化用'
+
+
+def test_lishimin_two_wu_tomb_control_outranks_hua():
+    pw = _pw('戊', '午', '戊', '午', '乙', '丑', '壬', '戌')
+    assert pw['type'] == '制用'
+
+
+def test_muli1_day_food_entombed_outranks_ke():
+    pw = _pw('壬', '寅', '己', '未', '癸', '酉', '庚', '子')
+    assert pw['type'] == '墓用'
+
+
+def test_hanwu_year_food_control_is_primary():
+    pw = _pw('己', '巳', '乙', '酉', '癸', '未', '甲', '戌')
+    assert pw['type'] == '制用'
+
+
+def test_newton_repeated_zi_controls_officer():
+    pw = _pw('庚', '子', '壬', '午', '壬', '子', '庚', '辰')
+    assert pw['type'] == '制用'
+
+
+def test_soros_repeated_wu_controls_officer():
+    pw = _pw('甲', '午', '庚', '申', '甲', '午', '辛', '未')
+    assert pw['type'] == '制用'
+
+
+def test_buffett_paired_chong_is_primary():
+    pw = _pw('壬', '子', '庚', '午', '甲', '申', '壬', '寅')
+    assert pw['type'] == '制用'
+
+
+def test_lijiacheng_wealth_and_resource_surround_control():
+    pw = _pw('庚', '午', '戊', '辰', '己', '未', '丁', '亥')
+    assert pw['type'] == '制用'
+
+
+def test_rothschild_open_officer_tomb_is_primary():
+    pw = _pw('己', '丑', '甲', '子', '丙', '寅', '辛', '未')
+    assert pw['type'] == '制用'
+
+
+def test_heli8_controlled_officer_linked_to_day_is_primary():
+    # 理象学:6875-6877：伤官制官为功，被制官星暗合到主位是结果。
+    pw = _pw('乙', '卯', '丙', '申', '甲', '午', '甲', '申')
+    assert pw['type'] == '制用'

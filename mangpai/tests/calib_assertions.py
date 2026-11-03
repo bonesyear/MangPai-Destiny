@@ -249,8 +249,12 @@ def compute(doc):
     """返回 {(case_id, dim): (verdict, detail)}，按 YAML 顺序。"""
     results = {}
     for case in doc['cases']:
+        items = [item for item in case['items']
+                 if not item['gold'].get('not_applicable')]
+        if not items:
+            continue
         out = run_case(case)
-        for item in case['items']:
+        for item in items:
             dim = item['dim']
             v = _JUDGES[dim](item['gold'], out)
             results[(case['id'], dim)] = (v, _detail(dim, out))
@@ -275,6 +279,8 @@ def main():
     for case in doc['cases']:
         for item in case['items']:
             key = (case['id'], item['dim'])
+            if key not in cur:
+                continue
             bv = item.get('baseline')
             v, d = cur[key]
             if bv and bv != v:
@@ -319,6 +325,8 @@ def _write_baseline(cur, cnt):
         m = item_re.match(ln)
         if m and case_id:
             key = (case_id, m.group('dim'))
+            if key not in cur and 'not_applicable: true' in ln:
+                continue
             if key not in cur:
                 raise SystemExit(f'write-baseline: {key} 不在计算结果中（YAML 结构异常）')
             lines[i] = m.group('head') + cur[key][0] + m.group('tail') + '\n'
@@ -341,7 +349,8 @@ def _validate_baseline_yaml(txt, expected_items):
     except yaml.YAMLError as e:
         raise SystemExit(f'write-baseline: 写出内容 YAML 反解析失败，拒绝写入: {e}')
     cases = (doc or {}).get('cases') or []
-    n = sum(len(c.get('items') or []) for c in cases)
+    n = sum(not item.get('gold', {}).get('not_applicable')
+            for c in cases for item in (c.get('items') or []))
     counts = ((doc or {}).get('meta') or {}).get('baseline_counts')
     if not cases or n != expected_items or counts is None:
         raise SystemExit(f'write-baseline: 反解析结构异常（items={n} 预期 {expected_items}，'

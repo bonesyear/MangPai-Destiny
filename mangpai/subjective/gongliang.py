@@ -851,6 +851,15 @@ def _apply_gong_point_rules(
         _emit(len(active_tomb_works))
         reasons.append(f'入墓为功：局中墓用做功{len(active_tomb_works)}处（+{len(active_tomb_works)}层）')
 
+    # 两午入开戌仅作层功增援，不改全局开库释火口径（理象学:10222-10224）。
+    _duowu_tomb = (not active_tomb_works and yuanshen_hit == '财+食伤'
+                   and yuanshen_pos == 'month_zhi' and zhis.count('午') >= 2
+                   and any(t.get('zhi') == '戌'
+                           for t in analyze_muku(zhis, gans).get('open_tombs', [])))
+    if _duowu_tomb:
+        _emit(1)
+        reasons.append('多而墓之：两午入戌，增援刑开丑库（+1层）')
+
     # ── 5. 库源/连墓 -> +1（被制元素之墓库在局，源头得库加一层）──
     #   源文（李嘉诚例）：「亥出自辰，从辰墓中引出，亥水有源头得到一个大的库，
     #   再加一层功量」。须原神用神同制成立(真实制局)方计，被制元素之墓库在局即此。
@@ -1415,6 +1424,14 @@ def _apply_caps_and_direction(
     zhi_jing, jing_note = _assess_zhi_jing(
         day_wx, involved_cats, zhi_targets, gan_cats, fei_cats, non_aux, has_severe_harm,
     )
+    # 财与原神同制、连墓加层且仅有折扣信号时，书仍明断四层（理象学:12460-12464）。
+    _lianmu_exempt = (yuanshen_hit == '财+食伤' and jing_note.startswith('制用动作含')
+                      and any(item.get('reason', '').startswith('连墓加层')
+                              for item in (evidence or [])))
+    # 日柱被穿但两午入戌增援时，书判能制尽月令，不按普通穿损封顶（理象学:10222-10224）。
+    _duowu_exempt = (yuanshen_hit == '财+食伤' and jing_note.startswith('日柱被穿')
+                     and any(item.get('reason', '').startswith('多而墓之')
+                             for item in (evidence or [])))
     # 贼神捕神净制增强：本模块保守启发式判「无制」时，采纳 zb 的 党势-孤立净制
     # 判定（zb 检出制局而本模块位置启发式未捕获，故据 zb 补 净/不净）。其余情形
     # （本模块已判 净/不净）不覆盖——本模块的位置缺陷信号（日柱被穿/透干原神残存
@@ -1445,6 +1462,10 @@ def _apply_caps_and_direction(
             reasons.append('制不净：' + jing_note + '（方局围制+制库双结构，书判四层功量（理象学6470-6474），不净封顶不适用）')
         elif _sanhe_zhiku:
             reasons.append('制不净：' + jing_note + '（三合成势围制+制库，书判制之彻底共四层功（理象学:10595-10611），不净封顶不适用）')
+        elif _lianmu_exempt:
+            reasons.append('制不净：' + jing_note + '（连墓加层书证，四层功封顶不适用）')
+        elif _duowu_exempt:
+            reasons.append('制不净：' + jing_note + '（多而墓之增援，书判制尽，封顶不适用）')
         else:
             reasons.append('制不净：' + jing_note + '，封顶于三层（达不到四层）')
 
@@ -1457,7 +1478,8 @@ def _apply_caps_and_direction(
     # 零态）。与「虚透/空亡」打折不重复计：打折为制不净之降层调节（上文），
     # 本条为结构否决——否决成立后层功直判 0，打折路径不再作用。
     _tg_huai = False
-    if _tg_huai_struct and zhi_jing == '不净':
+    # 效率折扣不等于官杀残存反扑，不能单独触发全否决。
+    if _tg_huai_struct and zhi_jing == '不净' and '折扣' not in jing_note:
         _tg_huai = True
         if evidence is not None:
             if annotations is not None:
@@ -1484,9 +1506,12 @@ def _apply_caps_and_direction(
     # 制不净 -> 封顶三层（段氏：制之不净达不到四层，如蒋介石）；
     #   化用成局/从杀格为化用路径非制局，制净框架不适用，不受此封顶；
     #   方局围制+制库双结构书明断四层（理象学 6470-6474），同不适用；
-    #   三合成势围制+制库书判制之彻底共四层（理象学:10595-10611 慈禧），同不适用。
+    #   三合成势围制+制库书判制之彻底共四层（理象学:10595-10611 慈禧），同不适用；
+    #   连墓加层且仅折扣信号的书证四层（理象学:12460-12464），同不适用；
+    #   两午入戌增援而书判制尽（理象学:10222-10224），同不适用。
     if zhi_jing == '不净' and level > 3 and not hua_chengju \
-            and not _fangju_zhiku and not _sanhe_zhiku:
+            and not _fangju_zhiku and not _sanhe_zhiku and not _lianmu_exempt \
+            and not _duowu_exempt:
         level = 3
     # 普通四柱降档封顶（源文 6282-6376 三种小功情形）：
     #   相生之功 -> 封顶一层（相生效率低，源文普通例二「相生之功，功不算大」=普通）；

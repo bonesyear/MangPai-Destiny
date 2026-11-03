@@ -1764,7 +1764,14 @@ def assess_caiming_level(
                         and '官统财（官杀当财）' not in views
                         and not any(v.startswith('过河拆桥·富格') for v in views))
         if _caitongguan and tier_idx > 3:
-            _cai_liangji = bool(cxp.get('has_yuanshen') and cxp.get('zhuwei_cai'))
+            # 合入主位之外还须官库冲开，才是书明官统财量级（理象学:12633-12649）。
+            _guan_wx = WX_KE_ME.get(GAN_WX.get(day_gan, ''), '')
+            _guan_ku_open = any(
+                _guan_wx in (t.get('element_tombed') or [])
+                for t in _ensure_muku(gans, zhis, muku_result).get('open_tombs', []))
+            _cai_liangji = bool(cxp.get('has_yuanshen')
+                                and (cxp.get('zhuwei_cai')
+                                     or (cxp.get('hecai_work') and _guan_ku_open)))
             if _cai_liangji:
                 adjust = '上浮（官杀当财量级高；财有原神且归主位，财量级可任）'
             else:

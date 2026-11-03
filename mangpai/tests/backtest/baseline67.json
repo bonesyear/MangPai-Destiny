@@ -1,11 +1,11 @@
 {
  "zg:制例一奥纳西斯": {
-  "verdict": "⚠️",
-  "detail": "types=['制用', '合用', '生用'] primary=合用"
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '生用'] primary=制用"
  },
  "zg:制例二": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '成势', '生用'] primary=制用"
+  "detail": "types=['制用', '合用', '成势', '生用'] primary=合用"
  },
  "zg:制例三": {
   "verdict": "✅",
@@ -17,7 +17,7 @@
  },
  "zg:化例二": {
   "verdict": "✅",
-  "detail": "types=['制用', '化用'] primary=化用"
+  "detail": "types=['制用', '化用', '生用'] primary=化用"
  },
  "zg:化例三中堂": {
   "verdict": "✅",
@@ -25,7 +25,7 @@
  },
  "zg:生例一富婆": {
   "verdict": "✅",
-  "detail": "types=['制用', '生用'] primary=生用"
+  "detail": "types=['合用', '生用'] primary=生用"
  },
  "zg:生例二经理": {
   "verdict": "✅",
@@ -33,7 +33,7 @@
  },
  "zg:生例四企业家": {
   "verdict": "✅",
-  "detail": "types=['制用', '生用'] primary=生用"
+  "detail": "types=['泄用', '生用'] primary=生用"
  },
  "zg:合例一富命": {
   "verdict": "✅",
@@ -48,20 +48,20 @@
   "detail": "types=['制用', '合用', '生用'] primary=生用"
  },
  "zg:墓例一经理": {
-  "verdict": "⚠️",
-  "detail": "types=['制用', '墓用'] primary=制用"
+  "verdict": "✅",
+  "detail": "types=['制用', '墓用'] primary=墓用"
  },
  "zg:墓例三电厂官": {
-  "verdict": "⚠️",
-  "detail": "types=['制用', '合用', '墓用', '生用'] primary=合用"
+  "verdict": "✅",
+  "detail": "types=['制用', '合用', '墓用', '生用'] primary=墓用"
  },
  "zg:墓例四曾国藩": {
-  "verdict": "⚠️",
-  "detail": "types=['制用', '墓用', '生用'] primary=生用"
+  "verdict": "✅",
+  "detail": "types=['制用', '墓用', '生用'] primary=墓用"
  },
  "zg:复例一数学家": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '墓用'] primary=制用"
+  "detail": "types=['制用', '合用', '墓用'] primary=墓用"
  },
  "zg:复例二副总": {
   "verdict": "✅",
@@ -69,7 +69,7 @@
  },
  "zg:复例四老师经商": {
   "verdict": "✅",
-  "detail": "types=['制用', '合用', '生用'] primary=制用"
+  "detail": "types=['制用', '合用', '生用'] primary=合用"
  },
  "gl:李嘉诚": {
   "verdict": "✅",
@@ -85,7 +85,7 @@
  },
  "gl:蒋介石": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=72"
+  "detail": "level=3(书3) score=70"
  },
  "gl:岳飞": {
   "verdict": "✅",
@@ -93,11 +93,11 @@
  },
  "gl:例6": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=44"
+  "detail": "level=2(书2) score=42"
  },
  "gl:例7": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=49"
+  "detail": "level=3(书3) score=69"
  },
  "gl:例8": {
   "verdict": "✅",
@@ -117,39 +117,39 @@
  },
  "gl:普例3": {
   "verdict": "✅",
-  "detail": "level=1(书1) score=12"
+  "detail": "level=2(书2) score=50"
  },
  "gl:普例4": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=50"
+  "detail": "level=2(书2) score=48"
  },
  "gl:普例5": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=40"
+  "detail": "level=2(书2) score=50"
  },
  "gl:阎锡山": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=76"
+  "detail": "level=3(书3) score=74"
  },
  "gl:复例二副总": {
   "verdict": "✅",
   "detail": "level=1(书1) score=12"
  },
  "xf:共象:丁目": {
-  "verdict": "⚠️",
-  "detail": "ok=True 审计档=⚠️"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=⚠️"
  },
  "xf:共象:申机器": {
-  "verdict": "⚠️",
-  "detail": "ok=True 审计档=⚠️"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=⚠️"
  },
  "xf:合象:建筑设计": {
-  "verdict": "⚠️",
-  "detail": "ok=True 审计档=⚠️"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=⚠️"
  },
  "xf:合象:银行行长": {
-  "verdict": "⚠️",
-  "detail": "ok=True 审计档=⚠️"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=⚠️"
  },
  "xf:化象:纺织": {
   "verdict": "✅",
@@ -168,12 +168,12 @@
   "detail": "ok=True 审计档=✅"
  },
  "xf:制象:岳飞": {
-  "verdict": "⚠️",
-  "detail": "ok=True 审计档=⚠️"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=⚠️"
  },
  "xf:制象:资本运营": {
-  "verdict": "⚠️",
-  "detail": "ok=True 审计档=⚠️"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=⚠️"
  },
  "xf:带象:甲子": {
   "verdict": "✅",
@@ -200,8 +200,8 @@
   "detail": "ok=True 审计档=✅"
  },
  "xf:局象:公安": {
-  "verdict": "⚠️",
-  "detail": "ok=True 审计档=⚠️"
+  "verdict": "❌",
+  "detail": "ok=False 审计档=⚠️"
  },
  "xf:局象:比劫包局": {
   "verdict": "✅",

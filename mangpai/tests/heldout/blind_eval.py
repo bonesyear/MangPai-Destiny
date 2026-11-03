@@ -88,7 +88,8 @@ _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
 # 冠军」，段氏：体育冠军=比劫做功，同 v4 删「武/兵」之理），2 例转
 # unscorable（trainset 职业 n 87→85）；两例 verdict 无其他桶关键词，
 # 22✅ 零依赖被排除语境。
-RUBRIC_VERSION = 'v8-20260808'
+# v9：新增 driver=司机/运输/开车；zhenbao-04 转✅，ans29 领导司机如实转❌。
+RUBRIC_VERSION = 'v9-20261103'
 
 # P0-a 断语性质判别：流年事件断语（破财/凶 且 文本锚定具体年份/大运 或 案例
 # 喂入运岁——金标准多为「戊辰年破财/赔六万」式流年事件，案例所喂运岁即事件锚点）
@@ -110,6 +111,7 @@ _ZY_RULES = [
     (('会计', '财会', '财务', '银行', '出纳'), 'accountant'),
     (('商', '企业家', '炒股', '房地产', '生意', '贸易', '销售', '老板',
       '博彩', '理财', '经商', '个体'), 'merchant'),
+    (('司机', '运输', '开车'), 'driver'),
     (('演员', '演艺', '艺术', '体育', '歌', '舞', '艺人'), 'performer'),
     # M2 基础职业类目（段氏《中级》体力取财=农民/民工阶层；无业=清家荡产/无功）。
     # 原先无法机械映射的 农民/工人/无业 verdict 自此可评。
@@ -522,6 +524,7 @@ def main():
                 else:
                     e.get('scores', {}).pop('职业', None)
         out_path = args.rescore.replace('.json', '') + '_rescore.json'
+        data.setdefault('_meta', {})['rubric_version'] = RUBRIC_VERSION
         atomic_write_json(out_path, data)
         for split, cases in data.items():
             if split == '_meta':
