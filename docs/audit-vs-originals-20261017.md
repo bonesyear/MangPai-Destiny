@@ -1395,3 +1395,13 @@ selectors↔engine 48 键三方契约锁（test_key_contract 实测绿）；五�
 - 509盘对v9 driver基线零翻转零文本差异、双seed一致；分层、typing、文档数字、`git diff --check`及凭证扫描通过，P0=P1=P2=0。
 - 真实LLM因API key未配置且env回退无键而未调用；飞书三项环境凭证不齐，未调用。不冒充外部验证。
 - 原清单剩7项，ans29另记；本批后统一提交推送。
+
+## ans29领导司机新缺口复核（证据不足，2026-11-03）
+
+- shouke:2768-2774仅给“侍候当官的命”及实际开车事实，没有司机通则；当前merchant=8、driver=0，且不符合已有庚申入丑库结构。
+- 不按结果反推职业规则，保留v9下的真实❌；不改引擎、gold或快照，原清单7项不变，`LATEST`保持`20261103_driver.json`。本批未提交或推送。
+
+## 本地替代 LLM 链路验证（2026-11-03）
+
+- 无API key条件下，以真实李嘉诚引擎结果走完prompt组装，由当前助手生成七维JSON，再调用项目`validate_reading`与`format_reading`；结果`ok=True、0 violations`，免责声明在场。
+- 此结果只证明本地生成与校验链可用，不是外部DeepSeek API或飞书连通性验证；外部服务仍未调用。
