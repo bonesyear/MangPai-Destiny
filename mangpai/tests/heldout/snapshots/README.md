@@ -48,7 +48,8 @@
 | `20261103_r1.json` | R1主做功书证修复：13项主功归位，含李嘉诚、罗斯切尔德 | 见 _meta | 20261103_r5 | heldout零翻转零文本差异，trainset仅`cj-厅级-2`官命❌→✅（未、戌同土成组夹克子水）；双seed一致；pytest 1610；regression67/famous/calib无REGRESSION。克林顿误触已收窄，合例八及其他18项未决不冒充已修 |
 | `20261103_r3.json` | R3司机运输具体组合：庚申日禄入时支丑库 | 见 _meta | 20261103_r1 | 仅`zhenbao-04`职业military→driver，score因粗rubric未映射司机保持None；其他零差异，双seed一致；pytest 1611；regression67/famous/calib无REGRESSION。原清单剩17项 |
 | `20261103_followup.json` | 合例八制用、婚差不多婚、折扣不单独触发天干坏否决 | 见 _meta | 20261103_r3 | 伤食当财❌→⚠️，索罗斯封顶说明变化已归因，其他零差异，双seed一致；pytest 1615；regression67/famous/calib无REGRESSION。R2七项改具体金标后如实为❌，原清单剩15项 |
-| `20261103_driver.json` | v9 driver职业rubric重评，引擎字段沿用followup；**当前基线** | 见 _meta | 20261103_followup | zhenbao-04 None→✅，ans29领导司机 None→❌，其他零差异；重评/实时/双seed一致；pytest 1621。原清单7项不变 |
+| `20261103_driver.json` | v9 driver职业rubric重评，引擎字段沿用followup | 见 _meta | 20261103_followup | zhenbao-04 None→✅，ans29领导司机 None→❌，其他零差异；重评/实时/双seed一致；pytest 1621。原清单7项不变 |
+| `20261103_buffett.json` | 巴菲特双冲分制年/时本气财与财原神；**当前基线** | 见 _meta | 20261103_driver | 仅巴菲特职业⚠️→✅，其他零差异，双seed一致；pytest 1622；regression67/famous/calib无REGRESSION。原清单剩6项 |
 
 | `20261025_s3.json` | 官命专批（批S2 修法草图执行）：zhenbao-01 官命假阳修复——四条独立路径收窄：①藏杀被制须≥2 不同来方非辅助制或单方来方五行成势（yanjiu:7792-7796 匪制成势锚；岳飞/蒋介石/慈禧/黄兴等 19 锚盘全保、combo 逐字节不变）②印制伤食与伤食制印「互战护官」排除（被制支藏官杀+反向互战；岳飞/周恩来零伤）④财制印「宾制主+财支藏官杀」排除（50qi:16；首版误伤 yx-3290 哨兵抓获收窄）。calib REGRESSION 2→1（余 14a 备案）；trainset 官 88.7%→89.6%（zhenbao-01 ❌→✅ 归位） | 见 _meta | 20261024_r1 | heldout 零翻转零打分变化；trainset 1 改善+heldout 4 条未计分翻转的下游字段抖动全归因；pytest 1443+1xf |
 | `20261024_r1.json` | 批R LLM 加固二期（引擎判定零改动）：L0 拒 schema 七维外维度（堵 L2 盲区）、user_question 「」包裹+隔离声明（注入隔离）、应期/婚姻回对否定语境排除（复用批F _neg_in_pre，「婚姻不美满」类不误拦）、词表扩（迁移补赴外/南洋/赴美；死词补「大限将至/已到」组合形态，大限术语放行）；juefa B 组复评维持不接（判定集 n<10 不达批L 接入线，纪律性拒绝） | 见 _meta | 20261020_l1 | 零翻转零抖动（校验器/prompt 不触引擎）；pytest 1428+1xf（+4 哨兵） |

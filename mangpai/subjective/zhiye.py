@@ -962,6 +962,23 @@ def _score_merchant(day_gan, gans, zhis, wa) -> Tuple[int, List[str]]:
         ev.append('土金→地产/建筑/矿')
     if cnt.get('火', 0) and cnt.get('土', 0):
         ev.append('火土→能源/化工/娱乐')
+    # 中级:3072-3075＋理象学:11460：双冲分制年/时本气财与财原神，限复合结构。
+    _chong_targets = []
+    for a in non_aux:
+        if a.get('type') != '冲':
+            continue
+        fi, ti, fa, ta = _act_cats(a)
+        tp = a.get('to_pos', '')
+        if fi >= 0 and tp.endswith('_zhi'):
+            _chong_targets.append((tp, ta))
+    _paired_chong = any(
+        '财' in cats and pos in ('year_zhi', 'hour_zhi')
+        and any('食伤' in other_cats and other_pos != pos
+                for other_pos, other_cats in _chong_targets)
+        for pos, cats in _chong_targets)
+    if _paired_chong:
+        score += 2
+        ev.append('双冲制财与原神（年/时财与财原神分制，经营取财）')
     return score, ev
 
 

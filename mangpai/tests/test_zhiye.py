@@ -196,3 +196,18 @@ def test_gengshen_hour_chou_is_driver_not_generic_military():
     assert any('申' in line and '丑' in line for line in r['evidence']['driver'])
     for zhis in (['丑', '午', '申', '未'], ['未', '午', '午', '丑']):
         assert _run((gans, zhis))['primary'] != 'driver'
+
+
+def test_buffett_paired_chong_wealth_and_resource_merchant():
+    # 中级:3072-3075＋理象学:11460：双冲分制年财与财原神，限结构组合。
+    r = _run((list('庚甲壬壬'), list('午申子寅')))
+    assert r['primary'] == 'merchant'
+    assert any('双冲制财与原神' in line for line in r['evidence']['merchant'])
+    for gans, zhis in [
+        (list('戊癸癸甲'), list('申亥巳寅')),  # 演员：财在日支，不命中
+        (list('戊庚丁壬'), list('申申卯寅')),  # 唱戏：缺另一路冲财原神
+        (list('丁辛辛辛'), list('亥亥丑卯')),  # 森进一：合财无双冲
+    ]:
+        other = _run((gans, zhis))
+        assert not any('双冲制财与原神' in line
+                       for line in other['evidence']['merchant'])

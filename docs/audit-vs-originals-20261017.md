@@ -1405,3 +1405,9 @@ selectors↔engine 48 键三方契约锁（test_key_contract 实测绿）；五�
 
 - 无API key条件下，以真实李嘉诚引擎结果走完prompt组装，由当前助手生成七维JSON，再调用项目`validate_reading`与`format_reading`；结果`ok=True、0 violations`，免责声明在场。
 - 此结果只证明本地生成与校验链可用，不是外部DeepSeek API或飞书连通性验证；外部服务仍未调用。
+
+## 新书证复核后巴菲特职业修复（已完成，2026-11-03）
+
+- primary复核否决无书证的合局护栏；最终限双冲分别冲年/时本气财与财原神。巴菲特由未分类转merchant，名人42✅/4⚠️/1❌，原清单剩6项。
+- 演员、唱戏、森进一均未出现新增merchant证据；509盘仅巴菲特⚠️→✅，其他零差异，双seed一致。
+- 新增`20261103_buffett.json`并推进`LATEST`。迈克尔、阿炳、ans29、三例财档与牢狱仍不修；本批未提交或推送。
