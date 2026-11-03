@@ -301,3 +301,11 @@ cases:
     monkeypatch.setattr(ca, 'YAML_PATH', str(path))
     ca._write_baseline({}, Counter())
     assert 'not_applicable: true' in path.read_text(encoding='utf-8')
+
+
+def test_curate_supports_extended_cat3_rows():
+    sys.path.insert(0, os.path.join(_HERE, 'heldout'))
+    import curate
+    result = curate.contaminated()
+    assert result
+    assert any('backtest67:丁目' in tag for tag in result.values())

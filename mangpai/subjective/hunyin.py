@@ -621,7 +621,7 @@ def classify_duohun(
     day_zhi = zhis[PILLAR_KEYS.index('day')]
     dang = _qishi_dang(gans, zhis)['dang']
     zhengxing_in_gong = any(
-        _compute_shishen(day_gan, cg) in ('正财', '正官')
+        _compute_shishen(day_gan, cg) == ('正财' if gender == '男' else '正官')
         for cg, _qi in get_canggan_mangpai(day_zhi))
     incoming_ke_parties = {
         _zhi_party(zhis[PILLAR_KEYS.index(a['from_pos'].split('_')[0])])

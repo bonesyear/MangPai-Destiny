@@ -37,7 +37,7 @@ def contaminated():
         out.setdefault(key_of(r67.fg(g), z, '男'), 'backtest67:' + name)
     for name, g, z, *_ in r67.CAT2:
         out.setdefault(key_of(r67.fg(g), z, '男'), 'backtest67:' + name)
-    for pr, name, gs, zs, _ in r67.CAT3:
+    for pr, name, gs, zs, *_ in r67.CAT3:
         out.setdefault(key_of(list(gs), list(zs), '男'), 'backtest67:' + name)
     for name, g, z, *_ in r67.CAI:
         out.setdefault(key_of(g, z, '男'), 'backtest67:' + name)

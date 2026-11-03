@@ -432,3 +432,6 @@ def test_zhenbao01_bad_marriage_but_not_duohun():
                             ['亥', '子', '丑', '戌'], '男')
     assert other['is_duohun'] is False
     assert not any('不直接判多婚' in f for f in other['factors'])
+    male_wrong_star = classify_duohun('甲', ['戊', '辛', '甲', '己'],
+                                      ['午', '丑', '酉', '亥'], '男')
+    assert male_wrong_star['is_duohun'] is True
