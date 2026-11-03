@@ -380,7 +380,9 @@ def gongxiang(
                 'pos': pos_gan, 'evidence': ['丁表目', f'丁为{ss}'],
                 'locked': True, 'desc': f'丁表目，丁火{ss}为眼睛（中级:2140-2148）',
             })
-        if zhi == '申' and '劫财' in _shishen_list_of_pos(f'{pk}_zhi', day_gan, gans, zhis):
+        if zhi == '申' and any(
+                _compute_shishen(day_gan, cg) == '劫财'
+                for cg, _qi in get_canggan_mangpai(zhi)[:2]):
             findings.append({
                 'principle': '共象', 'subject': '机器', 'domain': '器物',
                 'layers': ['干支象', '十神象'], 'pillar': PILLAR_NAMES_CN[i],

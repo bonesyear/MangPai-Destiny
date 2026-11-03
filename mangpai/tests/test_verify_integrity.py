@@ -248,6 +248,8 @@ def test_gongxiang_ding_eye_and_shen_machine():
     assert any(f['subject'] == '机器' for f in machines)
     no_machine = gongxiang('甲', list('辛丙辛丙'), list('卯申巳申'))
     assert not any(f['subject'] == '机器' for f in no_machine)
+    residual = gongxiang('己', list('戊戊己戊'), list('子子申子'))
+    assert not any(f['subject'] == '机器' for f in residual)
 
 
 def test_hexiang_building_design_and_financial_officer():
