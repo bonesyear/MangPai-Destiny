@@ -42,8 +42,10 @@ def engine_result_pillars(pillars, gender, year: Optional[int] = None) -> Dict[s
     bazi_data = {
         'bazi': dict(zip(('year', 'month', 'day', 'hour'), pillars)),
         'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {},
-        'input': {'gender': gender, 'year': year or 2000},
+        'input': {'gender': gender},
     }
+    if year is not None:
+        bazi_data['input']['year'] = year
     return MangpaiEngine(bazi_data).compute_all()
 
 

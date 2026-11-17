@@ -26,7 +26,7 @@ def one_liner(r: Dict[str, Any]) -> str:
     grade = lvl.get('grade') if isinstance(lvl, dict) else lvl
     segs = [s for s in (
         gl.get('tier_name') or '',
-        f"财{cm.get('tier')}" if cm.get('tier') else '',
+        f"财{cm.get('tier_static') or cm.get('tier')}" if cm.get('tier_static') or cm.get('tier') else '',
         f"官{grade}" if gm.get('is_guanming') and grade else '',
     ) if s]
     return '，'.join(segs) or '普通格局'
@@ -60,12 +60,16 @@ def format_report(r: Dict[str, Any], meta: str = '') -> str:
     yq = r.get('yingqi') or r.get('yingqi_subj') or {}
     da = r.get('dayun_analysis') or {}
     la = r.get('liunian_analysis') or {}
+    cm = r.get('caiming') or {}
+    caiming_rows = [_caiming_line(cm)]
+    if cm.get('tier') and cm.get('tier_static') and cm['tier'] != cm['tier_static']:
+        caiming_rows.append(f"当前运岁财档：{cm['tier']}（受运岁影响）")
 
     lines = [f"**八字** {_bazi_line(r)}" + (f"（{meta}）" if meta else '')]
     sections = [
         ('做功', [_zuogong_line(r.get('zuogong') or {})]),
         ('层功', [_gongliang_line(r.get('gongliang') or {})]),
-        ('三维', [_caiming_line(r.get('caiming') or {}),
+        ('三维', caiming_rows + [
                   _guanming_line(r.get('guanming') or {}),
                   _zhiye_line(r.get('zhiye') or {})]),
         ('婚姻', [_hunyin_line(r.get('hunyin') or {})]),

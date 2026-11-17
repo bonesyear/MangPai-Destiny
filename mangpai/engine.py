@@ -32,7 +32,9 @@ from mangpai.objective import (
     safe_compute_jiaoyun,
     get_gan_xiang, get_zhi_xiang, get_shishen_xiang, get_gongwei_xiang,
 )
-from mangpai.objective.bazi_calc import calc_bazi_full, GAN, ZHI
+from mangpai.objective.bazi_calc import (
+    calc_bazi_full, compute_shishen, get_di_zhi_relations, get_kong_wang, GAN, ZHI,
+)
 from mangpai.objective.jiaoyun import _year_gz
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
@@ -150,6 +152,52 @@ def _validate_bazi_data(bazi_data: Any) -> Dict[str, Any]:
     return bazi
 
 
+def _yunshi_gz(entry: Any) -> str:
+    if not isinstance(entry, dict):
+        raise EngineInputError(f'岁运条目须为 dict，收到 {type(entry).__name__}')
+    gz = entry.get('gz') or entry.get('ganzhi') or ''
+    if not gz:
+        gan, zhi = entry.get('gan', ''), entry.get('zhi', '')
+        gz = gan + zhi if isinstance(gan, str) and isinstance(zhi, str) else ''
+    valid = isinstance(gz, str) and (
+        (len(gz) == 2 and gz[0] in GAN and gz[1] in ZHI)
+        or (len(gz) == 1 and gz in GAN + ZHI))
+    if not valid:
+        raise EngineInputError(f'非法岁运干支: {gz!r}')
+    return gz
+
+
+def _yunshi_parts(entry: Any) -> tuple[str, str]:
+    gz = _yunshi_gz(entry)
+    if len(gz) == 1:
+        return (gz, '') if gz in GAN else ('', gz)
+    return gz[0], gz[1]
+
+
+def _normalize_yunshi(entries: Any, kind: str) -> List[Dict[str, Any]]:
+    if not isinstance(entries, list):
+        raise EngineInputError(f'{kind} 须为 list')
+    out = []
+    for entry in entries:
+        item = dict(entry) if isinstance(entry, dict) else entry
+        item_gz = _yunshi_gz(item)
+        item = dict(item)
+        if len(item_gz) == 1:
+            item.pop('gz', None)
+            item['gan'] = item_gz if item_gz in GAN else ''
+            item['zhi'] = item_gz if item_gz in ZHI else ''
+        else:
+            item['gz'] = item_gz
+        if kind == 'da_yun':
+            for key in ('start_age', 'end_age'):
+                value = item.get(key)
+                if value is not None and (not isinstance(value, (int, float))
+                                          or isinstance(value, bool)):
+                    raise EngineInputError(f'da_yun.{key} 须为数值: {value!r}')
+        out.append(item)
+    return out
+
+
 class MangpaiEngine:
     """盲派排盘引擎。
 
@@ -182,13 +230,27 @@ class MangpaiEngine:
         self.gans: List[str] = [self.year_gan, self.month_gan, self.day_gan, self.hour_gan]
         self.zhis: List[str] = [self.year_zhi, self.month_zhi, self.day_zhi, self.hour_zhi]
 
-        self.shishen: Dict[str, str] = bazi_data.get('shishen', {})
-        self.kong_wang = bazi_data.get('kong_wang', {})
-        self.di_zhi_relations = bazi_data.get('di_zhi_relations', {})
+        self.shishen: Dict[str, str] = bazi_data.get('shishen') or compute_shishen(
+            self.day_gan, self.year_gz, self.month_gz, self.day_gz, self.hour_gz)
+        if bazi_data.get('kong_wang'):
+            self.kong_wang = bazi_data['kong_wang']
+        else:
+            day_kw = get_kong_wang(self.day_gan, self.day_zhi)
+            year_kw = get_kong_wang(self.year_gan, self.year_zhi)
+            self.kong_wang = {'zhi': day_kw['zhi'], 'day_ref': day_kw['zhi'],
+                              'year_ref': year_kw['zhi']}
+        self.di_zhi_relations = bazi_data.get('di_zhi_relations') or get_di_zhi_relations(self.zhis)
         self.input_data = dict(bazi_data.get('input', {}))
-        self.input_data['gender'] = {
-            'male': '男', '乾': '男', 'female': '女', '坤': '女',
-        }.get(self.input_data.get('gender'), self.input_data.get('gender'))
+        raw_gender = self.input_data.get('gender')
+        gender_key = raw_gender.strip().lower() if isinstance(raw_gender, str) else raw_gender
+        gender = {
+            '男': '男', 'male': '男', 'm': '男', '乾': '男',
+            '女': '女', 'female': '女', 'f': '女', '坤': '女',
+        }.get(gender_key)
+        if gender not in ('男', '女'):
+            raise EngineInputError(
+                f'gender 须为 男/女（兼容 male/female/M/F/乾/坤），收到 {raw_gender!r}')
+        self.input_data['gender'] = gender
         self.bazi = bazi
         self._raw_bazi_data = bazi_data
         # L1 B3：实例属性初始化（旧版仅 _compute_yunshi 条件赋值+getattr
@@ -269,10 +331,10 @@ class MangpaiEngine:
             return None
 
         def _pair(entry: Any) -> Optional[Dict[str, str]]:
-            gz = entry.get('gz', '') if isinstance(entry, dict) else ''
-            if len(gz) < 2:
+            if not isinstance(entry, dict):
                 return None
-            pair: Dict[str, Any] = {'gan': gz[0], 'zhi': gz[1]}
+            gan, zhi = _yunshi_parts(entry)
+            pair: Dict[str, Any] = {'gan': gan, 'zhi': zhi}
             # K5：透传起讫年龄（liunian 分看/统看定位大运第几年用）；
             # 旧消费方只读 gan/zhi，附加键不改变其行为
             if isinstance(entry, dict):
@@ -552,11 +614,13 @@ class MangpaiEngine:
 
         dy_list = []
         start_age = None
+        if dayun_data and not isinstance(dayun_data, (dict, list)):
+            raise EngineInputError('da_yun/dayun 须为 list 或含 dayun 列表的 dict')
         if isinstance(dayun_data, dict):
-            dy_list = dayun_data.get('dayun', [])
+            dy_list = _normalize_yunshi(dayun_data.get('dayun') or [], 'da_yun')
             start_age = dayun_data.get('start_age')
         elif isinstance(dayun_data, list):
-            dy_list = dayun_data
+            dy_list = _normalize_yunshi(dayun_data, 'da_yun')
 
         if dy_list:
             fei_shen = zg.get('fei_shen', []) if zg else []
@@ -579,13 +643,19 @@ class MangpaiEngine:
             if liunian_data:
                 self._auto_liunian_injected = True
 
-        # L1 B2：truthy 非 list/dict 的 liunian 显式抛错（旧版 .get 裸穿
-        # AttributeError——畸形输入静默吞掉是 H-fix-2 序列要消灭的形态）
         if liunian_data and not isinstance(liunian_data, (list, dict)):
             raise EngineInputError(
                 "liunian 须为 list 或含 'liunian' 键的 dict，"
                 f"实得 {type(liunian_data).__name__}"
             )
+        if isinstance(liunian_data, dict):
+            if 'liunian' not in liunian_data:
+                raise EngineInputError("liunian dict 须含 'liunian' 列表")
+            liunian_data = dict(
+                liunian_data,
+                liunian=_normalize_yunshi(liunian_data['liunian'] or [], 'liunian'))
+        elif isinstance(liunian_data, list):
+            liunian_data = _normalize_yunshi(liunian_data, 'liunian')
         if liunian_data:
             ln_list = liunian_data if isinstance(liunian_data, list) else liunian_data.get('liunian', [])
             if ln_list:
@@ -672,9 +742,7 @@ class MangpaiEngine:
             cur_ln_list = liunian_data.get('liunian', [])
         cur_ln_gan, cur_ln_zhi = '', ''
         if cur_ln_list:
-            gz = (cur_ln_list[0].get('gz', '') if isinstance(cur_ln_list[0], dict) else '')
-            if gz and len(gz) >= 2:
-                cur_ln_gan, cur_ln_zhi = gz[0], gz[1]
+            cur_ln_gan, cur_ln_zhi = _yunshi_parts(cur_ln_list[0])
 
         # 岁运反局：原局做功数据透传（缺省时 analyze_yunfan 自调 zuogong）。
         # 前置于领域模块：运岁切片供运岁财档/风险/灾祸，终身判定只读原局。
@@ -683,7 +751,7 @@ class MangpaiEngine:
             self.gans, self.zhis, self.day_gan,
             dayun_list=dy_list,
             liunian_list=cur_ln_list,
-            current_dayun={'gan': cur_dy_gan, 'zhi': cur_dy_zhi} if cur_dy_gan else None,
+            current_dayun={'gan': cur_dy_gan, 'zhi': cur_dy_zhi} if cur_dy_gan or cur_dy_zhi else None,
             natal_work_actions=zg.get('work_actions') if zg else None,
             natal_gong_shen=zg.get('gong_shen') if zg else None,
             natal_fei_shen=zg.get('fei_shen') if zg else None,
@@ -697,7 +765,7 @@ class MangpaiEngine:
         yunfan_slice = current_fan_slice(
             result['yunfan'],
             f'{cur_dy_gan}{cur_dy_zhi}' if cur_dy_gan else '',
-            include_dayun=bool(dy_list),
+            include_dayun=bool(dy_list) and bool(cur_dy_gan or cur_dy_zhi),
             include_liunian=bool(cur_ln_list) and not self._auto_liunian_injected,
         )
 

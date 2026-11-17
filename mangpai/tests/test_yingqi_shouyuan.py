@@ -176,7 +176,7 @@ class TestEnginePassesAge:
         from mangpai.engine import MangpaiEngine
         bazi_data = {
             'bazi': {'year': '丙午', 'month': '癸巳', 'day': '辛酉', 'hour': '癸巳'},
-            'input': {'year': 1966},
+            'input': {'year': 1966, 'gender': '男'},
         }
         r = MangpaiEngine(bazi_data).compute_all()
         assert r['yingqi_subj']['daxian_yingqi']['active'] is not None
@@ -186,7 +186,7 @@ class TestEnginePassesAge:
         from mangpai.engine import MangpaiEngine
         bazi_data = {
             'bazi': {'year': '丙午', 'month': '癸巳', 'day': '辛酉', 'hour': '癸巳'},
-            'input': {},
+            'input': {'gender': '男'},
         }
         r = MangpaiEngine(bazi_data).compute_all()
         assert r['yingqi_subj']['daxian_yingqi']['active'] is None

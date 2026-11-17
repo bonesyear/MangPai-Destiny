@@ -861,7 +861,7 @@ check('空亡不影响天干层面动作',
 bazi_data_kw = {
     'bazi': {'year': '己巳', 'month': '戊辰', 'day': '丙午', 'hour': '壬子'},
     'shishen': {}, 'kong_wang': {'zhi': ['子']},
-    'di_zhi_relations': {}, 'input': {},
+    'di_zhi_relations': {}, 'input': {'gender': '男'},
 }
 res_kw = MangpaiEngine(bazi_data_kw).compute_all()
 check('MangpaiEngine 透传 kong_wang',
@@ -1246,7 +1246,7 @@ check('无势能做功=正局（中级139-140）',
 # 己巳/戊辰/丙午/壬子：火3土3 → 火土相生成象，日丙午做功未克破 → 正局
 _zf_engine = {
     'bazi': {'year': '己巳', 'month': '戊辰', 'day': '丙午', 'hour': '壬子'},
-    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {},
+    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {'gender': '男'},
 }
 _res_engine = MangpaiEngine(_zf_engine).compute_all()
 _zf_res = _res_engine.get('zhengfan', {})

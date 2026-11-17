@@ -22,6 +22,9 @@ muku 之间（zuogong 是 gongliang/zhengfan/yunfan 全链上游，须先算）�
 import pytest
 
 from mangpai.engine import MangpaiEngine
+from mangpai.objective.bazi_calc import (
+    compute_shishen, get_di_zhi_relations, get_kong_wang,
+)
 
 _PHASE_FUNCS = (
     '_compute_objective_base',
@@ -49,26 +52,27 @@ LI_FULL = _bazi(PAN_LI, input={'year': 1988, 'gender': '男'},
                 dayun=list(DY), liunian=list(LN))
 LI_DAYUN = _bazi(PAN_LI, input={'year': 1988, 'gender': '男'}, dayun=list(DY))
 LI_AUTO = _bazi(PAN_LI, input={'year': 1988, 'gender': '男'})
-LI_NOINPUT = _bazi(PAN_LI)
-QL_BARE = _bazi(PAN_QL)
+LI_NOINPUT = _bazi(PAN_LI, input={'gender': '男'})
+QL_BARE = _bazi(PAN_QL, input={'gender': '男'})
 
+# F64：旧「体0用0」来自空壳输入；补全后按真实体用与效率重钉。
 # 拆分前实测钉值（/tmp/hfix5_ca_pre.json 同批捕获）
 # G1（2026-10-17）：_build_summary 层次行改读 gongliang（唯一事实源）——
 # 「做功层次：化用成局（Level 4）」→「功量层次：极富极贵（4 层功）」，exec 实况捕获重钉
 PIN_LI_SUMMARY = (
     '日主：庚午；做功类型：制用、化用、合用；功量层次：极富极贵（4 层功）；'
-    '做功效率：高；含暗合；正反局：正局（土旺成势，顺势）；'
+    '做功效率：中；含暗合；正反局：正局（土旺成势，顺势）；'
     '十神歌诀：正官2(混杂)、正印2(混杂)、偏印2(混杂)、食神1(清纯)；'
-    '体用：体0用0；劫煞在hour、寡宿在year、驿马在year、天乙贵人在month、'
+    '体用：体3用1；劫煞在hour、寡宿在year、驿马在year、天乙贵人在month、'
     '文昌在hour；大运：共2步大运；吉凶参半2步；交运：大寒当日寅时'
 )
 # G1：乾隆盘旧钉「做功层次：单层做功（Level 1）」即设计稿 §0 实证错位例
 # （书四层 vs 旧 work_level 1）——改读 gongliang 后归书「极富极贵（4 层功）」
 PIN_QL_SUMMARY = (
     '日主：庚午；做功类型：制用、合用、生用；功量层次：极富极贵（4 层功）；'
-    '做功效率：高；正反局：正局（金水成势，顺势）；'
+    '做功效率：中；正反局：正局（金水成势，顺势）；'
     '十神歌诀：正财1(清纯)、正官2(混杂)、七杀1(清纯)、伤官1(清纯)、'
-    '劫财2(混杂)；体用：体0用0；羊刃在month、灾煞在hour、桃花在year、'
+    '劫财2(混杂)；体用：体2用2；羊刃在month、灾煞在hour、桃花在year、'
     '驿马在hour'
 )
 KEYS_PHASE1 = ['bazi', 'input', 'canggan', 'chang_sheng', 'nayin',
@@ -102,6 +106,17 @@ def run_phases(eng):
     return result, zg_zb, ctx
 
 
+def test_bare_pillars_backfill_objective_inputs():
+    eng = MangpaiEngine(QL_BARE)
+    assert eng.shishen == compute_shishen('庚', '辛卯', '丁酉', '庚午', '丙子')
+    day_kw = get_kong_wang('庚', '午')
+    year_kw = get_kong_wang('辛', '卯')
+    assert eng.kong_wang == {
+        'zhi': day_kw['zhi'], 'day_ref': day_kw['zhi'], 'year_ref': year_kw['zhi'],
+    }
+    assert eng.di_zhi_relations == get_di_zhi_relations(['卯', '酉', '午', '子'])
+
+
 def test_phase_functions_exist():
     for name in _PHASE_FUNCS:
         assert callable(getattr(MangpaiEngine, name, None)), (
@@ -118,8 +133,8 @@ def test_phase1_objective_base_keys_and_pins():
         '大林木', '天上火', '路旁土', '屋上土']
     assert result['canggan']['未'] == [('己', '本气'), ('乙', '中气'),
                                        ('丁', '余气')]
-    assert result['tiyong']['ti_count'] == 0
-    assert result['tiyong']['yong_count'] == 0
+    assert result['tiyong']['ti_count'] == 3
+    assert result['tiyong']['yong_count'] == 1
 
 
 def test_phase2_zuogong_derivatives_returns_and_pins():

@@ -114,7 +114,8 @@ def test_engine_rejects_malformed_bazi(bazi):
 def test_engine_accepts_valid_minimal():
     """合法最小输入不受影响（缺 shishen/kong_wang 等可选键正常跑）。"""
     res = MangpaiEngine({'bazi': {'year': '戊辰', 'month': '己未',
-                                  'day': '庚午', 'hour': '丁亥'}}).compute_all()
+                                  'day': '庚午', 'hour': '丁亥'},
+                         'input': {'gender': '男'}}).compute_all()
     assert isinstance(res, dict) and 'summary' in res
 
 
@@ -140,6 +141,70 @@ def test_engine_accepts_liunian_list_and_dict():
         bd['liunian'] = liunian
         res = MangpaiEngine(bd).compute_all()
         assert isinstance(res, dict) and 'summary' in res
+
+
+@pytest.mark.parametrize('gender', [None, '', '未知'])
+def test_engine_rejects_missing_or_unknown_gender(gender):
+    bd = _valid_bazi_data()
+    if gender is None:
+        bd['input'].pop('gender')
+    else:
+        bd['input']['gender'] = gender
+    with pytest.raises(EngineInputError, match='gender'):
+        MangpaiEngine(bd)
+
+
+def test_engine_normalizes_gender_aliases():
+    for raw, expected in [('male', '男'), ('M', '男'), ('乾', '男'),
+                          ('female', '女'), ('F', '女'), ('坤', '女')]:
+        bd = _valid_bazi_data()
+        bd['input']['gender'] = raw
+        assert MangpaiEngine(bd).input_data['gender'] == expected
+
+
+def test_split_yunshi_entries_match_gz_entries():
+    dy = [
+        {'gz': '庚申', 'start_age': 8, 'end_age': 18},
+        {'gz': '辛酉', 'start_age': 18, 'end_age': 28},
+        {'gz': '壬戌', 'start_age': 28, 'end_age': 38},
+        {'gz': '癸亥', 'start_age': 38, 'end_age': 48},
+    ]
+    split_dy = [dict(d, gan=d['gz'][0], zhi=d['gz'][1]) for d in dy]
+    for entry in split_dy:
+        entry.pop('gz')
+    common = _valid_bazi_data()
+    common['liunian'] = [{'gz': '甲子', 'year': 1984}]
+    whole = MangpaiEngine(dict(common, da_yun={'start_age': 8, 'dayun': dy})).compute_all()
+    split_input = dict(common, da_yun={'start_age': 8, 'dayun': split_dy},
+                       liunian=[{'gan': '甲', 'zhi': '子', 'year': 1984}])
+    split = MangpaiEngine(split_input).compute_all()
+    assert split == whole
+
+
+def test_single_yunshi_character_keeps_its_gan_or_zhi_role():
+    from mangpai.engine import _normalize_yunshi
+
+    for char, field in [('丙', 'gan'), ('亥', 'zhi')]:
+        entry = _normalize_yunshi([
+            {'gz': char, 'gan': char, 'zhi': char}], 'da_yun')[0]
+        assert entry[field] == char
+        assert entry['gan' if field == 'zhi' else 'zhi'] == ''
+        assert 'gz' not in entry
+
+
+@pytest.mark.parametrize('key,value', [
+    ('da_yun', '庚申'),
+    ('da_yun', ['庚申']),
+    ('da_yun', {'dayun': [{'gz': 'X'}]}),
+    ('da_yun', {'dayun': [{'gz': '庚申', 'start_age': '8'}]}),
+    ('liunian', {'gz': '甲子', 'year': 1984}),
+    ('liunian', [{'gz': 'X'}]),
+])
+def test_engine_rejects_malformed_yunshi(key, value):
+    bd = _valid_bazi_data()
+    bd[key] = value
+    with pytest.raises(EngineInputError):
+        MangpaiEngine(bd).compute_all()
 
 
 # ---------------------------------------------------------------- 3. 空 actions 降级

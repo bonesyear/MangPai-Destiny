@@ -339,7 +339,7 @@ print('\n── 11. MangpaiEngine 集成 ──')
 # 无大运数据时不报错
 bazi_data_no_dy = {
     'bazi': {'year': '甲寅', 'month': '丙子', 'day': '庚午', 'hour': '壬辰'},
-    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {},
+    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {'gender': '男'},
 }
 res_no_dy = MangpaiEngine(bazi_data_no_dy).compute_all()
 check('无大运数据不报错', 'dayun_analysis' not in res_no_dy)
@@ -348,7 +348,7 @@ check('无大运数据其他模块正常', 'zuogong' in res_no_dy and 'bazi' in 
 # 有大运数据时分析正确
 bazi_data_with_dy = {
     'bazi': {'year': '甲寅', 'month': '丙子', 'day': '庚午', 'hour': '壬辰'},
-    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {},
+    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {'gender': '男'},
     'dayun': {
         'direction': '顺',
         'start_age': 5,
@@ -372,7 +372,7 @@ check('总summary含大运', '大运' in res_with_dy.get('summary', ''),
 # 有流年数据时
 bazi_data_with_ln = {
     'bazi': {'year': '甲寅', 'month': '丙子', 'day': '庚午', 'hour': '壬辰'},
-    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {},
+    'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {}, 'input': {'gender': '男'},
     'dayun': {
         'direction': '顺',
         'start_age': 5,

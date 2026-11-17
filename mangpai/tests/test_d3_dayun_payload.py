@@ -6,6 +6,8 @@ LLM 全程零大运表）。修复=build_payload 层合成补供，engine comput
 
 红线锁定：compute_all 对无 da_yun 输入仍不产出 dayun_analysis（判定零变化）。
 """
+import pytest
+
 from mangpai.engine import MangpaiEngine
 from mangpai.subjective import build_payload, _resolve, _MISSING
 
@@ -46,6 +48,8 @@ def test_synthesized_shape_llm_referenceable():
                           'positive_signals', 'negative_signals'}
         assert d['overall'] in ('吉', '凶', '吉凶参半', '平')
         assert 'start_age' not in d and 'end_age' not in d  # 缺精确时刻，诚实缺省
+        for segment in d.get('segments') or []:
+            assert 'start_age' not in segment and 'end_age' not in segment
     val = _resolve({'dayun_analysis': da}, 'dayun_analysis.dayun')
     assert val is not _MISSING and val  # L1 校验路径可解析非空
 
@@ -65,9 +69,11 @@ def test_real_dayun_trimmed_but_ages_kept():
     assert 'gan_relations' not in da['dayun'][0]
 
 
-def test_no_gender_no_synthesis():
-    """性别缺失无法判向 → 不合成（不编造方向）。"""
+def test_no_gender_rejected_before_synthesis():
+    """性别缺失无法判向，入口直接报错，不把 None 分发给各模块。"""
+    from mangpai.engine import EngineInputError
+
     bazi_data = dict(_BAZI_DATA, bazi=dict(_BAZI_DATA['bazi']),
                      input={'year': 1943})
-    payload = build_payload(MangpaiEngine(bazi_data).compute_all())
-    assert 'dayun_analysis' not in payload
+    with pytest.raises(EngineInputError, match='gender'):
+        MangpaiEngine(bazi_data)

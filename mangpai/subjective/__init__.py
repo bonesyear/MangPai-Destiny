@@ -98,6 +98,9 @@ def _synthesize_dayun(data: dict):
     for d in dy:  # 合成序列无起运岁（缺精确出生时刻），剥缺省 0 防误锚
         d.pop('start_age', None)
         d.pop('end_age', None)
+        for segment in d.get('segments') or []:
+            segment.pop('start_age', None)
+            segment.pop('end_age', None)
     best = next((d for d in dy if d['overall'] == '吉'), None)
     worst = next((d for d in dy if d['overall'] == '凶'), None)
     parts = [f"共{len(dy)}步大运（{seq['direction']}排）"]

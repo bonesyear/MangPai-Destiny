@@ -11,7 +11,8 @@ import pytest
 from mangpai.feishu import bot
 from mangpai.feishu.client import FeishuClient, FeishuError
 from mangpai.feishu.router import handle, parse_pillars, parse_solar, ParseError
-from mangpai.feishu.service import paipan
+from mangpai.feishu.formatter import format_report, one_liner
+from mangpai.feishu.service import engine_result_pillars, paipan
 
 
 # ---------------------------------------------------------------- 客户端（mock HTTP）
@@ -163,6 +164,23 @@ def test_e2e_solar_engine_only():
 def test_e2e_pillars_engine_only():
     md = handle('四柱 戊辰 己未 庚午 丁亥 男', use_llm=False)
     assert '戊辰 己未 庚午 丁亥' in md and '**一句话**：' in md
+
+
+def test_pillars_without_year_do_not_invent_one():
+    res = engine_result_pillars(['戊辰', '己未', '庚午', '丁亥'], '男')
+    assert 'year' not in res['input']
+    assert res['yingqi_subj']['daxian_yingqi']['active'] is None
+
+
+def test_report_separates_static_and_yunsui_wealth_tiers():
+    result = {'caiming': {
+        'tier': '小康', 'tier_static': '富',
+        'summary': '运岁小康', 'summary_static': '原局富',
+    }}
+    assert one_liner(result) == '财富'
+    report = format_report(result)
+    assert '财命：富·原局富' in report
+    assert '当前运岁财档：小康' in report
 
 
 def test_llm_success_appended(monkeypatch):

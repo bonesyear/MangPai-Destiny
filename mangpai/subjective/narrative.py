@@ -91,7 +91,8 @@ def _zhengfan_line(zf: dict) -> str:
 def _caiming_line(cm: dict) -> str:
     if not cm:
         return ''
-    return f"财命：{cm.get('tier', '')}·{cm.get('summary', '')}".strip('·')
+    return (f"财命：{cm.get('tier_static') or cm.get('tier', '')}·"
+            f"{cm.get('summary_static') or cm.get('summary', '')}").strip('·')
 
 
 def _guanming_line(gm: dict) -> str:

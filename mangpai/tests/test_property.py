@@ -39,7 +39,7 @@ _N = 50  # 每类随机样本数（种子固定，结果可复现；控制全套
 
 def _mk_bazi_data(y_gz, m_gz, d_gz, h_gz):
     return {
-        'input': {'year': 1990},
+        'input': {'year': 1990, 'gender': '男'},
         'bazi': {'year': y_gz, 'month': m_gz, 'day': d_gz, 'hour': h_gz},
         'shishen': compute_shishen(d_gz[0], y_gz, m_gz, d_gz, h_gz),
         'kong_wang': get_kong_wang(d_gz[0], d_gz[1]),
