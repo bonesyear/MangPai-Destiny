@@ -172,11 +172,12 @@ class TestGaojiShouyuanShuli:
 
 class TestEnginePassesAge:
     def test_engine_yingqi_daxian_active(self):
-        # engine 链路须传 age → has_daxian 不再恒 False（批4 P1-3/P0 传导）
+        # 显式流年链路仍须传 age；自动三年窗口不得伪造大限应期
         from mangpai.engine import MangpaiEngine
         bazi_data = {
             'bazi': {'year': '丙午', 'month': '癸巳', 'day': '辛酉', 'hour': '癸巳'},
             'input': {'year': 1966, 'gender': '男'},
+            'liunian': [{'gz': '丙午', 'year': 2026}],
         }
         r = MangpaiEngine(bazi_data).compute_all()
         assert r['yingqi_subj']['daxian_yingqi']['active'] is not None

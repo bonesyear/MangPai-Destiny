@@ -800,6 +800,7 @@ def analyze_yunfan(
     dayun_list: Optional[List[Dict]] = None,
     liunian_list: Optional[List[Dict]] = None,
     current_dayun: Optional[Dict] = None,
+    liunian_dayun: Optional[Dict] = None,
     natal_work_actions: Optional[List[Dict]] = None,
     natal_gong_shen: Optional[List[str]] = None,
     natal_fei_shen: Optional[List[str]] = None,
@@ -911,6 +912,17 @@ def analyze_yunfan(
     sui_yun_liandong: List[Dict] = []
     suiyun_teshu: List[Dict] = []  # 批E：岁运三特殊法则 marker（不入凶链）
     for entry in (liunian_list or []):
+        if liunian_dayun is not None and entry.get('year') in liunian_dayun:
+            selected = liunian_dayun[entry['year']]
+            if selected:
+                selected_gz = selected.get('gz', '')
+                if selected_gz and len(selected_gz) >= 2:
+                    dy_gan, dy_zhi = selected_gz[0], selected_gz[1]
+                else:
+                    dy_gan = selected.get('gan', '')
+                    dy_zhi = selected.get('zhi', '')
+            else:
+                dy_gan, dy_zhi = '', ''
         gz = entry.get('gz', '')
         if gz and len(gz) >= 2:
             gan, zhi = gz[0], gz[1]

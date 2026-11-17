@@ -32,15 +32,12 @@ def test_qishi_neutral_not_positive():
 
 
 def test_current_dayun_uses_virtual_age(monkeypatch):
-    """换运年按虚岁定位：2000 生、2010 年虚岁 11，应进入第二步大运。"""
+    """精确交运不可用时按立春虚岁回退：2010 虚岁 11 进入第二步运。"""
     from mangpai.engine import MangpaiEngine
 
-    class FakeDateTime:
-        @classmethod
-        def now(cls):
-            return type('Now', (), {'year': 2010})()
+    monkeypatch.setattr('mangpai.engine.safe_compute_jiaoyun',
+                        lambda *a, **k: {'timeline': []})
 
-    monkeypatch.setattr('mangpai.engine.datetime', FakeDateTime)
     data = {
         'bazi': {'year': '庚辰', 'month': '戊子', 'day': '甲午', 'hour': '甲子'},
         'input': {'year': 2000, 'gender': '男'},
@@ -51,7 +48,7 @@ def test_current_dayun_uses_virtual_age(monkeypatch):
         ]},
         'liunian': [{'gz': '戊申', 'year': 2010}],
     }
-    result = MangpaiEngine(data).compute_all()
+    result = MangpaiEngine(data, as_of='2010-06-01').compute_all()
     phase = result['liunian_analysis']['dayun_phase']['per_year'][2010]
     assert phase['position'] == 1, phase
     assert phase['active'] == '干', phase
@@ -158,3 +155,69 @@ def test_engine_passes_liunian_relations_to_yingqi():
     }
     result = MangpaiEngine(data).compute_all()
     assert result['yingqi_subj']['liunian_trigger'] is True, result['yingqi_subj']
+
+
+def test_liunian_uses_the_dayun_of_its_own_year():
+    """2025 属丙戌而非运行日所在的丁亥；未起运年不配对、不报负数运年。"""
+    from mangpai.engine import MangpaiEngine
+
+    data = {
+        'bazi': {'year': '庚午', 'month': '戊子', 'day': '甲午', 'hour': '甲子'},
+        'input': {'year': 1990, 'gender': '男'},
+        'da_yun': {'start_age': 17, 'dayun': [
+            {'gz': '甲申', 'start_age': 17, 'end_age': 27},
+            {'gz': '丙戌', 'start_age': 27, 'end_age': 37},
+            {'gz': '丁亥', 'start_age': 37, 'end_age': 47},
+        ]},
+        'liunian': [{'gz': '乙巳', 'year': 2025}, {'gz': '乙酉', 'year': 2005}],
+    }
+    result = MangpaiEngine(data, as_of='2026-06-01T00:00').compute_all()
+    rows = {r['year']: r for r in result['liunian_analysis']['liunian']}
+    assert any(i['type'] == '生' for i in rows[2025]['dayun_interaction'])
+    assert not any(i['type'] == '冲' for i in rows[2025]['dayun_interaction'])
+    assert not rows[2005].get('dayun_interaction')
+    assert 2005 not in result['liunian_analysis']['dayun_phase']['per_year']
+
+
+def test_as_of_uses_lichun_and_exact_jiaoyun():
+    import pytest
+    pytest.importorskip('sxtwl')
+    from datetime import datetime
+    from mangpai.engine import calc_mangpai_full
+    from mangpai.objective.bazi_calc import year_gz
+
+    as_of = '2027-01-15T12:00'
+    result = calc_mangpai_full(
+        1990, 8, 15, 12, 0, '男', 116.4, as_of=as_of)
+    assert result['liunian_analysis']['liunian'][0]['gz'] == year_gz(
+        2027, 1, 15, 12, 0)
+    assert result['liunian_analysis']['liunian'][0]['year'] == 2026
+    assert result['input']['as_of'] == as_of
+    timeline = result['jiaoyun_analysis']['timeline']
+    current = [t for t in timeline
+               if t.get('jiaoyun_dt') and t['jiaoyun_dt'] <= datetime(2027, 1, 15, 12, 0)]
+    assert current
+    assert result['liunian_analysis']['dayun_phase']['gz'] == current[-1]['gz']
+    assert not result['yingqi_subj']['conclusion'].startswith('真应期成立')
+    assert not result['yingqi_subj']['conclusion'].startswith('应期成立')
+
+
+def test_yingqi_needs_real_liunian_trigger_and_natal_lu():
+    from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi
+    from mangpai.objective.yingqi import detect_lu_yuanshen
+
+    lu = detect_lu_yuanshen(list('庚癸戊甲'), list('戌未午寅'), '戊')
+    wu_lu = [x for x in lu['lu_pillars'] if x['zhi'] == '午']
+    assert wu_lu and all(not x['natal'] for x in wu_lu)
+    assert all(x not in lu['yuanshen_via_lu'] for x in ('丁', '己'))
+    result = infer_comprehensive_yingqi(
+        '戊', list('庚癸戊甲'), list('戌未午寅'),
+        dayun_gan='丁', dayun_zhi='亥', liunian_gan='壬', liunian_zhi='辰', age=40)
+    assert result['daxian_yingqi']['pillar_lu_seen'] is False
+    assert result['intersection'] is False
+    assert not result['conclusion'].startswith('应期成立')
+
+    no_liunian = infer_comprehensive_yingqi(
+        '戊', list('庚癸戊甲'), list('戌未午寅'),
+        dayun_gan='丁', dayun_zhi='亥', age=40)
+    assert '待应期' in no_liunian['conclusion']

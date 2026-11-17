@@ -149,14 +149,17 @@ def detect_lu_yuanshen(
                 no_yuanshen_zhis.append(z)
             continue
         for gan_yuanshen in _ZHI_LU_OF[z]:
+            natal = gan_yuanshen in gans
             lu_pillars.append({
                 'pillar': PILLAR_NAMES_CN[i],
                 'pos': f'{PILLAR_KEYS[i]}_zhi',
                 'zhi': z,
                 'lu_of': gan_yuanshen,  # 原神（此禄所属天干）
-                'desc': f'{PILLAR_NAMES_CN[i]}支{z}为{gan_yuanshen}之禄（原身见原神）',
+                'natal': natal,
+                'desc': f'{PILLAR_NAMES_CN[i]}支{z}为{gan_yuanshen}之禄'
+                        f'（{"原身见原神" if natal else "原神不在局"}）',
             })
-            if gan_yuanshen not in yuanshen_via_lu:
+            if natal and gan_yuanshen not in yuanshen_via_lu:
                 yuanshen_via_lu.append(gan_yuanshen)
 
     day_lu_zhi = LU.get(day_gan, '')

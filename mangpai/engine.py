@@ -33,7 +33,8 @@ from mangpai.objective import (
     get_gan_xiang, get_zhi_xiang, get_shishen_xiang, get_gongwei_xiang,
 )
 from mangpai.objective.bazi_calc import (
-    calc_bazi_full, compute_shishen, get_di_zhi_relations, get_kong_wang, GAN, ZHI,
+    calc_bazi_full, compute_shishen, get_di_zhi_relations, get_kong_wang, year_gz,
+    GAN, ZHI,
 )
 from mangpai.objective.jiaoyun import _year_gz
 from mangpai.objective.zuogong_detect import detect_relations
@@ -210,7 +211,8 @@ class MangpaiEngine:
             默认 'day'（F13 配置断路修复）。
     """
 
-    def __init__(self, bazi_data: Dict[str, Any], shensha_reference: str = 'day'):
+    def __init__(self, bazi_data: Dict[str, Any], shensha_reference: str = 'day',
+                 as_of=None):
         bazi = _validate_bazi_data(bazi_data)
         self.shensha_reference = shensha_reference
         self.year_gz: str = bazi.get('year', '')
@@ -251,6 +253,22 @@ class MangpaiEngine:
             raise EngineInputError(
                 f'gender 须为 男/女（兼容 male/female/M/F/乾/坤），收到 {raw_gender!r}')
         self.input_data['gender'] = gender
+        try:
+            if as_of is None:
+                current = datetime.now()
+            elif isinstance(as_of, str):
+                current = datetime.fromisoformat(as_of)
+            elif isinstance(as_of, datetime):
+                current = as_of
+            else:
+                raise EngineInputError(f'as_of 须为 ISO 日期时间: {as_of!r}')
+        except ValueError as e:
+            raise EngineInputError(f'as_of 须为 ISO 日期时间: {as_of!r}') from e
+        if current.tzinfo is not None:
+            current = current.astimezone().replace(tzinfo=None)
+        self._as_of = current
+        if as_of is not None:
+            self.input_data['as_of'] = as_of if isinstance(as_of, str) else current.isoformat()
         self.bazi = bazi
         self._raw_bazi_data = bazi_data
         # L1 B3：实例属性初始化（旧版仅 _compute_yunshi 条件赋值+getattr
@@ -287,15 +305,21 @@ class MangpaiEngine:
         else:
             result[key] = copy.deepcopy(_MODULE_DEFAULTS[key])
 
+    def _current_year(self) -> int:
+        """按 as_of 与立春确定当前流年所属的公历年。"""
+        dt = self._as_of
+        current = year_gz(dt.year, dt.month, dt.day, dt.hour, dt.minute)
+        return dt.year if current == _year_gz(dt.year) else dt.year - 1
+
     def _auto_liunian_list(self) -> List[Dict[str, Any]]:
-        """无外部流年注入时，按当前年份自动构造流年柱（前后各一年，共三年）。
+        """无外部流年注入时，按 as_of 的立春年构造前后各一年。
 
         每项 {'gz': 干支, 'year': 公历年}。公历年→年柱干支与 jiaoyun._year_gz
         同口径（公元 4 年甲子，干=(y-4)%10、支=(y-4)%12）。当前年份取系统当年，
         故应期链路在无外部流年数据时仍能基于当下输出。
         """
         try:
-            cur_year = datetime.now().year
+            cur_year = self._current_year()
         except (OSError, OverflowError, ValueError) as e:
             # 白名单化（H8 P1）：仅系统时钟类异常可降级，且记录原因
             logger.warning(f"系统当前年份获取失败，自动流年缺省为空: {e}")
@@ -312,7 +336,7 @@ class MangpaiEngine:
         if not birth_year:
             return None
         try:
-            return datetime.now().year - int(birth_year) + 1
+            return self._current_year() - int(birth_year) + 1
         except (TypeError, ValueError) as e:
             # 白名单化（H8 P1）：出生年非数值属输入瑕疵，显式 None + 记录原因
             logger.info(f"出生年无法解析为整数，年龄缺省 None: {birth_year!r} ({e})")
@@ -343,6 +367,16 @@ class MangpaiEngine:
                         pair[k] = entry[k]
             return pair
 
+        timeline = getattr(self, '_jiaoyun_analysis', {}).get('timeline') or []
+        valid = [t for t in timeline if t.get('jiaoyun_dt')]
+        if valid:
+            past = [t for t in valid if t['jiaoyun_dt'] <= self._as_of]
+            if not past:
+                return None
+            for entry in dy_list:
+                if isinstance(entry, dict) and _yunshi_gz(entry) == past[-1].get('gz'):
+                    return _pair(entry)
+
         age = self._current_age()
         if age is not None:
             first_sa = last_ea = None
@@ -372,6 +406,32 @@ class MangpaiEngine:
                 if pair:
                     return pair
         return _pair(dy_list[0])
+
+    def _liunian_dayun_map(self, ln_list: List[Dict], dy_list: List[Dict]) -> Dict:
+        """逐年按虚岁定位所属大运；运外显式存 None，不回退首末运。"""
+        birth_year = self.input_data.get('year')
+        out = {}
+        for ln in ln_list:
+            year = ln.get('year')
+            if year is None or birth_year is None:
+                continue
+            try:
+                age = int(year) - int(birth_year) + 1
+            except (TypeError, ValueError):
+                continue
+            matched = None
+            for dy in dy_list:
+                start, end = dy.get('start_age'), dy.get('end_age')
+                if start is None:
+                    continue
+                end = start + 10 if end is None else end
+                if start <= age < end:
+                    gan, zhi = _yunshi_parts(dy)
+                    matched = {'gan': gan, 'zhi': zhi,
+                               'start_age': start, 'end_age': end}
+                    break
+            out[year] = matched
+        return out
 
     def compute_all(self) -> Dict[str, Any]:
         """计算全部盲派分析结果。
@@ -622,6 +682,19 @@ class MangpaiEngine:
         elif isinstance(dayun_data, list):
             dy_list = _normalize_yunshi(dayun_data, 'da_yun')
 
+        jiaoyun_result = None
+        if self.input_data.get('year') and self.month_gz:
+            jiaoyun_result = self._safe_compute(
+                'jiaoyun_analysis', safe_compute_jiaoyun,
+                self.input_data['year'], self.month_gz,
+                dayun_list=dy_list, start_age=start_age,
+                year_gz=self.year_gz, as_of=self._as_of,
+            )
+        self._jiaoyun_analysis = jiaoyun_result or {}
+        timeline = self._jiaoyun_analysis.get('timeline') or []
+        if timeline and not any(t.get('jiaoyun_dt') for t in timeline):
+            self._jiaoyun_analysis['current_dayun_approximate'] = True
+
         if dy_list:
             fei_shen = zg.get('fei_shen', []) if zg else []
             self._write(result, 'dayun_analysis', self._safe_compute(
@@ -656,16 +729,19 @@ class MangpaiEngine:
                 liunian=_normalize_yunshi(liunian_data['liunian'] or [], 'liunian'))
         elif isinstance(liunian_data, list):
             liunian_data = _normalize_yunshi(liunian_data, 'liunian')
+        ln_dy_map = {}
         if liunian_data:
             ln_list = liunian_data if isinstance(liunian_data, list) else liunian_data.get('liunian', [])
             if ln_list:
                 fei_shen = zg.get('fei_shen', []) if zg else []
                 # 当下大运按当前年龄定位（与自动流年同锚点），非首步大运
                 current_dy = self._current_dayun(dy_list) if isinstance(dy_list, list) else None
+                ln_dy_map = self._liunian_dayun_map(ln_list, dy_list)
                 self._write(result, 'liunian_analysis', self._safe_compute(
                     'liunian_analysis', analyze_liunian_mangpai,
                     ln_list, self.gans, self.zhis, self.day_gan,
                     current_dayun=current_dy,
+                    liunian_dayun=ln_dy_map,
                     natal_fei_shen=fei_shen,
                     kong_wang=self.kong_wang,
                     gender=self.input_data.get('gender'),
@@ -676,14 +752,7 @@ class MangpaiEngine:
         # F1 标注：jiaoyun_analysis 仅进 _build_summary 交运行，不在 selectors
         # 不进 payload（LLM 见不到交运时刻本体，批10 P1 备案）。
         if self.input_data.get('year') and self.month_gz:
-            self._write(result, 'jiaoyun_analysis', self._safe_compute(
-                'jiaoyun_analysis', safe_compute_jiaoyun,
-                self.input_data.get('year', 2000),
-                self.month_gz,
-                dayun_list=dy_list,
-                start_age=start_age,
-                year_gz=self.year_gz,
-            ))
+            self._write(result, 'jiaoyun_analysis', jiaoyun_result)
 
         # 郑氏十排歌扩展分析（断语集锦 + 方法论）
         self._write(result, 'shipaige', self._safe_compute(
@@ -694,7 +763,8 @@ class MangpaiEngine:
             self.hour_gan, self.hour_zhi,
         ))
 
-        return {'dy_list': dy_list, 'liunian_data': liunian_data}
+        return {'dy_list': dy_list, 'liunian_data': liunian_data,
+                'liunian_dayun': ln_dy_map}
 
     def _compute_subjective_domain(
             self, result: Dict[str, Any], p: Pillars,
@@ -752,6 +822,7 @@ class MangpaiEngine:
             dayun_list=dy_list,
             liunian_list=cur_ln_list,
             current_dayun={'gan': cur_dy_gan, 'zhi': cur_dy_zhi} if cur_dy_gan or cur_dy_zhi else None,
+            liunian_dayun=yunshi_ctx.get('liunian_dayun'),
             natal_work_actions=zg.get('work_actions') if zg else None,
             natal_gong_shen=zg.get('gong_shen') if zg else None,
             natal_fei_shen=zg.get('fei_shen') if zg else None,
@@ -896,6 +967,9 @@ class MangpaiEngine:
             liuqin_result=result.get('liuqin'),
             dayun_list=dy_list if isinstance(dy_list, list) else [],
             liunian_list=cur_ln_list,
+            birth_year=self.input_data.get('year'),
+            current_dayun={'gan': cur_dy_gan, 'zhi': cur_dy_zhi},
+            liunian_dayun=yunshi_ctx.get('liunian_dayun'),
         ))
 
         # 缺口批1 迁移/远行 marker + 应期窗（马星查法复用 shensha._YI_MA，
@@ -938,9 +1012,12 @@ class MangpaiEngine:
         self._write(result, 'yingqi_subj', self._safe_compute(
             'yingqi_subj', infer_comprehensive_yingqi,
             self.day_gan, self.gans, self.zhis,
-            cur_dy_gan, cur_dy_zhi, cur_ln_gan, cur_ln_zhi,
-            age=self._current_age(),
-            liunian_interaction=liunian_interactions(result.get('liunian_analysis')),
+            cur_dy_gan, cur_dy_zhi,
+            '' if self._auto_liunian_injected else cur_ln_gan,
+            '' if self._auto_liunian_injected else cur_ln_zhi,
+            age=None if self._auto_liunian_injected else self._current_age(),
+            liunian_interaction=(None if self._auto_liunian_injected else
+                                 liunian_interactions(result.get('liunian_analysis'))),
         ))
 
         # 郝金阳叙事层：把引擎结构化结论压成一行【引擎结论】（软依赖，
@@ -1046,6 +1123,7 @@ def calc_mangpai_full(
     yin_method: str = 'same_as_yang',
     shensha_reference: str = 'day',
     late_zi_method: str = 'same_day',
+    as_of=None,
 ) -> Dict[str, Any]:
     """盲派完整排盘便捷函数。
 
@@ -1065,6 +1143,8 @@ def calc_mangpai_full(
             日支为主、年支同查，year_ref/day_ref 子键恒在）
         late_zi_method: 晚子时日柱处理，默认 'same_day'（子正换日·书例口径）；
             可显式传 'next_day'（子初换日）
+        as_of: 可选的参考日期时间（datetime 或 ISO 字符串），用于当前流年、
+            大限与交运；缺省在引擎初始化时取一次当前时间
 
     Returns:
         完整盲派排盘结果
@@ -1075,7 +1155,7 @@ def calc_mangpai_full(
         shensha_reference=shensha_reference,
         late_zi_method=late_zi_method,
     )
-    engine = MangpaiEngine(bazi_data, shensha_reference=shensha_reference)
+    engine = MangpaiEngine(bazi_data, shensha_reference=shensha_reference, as_of=as_of)
     return engine.compute_all()
 
 

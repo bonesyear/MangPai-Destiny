@@ -39,6 +39,7 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.zihe import detect_zihe
+from mangpai.objective.jiaoyun import _year_gz
 from mangpai.objective.muku import is_entomb
 from mangpai.objective._relation_utils import pair_in as _check_pair, GONG_JU
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
@@ -488,10 +489,10 @@ def classify_chong_semantic(
             alias = '冲起'
             desc_tail = ('正行天干运，流年冲运为冲动，提前引动该运之事；'
                          '运支不当运，按当运诀又名冲起（zhongji:935）')
-        elif target_location == 'dayun' and phase_active in ('支', '干支'):
+        elif target_location == 'dayun' and phase_active in ('支', '干支', ''):
             # 「流年冲大运一般是冲去」（shouke:1370）/「若正行地支运，流年冲
             # 大运为冲去」（gaoji:19348）；统看干支同主事同论：壬午年冲去丙子
-            # 运子水，母子被杀（cj2:6042）。即当运诀「当运为冲去」（zhongji:935）
+            # 运子水，母子被杀（cj2:6042）。主事信息缺失时按「一般冲去」，不擅判干运
             chong_type = '冲去'
             desc_tail = ('运支当令怕冲崩，流年冲运为冲去，运支力量暂弱'
                          '（当运为冲去，zhongji:935）')
@@ -726,7 +727,17 @@ def determine_dayun_phase(
     reason = ''
     phase = '分看'
     same_qi = bool(dy_gan and dy_zhi and GAN_WX.get(dy_gan) == ZHI_WX.get(dy_zhi))
-    for entry in liunian_list:
+    start_year = None
+    if birth_year is not None and dayun_start_age is not None:
+        try:
+            start_year = int(birth_year) + int(dayun_start_age) - 1
+        except (TypeError, ValueError):
+            start_year = None
+    phase_years = ([{'gz': _year_gz(y), 'year': y}
+                    for y in range(start_year, start_year + 10)]
+                   if start_year is not None else [])
+    hits = []
+    for entry in phase_years:
         gz = _ln_gz(entry)
         if len(gz) < 2:
             continue
@@ -742,25 +753,20 @@ def determine_dayun_phase(
             hit = f'地支六合（{lz}{dy_zhi}合）'
         if hit:
             phase = '统看'
-            reason = f'流年{gz}与大运{dy_gan}{dy_zhi}{hit}，十年统看气连筋'
-            break
+            hits.append(f'流年{gz}与大运{dy_gan}{dy_zhi}{hit}，十年统看气连筋')
 
+    if hits:
+        reason = '；'.join(hits)
     per_year: Dict[Any, Dict] = {}
-    if phase == '分看' and birth_year and dayun_start_age is not None:
-        # 起运岁为虚岁：虚岁 N → 公历年 = 出生年+N-1（同 jiaoyun.py:277-279 口径；
-        # 书例 理象学:3916-3922：2005 生 3 虚岁起运 → 交运年 2007，非 2008）
-        start_year = int(birth_year) + int(dayun_start_age) - 1
+    if start_year is not None:
         for entry in liunian_list:
             y = entry.get('year')
             if not y:
                 continue
             pos = int(y) - start_year + 1
-            if 1 <= pos <= 5:
-                active = '干'
-            elif 6 <= pos <= 10:
-                active = '支'
-            else:
-                active = ''
+            if not 1 <= pos <= 10:
+                continue
+            active = '干' if pos <= 5 else '支'
             per_year[y] = {'position': pos, 'active': active}
         if not reason:
             reason = '流年未与大运刑冲合，干管前五年、支管后五年，各司其职'
@@ -768,9 +774,9 @@ def determine_dayun_phase(
         reason = '流年未与大运刑冲合，分看（起运锚点缺失，主事干支不定）'
 
     note = ''
-    if same_qi and phase == '分看':
+    if same_qi:
         note = (f'大运{dy_gan}{dy_zhi}干支同气：书例多一气呵成统看（参丙午例），'
-                '惟干支作用相反者仍宜分看（参甲寅例），此处按口诀从分看，请人工酌定')
+                '惟干支作用相反者仍宜分看（参甲寅例）；是否统看仍由本运流年刑冲合决定')
 
     return {
         'phase': phase,
@@ -783,12 +789,22 @@ def determine_dayun_phase(
     }
 
 
+def _dayun_parts(dayun: Optional[Dict]) -> tuple[str, str]:
+    if not dayun:
+        return '', ''
+    gz = dayun.get('gz', '')
+    if len(gz) >= 2:
+        return gz[0], gz[1]
+    return dayun.get('gan', ''), dayun.get('zhi', '')
+
+
 def analyze_liunian_mangpai(
     liunian_list: List[Dict],
     natal_gans: List[str],
     natal_zhis: List[str],
     day_gan: str,
     current_dayun: Optional[Dict] = None,
+    liunian_dayun: Optional[Dict[Any, Optional[Dict]]] = None,
     natal_fei_shen: Optional[List[str]] = None,
     kong_wang: Any = None,
     gender: Optional[str] = None,
@@ -824,16 +840,9 @@ def analyze_liunian_mangpai(
         {'liunian': [per-year analysis...], 'summary': '...',
          'dayun_phase': {phase, reason, active, per_year}（有大运时）}
     """
-    dy_gan = ''
-    dy_zhi = ''
+    dy_gan, dy_zhi = _dayun_parts(current_dayun)
     dy_start_age: Optional[int] = None
     if current_dayun:
-        gz = current_dayun.get('gz', '')
-        if gz and len(gz) >= 2:
-            dy_gan, dy_zhi = gz[0], gz[1]
-        else:
-            dy_gan = current_dayun.get('gan', '')
-            dy_zhi = current_dayun.get('zhi', '')
         sa = current_dayun.get('start_age')
         if sa is not None:
             try:
@@ -861,6 +870,18 @@ def analyze_liunian_mangpai(
 
         if not gan or not zhi:
             continue
+        entry_dayun = current_dayun
+        if liunian_dayun is not None and entry.get('year') in liunian_dayun:
+            entry_dayun = liunian_dayun[entry['year']]
+        dy_gan, dy_zhi = _dayun_parts(entry_dayun)
+        year_dayun_phase = None
+        if dy_gan and dy_zhi:
+            if entry_dayun is current_dayun:
+                year_dayun_phase = dayun_phase
+            else:
+                year_dayun_phase = determine_dayun_phase(
+                    dy_gan, dy_zhi, liunian_list, birth_year=birth_year,
+                    dayun_start_age=(entry_dayun or {}).get('start_age'))
 
         result = _analyze_pillar_with_signals(
             gan, zhi, natal_gans, natal_zhis, day_gan,
@@ -874,10 +895,10 @@ def analyze_liunian_mangpai(
         # K5: 流年-命局 冲/合关系升级为九种语义（additive：relations 附
         # chong_semantic / he_semantic 字段，不改原 type/desc）
         year_phase_active = ''
-        if dayun_phase and dayun_phase['phase'] == '统看':
+        if year_dayun_phase and year_dayun_phase['phase'] == '统看':
             year_phase_active = '干支'
-        elif dayun_phase:
-            year_phase_active = dayun_phase['per_year'].get(
+        elif year_dayun_phase:
+            year_phase_active = year_dayun_phase['per_year'].get(
                 entry.get('year'), {}).get('active', '')
 
         for r in result.get('zhi_relations', []):
@@ -961,7 +982,7 @@ def analyze_liunian_mangpai(
                         target_location='dayun', gender=gender,
                     )
             result['dayun_interaction'] = dy_interactions
-            if dayun_phase:
+            if year_dayun_phase:
                 result['dayun_phase_active'] = year_phase_active
 
             dy_chong = any(i['type'] == '冲' for i in dy_interactions)

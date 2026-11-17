@@ -153,6 +153,9 @@ def analyze_zinv(
     liuqin_result: Optional[Dict] = None,
     dayun_list: Optional[List] = None,
     liunian_list: Optional[List] = None,
+    birth_year: Optional[int] = None,
+    current_dayun: Optional[Dict] = None,
+    liunian_dayun: Optional[Dict] = None,
 ) -> Dict:
     """子女岁运应期（得子/损子窗）+ 借腹 marker。
 
@@ -229,7 +232,25 @@ def analyze_zinv(
                 tomb_targets.add(z)
 
     dy_gzs = [g for g in (_gz_of(d) for d in (dayun_list or [])) if g]
-    ln_gzs = [g for g in (_gz_of(l) for l in (liunian_list or [])) if g]
+
+    def _dy_for_liunian(entry: Dict) -> str:
+        year = entry.get('year')
+        if liunian_dayun is not None and year in liunian_dayun:
+            return _gz_of(liunian_dayun[year] or {})
+        if birth_year is not None and year is not None:
+            try:
+                age = int(year) - int(birth_year) + 1
+            except (TypeError, ValueError):
+                return ''
+            for dy in dayun_list or []:
+                start = dy.get('start_age')
+                if start is None:
+                    continue
+                end = dy.get('end_age') if dy.get('end_age') is not None else start + 10
+                if start <= age < end:
+                    return _gz_of(dy)
+            return ''
+        return _gz_of(current_dayun or {})
 
     dezi_windows: List[Dict] = []
     sunzi_windows: List[Dict] = []
@@ -246,7 +267,7 @@ def analyze_zinv(
 
     # ── 大运级扫描 ──
     hedong_dy_gans: Set[str] = set()   # 合动运干（合神被克扫描对象）
-    kedaowei_dy = False                # 克到位运在场（合去闸门）
+    kedaowei_dy: Set[str] = set()      # 克到位运干支（合去闸门）
     for gz in dy_gzs:
         dg, dz = gz[0], gz[1] if len(gz) > 1 else ''
         # 得子·合动：运干合原局子息星（授课:18-20 丁壬合）
@@ -268,7 +289,7 @@ def analyze_zinv(
         #  授课:18-20 壬戌运壬合丁仍主怀孕）
         if (child_present and dg and GAN_WX.get(dg) == ke_wx
                 and TIAN_GAN_HE.get(dg) not in natal_child_gans):
-            kedaowei_dy = True
+            kedaowei_dy.add(gz)
             _emit(sunzi_windows, gz, '', '克到位', 'gaoji:14108-14128',
                   f'运干{dg}（{GAN_WX[dg]}）克子息星（{child_wx}）到位，子息星受创之象')
         # 损子·枭夺食运：枭夺食潜势盘行枭（偏印）运（授课:428）
@@ -287,13 +308,17 @@ def analyze_zinv(
                 break
 
     # ── 流年级扫描 ──
-    for gz in ln_gzs:
-        lg, lz = gz[0], gz[1] if len(gz) > 1 else ''
+    for entry in liunian_list or []:
+        gz = _gz_of(entry)
+        if len(gz) < 2:
+            continue
+        lg, lz = gz[0], gz[1]
+        current_dy_gz = _dy_for_liunian(entry)
         # 得子·合动：流年干为子息星到位，与运干/原局干成合
         # （授课:18-20 丁卯年丁壬合怀孕——丁为子息星临流年而合运干壬）
         if lg and _cat(_compute_shishen(day_gan, lg)) == cat:
             partner = TIAN_GAN_HE.get(lg, '')
-            hit_dy = next((d for d in dy_gzs if d and d[0] == partner), '')
+            hit_dy = current_dy_gz if current_dy_gz.startswith(partner) else ''
             if hit_dy or partner in {gans[i] for i in (0, 1, 3) if gans[i]}:
                 _emit(dezi_windows, hit_dy, gz, '合动', 'shouke:18-20',
                       f'流年{lg}子息星到位合{partner}，有得子/孕育之象')
@@ -304,7 +329,8 @@ def analyze_zinv(
                       f'流年支{lz}冲开{t}墓，有得子/孕育之象')
         # 损子·合去：克到位运中，流年克星合走原局子息星
         # （gaoji:14108-14128 己未运中戊寅年戊合癸）
-        if (kedaowei_dy and lg and TIAN_GAN_HE.get(lg) in natal_child_gans
+        if (current_dy_gz in kedaowei_dy and lg
+                and TIAN_GAN_HE.get(lg) in natal_child_gans
                 and GAN_WX.get(lg) == ke_wx):
             _emit(sunzi_windows, '', gz, '合去', 'gaoji:14108-14128',
                   f'流年{lg}合去子息星{TIAN_GAN_HE[lg]}（克星当运），子息星受创之象')
@@ -312,8 +338,9 @@ def analyze_zinv(
         # （授课:18-20「戊克壬，壬不能合丁」）
         if lg:
             for hg in sorted(hedong_dy_gans):
-                if WX_KE.get(GAN_WX.get(lg, ''), '') == GAN_WX.get(hg, ''):
-                    hit_dy = next((d for d in dy_gzs if d and d[0] == hg), '')
+                if current_dy_gz.startswith(hg) and \
+                        WX_KE.get(GAN_WX.get(lg, ''), '') == GAN_WX.get(hg, ''):
+                    hit_dy = current_dy_gz
                     _emit(sunzi_windows, hit_dy, gz, '合神被克', 'shouke:18-20',
                           f'流年{lg}克合神{hg}，子息星之合解体，孕育有损之象')
                     break

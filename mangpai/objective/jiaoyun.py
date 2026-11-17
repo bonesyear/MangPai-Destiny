@@ -299,8 +299,9 @@ def compute_jiaoyun_analysis(
     span: int = 9,
     month_gz: Optional[str] = None,
     year_gz: Optional[str] = None,
+    as_of: Optional[datetime] = None,
 ) -> Dict[str, Any]:
-    """交运分析聚合：时间线 + 摘要。
+    """交运分析聚合：时间线 + 摘要；as_of 与引擎使用同一参考时刻。
 
     供 MangpaiEngine.compute_all() 调用，产出 jiaoyun_analysis 字段。
     """
@@ -321,7 +322,7 @@ def compute_jiaoyun_analysis(
 
     valid = [t for t in timeline if 'jiaoyun_dt' in t]
     next_jiaoyun: Optional[Dict[str, Any]] = None
-    now = datetime.now()
+    now = as_of or datetime.now()
     if valid:
         future = [t for t in valid if t['jiaoyun_dt'] > now]
         if future:
@@ -358,6 +359,7 @@ def safe_compute_jiaoyun(
     start_age: Optional[int] = None,
     span: int = 9,
     year_gz: Optional[str] = None,
+    as_of: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     """安全计算交运（兜底返回，供 compute_all() _safe_compute 调用）。
 
@@ -367,7 +369,7 @@ def safe_compute_jiaoyun(
     try:
         return compute_jiaoyun_analysis(
             year, dayun_list=dayun_list, start_age=start_age,
-            span=span, month_gz=month_gz, year_gz=year_gz,
+            span=span, month_gz=month_gz, year_gz=year_gz, as_of=as_of,
         )
     except Exception as e:
         logger.warning(f"交运计算失败: {e}", exc_info=True)

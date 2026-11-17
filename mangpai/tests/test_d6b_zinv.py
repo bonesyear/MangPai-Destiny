@@ -40,6 +40,7 @@ def _run(bazi, gender, dys=(), lns=()):
         gans[2], gans, zhis, gender,
         dayun_list=[{'gz': d} for d in dys],
         liunian_list=[{'gz': l} for l in lns],
+        current_dayun={'gz': dys[0]} if dys else None,
     )
 
 
@@ -203,3 +204,21 @@ def test_guofang_guard_no_zimao():
     r = _run('甲申丙寅甲午乙亥', '男')
     assert r['guofang']['is_guofang'] is False
     assert set(r) >= {'zixi_yingqi_dezi', 'zixi_yingqi_sunzi', 'jiefu', 'guofang', 'summary'}
+
+
+def test_liunian_windows_use_their_actual_dayun():
+    from mangpai.subjective.zinv import analyze_zinv
+
+    gzs = ['丁丑', '丙子', '乙亥', '甲戌', '癸酉', '壬申', '辛未', '庚午']
+    dayun = [{'gz': gz, 'start_age': 8 + i * 10, 'end_age': 18 + i * 10}
+             for i, gz in enumerate(gzs)]
+    result = analyze_zinv(
+        '甲', list('庚戊甲丙'), list('午寅子寅'), '女',
+        dayun_list=dayun,
+        liunian_list=[{'gz': '丙午', 'year': 2026}, {'gz': '丁未', 'year': 2027}],
+        birth_year=1990, current_dayun={'gz': '乙亥'})
+    windows = (result['zixi_yingqi_dezi']['windows']
+               + result['zixi_yingqi_sunzi']['windows'])
+    assert not any(w['liunian'] == '丙午' and w['dayun'] == '辛未' for w in windows)
+    assert not any(w['liunian'] == '丁未' and w['dayun'] in ('壬申', '辛未')
+                   for w in windows)

@@ -254,7 +254,8 @@ def infer_comprehensive_yingqi(
         daxian_content = f'{info.get("pillar")}（{info.get("desc")}）主{gan_ss or "本气"}结构兑现'
         daxian_signals.append(f'大限应期：{daxian_content}')
         # 大限柱是否含禄原身（原神在大限阶段到场）
-        pillar_lu = [lp for lp in lu.get('lu_pillars', []) if lp.get('pos', '').startswith(active)]
+        pillar_lu = [lp for lp in lu.get('lu_pillars', [])
+                     if lp.get('natal') and lp.get('pos', '').startswith(active)]
         if pillar_lu:
             daxian_signals.append(
                 f'  大限柱见禄（{ "、".join(lp["lu_of"] for lp in pillar_lu) }原身到场）'
@@ -343,14 +344,12 @@ def infer_comprehensive_yingqi(
     )
     has_liunian_trigger = (
         bool(tou.get('tougan_hits')) or bool(ln_lu_all) or relation_trigger)
-    # 交集：大限结构兑现 + 大运路到 + 流年触发三者齐备为真应期；
-    # 原局优先：大限柱见禄原身时，原局应期已强，大运流年仅作承载即可成立。
+    # 真应期必须有真实流年触发；大限见禄只作信号，不替代流年。
     daxian_pillar_lu = bool(active) and any(
-        lp.get('pos', '').startswith(active) for lp in lu.get('lu_pillars', [])
+        lp.get('natal') and lp.get('pos', '').startswith(active)
+        for lp in lu.get('lu_pillars', [])
     )
-    intersection = has_daxian and has_dayun and (
-        has_liunian_trigger or daxian_pillar_lu
-    )
+    intersection = has_daxian and has_dayun and has_liunian_trigger
 
     inter_signals: List[str] = []
     if has_daxian:
@@ -371,7 +370,7 @@ def infer_comprehensive_yingqi(
     hit_count = (1 if has_daxian else 0) + (1 if has_dayun else 0) + (1 if has_liunian_trigger else 0)
     if intersection:
         conclusion = '真应期成立：原局结构（车）在大运（路）承载下、流年触发兑现'
-    elif hit_count >= 2:
+    elif hit_count >= 2 and has_liunian_trigger:
         hit_parts = []
         if has_daxian:
             hit_parts.append('大限结构兑现')
@@ -380,6 +379,8 @@ def infer_comprehensive_yingqi(
         if has_liunian_trigger:
             hit_parts.append('流年触发')
         conclusion = '应期成立：大限/大运/流年三要素命中其二（' + '、'.join(hit_parts) + '），结构兑现时段显现'
+    elif has_dayun and not has_liunian_trigger:
+        conclusion = '待应期：大运路到，原局结构/流年触发未配合'
     elif hit_count == 1:
         if has_daxian:
             conclusion = '原局应期：结构在兑现时段，大运流年未配合（路未到/未触发）'

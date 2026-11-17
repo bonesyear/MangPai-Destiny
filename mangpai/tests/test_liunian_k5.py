@@ -124,7 +124,7 @@ class TestHeFour:
 
 class TestDayunPhase:
     def test_fenkan_gan_half(self):
-        # 张克东例：甲寅运第 4 年（1975 乙卯），无刑冲合 → 分看干主事
+        # 本运 1979 己未与甲合 → 整运统看；1975 仍是第 4 年、干主事
         # 口径修正（2026-10-17）：起运岁为虚岁，start_year = 出生年+虚岁-1
         # （liunian.py 对齐 jiaoyun.py:277-279；书例 理象学:3916-3922
         # 2005 生 3 虚岁起运→2007）。1932 生 41 虚岁起运 → 1972 起，
@@ -132,16 +132,16 @@ class TestDayunPhase:
         p = determine_dayun_phase(
             '甲', '寅', [{'gz': '乙卯', 'year': 1975}],
             birth_year=1932, dayun_start_age=41)
-        assert p['phase'] == '分看'
+        assert p['phase'] == '统看'
         assert p['per_year'][1975] == {'position': 4, 'active': '干'}
 
     def test_fenkan_zhi_half(self):
-        # 甲寅运第 7 年（1978 戊午，与运无刑冲合）→ 分看支主事
+        # 同一甲寅运统看；1978 仍是第 7 年、支主事
         # （口径修正同上：1972 起运，1978 = 第 7 年，旧口径错作第 6 年）
         p = determine_dayun_phase(
             '甲', '寅', [{'gz': '戊午', 'year': 1978}],
             birth_year=1932, dayun_start_age=41)
-        assert p['phase'] == '分看'
+        assert p['phase'] == '统看'
         assert p['per_year'][1978] == {'position': 7, 'active': '支'}
 
     def test_tongkan_on_liunian_he(self):
@@ -160,11 +160,11 @@ class TestDayunPhase:
         assert p['phase'] == '统看'
 
     def test_same_qi_note_no_auto_tongkan(self):
-        # 丙午同气：不自动统看（甲寅反例），附 note 提示人工酌定
+        # 丙午同气不自动统看；本运 1931 辛未与丙合，故由口诀转统看
         p = determine_dayun_phase(
             '丙', '午', [{'gz': '戊辰', 'year': 1928}],
             birth_year=1888, dayun_start_age=36)
-        assert p['phase'] == '分看'
+        assert p['phase'] == '统看'
         assert p['same_qi'] is True
         assert '同气' in p['note']
 
@@ -369,3 +369,17 @@ class TestHechongHuying:
             ['甲', '丙', '甲', '己'], ['戌', '午', '子', '巳'], '甲',
             kong_wang={'zhi': ['戌']})
         assert dy['dayun'][0]['is_kong_wang'] is True
+
+
+def test_dayun_phase_uses_full_decade_not_three_year_window():
+    for year, gz in [(2026, '丙午'), (2027, '丁未'), (2028, '戊申'), (2029, '己酉')]:
+        phase = determine_dayun_phase(
+            '丁', '亥', [{'gz': gz, 'year': year}],
+            birth_year=1990, dayun_start_age=37)
+        assert phase['phase'] == '统看', (year, phase)
+
+
+def test_dayun_phase_without_start_anchor_does_not_guess():
+    phase = determine_dayun_phase('丁', '亥', [{'gz': '乙巳', 'year': 2025}])
+    assert phase['phase'] == '分看'
+    assert '起运' in phase['reason']
