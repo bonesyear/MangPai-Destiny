@@ -3,10 +3,11 @@
 校准口径（§5.2-3 / §5.4）：
 - 逐维一致率 = 30 例重叠样本上 judge 与评审评分（0/1/2，N/A 双方剔除）完全相同比例；
 - 翻转召回 = 评审判 2 的格中 judge 也判 2 的比例（须 100%）；
+- 批次3采信另须高于多数类基线、κ>0且有真实翻转样本；
 - 达标线：翻转 ≤1/30 且 L2 高危 14 例零翻转（≥3 例一票否决）；放大缩水 ≤20%。
 
 H-fix-7：一致率/翻转召回/达标判定下沉 output/_eval_common.py
-（薄包装，cal schema 与打印格式不变）。
+（薄包装；批次3新增agreement.quality字段）。
 
 产出: output/t3_s1/calibration.json + stdout 汇总
 用法: python3 output/_t3_calibrate.py
@@ -18,8 +19,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from _eval_common import (  # noqa: E402
-    load_json, load_jsonl, review_stats, agreement_stats, judge_stats,
-    judge_acceptance)
+    load_json, load_jsonl, review_stats, agreement_stats, agreement_quality,
+    judge_stats, judge_acceptance)
 
 OUT = os.environ.get('T3_OUT_DIR') or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 't3_s1')
@@ -49,8 +50,9 @@ def main():
                                             flip_with_ref=True)
     j_flip_cases = sorted({x['id'] for x in j_flips})
 
+    quality = agreement_quality(review, judge, sample, DIMS_R, MAP)
     agree_rate, recall, accept_judge = judge_acceptance(
-        agree, tot, flip_recall_hit, flip_recall_tot)
+        agree, tot, flip_recall_hit, flip_recall_tot, quality=quality)
 
     cal = {
         'review30': {
@@ -61,6 +63,7 @@ def main():
             'soft_rate': sum(v for (d, s), v in r_stat.items() if s == 1) / r_tot,
         },
         'agreement': {
+            'quality': quality,
             'cells': tot, 'agree': agree, 'rate': round(agree_rate, 4),
             'per_dim': {d: {'tot': per_dim[(d, 'tot')], 'agree': per_dim[(d, 'agree')]} for d in DIMS_R},
             'flip_recall': f'{flip_recall_hit}/{flip_recall_tot}',

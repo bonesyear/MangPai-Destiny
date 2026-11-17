@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""V3/M1 留出集盲测评估器 — 方向层（yongshen R2/R3）改动前后对比专用。
+"""V3/M1 历史 heldout/开发集评估器 — 规则改动前后对比。
 
-⚠️ 本脚本只做评估：对 heldout/cases.yaml（215例）与 trainset/cases.yaml（294例）
-跑 MangpaiEngine.compute_all()，按机械化 rubric 给 官命/财命/职业 三维打分，
-输出 JSON 供前后快照 diff。评估结果不得用于修引擎（留出集铁律）。
+对 heldout/cases.yaml（215例）与 trainset/cases.yaml（294例）运行引擎并按
+固定 rubric 给官命/财命/职业打分。历史 heldout 已参与开发，不再称盲测；
+快照只作回归和开发参考，不作为未见数据准确率证明。
 
 评分口径（全部继承 calib_assertions 训练侧 rubric，机械套用，不逐例调参）：
   官命: verdict 是/否 <-> is_guanming，符 ✅ 不符 ❌。
@@ -68,28 +68,22 @@ _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
 # 同 v4 被删词处理）；military 桶在 参军 语境下命中作废（履历非现职，
 # 同 v4 删「兵」之理：qi29「农民·曾参军逃出」gold 农民）。歌星/舞蹈家/
 # 将军/军阀等正当命中不受影响（逐例核对 22✅ 零依赖被排除语境）。
-# v6（K3 yongshen 批·P0-a 运锚层级断语判轨）：层级断语（巨富/富/小康/平/
-# 贫）文本含干支锚（「丙申运」/「辛未年」）且该锚=案例所喂运岁、且原局轨
-# 档位与断语档位差≥2 时，断语所述层级必为该运岁之层级而非终身原局层级
-# （段氏「八字为车，大运为路…运中见，称之为过路财神」——原局巨富而断语
-# 只称「平/小康」者其断语非终身层级），改评含岁运 delta 轨（tier/summary）；
-# 差<2/无锚/锚非所喂运岁者维持原局轨。差≥2 门槛下原局轨本必判 ❌，改判
-# 只会 ❌→改善或持平，不致 ✅/⚠️ 回退（delta 轨已知岁运反局 artifact
-# 不再误伤原局相符之断语，如 li001/li131/qi22 乙亥发财）。
+# v10：运锚层级断语只在文本干支锚等于案例所喂运岁时评 delta 轨；
+# 不再读取原局档与金标的差距选轨，避免同一输出因标准答案不同而择优。
 # v7（K3 294批1·B3）：破财/凶断语一律评全量轨（tier/summary）——「凶向
 # 在档」强制标注仅写全量轨（caiming.py P0-a 防静态轨误杀设计），静态轨
 # 对破财/凶断语结构性不可见其应得凶向（gj-财党杀攻身：引擎已正确检出
 # 财生杀攻身 severe，静态轨按设计不可见致凶漏判❌）。无岁运时 tier 与
 # tier_static 同值（level/level_static 仅岁运反局分叉），改动对破财/凶
 # 单调：has_xiong 只增不减、档位不变，无 ✅/⚠️ 回退风险；层级断语判轨
-# 不变（v6 运锚例外照旧）。
+# 不变（v10 运锚规则照旧）。
 # v8（K3 294职业批1·B-a）：_ZY_EXCLUDE['military'] 增「冠军」——体育冠军
 # 之「军」为 substring 误命中（cj-运动员「网球冠军」/cj-武术「武术全国
 # 冠军」，段氏：体育冠军=比劫做功，同 v4 删「武/兵」之理），2 例转
 # unscorable（trainset 职业 n 87→85）；两例 verdict 无其他桶关键词，
 # 22✅ 零依赖被排除语境。
 # v9：新增 driver=司机/运输/开车；zhenbao-04 转✅，ans29 领导司机如实转❌。
-RUBRIC_VERSION = 'v9-20261103'
+RUBRIC_VERSION = 'v10-20261118'
 
 # P0-a 断语性质判别：流年事件断语（破财/凶 且 文本锚定具体年份/大运 或 案例
 # 喂入运岁——金标准多为「戊辰年破财/赔六万」式流年事件，案例所喂运岁即事件锚点）
@@ -159,16 +153,13 @@ def score_caiming(verdict, cm, has_yunsui=False, dayun='', liunian=''):
     d_rank = '小康' if d == '平' else d
     # P0-a：流年事件断语（破财/凶）一律用含 delta 全量轨字段（v7：凶向在档
     # 标注仅全量轨可见，无岁运时 tier 与静态同值、改动单调）；层级断语
-    # （巨富/富/小康/平/贫）一律原局轨——v6 运锚例外：断语干支锚=所喂运岁
-    # 且原局轨与断语档位差≥2 者，断语层级为运岁层级，改评 delta 轨
+    # （巨富/富/小康/平/贫）一律原局轨；v10 仅在断语干支锚=所喂运岁时改评 delta 轨
     is_event = d in ('破财', '凶')
     if not is_event and d_rank in _TIER_RANK:
         anchors = set(_GZ_ANCHOR_RE.findall(verdict))
         fed = {dayun, liunian} - {''}
-        st = cm.get('tier_static') or cm.get('tier', '')
-        if (anchors & fed and st in _TIER_RANK
-                and abs(_TIER_RANK[st] - _TIER_RANK[d_rank]) >= 2):
-            is_event = True  # 运锚层级断语（原局轨严重不符）-> 运岁轨
+        if anchors & fed:
+            is_event = True  # v10：只看断语锚点，不看金标与原局档位的距离
     if is_event:
         tier = cm.get('tier', '')
         summary = str(cm.get('summary', ''))
@@ -276,6 +267,28 @@ def summarize(data):
         ok = c.get('✅', 0)
         stats[dim] = {'n': n, '✅': ok, '⚠️': c.get('⚠️', 0), '❌': c.get('❌', 0),
                       'acc': round(ok / n, 4) if n else None}
+        if dim == '官命':
+            rows = [e for e in data.values()
+                    if '官命' in e.get('scores', {})
+                    and '官命' in (e.get('verdict_labels') or {})]
+            if rows:
+                gold = [e['verdict_labels']['官命'].startswith('是') for e in rows]
+                pred = [bool((e.get('engine') or {}).get('is_guanming')) for e in rows]
+                tp = sum(g and p for g, p in zip(gold, pred))
+                fn = sum(g and not p for g, p in zip(gold, pred))
+                fp = sum(not g and p for g, p in zip(gold, pred))
+                tn = sum(not g and not p for g, p in zip(gold, pred))
+                baseline = max(sum(gold), len(gold) - sum(gold)) / len(gold)
+                specificity = tn / (tn + fp) if tn + fp else None
+                sensitivity = tp / (tp + fn) if tp + fn else None
+                stats[dim].update({
+                    'majority_baseline': round(baseline, 4),
+                    'acc_minus_baseline': round(ok / n - baseline, 4),
+                    'confusion': {'TP': tp, 'FN': fn, 'FP': fp, 'TN': tn},
+                    'specificity': round(specificity, 4) if specificity is not None else None,
+                    'balanced_accuracy': round((sensitivity + specificity) / 2, 4)
+                    if sensitivity is not None and specificity is not None else None,
+                })
     return stats
 
 
@@ -385,6 +398,16 @@ def _print_ci(label, data):
                      f"(下界{lo * 100:.1f}%)")
     if parts:
         print(f'[{label}·CI95] ' + '  '.join(parts))
+    gm = s.get('官命') or {}
+    if gm.get('majority_baseline') is not None:
+        cf = gm['confusion']
+        spec = f"{gm['specificity']:.2%}" if gm['specificity'] is not None else 'NA'
+        bal = (f"{gm['balanced_accuracy']:.2%}"
+               if gm['balanced_accuracy'] is not None else 'NA')
+        print(f"[{label}·官命基线] 多数类={gm['majority_baseline']:.2%} "
+              f"准确率-基线={gm['acc_minus_baseline']:+.2%} "
+              f"TP/FN/FP/TN={cf['TP']}/{cf['FN']}/{cf['FP']}/{cf['TN']} "
+              f"特异度={spec} 平衡准确率={bal}")
 
 
 def _print_significance(before, after):
@@ -482,6 +505,17 @@ def diff(before, after):
     return flips
 
 
+def _diff_gate(before, after):
+    regressions = 0
+    for split in ('heldout', 'trainset'):
+        regressions += sum(
+            1 for f in diff(before.get(split, {}), after.get(split, {}))
+            if f['delta'] is not None and f['delta'] > 0)
+    jitter = sum(len(_jitter(before.get(split, {}), after.get(split, {})))
+                 for split in ('heldout', 'trainset'))
+    return regressions, jitter
+
+
 def _validate_snapshot(payload):
     """快照写入前校验（H-fix-3）：_meta 溯源字段在场 + 至少一个 split 非空。"""
     meta = payload.get('_meta') or {}
@@ -544,6 +578,10 @@ def main():
         _print_meta('BEFORE', mb)
         _print_meta('AFTER', ma)
         _print_diff(before, after)
+        regressions, jitter = _diff_gate(before, after)
+        if regressions or jitter:
+            print(f'门禁失败：计分退化={regressions}，文本抖动={jitter}')
+            sys.exit(1)
         return
 
     result = {}
@@ -571,6 +609,10 @@ def main():
         _print_meta('baseline', mb)
         print(f'\n=== vs 基线 {args.baseline} ===')
         _print_diff(before, result)
+        regressions, jitter = _diff_gate(before, result)
+        if regressions or jitter:
+            print(f'门禁失败：计分退化={regressions}，文本抖动={jitter}')
+            sys.exit(1)
     # H-fix-2c：引擎异常计数 >0 → 验证不可信，退出码 1（快照/diff 照常产出供诊断）
     n_err = sum(1 for data in result.values() for e in data.values() if 'error' in e)
     if n_err:

@@ -1,9 +1,9 @@
 """N2-S1 校准：同 _v3_calibrate.py 口径扩七维 + 新维红线统计。
 judge 仅跑抽样 30 例（judge30.jsonl）。达标线：新维 red=0 且翻转=0；
-既有五维翻转 ≤1/30；judge 采信需一致率 ≥85% 且翻转召回 100%。
+既有五维翻转 ≤1/30；judge 采信还须高于多数类基线、κ>0且有真实翻转样本。
 
 H-fix-7：一致率/翻转召回/达标判定下沉 output/_eval_common.py
-（薄包装，cal schema 与打印格式不变）。
+（薄包装；批次3新增agreement.quality字段）。
 
 用法: T3_OUT_DIR=output/t3_s1_n2 /usr/bin/python3 output/_n2_calibrate.py
 """
@@ -14,8 +14,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from _eval_common import (  # noqa: E402
-    load_json, load_jsonl, review_stats, agreement_stats, judge_stats,
-    judge_acceptance)
+    load_json, load_jsonl, review_stats, agreement_stats, agreement_quality,
+    judge_stats, judge_acceptance)
 
 OUT = os.environ.get('T3_OUT_DIR') or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 't3_s1_n2')
@@ -41,8 +41,9 @@ def main():
     j_stat, j_flips, j_reds, j_tot = judge_stats(judge, DIMS_R, MAP,
                                                  new_dims=NEW_DIMS)
 
+    quality = agreement_quality(review, judge, sample, DIMS_R, MAP)
     agree_rate, recall, accept_judge = judge_acceptance(
-        agree, tot, flip_recall_hit, flip_recall_tot)
+        agree, tot, flip_recall_hit, flip_recall_tot, quality=quality)
     new_flip = [x for x in r_flips if x['dim'] in NEW_DIMS]
     old_flip = [x for x in r_flips if x['dim'] not in NEW_DIMS]
 
@@ -58,6 +59,7 @@ def main():
             'soft_rate': sum(v for (d, s), v in r_stat.items() if s == 1) / r_tot,
         },
         'agreement': {
+            'quality': quality,
             'cells': tot, 'agree': agree, 'rate': round(agree_rate, 4),
             'per_dim': {d: {'tot': per_dim[(d, 'tot')],
                             'agree': per_dim[(d, 'agree')]} for d in DIMS_R},

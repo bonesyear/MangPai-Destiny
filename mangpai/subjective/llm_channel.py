@@ -575,6 +575,23 @@ def format_reading(reading: dict, validation: dict, backend: dict) -> str:
     return '\n'.join(lines)
 
 
+def build_prompts(
+    engine_result: Dict[str, Any], user_question: Optional[str] = None,
+) -> tuple[str, str]:
+    """生产和批跑共用的 system/user prompt，保证八字性别标记一致。"""
+    features = build_payload(engine_result)
+    features_json = json.dumps(features, ensure_ascii=False, separators=(',', ':'))
+    system = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
+    bazi_line = _bazi_line(engine_result)
+    gender = str((engine_result.get('input') or {}).get('gender') or '').strip()
+    gender = _GENDER_ZAO.get(gender) or _GENDER_ZAO.get(gender.lower())
+    if gender:
+        bazi_line += f'（{gender}）'
+    user = build_user_prompt(features_json, bazi_line,
+                             user_question or '', features=features)
+    return system, user
+
+
 def render_structured_reading(
     engine_result: Dict[str, Any],
     user_question: Optional[str] = None,
@@ -588,19 +605,8 @@ def render_structured_reading(
     validate: 'mark'(默认)=违规附注于成品后；'reject'=L0 不过则拦截；
     'off'=不校验。LLM 不可用时降级返回 prompt 文本（不抛错）。
     """
+    system, user = build_prompts(engine_result, user_question)
     features = build_payload(engine_result)
-    features_json = json.dumps(features, ensure_ascii=False, separators=(',', ':'))
-    system = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
-    bazi_line = _bazi_line(engine_result)
-    # G2（F6-8 前置）：八字行带乾/坤造标记——秀气性别分流语按本造性别落地
-    # 修批F⑥：gender 口径归一——引擎合法集含 male/female/乾/坤
-    # （bazi_calc.py 入口校验），原只认「男/女」，male/female 盘标记静默缺失
-    _g = str((engine_result.get('input') or {}).get('gender') or '').strip()
-    _g = _GENDER_ZAO.get(_g) or _GENDER_ZAO.get(_g.lower())
-    if _g:
-        bazi_line += f'（{_g}）'
-    user = build_user_prompt(features_json, bazi_line,
-                             user_question or '', features=features)
     if not call_llm:
         return f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
 

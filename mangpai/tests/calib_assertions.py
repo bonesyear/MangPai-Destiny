@@ -186,7 +186,8 @@ def judge_hunyin(gold, hy):
     if 'duohun' in gold:
         dh = bool(hy.get('duohun', {}).get('is_duohun'))
         if dh != bool(gold['duohun']):
-            v = '❌' if v == '⚠️' else '⚠️'  # 降一档
+            order = ['✅', '⚠️', '❌']
+            v = order[min(2, order.index(v) + 1)]  # 降一档，❌封底
     return v
 
 

@@ -73,67 +73,67 @@
  },
  "gl:李嘉诚": {
   "verdict": "✅",
-  "detail": "level=4(书4) score=100"
+  "detail": "level=4(书4；口径4) score=100"
  },
  "gl:乾隆": {
   "verdict": "✅",
-  "detail": "level=4(书4) score=100"
+  "detail": "level=4(书4；口径4) score=100"
  },
  "gl:克林顿": {
   "verdict": "✅",
-  "detail": "level=4(书4) score=98"
+  "detail": "level=4(书4；口径4) score=98"
  },
  "gl:蒋介石": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=70"
+  "detail": "level=3(书3；口径3) score=70"
  },
  "gl:岳飞": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=86"
+  "detail": "level=3(书3；口径3) score=86"
  },
  "gl:例6": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=42"
+  "detail": "level=2(书2；口径2) score=42"
  },
  "gl:例7": {
-  "verdict": "✅",
-  "detail": "level=3(书3) score=69"
+  "verdict": "⚠️",
+  "detail": "level=3(书2；口径3) score=69"
  },
  "gl:例8": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=68"
+  "detail": "level=3(书3；口径3) score=68"
  },
  "gl:例9": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=68"
+  "detail": "level=3(书3；口径3) score=68"
  },
  "gl:普例1": {
   "verdict": "✅",
-  "detail": "level=1(书1) score=0"
+  "detail": "level=1(书1；口径1) score=0"
  },
  "gl:普例2": {
   "verdict": "✅",
-  "detail": "level=1(书1) score=0"
+  "detail": "level=1(书1；口径1) score=0"
  },
  "gl:普例3": {
-  "verdict": "✅",
-  "detail": "level=2(书2) score=50"
+  "verdict": "⚠️",
+  "detail": "level=2(书1；口径2) score=50"
  },
  "gl:普例4": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=48"
+  "detail": "level=2(书2；口径2) score=48"
  },
  "gl:普例5": {
   "verdict": "✅",
-  "detail": "level=2(书2) score=50"
+  "detail": "level=2(书2；口径2) score=50"
  },
  "gl:阎锡山": {
   "verdict": "✅",
-  "detail": "level=3(书3) score=74"
+  "detail": "level=3(书3；口径3) score=74"
  },
  "gl:复例二副总": {
   "verdict": "✅",
-  "detail": "level=1(书1) score=12"
+  "detail": "level=1(书1；口径1) score=12"
  },
  "xf:共象:丁目": {
   "verdict": "✅",

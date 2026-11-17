@@ -15,35 +15,23 @@ sys.path.insert(0, ROOT)
 
 import yaml  # noqa: E402
 
-from mangpai.engine import MangpaiEngine  # noqa: E402
-from mangpai.subjective import build_payload  # noqa: E402
+from _eval_common import engine_fe  # noqa: E402
 from mangpai.subjective.llm_backend import call_deepseek, LLMBackendError  # noqa: E402
-from mangpai.subjective.llm_channel import validate_reading  # noqa: E402
-from mangpai.subjective.llm_prompt import build_system_prompt, build_user_prompt  # noqa: E402
-from mangpai.subjective.narrative import _bazi_line  # noqa: E402
-from mangpai.subjective.prompts.hao_style_fewshot import (  # noqa: E402
-    FEWSHOT_EXAMPLES, format_fewshot_block)
+from mangpai.subjective.llm_channel import build_prompts, validate_reading  # noqa: E402
 
 OUT_DIR = os.environ.get('LLM_BATCH_DIR') or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'llm_batch_20260818')
 
 
-def run_case(case, system):
+def run_case(case, system=None):
     rec = {'id': case['id'], 'name': case.get('name', '')}
-    bazi_data = {
-        'bazi': dict(case['bazi']), 'shishen': {}, 'kong_wang': {},
-        'di_zhi_relations': {},
-        'input': {'gender': case.get('gender', '男'), 'year': case.get('year', 1960)},
-    }
     t0 = time.monotonic()
     try:
-        res = MangpaiEngine(bazi_data).compute_all()
+        res, features = engine_fe(case)
     except Exception as e:
         rec['engine_error'] = repr(e)
         return rec
-    features = build_payload(res)
-    features_json = json.dumps(features, ensure_ascii=False, separators=(',', ':'))
-    user = build_user_prompt(features_json, _bazi_line(res), features=features)
+    system, user = build_prompts(res)
     try:
         resp = call_deepseek(system, user)
     except LLMBackendError as e:
@@ -74,10 +62,8 @@ def main():
         cases = yaml.safe_load(f)[start:end]
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, f'batch_{start}_{start + len(cases)}.jsonl')
-    system = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
-
     with ThreadPoolExecutor(max_workers=8) as ex:
-        recs = list(ex.map(lambda c: run_case(c, system), cases))
+        recs = list(ex.map(run_case, cases))
     with open(out_path, 'w', encoding='utf-8') as f:
         for r in recs:
             f.write(json.dumps(r, ensure_ascii=False) + '\n')

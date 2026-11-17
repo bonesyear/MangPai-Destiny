@@ -86,6 +86,10 @@ CAT2 = [
     # 克链 + 日支合中心同制族并计一层，理象学:6898-6912）→ gl L1 合书，standing ✅
     ('复例二副总', ['甲','癸','丁','庚'], ['寅','酉','丑','子'], 1),
 ]
+# CAT2 保存现行引擎口径；原书层数独立保存，不用现行输出覆盖书值。
+BOOK_LEVEL = {'例7': 2, '普例3': 1}
+
+
 def judge_cat2(r, book_lv):
     d = r['level'] - book_lv
     if d == 0: return '✅'
@@ -225,10 +229,12 @@ def compute():
         v = judge_cat1(r, bset)
         out[f'zg:{name}'] = (v, f"types={r['work_types']} primary={r['primary_work']['type']}")
     # cat2
-    for name, g, z, blv in CAT2:
+    for name, g, z, expected_lv in CAT2:
         r = gongliang(fg(g), z)
-        v = judge_cat2(r, blv)
-        out[f'gl:{name}'] = (v, f"level={r['level']}(书{blv}) score={r['score']}")
+        book_lv = BOOK_LEVEL.get(name, expected_lv)
+        v = judge_cat2(r, book_lv)
+        out[f'gl:{name}'] = (
+            v, f"level={r['level']}(书{book_lv}；口径{expected_lv}) score={r['score']}")
     # cat3
     for princ, name, gs, zs, bv, expected_terms in CAT3:
         v, alarm, nonempty = judge_cat3(princ, gs, zs, bv, expected_terms)

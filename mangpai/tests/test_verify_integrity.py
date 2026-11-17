@@ -8,6 +8,7 @@
   - calib_zhenbao.py 顶层循环：案例失败 → 打印后 re-raise（H12 P1）
   - verify_heldout.py：排盘异常 → 计失败、退出码 1（既已合规，本测试锁回归）
 """
+import json
 import os
 import runpy
 import sys
@@ -311,3 +312,109 @@ def test_curate_supports_extended_cat3_rows():
     result = curate.contaminated()
     assert result
     assert any('backtest67:丁目' in tag for tag in result.values())
+
+
+def test_guanming_reports_majority_baseline_and_confusion():
+    data = {}
+    for i, gold in enumerate(('是', '是', '是', '否')):
+        data[str(i)] = {
+            'verdict_labels': {'官命': gold},
+            'scores': {'官命': '✅' if gold == '是' else '❌'},
+            'engine': {'is_guanming': True},
+        }
+    stats = blind_eval.summarize(data)['官命']
+    assert stats['majority_baseline'] == 0.75
+    assert stats['confusion'] == {'TP': 3, 'FN': 0, 'FP': 1, 'TN': 0}
+    assert stats['specificity'] == 0
+    assert stats['balanced_accuracy'] == 0.5
+
+
+@pytest.mark.parametrize('change', ['score', 'text'])
+def test_blind_eval_diff_failure_exit(monkeypatch, change):
+    before = {'heldout': {'case': {
+        'scores': {'官命': '✅'}, 'engine': {'is_guanming': True},
+    }}, 'trainset': {}}
+    after = {'heldout': {'case': {
+        'scores': {'官命': '❌' if change == 'score' else '✅'},
+        'engine': {'is_guanming': True} if change == 'score' else {'veto_reasons': ['x']},
+    }}, 'trainset': {}}
+    monkeypatch.setattr(blind_eval, '_load_snapshot',
+                        lambda path: (before if path == 'before' else after, None))
+    monkeypatch.setattr(sys, 'argv', ['blind_eval.py', '--diff', 'before', 'after'])
+    with pytest.raises(SystemExit) as exc:
+        blind_eval.main()
+    assert exc.value.code == 1
+
+
+def test_blind_eval_diff_allows_improvement(monkeypatch):
+    before = {'heldout': {'case': {'scores': {'官命': '❌'}}}, 'trainset': {}}
+    after = {'heldout': {'case': {'scores': {'官命': '✅'}}}, 'trainset': {}}
+    monkeypatch.setattr(blind_eval, '_load_snapshot',
+                        lambda path: (before if path == 'before' else after, None))
+    monkeypatch.setattr(sys, 'argv', ['blind_eval.py', '--diff', 'before', 'after'])
+    blind_eval.main()
+
+
+def test_caiming_track_selection_never_uses_gold_distance():
+    cm = {'tier': '小康', 'tier_static': '巨富', 'summary': '', 'summary_static': ''}
+    score, tier = blind_eval.score_caiming('巨富·辛未年发财', cm,
+                                           has_yunsui=True, dayun='辛未')
+    assert score == '❌' and tier == '小康'
+
+
+def test_hunyin_extra_error_never_improves_score():
+    import calib_assertions as ca
+
+    gold = {'quality': '差', 'duohun': True}
+    worst = {'quality': {'quality': '好'}, 'duohun': {'is_duohun': False}}
+    partial = {'quality': {'quality': '差'}, 'duohun': {'is_duohun': False}}
+    assert ca.judge_hunyin(gold, worst) == '❌'
+    assert ca.judge_hunyin(gold, partial) == '⚠️'
+
+
+def test_regression67_keeps_book_and_engine_levels_separate():
+    sys.path.insert(0, os.path.join(_HERE, 'backtest'))
+    import regression67
+
+    out, _ = regression67.compute()
+    for name, book, current in [('例7', 2, 3), ('普例3', 1, 2)]:
+        verdict, detail = out[f'gl:{name}']
+        assert verdict == '⚠️'
+        assert f'书{book}' in detail and f'口径{current}' in detail
+
+
+def test_constant_judge_without_flip_samples_is_rejected():
+    sys.path.insert(0, os.path.join(_REPO, 'output'))
+    import _eval_common as ec
+
+    review = {'case': {'result': {'scores': {'性格': {'s': 0}}}}}
+    judge = {'case': {'result': {'items': {'性格': {'lv': 0}}}}}
+    quality = ec.agreement_quality(review, judge, ['case'], ['性格'], {'性格': '性格'})
+    assert quality['majority_baseline'] == 1.0
+    assert quality['kappa'] == 0.0
+    assert ec.judge_acceptance(1, 1, 0, 0, quality=quality)[2] is False
+
+
+def test_batch_prompt_matches_production(monkeypatch):
+    sys.path.insert(0, os.path.join(_REPO, 'output'))
+    import _llm_batch_trainset as batch
+    from mangpai.subjective.llm_channel import build_prompts
+
+    case = {'id': 'synthetic', 'gender': '女', 'bazi': {
+        'year': '甲子', 'month': '乙丑', 'day': '丙寅', 'hour': '丁卯',
+    }}
+    seen = {}
+
+    def fake_call(system, user):
+        seen['prompts'] = (system, user)
+        return {'text': json.dumps({dim: {'conclusion': '数据不足', 'basis': [],
+                                         'confidence': '低'}
+                                    for dim in ('性格', '事业', '财运', '婚姻', '应期', '迁移', '相貌')}),
+                'usage': {}, 'cost_cny': None, 'model': 'mock'}
+
+    monkeypatch.setattr(batch, 'call_deepseek', fake_call)
+    rec = batch.run_case(case)
+    assert 'engine_error' not in rec and 'api_error' not in rec
+    res, _ = batch.engine_fe(case)
+    assert seen['prompts'] == build_prompts(res)
+    assert 'year' not in res['input']

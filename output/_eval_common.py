@@ -281,12 +281,41 @@ def judge_stats(judge, dims, dim_map, new_dims=(), *, flip_with_ref=False):
     return j_stat, j_flips, j_reds, j_tot
 
 
-def judge_acceptance(agree, tot, flip_recall_hit, flip_recall_tot):
-    """达标判定：一致率 ≥85% 且翻转召回 100% → 采信 judge。
-    返回 (agree_rate, recall, accept)。"""
+def agreement_quality(review, judge, sample, dims, dim_map):
+    """多数类一致率基线与 Cohen's κ；只使用双方都有数值的格子。"""
+    pairs = []
+    for cid in sample:
+        if cid not in judge or 'result' not in judge[cid]:
+            continue
+        rsc = review[cid]['result']['scores']
+        jsc = judge[cid]['result'].get('items', {})
+        for dim in dims:
+            rv = rsc[dim]['s']
+            jv = jsc.get(dim_map[dim], {}).get('lv')
+            if rv in (0, 1, 2) and jv in (0, 1, 2):
+                pairs.append((rv, jv))
+    n = len(pairs)
+    if not n:
+        return {'n': 0, 'majority_baseline': None, 'kappa': None}
+    rc = Counter(r for r, _ in pairs)
+    jc = Counter(j for _, j in pairs)
+    observed = sum(r == j for r, j in pairs) / n
+    expected = sum(rc[v] * jc[v] for v in (0, 1, 2)) / (n * n)
+    return {
+        'n': n,
+        'majority_baseline': max(rc.values()) / n,
+        'kappa': (observed - expected) / (1 - expected) if expected != 1 else 0.0,
+    }
+
+
+def judge_acceptance(agree, tot, flip_recall_hit, flip_recall_tot, *, quality=None):
+    """须高于多数类基线、κ>0，且有真实翻转样本供召回验证。"""
     agree_rate = agree / tot if tot else 0
-    recall = flip_recall_hit / flip_recall_tot if flip_recall_tot else 1.0
-    return agree_rate, recall, agree_rate >= 0.85 and recall >= 1.0
+    recall = flip_recall_hit / flip_recall_tot if flip_recall_tot else 0.0
+    accept = bool(
+        quality and flip_recall_tot and agree_rate >= 0.85 and recall >= 1.0
+        and agree_rate > quality['majority_baseline'] and quality['kappa'] > 0)
+    return agree_rate, recall, accept
 
 
 # ================================================================ 4. 抽样
@@ -331,15 +360,21 @@ _QIANYI_NOASSERT_RE = re.compile(r'(宜|适合|会|必有|主).{0,4}(迁移|远�
 def engine_fe(c):
     """trainset 案例 → (compute_all 结果, build_payload 特征)。
 
-    合成 bazi_data（shishen/kong_wang/di_zhi_relations 空壳由引擎重算填充），
-    原 _w4/_w5/_n2_analyze/_t3_dump 四处逐字相同构造。
+    保留案例已有运岁；出生年缺失时保持缺失，不用 1960 伪造时间锚。
     """
     from mangpai.engine import MangpaiEngine
     from mangpai.subjective import build_payload
-    bazi_data = {'bazi': dict(c['bazi']), 'shishen': {}, 'kong_wang': {},
-                 'di_zhi_relations': {},
-                 'input': {'gender': c.get('gender', '男'),
-                           'year': c.get('year', 1960)}}
+    input_data = {'gender': c.get('gender', '男')}
+    if c.get('year') is not None:
+        input_data['year'] = c['year']
+    bazi_data = {'bazi': dict(c['bazi']), 'input': input_data}
+    if c.get('dayun'):
+        bazi_data['dayun'] = {'dayun': [{'gz': c['dayun']}]}
+    if c.get('liunian'):
+        entry = {'gz': c['liunian']}
+        if c.get('year') is not None:
+            entry['year'] = c['year']
+        bazi_data['liunian'] = [entry]
     res = MangpaiEngine(bazi_data).compute_all()
     return res, build_payload(res)
 
