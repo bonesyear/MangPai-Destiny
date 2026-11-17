@@ -13,6 +13,8 @@
   - 交运   :3882-3895 五行交运规则（水命冬至前三天亥时）；
             :3916-3922 书例 2005 生 3 虚岁起运 → 交运年 = 2005+3-1 = 2007
 """
+import pytest
+
 from mangpai.objective.bazi_calc import (
     calc_bazi_full,
     compute_four_pillars,
@@ -136,6 +138,7 @@ def test_solar_term_table_boundaries_do_not_clamp():
 
 def test_jiaoyun_book_2005_xu_sui():
     """2005 生 3 虚岁起运，乙酉水命 → 交运 2007 冬至前三天亥时（非 2008）。"""
+    pytest.importorskip('sxtwl')
     r = calc_bazi_full(2005, 3, 15, 10, 0, '男', LON)
     tl = compute_jiaoyun_timeline(
         2005, dayun_list=r['da_yun']['dayun'],
