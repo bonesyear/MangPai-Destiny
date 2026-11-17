@@ -11,7 +11,8 @@
 OpenAI 兼容服务）。本模块的 `render_hao_narrative` 为旧散文通道，保留并存——
 其 LLM 实调路径（`_call_llm`）**硬绑 Anthropic SDK**，需自配 `anthropic` 包 +
 `ANTHROPIC_API_KEY`（模型可用 `ANTHROPIC_MODEL` 覆盖，端点可用 SDK 原生
-`ANTHROPIC_BASE_URL` 覆盖）才能使用；未配置时按既有契约降级返回 prompt 文本，
+`ANTHROPIC_BASE_URL` 覆盖），且须显式开启 `MANGPAI_USE_LLM` 才能使用；
+未开启时降级返回 prompt 文本，
 可手工喂任意 LLM。`summarize_engine_result` / `_bazi_line` /
 `validate_narrative_numbers` 等工具函数仍被 llm_channel/feishu 复用，非遗留。
 
@@ -28,6 +29,7 @@ import warnings
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from mangpai.subjective.llm_backend import llm_enabled
 from mangpai.subjective.prompts.hao_style_fewshot import (
     FEWSHOT_EXAMPLES,
     HAO_STYLE_SYSTEM_PROMPT,
@@ -393,6 +395,8 @@ def _call_llm(system_prompt: str, user_prompt: str, model: str | None = None) ->
     ANTHROPIC_BASE_URL。正式通道=llm_channel（MANGPAI_LLM_* 体系，任意
     OpenAI 兼容服务）；本路径无生产调用点，仅旧散文通道保留并存。
     """
+    if not llm_enabled():
+        raise RuntimeError('LLM 未启用；请显式设置 MANGPAI_USE_LLM=1')
     import anthropic  # 软依赖
     client = anthropic.Anthropic()
     model = model or os.environ.get('ANTHROPIC_MODEL') or 'claude-sonnet-5'
@@ -602,9 +606,8 @@ def render_hao_narrative(
         bundle_case_result 合并后的 enriched dict 均可）。
       user_question: 命主当面所问（可选，如"你看我今年养车怎么样？"）。
         若给，则断语须围绕此问；否则做通推断语。
-      call_llm: True 则调 LLM 生成断语；False 或 LLM 不可用时，
-        返回组装好的 prompt 文本（系统提示+few-shot+引擎结论+所问），
-        供外部接 LLM。默认 True。
+      call_llm: True 且显式开启 MANGPAI_USE_LLM 时调 LLM；否则返回组装好的
+        prompt 文本（系统提示+few-shot+引擎结论+所问），供外部接 LLM。
       fewshot_examples: 自定义 few-shot 列表覆盖默认 FEWSHOT_EXAMPLES。
       model: 指定 LLM 模型 id，默认取 ANTHROPIC_MODEL 环境变量或 claude-sonnet-5。
       validate: 生成后数字校验（N1）。'mark'(默认)=断语后附【引擎校验】
@@ -614,6 +617,7 @@ def render_hao_narrative(
     Returns:
       郝金阳口吻的断语文本；LLM 不可用时返回降级 prompt 文本。
     """
+    call_llm = call_llm and llm_enabled()
     # 批D：遗留通道运行时警告（S1 裁定正式通道 = llm_channel 侧）
     warnings.warn(
         'render_hao_narrative 为遗留通道（新调用方禁用）；正式通道 = '

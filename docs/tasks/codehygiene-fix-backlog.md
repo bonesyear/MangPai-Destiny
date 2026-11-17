@@ -1863,7 +1863,7 @@ H-fix 1~8 全批落地，每批六件套全绿+blind 零翻转零抖动+批前 t
 | `MANGPAI_LLM_REASONING_EFFORT` | → `low`（=现状） | 仅 thinking 开启时发出 |
 | `MANGPAI_LLM_TIMEOUT` / `MANGPAI_LLM_RETRIES` | → `120` / `2`（=现状） | 本地模型可调大超时；形参仍最优先 |
 | `MANGPAI_LLM_ENV_FILE` | → `~/.env` → legacy `/root/.hermes/.env` | env 文件回退链；legacy 为私有部署残留默认，**保留兜底守红线**（本机生产行为不变），标注后续主版本移除 |
-| `MANGPAI_USE_LLM` | → `FEISHU_USE_LLM` → 开 | LLM 段通用开关别名（feishu service；非飞书使用者不被迫用飞书命名，原名保兼容） |
+| `MANGPAI_USE_LLM` | → `FEISHU_USE_LLM` → 关 | LLM 段通用开关别名（2026-11-17 起缺省关闭，显式开启才外发；原名保兼容） |
 
 ### 关键实现点
 

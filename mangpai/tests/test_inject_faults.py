@@ -232,6 +232,7 @@ def test_llm_backend_http200_non_json_wrapped(monkeypatch):
     """HTTP 200 但返回体非 JSON → LLMBackendError（明确异常），
     禁止裸 JSONDecodeError 穿透（H4 P0）。"""
     import urllib.request
+    monkeypatch.setenv('MANGPAI_USE_LLM', '1')
     monkeypatch.setenv('DEEPSEEK_API_KEY', 'fault-inject-key')
     monkeypatch.setattr(urllib.request, 'urlopen',
                         lambda *a, **k: _FakeResp(b'<html>Bad Gateway</html>'))
@@ -242,6 +243,7 @@ def test_llm_backend_http200_non_json_wrapped(monkeypatch):
 def test_llm_backend_http200_bad_utf8_wrapped(monkeypatch):
     """HTTP 200 但返回体非法 UTF-8 → 同样包装为 LLMBackendError。"""
     import urllib.request
+    monkeypatch.setenv('MANGPAI_USE_LLM', '1')
     monkeypatch.setenv('DEEPSEEK_API_KEY', 'fault-inject-key')
     monkeypatch.setattr(urllib.request, 'urlopen',
                         lambda *a, **k: _FakeResp(b'\xff\xfe\x00bad'))

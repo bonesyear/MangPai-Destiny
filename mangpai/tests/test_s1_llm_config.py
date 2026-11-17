@@ -23,7 +23,8 @@ from mangpai.feishu import service as feishu_service
 _LLM_VARS = ('MANGPAI_LLM_BASE_URL', 'MANGPAI_LLM_API_KEY', 'MANGPAI_LLM_MODEL',
              'MANGPAI_LLM_THINKING', 'MANGPAI_LLM_REASONING_EFFORT',
              'MANGPAI_LLM_TIMEOUT', 'MANGPAI_LLM_RETRIES', 'MANGPAI_LLM_ENV_FILE',
-             'DEEPSEEK_API_KEY', 'DEEPSEEK_MODEL')
+             'DEEPSEEK_API_KEY', 'DEEPSEEK_MODEL',
+             'MANGPAI_USE_LLM', 'FEISHU_USE_LLM')
 
 
 class _FakeResp:
@@ -47,14 +48,16 @@ _OK_BODY = json.dumps({
 
 
 @pytest.fixture
-def clean_env(monkeypatch):
+def clean_env(monkeypatch, tmp_path):
     for v in _LLM_VARS:
         monkeypatch.delenv(v, raising=False)
+    monkeypatch.setattr(lb, '_PROJECT_ENV_FILE', tmp_path / 'no-project.env')
     return monkeypatch
 
 
 def _capture(monkeypatch, body=_OK_BODY):
     """拦截 urlopen，返回 (captured, )——captured 收 (Request, timeout)。"""
+    monkeypatch.setenv('MANGPAI_USE_LLM', '1')
     captured = []
 
     def fake_urlopen(req, timeout=None, **kw):
@@ -91,10 +94,21 @@ def test_default_path_byte_identical(clean_env):
     req, timeout = captured[0]
     assert req.full_url == 'https://api.deepseek.com/chat/completions'
     assert req.data == json.dumps(_expected_default_body()).encode('utf-8')
-    assert req.headers['Authorization'] == 'Bearer sk-old'
+    assert req.unredirected_hdrs['Authorization'] == 'Bearer sk-old'
     assert timeout == 120.0
     assert resp['model'] == 'deepseek-flash'
     assert isinstance(resp['cost_cny'], float)
+
+
+def test_authorization_not_forwarded_on_redirect(clean_env):
+    clean_env.setenv('MANGPAI_LLM_API_KEY', 'sk-new')
+    captured = _capture(clean_env)
+    call_deepseek('S', 'U')
+    req = captured[0][0]
+    redirected = urllib.request.HTTPRedirectHandler().redirect_request(
+        req, None, 302, 'Found', {}, 'https://relay.example/chat/completions')
+    assert 'Authorization' not in redirected.headers
+    assert 'Authorization' not in redirected.unredirected_hdrs
 
 
 def test_deepseek_model_env_still_works(clean_env):
@@ -109,7 +123,7 @@ def test_deepseek_model_env_still_works(clean_env):
 # ---------------------------------------------------------------- 新配置项生效
 
 def test_base_url_override(clean_env):
-    clean_env.setenv('DEEPSEEK_API_KEY', 'sk-old')
+    clean_env.setenv('MANGPAI_LLM_API_KEY', 'sk-new')
     clean_env.setenv('MANGPAI_LLM_BASE_URL', 'http://localhost:11434/v1/chat/completions')
     captured = _capture(clean_env)
     call_deepseek('S', 'U')
@@ -122,7 +136,7 @@ def test_api_key_precedence(clean_env):
     clean_env.setenv('DEEPSEEK_API_KEY', 'sk-old')
     captured = _capture(clean_env)
     call_deepseek('S', 'U')
-    assert captured[0][0].headers['Authorization'] == 'Bearer sk-new'
+    assert captured[0][0].unredirected_hdrs['Authorization'] == 'Bearer sk-new'
 
 
 def test_model_precedence_chain(clean_env):
@@ -161,6 +175,7 @@ def test_reasoning_effort_env(clean_env):
 def test_timeout_retries_env(clean_env):
     """MANGPAI_LLM_TIMEOUT/RETRIES 生效；5xx 重试次数随 RETRIES=0 归零。"""
     clean_env.setenv('DEEPSEEK_API_KEY', 'sk-old')
+    clean_env.setenv('MANGPAI_USE_LLM', '1')
     clean_env.setenv('MANGPAI_LLM_TIMEOUT', '300')
     clean_env.setenv('MANGPAI_LLM_RETRIES', '0')
     clean_env.setattr(lb.time, 'sleep', lambda s: None)
@@ -186,24 +201,20 @@ def test_env_file_custom_path(clean_env, tmp_path):
     assert lb._load_api_key() == 'sk-legacy-name'
 
 
-def test_env_file_project_root_fallback(clean_env, tmp_path, monkeypatch):
-    """缺省链=项目根 .env → ~/.env。"""
+def test_env_file_does_not_read_home(clean_env, tmp_path, monkeypatch):
+    """缺省只读项目根 .env，不读取其他项目留在家目录的 key。"""
     proj_env = tmp_path / 'proj.env'
     home_env = tmp_path / 'home.env'
     home_env.write_text('DEEPSEEK_API_KEY=sk-home\n', encoding='utf-8')
     monkeypatch.setattr(lb, '_PROJECT_ENV_FILE', proj_env)
     monkeypatch.setattr(os.path, 'expanduser', lambda p: str(home_env) if p == '~/.env' else p)
-    # 项目根 .env 不存在 → 落 ~/.env
-    assert lb._load_api_key() == 'sk-home'
-    # 项目根 .env 存在 → 优先
+    with pytest.raises(LLMBackendError):
+        lb._load_api_key()
     proj_env.write_text('MANGPAI_LLM_API_KEY=sk-proj\n', encoding='utf-8')
     assert lb._load_api_key() == 'sk-proj'
 
 
-def test_key_missing_error_names_vars(clean_env, tmp_path, monkeypatch):
-    monkeypatch.setattr(lb, '_PROJECT_ENV_FILE', tmp_path / 'none.env')
-    monkeypatch.setattr(os.path, 'expanduser',
-                        lambda p: str(tmp_path / 'no-home.env') if p == '~/.env' else p)
+def test_key_missing_error_names_vars(clean_env):
     with pytest.raises(LLMBackendError, match='MANGPAI_LLM_API_KEY'):
         lb._load_api_key()
 
@@ -235,17 +246,101 @@ def test_format_reading_unpriced_label():
 
 # ---------------------------------------------------------------- 通用开关别名
 
-def test_use_llm_alias(monkeypatch):
-    """MANGPAI_USE_LLM 通用别名优先；FEISHU_USE_LLM 保兼容。"""
-    monkeypatch.delenv('MANGPAI_USE_LLM', raising=False)
-    monkeypatch.delenv('FEISHU_USE_LLM', raising=False)
-    assert feishu_service.use_llm_default() is True
-    monkeypatch.setenv('FEISHU_USE_LLM', '0')
+def test_use_llm_alias(clean_env):
+    """MANGPAI_USE_LLM 通用别名优先；FEISHU_USE_LLM 保兼容，缺省关闭。"""
     assert feishu_service.use_llm_default() is False
-    monkeypatch.setenv('MANGPAI_USE_LLM', '1')
+    clean_env.setenv('FEISHU_USE_LLM', '0')
+    assert feishu_service.use_llm_default() is False
+    clean_env.setenv('MANGPAI_USE_LLM', '1')
     assert feishu_service.use_llm_default() is True  # 新名优先
-    monkeypatch.setenv('MANGPAI_USE_LLM', '0')
+    clean_env.setenv('MANGPAI_USE_LLM', '0')
     assert feishu_service.use_llm_default() is False
+
+
+def test_global_switch_off_blocks_backend(clean_env):
+    """缺省及常见关闭写法均在真实网络入口前阻断。"""
+    clean_env.setenv('MANGPAI_LLM_API_KEY', 'sk-not-sent')
+    captured = _capture(clean_env)
+    for value in (None, '0', 'false', 'off', 'no', ''):
+        if value is None:
+            clean_env.delenv('MANGPAI_USE_LLM', raising=False)
+        else:
+            clean_env.setenv('MANGPAI_USE_LLM', value)
+        with pytest.raises(LLMBackendError, match='未启用'):
+            call_deepseek('S', 'U')
+    assert captured == []
+
+
+def test_placeholder_or_empty_key_never_sent(clean_env):
+    captured = _capture(clean_env)
+    for key in ('', 'your-api-key-here', 'xxx'):
+        clean_env.setenv('MANGPAI_LLM_API_KEY', key)
+        with pytest.raises(LLMBackendError):
+            call_deepseek('S', 'U')
+    assert captured == []
+
+
+def test_structured_reading_respects_global_switch(clean_env):
+    from mangpai.subjective.llm_channel import render_structured_reading
+
+    clean_env.setenv('MANGPAI_LLM_API_KEY', 'sk-not-sent')
+    captured = _capture(clean_env)
+    clean_env.setenv('MANGPAI_USE_LLM', '0')
+    out = render_structured_reading({'bazi': {}, 'input': {}})
+    assert out.startswith('[LLM 不可用')
+    assert captured == []
+
+
+def test_env_file_settings_and_switch(clean_env, tmp_path):
+    f = tmp_path / 'full.env'
+    content = (
+        'MANGPAI_LLM_API_KEY=sk-file\n'
+        'MANGPAI_LLM_BASE_URL=http://localhost:11434/v1/chat/completions\n'
+        'MANGPAI_LLM_MODEL=qwen-local\n'
+        'MANGPAI_LLM_THINKING=0\n'
+        'MANGPAI_USE_LLM=1\n'
+    )
+    f.write_text(content, encoding='utf-8')
+    clean_env.setenv('MANGPAI_LLM_ENV_FILE', str(f))
+    captured = _capture(clean_env)
+    clean_env.delenv('MANGPAI_USE_LLM')
+    call_deepseek('S', 'U')
+    req = captured[0][0]
+    assert req.full_url == 'http://localhost:11434/v1/chat/completions'
+    body = json.loads(req.data)
+    assert body['model'] == 'qwen-local'
+    assert 'thinking' not in body and 'reasoning_effort' not in body
+
+    f.write_text(content.replace('MANGPAI_USE_LLM=1', 'MANGPAI_USE_LLM=0'),
+                 encoding='utf-8')
+    with pytest.raises(LLMBackendError, match='未启用'):
+        call_deepseek('S', 'U')
+    assert len(captured) == 1
+
+
+def test_custom_endpoint_does_not_inherit_deepseek_key(clean_env):
+    clean_env.setenv('DEEPSEEK_API_KEY', 'sk-old')
+    clean_env.setenv('MANGPAI_LLM_BASE_URL', 'http://localhost:8000/v1/chat/completions')
+    captured = _capture(clean_env)
+    with pytest.raises(LLMBackendError, match='自定义端点'):
+        call_deepseek('S', 'U')
+    assert captured == []
+
+
+def test_legacy_narrative_respects_global_switch(clean_env):
+    import mangpai.subjective.narrative as narr
+
+    called = []
+    real_call = narr._call_llm
+    clean_env.setattr(narr, '_call_llm', lambda *a, **k: called.append((a, k)))
+    clean_env.setenv('MANGPAI_USE_LLM', '0')
+    out = narr.render_hao_narrative({
+        'bazi': {'year': '甲子', 'month': '乙丑', 'day': '丙寅', 'hour': '丁卯'},
+    }, call_llm=True)
+    assert called == []
+    assert '【八字】' in out
+    with pytest.raises(RuntimeError, match='未启用'):
+        real_call('S', 'U')
 
 
 # ---------------------------------------------------------------- narrative 遗留通道标注

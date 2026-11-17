@@ -3,18 +3,18 @@
 - 阳历路径走 calc_mangpai_full（吃 D2 入口校验：性别/年份/lon 强制）；
 - 四柱直输路径手工合成最小 bazi_data（同 blind_eval._bazi_data 口径，
   无 da_yun → 大运相关键缺省，性别仍必填）；
-- LLM 通道默认开（validate='mark'），失败/非 JSON/被拦截 → 降级为
+- LLM 通道默认关（validate='mark'），显式开启后失败/非 JSON/被拦截 → 降级为
   引擎直出格式化结论（不加 LLM 段），不抛错；
 - LLM 输出不落 compute_all dict（通道红线维持）。
 """
 from __future__ import annotations
 
-import os
 import re
 from typing import Any, Dict, Optional
 
 from mangpai import MangpaiEngine, calc_mangpai_full
 from mangpai.feishu.formatter import format_report
+from mangpai.subjective.llm_backend import llm_enabled
 from mangpai.subjective.llm_channel import render_structured_reading
 
 # llm_channel 降级/拦截成品的固定前缀（llm_channel.py 契约：降级不抛错，
@@ -48,10 +48,7 @@ def engine_result_pillars(pillars, gender, year: Optional[int] = None) -> Dict[s
 
 
 def use_llm_default() -> bool:
-    # MANGPAI_USE_LLM 通用别名优先（S1：非飞书使用者不被迫用飞书命名的开关）；
-    # FEISHU_USE_LLM 保兼容，飞书组件原名仍可用。
-    v = os.environ.get('MANGPAI_USE_LLM') or os.environ.get('FEISHU_USE_LLM') or '1'
-    return v.strip() != '0'
+    return llm_enabled()
 
 
 def paipan(spec: Dict[str, Any], use_llm: Optional[bool] = None) -> str:

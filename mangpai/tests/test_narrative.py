@@ -25,6 +25,11 @@ from mangpai.subjective.narrative import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _enable_llm_for_mocked_calls(monkeypatch):
+    monkeypatch.setenv('MANGPAI_USE_LLM', '1')
+
+
 # ---------- few-shot 数据结构 ----------
 
 def test_fewshot_examples_count_and_shape():

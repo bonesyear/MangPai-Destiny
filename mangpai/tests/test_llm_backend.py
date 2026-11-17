@@ -52,6 +52,11 @@ import pytest
 from mangpai.subjective import llm_backend as _lb
 
 
+@pytest.fixture(autouse=True)
+def _enable_llm_for_backend_tests(monkeypatch):
+    monkeypatch.setenv('MANGPAI_USE_LLM', '1')
+
+
 class _FakeResp:
     def __enter__(self):
         return self
@@ -66,7 +71,7 @@ class _FakeResp:
 
 def test_http_429_retried_like_5xx(monkeypatch):
     """红6a：HTTP 429 限流与 5xx 同策略重试（修复前 429 落入 4xx 分支直接抛）。"""
-    monkeypatch.setattr(_lb, '_load_api_key', lambda: 'k')
+    monkeypatch.setattr(_lb, '_load_api_key', lambda *args, **kwargs: 'k')
     monkeypatch.setattr(_lb.time, 'sleep', lambda s: None)
     calls = []
 
@@ -98,7 +103,7 @@ def test_http_429_retried_like_5xx(monkeypatch):
 def test_malformed_url_wrapped_as_backend_error(monkeypatch):
     """红6b：畸形 URL 的 ValueError 包装为 LLMBackendError——
     llm_channel.render_structured_reading 的 except 能接住降级（不裸穿透）。"""
-    monkeypatch.setattr(_lb, '_load_api_key', lambda: 'k')
+    monkeypatch.setattr(_lb, '_load_api_key', lambda *args, **kwargs: 'k')
     monkeypatch.setenv('MANGPAI_LLM_BASE_URL', 'not-a-url')
     with pytest.raises(_lb.LLMBackendError, match='URL 畸形'):
         _lb.call_deepseek('s', 'u')
@@ -110,7 +115,7 @@ def test_malformed_url_wrapped_as_backend_error(monkeypatch):
 
 def test_error_paths_do_not_echo_sensitive_content(monkeypatch):
     """HTTP 错误、非 JSON 响应和畸形 URL 均不得回显敏感内容。"""
-    monkeypatch.setattr(_lb, '_load_api_key', lambda: 'k')
+    monkeypatch.setattr(_lb, '_load_api_key', lambda *args, **kwargs: 'k')
     monkeypatch.setenv('MANGPAI_LLM_RETRIES', '0')
     marker = 'sensitive-birth-data'
 

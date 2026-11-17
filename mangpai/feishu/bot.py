@@ -13,7 +13,7 @@
   3. 环境变量：FEISHU_APP_ID / FEISHU_APP_SECRET（必填），
      FEISHU_VERIFICATION_TOKEN（事件订阅的 Verification Token，必填，不配启动即报错；
      切勿配置 Encrypt Key——不支持解密，配了事件全丢），
-     FEISHU_USE_LLM=0 可关 LLM 段，FEISHU_PORT 默认 9700；
+     MANGPAI_USE_LLM=0 可关 LLM 段（旧名 FEISHU_USE_LLM 兼容），FEISHU_PORT 默认 9700；
   4. python3 -m mangpai.feishu.bot
 """
 from __future__ import annotations

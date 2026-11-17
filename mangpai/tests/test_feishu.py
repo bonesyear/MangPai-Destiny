@@ -179,7 +179,10 @@ def test_llm_failure_degrades_to_engine(monkeypatch):
     assert '引擎直出结论' in md and 'LLM 七维叙述' not in md
 
 
-def test_llm_off_by_default_env(monkeypatch):
+def test_llm_off_by_default_env(monkeypatch, tmp_path):
+    monkeypatch.delenv('MANGPAI_USE_LLM', raising=False)
+    monkeypatch.setattr('mangpai.subjective.llm_backend._PROJECT_ENV_FILE',
+                        tmp_path / 'no-project.env')
     monkeypatch.setenv('FEISHU_USE_LLM', '0')
     md = handle('阳历 1992-10-09 13:58 男 信阳')  # 不传 use_llm → 读环境变量
     assert 'LLM 七维叙述' not in md

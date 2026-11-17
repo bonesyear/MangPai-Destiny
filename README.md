@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1623 验证用例全绿。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1630 验证用例全绿。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,7 +47,7 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 404 passed（404 项） | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1623 passed | ✅ |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1630 passed | ✅ |
 | blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261103_buffett.json`（rubric v9）；仅巴菲特职业 ⚠️→✅，其他零差异，双 seed 一致 | ⚠️ 原偏差清单剩 6 项；ans29 缺口另记 |
 
 ## 入仓前的脱敏闸门
@@ -108,24 +108,27 @@ pip install anthropic    # 可选：仅遗留叙事通道 narrative.py 需要（
 
 ## 配置你自己的 LLM（可选）
 
-LLM 叙事层是**可选组件**：不配置即纯引擎模式，零外发。配置后可指向 **DeepSeek（默认）/ OpenAI / 本地 Ollama / vLLM / 任意 OpenAI 兼容服务**。全部配置为环境变量，模板见 [`.env.example`](.env.example)，总表：
+LLM 叙事层是**可选组件**：默认关闭，零外发；须显式设置 `MANGPAI_USE_LLM=1` 并配置有效 key。开启后可指向 **DeepSeek（默认）/ OpenAI / 本地 Ollama / vLLM / 任意 OpenAI 兼容服务**。配置可由环境变量或 env 文件提供，模板见 [`.env.example`](.env.example)，总表：
 
 | 变量 | 缺省 | 说明 |
 |------|------|------|
-| `MANGPAI_LLM_API_KEY` | 无（必填） | API Key（回退链：→ `DEEPSEEK_API_KEY` → env 文件） |
+| `MANGPAI_LLM_API_KEY` | 无（启用时必填） | API Key；仅官方默认端点可回退 `DEEPSEEK_API_KEY`，自定义端点必须显式设置新名 |
 | `MANGPAI_LLM_BASE_URL` | DeepSeek 官方端点 | 任意 OpenAI 兼容端点 |
 | `MANGPAI_LLM_MODEL` | `deepseek-flash` | 模型名（回退链：→ `DEEPSEEK_MODEL`） |
 | `MANGPAI_LLM_THINKING` | `1` | `0`=请求体剔除 `thinking`/`reasoning_effort` 两字段——**接 OpenAI/Ollama/vLLM 等严格兼容服务时设 0**（否则可能 HTTP 400 unknown field） |
 | `MANGPAI_LLM_REASONING_EFFORT` | `low` | 仅 thinking 开启时发出 |
 | `MANGPAI_LLM_TIMEOUT` / `MANGPAI_LLM_RETRIES` | `120` / `2` | 本地模型首载慢可调大超时 |
-| `MANGPAI_LLM_ENV_FILE` | 项目根 `.env`；可选 | env 文件回退路径（缺省链：项目根 `.env` → `~/.env`） |
-| `MANGPAI_USE_LLM` | `1` | `0`=关闭 LLM 叙述，纯引擎直出（旧名 `FEISHU_USE_LLM` 仍兼容） |
+| `MANGPAI_LLM_ENV_FILE` | 项目根 `.env`；可选 | env 文件路径；缺省只读项目根 `.env`，不读取 `~/.env` |
+| `MANGPAI_USE_LLM` | `0` | `1/true/on/yes`=显式开启；其余或缺省=纯引擎零外发（旧名 `FEISHU_USE_LLM` 仍兼容） |
 
-最省事的配法：`cp .env.example .env`（放项目根）后按需填写即可——项目根 `.env` 会被自动读取（回退链：`MANGPAI_LLM_ENV_FILE` 指定 → 项目根 `.env` → `~/.env`）。
+最省事的配法：`cp .env.example .env`（放项目根）后按需填写即可——项目根 `.env` 会被自动读取（`MANGPAI_LLM_ENV_FILE` 指定时只读该文件）。复制模板本身不会开启外发。
 
 provider 示例：
 
 ```bash
+# 以下示例都须显式开启；未开启时不发请求
+export MANGPAI_USE_LLM=1
+
 # DeepSeek（默认，无需改端点；峰谷价计价仅对 DeepSeek 有效）
 export MANGPAI_LLM_API_KEY=sk-your-key
 
@@ -142,7 +145,7 @@ export MANGPAI_LLM_MODEL=qwen2.5:14b
 export MANGPAI_LLM_THINKING=0
 export MANGPAI_LLM_TIMEOUT=300
 
-# vLLM / 其他 OpenAI 兼容服务：同上，设 BASE_URL+MODEL+THINKING=0 即可
+# vLLM / 其他 OpenAI 兼容服务：同上，须单独设 MANGPAI_LLM_API_KEY，不继承 DEEPSEEK_API_KEY
 
 # 关闭 LLM（纯引擎模式，零外发）
 export MANGPAI_USE_LLM=0   # 或干脆不配 API Key
@@ -160,7 +163,7 @@ from mangpai.subjective.llm_channel import render_structured_reading
 result = calc_mangpai_full(1992, 10, 9, 13, 58, 'male', 114.09)
 print(result['summary'])
 
-# 2) LLM 叙事层：按上面配置走你自选的 LLM；未配 key 时自动降级返回 prompt 文本（不抛错）
+# 2) LLM 叙事层：须按上面显式开启并配置；未开启或未配有效 key 时降级返回 prompt 文本
 text = render_structured_reading(result, user_question='此造财运如何？')
 print(text)
 ```

@@ -1,7 +1,7 @@
 # 隐私说明 · Privacy Statement
 
 > 项目：MangPai · 盲派命理推演系统（Chinese Bazi Analysis Engine）
-> 版本：v1.2 ｜ 生效日期：2026-08-28（v1.2：同步 S1 能力与仓库内容实况）
+> 版本：v1.3 ｜ 生效日期：2026-11-17（v1.3：叙事层默认关闭，统一开关、env 配置与端点密钥隔离）
 > 适用范围：本仓库的全部使用方式——Python 库调用、CLI 排盘、自托管服务，以及基于本系统的任何前端接入（含飞书机器人示例实现）
 
 ---
@@ -74,9 +74,9 @@
 
 "引擎结论 → 自然语言解读"由 LLM 通道完成。该组件具备四个特性：
 
-- **默认不启用**：未配置 API Key 时，系统仅输出引擎的结构化结论
+- **默认不启用**：须显式设置 `MANGPAI_USE_LLM=1` 并配置有效 API Key；否则仅输出引擎的结构化结论
 - **可关闭**：设置 `MANGPAI_USE_LLM=0`（飞书接入层旧名 `FEISHU_USE_LLM` 仍兼容）后完全走引擎直出，零外发
-- **可替换**：通道兼容 OpenAI 风格协议，通过 `MANGPAI_LLM_BASE_URL` / `MANGPAI_LLM_MODEL` / `MANGPAI_LLM_API_KEY` 可指向任意自建或自选服务（本地模型、私有部署、其他厂商；严格兼容服务另设 `MANGPAI_LLM_THINKING=0`），具体配置见 README「配置你自己的 LLM」节与 `.env.example`
+- **可替换**：通道兼容 OpenAI 风格协议，通过 `MANGPAI_LLM_BASE_URL` / `MANGPAI_LLM_MODEL` / `MANGPAI_LLM_API_KEY` 可指向任意自建或自选服务（本地模型、私有部署、其他厂商；严格兼容服务另设 `MANGPAI_LLM_THINKING=0`）；自定义端点必须单独设置新 key，不继承 `DEEPSEEK_API_KEY`。具体配置见 README 与 `.env.example`
 - **可审计**：源码完全可见（`mangpai/subjective/llm_backend.py`、`llm_channel.py`），提交内容的边界透明
 
 **开启时提交的内容**：八字干支、性别、出生地经度、系统提示词（命理规则与输出格式要求）。
@@ -120,7 +120,7 @@
 | 你的目标 | 做法 |
 |---------|------|
 | 完全零外发 | 只使用引擎层（不配置 LLM），或显式关闭叙事层 |
-| 数据不经第三方 | 将叙事层指向本地模型或私有部署（设 `MANGPAI_LLM_BASE_URL`/`MANGPAI_LLM_MODEL` 指向本地端点，如 Ollama，另设 `MANGPAI_LLM_THINKING=0`；操作见 README「配置你自己的 LLM」节） |
+| 数据不经第三方 | 显式开启后，将叙事层指向本地模型或私有部署（设 `MANGPAI_USE_LLM=1`、`MANGPAI_LLM_BASE_URL`/`MANGPAI_LLM_MODEL`，并单独设置 `MANGPAI_LLM_API_KEY`，另设 `MANGPAI_LLM_THINKING=0`；操作见 README） |
 | 不提供出生地 | 出生地为选填；省略时按标准时排盘（真太阳时校正精度略降） |
 | 自行审计外发内容 | 阅读 `mangpai/subjective/llm_prompt.py`（payload 组装）与 `mangpai/subjective/llm_backend.py`（请求发送） |
 | 要求删除数据 | 无需操作——系统本就不存储 |

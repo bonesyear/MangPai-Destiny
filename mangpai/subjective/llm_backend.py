@@ -6,8 +6,9 @@
 - MANGPAI_LLM_BASE_URL → 缺省 https://api.deepseek.com/chat/completions
   （可指向任意 OpenAI 兼容端点：Ollama http://localhost:11434/v1/chat/completions、
   vLLM、其他厂商）
-- MANGPAI_LLM_API_KEY → DEEPSEEK_API_KEY → env 文件
-  （MANGPAI_LLM_ENV_FILE 指定；缺省回退链 = 项目根 .env → ~/.env）
+- MANGPAI_LLM_API_KEY → DEEPSEEK_API_KEY（仅官方默认端点）→ env 文件
+  （MANGPAI_LLM_ENV_FILE 指定；缺省只读项目根 .env，不读 ~/.env）
+- MANGPAI_USE_LLM → 缺省 0；1/true/on/yes 才允许外发，兼容 FEISHU_USE_LLM
 - MANGPAI_LLM_MODEL → DEEPSEEK_MODEL → deepseek-flash（V4.1 正式 ID；旧名 deepseek-v4-flash）
 - MANGPAI_LLM_THINKING=0 → 请求体剔除 thinking 与 reasoning_effort 两字段
   （DeepSeek V4 思考模式/OpenAI o 系参数，严格 OpenAI 兼容服务可能 400；
@@ -62,7 +63,7 @@ class LLMBackendError(Exception):
 
 
 def _env_float(name: str, default: float) -> float:
-    raw = os.environ.get(name, '').strip()
+    raw = _env_value(name, '')
     if not raw:
         return default
     try:
@@ -72,7 +73,7 @@ def _env_float(name: str, default: float) -> float:
 
 
 def _env_int(name: str, default: int) -> int:
-    raw = os.environ.get(name, '').strip()
+    raw = _env_value(name, '')
     if not raw:
         return default
     try:
@@ -82,33 +83,43 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _env_files() -> list:
-    """env 文件回退链：MANGPAI_LLM_ENV_FILE 指定则只用它；否则 项目根 .env → ~/.env。"""
+    """MANGPAI_LLM_ENV_FILE 指定则只读它；否则只读项目根 .env。"""
     custom = os.environ.get('MANGPAI_LLM_ENV_FILE', '').strip()
-    if custom:
-        return [custom]
-    return [str(_PROJECT_ENV_FILE), os.path.expanduser('~/.env')]
+    return [custom or str(_PROJECT_ENV_FILE)]
 
 
-def _load_api_key() -> str:
-    key = os.environ.get('MANGPAI_LLM_API_KEY', '').strip()
-    if key:
-        return key
-    key = os.environ.get('DEEPSEEK_API_KEY', '').strip()
-    if key:
-        return key
+def _env_value(name: str, default=None):
+    if name in os.environ:
+        return os.environ[name].strip()
     for path in _env_files():
         try:
             with open(path, encoding='utf-8') as f:
                 for line in f:
                     line = line.strip()
-                    for name in ('MANGPAI_LLM_API_KEY', 'DEEPSEEK_API_KEY'):
-                        if line.startswith(name + '='):
-                            return line.split('=', 1)[1].strip().strip('"').strip("'")
+                    if line.startswith(name + '='):
+                        return line.split('=', 1)[1].strip().strip('"').strip("'")
         except OSError:
             continue
-    raise LLMBackendError(
-        'MANGPAI_LLM_API_KEY/DEEPSEEK_API_KEY 未设置，且 env 文件回退链'
-        '（MANGPAI_LLM_ENV_FILE 指定 → 项目根 .env → ~/.env）不可读/无此键')
+    return default
+
+
+def llm_enabled() -> bool:
+    value = _env_value('MANGPAI_USE_LLM') or _env_value('FEISHU_USE_LLM') or '0'
+    return value.lower() in ('1', 'true', 'on', 'yes')
+
+
+def _load_api_key(base_url: str = _API_URL) -> str:
+    key = _env_value('MANGPAI_LLM_API_KEY')
+    if not key and base_url == _API_URL:
+        key = _env_value('DEEPSEEK_API_KEY')
+    if not key and base_url != _API_URL:
+        raise LLMBackendError('自定义端点必须显式设置 MANGPAI_LLM_API_KEY')
+    if not key or key.lower().startswith(('your-', 'sk-fake', 'sk-test', 'sk-your')) \
+            or key.startswith('<') or key.lower() == 'xxx':
+        raise LLMBackendError(
+            'MANGPAI_LLM_API_KEY 未设置、为空或为占位符；官方端点可回退 '
+            'DEEPSEEK_API_KEY，env 文件只读 MANGPAI_LLM_ENV_FILE 或项目根 .env')
+    return key
 
 
 def _price_tier(at: float | None = None) -> str:
@@ -148,18 +159,20 @@ def call_deepseek(
 
     thinking 模式下 temperature 等采样参数无效（API 忽略），不传。
     失败抛 LLMBackendError，由调用方降级（同 narrative._call_llm 契约）。
-    env 配置链见模块 docstring。
+    env 配置链见模块 docstring。默认不外发，须显式开启 MANGPAI_USE_LLM。
     """
-    model = (model or os.environ.get('MANGPAI_LLM_MODEL')
-             or os.environ.get('DEEPSEEK_MODEL') or _DEFAULT_MODEL)
-    base_url = os.environ.get('MANGPAI_LLM_BASE_URL', '').strip() or _API_URL
+    if not llm_enabled():
+        raise LLMBackendError('LLM 未启用；请显式设置 MANGPAI_USE_LLM=1')
+    model = (model or _env_value('MANGPAI_LLM_MODEL')
+             or _env_value('DEEPSEEK_MODEL') or _DEFAULT_MODEL)
+    base_url = _env_value('MANGPAI_LLM_BASE_URL', '') or _API_URL
     if reasoning_effort is None:
-        reasoning_effort = os.environ.get('MANGPAI_LLM_REASONING_EFFORT', '').strip() or 'low'
+        reasoning_effort = _env_value('MANGPAI_LLM_REASONING_EFFORT', '') or 'low'
     if timeout is None:
         timeout = _env_float('MANGPAI_LLM_TIMEOUT', 120.0)
     if retries is None:
         retries = _env_int('MANGPAI_LLM_RETRIES', 2)
-    key = _load_api_key()
+    key = _load_api_key(base_url)
     body = {
         'model': model,
         'messages': [
@@ -170,7 +183,7 @@ def call_deepseek(
     }
     # provider 特有参数（DeepSeek V4 thinking/OpenAI o 系 reasoning_effort）：
     # MANGPAI_LLM_THINKING=0 时两字段整体剔除（严格兼容服务可能 400 unknown field）
-    if os.environ.get('MANGPAI_LLM_THINKING', '1').strip() != '0':
+    if (_env_value('MANGPAI_LLM_THINKING', '1') or '1') != '0':
         body['reasoning_effort'] = reasoning_effort
         body['thinking'] = {'type': 'enabled' if thinking else 'disabled'}
     if json_mode:
@@ -184,9 +197,8 @@ def call_deepseek(
         try:
             req = urllib.request.Request(
                 base_url, data=data,
-                headers={'Content-Type': 'application/json',
-                         'Authorization': f'Bearer {key}'},
-                method='POST')
+                headers={'Content-Type': 'application/json'}, method='POST')
+            req.add_unredirected_header('Authorization', f'Bearer {key}')
         except ValueError as e:
             # 红6b：畸形 URL（unknown url type 等）Request 构造即抛 ValueError——
             # 包装为 LLMBackendError，llm_channel except 方能接住降级；
