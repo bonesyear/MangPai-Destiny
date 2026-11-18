@@ -79,3 +79,37 @@ class TestR6KongWang:
         assert kw['day_ref'] == get_kong_wang(day_gz[0], day_gz[1])['zhi']
         assert kw['year_ref'] == get_kong_wang(year_gz[0], year_gz[1])['zhi']
         assert kw['zhi'] == kw['day_ref']
+
+
+class TestPrcDst:
+    def test_explicit_dst_matches_one_hour_earlier(self):
+        dst = calc_bazi_full(1988, 7, 7, 6, 0, '男', 116.4, is_dst=True)  # synthetic
+        standard = calc_bazi_full(1988, 7, 7, 5, 0, '男', 116.4)  # synthetic
+        assert dst['bazi'] == standard['bazi']
+        assert dst['bazi']['month'] == '戊午' and dst['bazi']['hour'] == '甲寅'
+        assert dst['da_yun'] == standard['da_yun']
+        assert dst['da_yun']['start_age'] == 1
+        assert dst['input']['dst_applied'] is True
+        assert standard['input']['dst_applied'] is False
+
+    def test_dst_can_cross_previous_day(self):
+        dst = calc_bazi_full(1988, 7, 15, 0, 45, '男', 116.4, is_dst=True)  # synthetic
+        standard = calc_bazi_full(1988, 7, 14, 23, 45, '男', 116.4)  # synthetic
+        assert dst['bazi'] == standard['bazi']
+
+    def test_transition_boundaries_are_explicit(self):
+        with pytest.raises(ValueError, match='不存在'):
+            calc_bazi_full(1988, 4, 10, 2, 30, '男', 116.4, is_dst=True)  # synthetic
+        first = calc_bazi_full(1988, 9, 11, 1, 30, '男', 116.4, is_dst=True)  # synthetic
+        standard = calc_bazi_full(1988, 9, 11, 1, 30, '男', 116.4)  # synthetic
+        expected = calc_bazi_full(1988, 9, 11, 0, 30, '男', 116.4)  # synthetic
+        assert first['bazi'] == expected['bazi']
+        assert first['bazi'] != standard['bazi']
+        with pytest.raises(ValueError, match='不在'):
+            calc_bazi_full(1992, 7, 7, 6, 0, '男', 116.4, is_dst=True)  # synthetic
+
+    def test_engine_wrapper_passes_dst(self):
+        from mangpai.engine import calc_mangpai_full
+        result = calc_mangpai_full(1988, 7, 7, 6, 0, '男', 116.4, is_dst=True)  # synthetic
+        assert result['bazi']['month'] == '戊午'
+        assert result['input']['dst_applied'] is True

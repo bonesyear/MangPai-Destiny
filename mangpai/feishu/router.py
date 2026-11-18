@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import date
 from typing import Optional
 
 from mangpai.feishu.service import paipan
+from mangpai.objective.bazi_calc import prc_dst_bounds
 
 # 常用城市东经（真太阳时校正用）；未收录 → 提示用户直给经度。
 CITY_LON = {
@@ -29,6 +31,7 @@ CITY_LON = {
 HELP = """盲派排盘用法：
 · 阳历排盘：阳历 2000-01-01 12:00 男 北京（虚构示例）
   （农历请先自转阳历；性别必填；城市未收录可直接写给定经度，如 … 男 114.07）
+  （1986–1991 年历史夏令时区间请在末尾注明「夏令时」或「标准时」）
 · 四柱直排：四柱 己卯 丙子 戊午 戊午 男 [2000]（虚构示例）
 · /ver 版本基线 · /help 本帮助
 （细挖 focus=财运/婚姻 二期开放）
@@ -76,6 +79,7 @@ def _pop_lon_or_city(rest: str) -> tuple[str, Optional[float], str]:
 
 
 def parse_solar(text: str) -> dict:
+    is_dst = True if '夏令时' in text else (False if '标准时' in text else None)
     dm = _DATE_RE.search(text)
     if not dm:
         raise ParseError('没识别到阳历日期，示例：阳历 2000-01-01 12:00 男 北京（虚构示例）')
@@ -92,12 +96,17 @@ def parse_solar(text: str) -> dict:
     rest, lon, place = _pop_lon_or_city(rest)
     if lon is None:
         raise ParseError('请给出生地（内置城市表）或直接写给定经度，如：… 男 114.07')
+    year, month, day = int(dm.group(1)), int(dm.group(2)), int(dm.group(3))
+    bounds = prc_dst_bounds(year)
+    if bounds and bounds[0].date() <= date(year, month, day) <= bounds[1].date() \
+            and is_dst is None:
+        raise ParseError('该日期可能处于历史夏令时，请在末尾注明「夏令时」或「标准时」')
     label = f"{dm.group(1)}-{int(dm.group(2)):02d}-{int(dm.group(3)):02d} " \
             f"{int(tm.group(1)):02d}:{int(tm.group(2) or 0):02d} {gender} {place}"
-    return {'kind': 'solar', 'year': int(dm.group(1)), 'month': int(dm.group(2)),
-            'day': int(dm.group(3)), 'hour': int(tm.group(1)),
+    return {'kind': 'solar', 'year': year, 'month': month,
+            'day': day, 'hour': int(tm.group(1)),
             'minute': int(tm.group(2) or 0), 'gender': gender, 'lon': lon,
-            'label': label}
+            'is_dst': bool(is_dst), 'label': label}
 
 
 def parse_pillars(text: str) -> dict:

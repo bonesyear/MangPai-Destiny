@@ -26,8 +26,9 @@ _ZHI = '子丑寅卯辰巳午未申酉戌亥'
 _PILLAR_RE = re.compile(f'^[{_GAN}][{_ZHI}]$')
 
 
-def engine_result_solar(year, month, day, hour, minute, gender, lon) -> Dict[str, Any]:
-    return calc_mangpai_full(year, month, day, hour, minute, gender, lon)
+def engine_result_solar(year, month, day, hour, minute, gender, lon,
+                        is_dst=False) -> Dict[str, Any]:
+    return calc_mangpai_full(year, month, day, hour, minute, gender, lon, is_dst=is_dst)
 
 
 def engine_result_pillars(pillars, gender, year: Optional[int] = None) -> Dict[str, Any]:
@@ -56,12 +57,14 @@ def use_llm_default() -> bool:
 def paipan(spec: Dict[str, Any], use_llm: Optional[bool] = None) -> str:
     """spec → Markdown 报告。
 
-    spec: {'kind':'solar', year, month, day, hour, minute, gender, lon, label}
+    spec: {'kind':'solar', year, month, day, hour, minute, gender, lon,
+           is_dst(可选), label}
        或 {'kind':'pillars', pillars, gender, year(可选), label}
     """
     if spec['kind'] == 'solar':
         res = engine_result_solar(spec['year'], spec['month'], spec['day'],
-                                  spec['hour'], spec['minute'], spec['gender'], spec['lon'])
+                                  spec['hour'], spec['minute'], spec['gender'], spec['lon'],
+                                  is_dst=spec.get('is_dst', False))
     else:
         res = engine_result_pillars(spec['pillars'], spec['gender'], spec.get('year'))
     md = format_report(res, meta=spec.get('label', ''))

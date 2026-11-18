@@ -30,6 +30,8 @@ result = calc_mangpai_full(2000, 1, 1, 12, 0, 'male', 116.41)  # synthetic
 features = build_payload(result)
 ```
 
+时间输入默认为 UTC+8 标准时；中国大陆 1986–1991 年历史夏令时钟表时间须显式传 `is_dst=True`，不自动推断其他地区或年份。
+
 - `build_payload` 按 selectors 投影引擎结果，保留嵌套的功量 `evidence/annotations`，不另建关系或层级字段。
 - `gongliang.level` 是整数定性层级，`raw_level/boundary` 区分半层与无功；没有独立证据时，不由 level 推具体金额或官级。
 - `llm_prompt`、`llm_channel`、narrative 与飞书 formatter 消费同一份引擎结果。真实 LLM 和飞书均为可选外部接入，不影响本地确定性计算。

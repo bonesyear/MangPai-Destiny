@@ -132,6 +132,18 @@ def test_parse_solar_unknown_city():
         parse_solar('阳历 2000-01-01 12:00 男 某小县城（虚构示例）')
 
 
+def test_dst_period_requires_explicit_time_standard():
+    with pytest.raises(ParseError, match='夏令时'):
+        parse_solar('阳历 1988-07-07 06:00 男 北京')  # synthetic
+
+
+def test_dst_and_standard_markers_pass():
+    dst = parse_solar('阳历 1988-07-07 06:00 男 北京 夏令时')  # synthetic
+    standard = parse_solar('阳历 1988-07-07 06:00 男 北京 标准时')  # synthetic
+    assert dst['is_dst'] is True
+    assert standard['is_dst'] is False
+
+
 def test_parse_pillars_ok():
     spec = parse_pillars('四柱 己卯 丙子 戊午 戊午 男')
     assert spec['pillars'] == ['己卯', '丙子', '戊午', '戊午']

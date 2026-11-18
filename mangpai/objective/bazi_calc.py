@@ -722,11 +722,32 @@ def compute_da_yun(year: int, month: int, day: int, hour: int, minute: int,
 # ════════════════════════════════════════════════════════════════
 #  公共接口：calc_bazi_full
 # ════════════════════════════════════════════════════════════════
+# IANA tzdb asia Rule PRC：1986–1991，当地 02:00 切换；内置以免 Windows 依赖 tzdata。
+PRC_DST_DATES = {
+    1986: ((5, 4), (9, 14)),
+    1987: ((4, 12), (9, 13)),
+    1988: ((4, 10), (9, 11)),
+    1989: ((4, 16), (9, 17)),
+    1990: ((4, 15), (9, 16)),
+    1991: ((4, 14), (9, 15)),
+}
+
+
+def prc_dst_bounds(year: int) -> Optional[Tuple[datetime, datetime]]:
+    """返回中国大陆历史夏令时的当地钟表切换点；无夏令时年份返回 None。"""
+    dates = PRC_DST_DATES.get(year)
+    if not dates:
+        return None
+    (sm, sd), (em, ed) = dates
+    return datetime(year, sm, sd, 2), datetime(year, em, ed, 2)
+
+
 def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
                    gender: str, city_lon: float,
                    yin_method: str = 'same_as_yang',
                    shensha_reference: str = 'day',
-                   late_zi_method: str = 'same_day') -> Dict[str, Any]:
+                   late_zi_method: str = 'same_day',
+                   is_dst: bool = False) -> Dict[str, Any]:
     """完整八字排盘（盲派 engine 入口所需最小契约）。
 
     内部完成四柱（compute_four_pillars）+ 十神 + 空亡 + 地支关系 + 大运，
@@ -736,7 +757,7 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
         year: 公历年
         month: 公历月
         day: 公历日
-        hour: 时（0-23，北京时间）
+        hour: 时（0-23，UTC+8 标准时；is_dst=True 时为当地夏令时钟表时间）
         minute: 分（0-59）
         gender: '男' / '女'（亦接受 'male'/'female'/'乾'/'坤'；缺失或未知
             抛 ValueError——大运方向依赖性别，静默缺省会错排，D2 入口批）
@@ -753,6 +774,8 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
         late_zi_method: 晚子时日柱处理（'next_day' 子初换日 / 'same_day'
             子正换日·书例口径），透传 compute_four_pillars（F3 批暴露，
             批9 P0-3）。
+        is_dst: 输入是否为中国大陆 1986–1991 历史夏令时；True 时减一小时，
+            切换日不存在/不在夏令时区间的输入抛 ValueError，默认 False 保持兼容。
 
     Returns:
         bazi_data：包含 input/bazi/shishen/kong_wang/di_zhi_relations/da_yun
@@ -774,6 +797,18 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
             or not math.isfinite(city_lon) or not -180.0 <= city_lon <= 180.0):
         raise ValueError(
             f'城市经度非法（{city_lon!r}）：须为 [-180, 180] 内有限数值（东经为正）')
+    if not isinstance(is_dst, bool):
+        raise ValueError('is_dst 须为 bool：标准时=False，夏令时=True')
+    input_dt = datetime(year, month, day, hour, minute)
+    if is_dst:
+        bounds = prc_dst_bounds(year)
+        if not bounds or not bounds[0] <= input_dt < bounds[1]:
+            raise ValueError('输入不在中国大陆 1986–1991 年历史夏令时区间，不能按夏令时换算')
+        if bounds[0] <= input_dt < bounds[0] + timedelta(hours=1):
+            raise ValueError('该夏令时切换时刻不存在：开始日 02:00–02:59 请核对钟表时间')
+        standard_dt = input_dt - timedelta(hours=1)
+        year, month, day = standard_dt.year, standard_dt.month, standard_dt.day
+        hour, minute = standard_dt.hour, standard_dt.minute
     fp = compute_four_pillars(year, month, day, hour, minute, city_lon,
                               late_zi_method=late_zi_method)
     pillars = {k: fp[k] for k in ('year_gz', 'month_gz', 'day_gz', 'hour_gz')}
@@ -796,9 +831,9 @@ def calc_bazi_full(year: int, month: int, day: int, hour: int, minute: int,
 
     return {
         'input': {
-            'year': year, 'month': month, 'day': day,
-            'hour': hour, 'minute': minute,
-            'gender': gender, 'city_lon': city_lon,
+            'year': input_dt.year, 'month': input_dt.month, 'day': input_dt.day,
+            'hour': input_dt.hour, 'minute': input_dt.minute,
+            'gender': gender, 'city_lon': city_lon, 'dst_applied': is_dst,
         },
         'bazi': {
             'year': pillars['year_gz'],

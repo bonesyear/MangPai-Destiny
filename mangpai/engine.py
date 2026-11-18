@@ -1124,6 +1124,7 @@ def calc_mangpai_full(
     shensha_reference: str = 'day',
     late_zi_method: str = 'same_day',
     as_of=None,
+    is_dst: bool = False,
 ) -> Dict[str, Any]:
     """盲派完整排盘便捷函数。
 
@@ -1145,6 +1146,7 @@ def calc_mangpai_full(
             可显式传 'next_day'（子初换日）
         as_of: 可选的参考日期时间（datetime 或 ISO 字符串），用于当前流年、
             大限与交运；缺省在引擎初始化时取一次当前时间
+        is_dst: 输入是否为中国大陆历史夏令时，默认 False（UTC+8 标准时）
 
     Returns:
         完整盲派排盘结果
@@ -1154,6 +1156,7 @@ def calc_mangpai_full(
         yin_method=yin_method,
         shensha_reference=shensha_reference,
         late_zi_method=late_zi_method,
+        is_dst=is_dst,
     )
     engine = MangpaiEngine(bazi_data, shensha_reference=shensha_reference, as_of=as_of)
     return engine.compute_all()

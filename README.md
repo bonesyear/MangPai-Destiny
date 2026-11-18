@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1680 验证用例全绿。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1686 验证用例全绿。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,8 +47,8 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 404 passed（404 项） | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1680 passed | ✅ |
-| blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261118_batch7.json`（rubric v10）；相对批6有5条财档翻转（2改善/2退化/1同分）及6条理由变化，均已归因，双 seed 一致 | ⚠️ 差例三富→小康仍未完全达到书断贫 |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1686 passed | ✅ |
+| blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261118_batch8.json`（rubric v10）；默认标准时路径相对批7零翻转、零文字差异，双 seed 一致 | ✅ 显式夏令时路径另有6条边界测试 |
 
 ## 入仓前的脱敏闸门
 
@@ -92,6 +92,8 @@ from mangpai.engine import calc_mangpai_full
 result = calc_mangpai_full(2000, 1, 1, 12, 0, 'male', 116.41)  # synthetic
 print(result['summary'])
 ```
+
+时间输入默认是 UTC+8 标准时。中国大陆 1986–1991 年历史夏令时出生的钟表时间须显式传 `is_dst=True`，引擎减一小时后再排盘和起运；切换日不存在或不在夏令时区间的输入会报错。其他地区/年份不自动推断。
 
 ## 安装
 
