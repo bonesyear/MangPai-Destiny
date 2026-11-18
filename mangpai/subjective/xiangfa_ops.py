@@ -339,7 +339,7 @@ def gongxiang(
         layer_domains: Dict[str, Set[str]] = {}
         layer_domains['干支象'] = _domains_of_ganzhi(gan, zhi)
         layer_domains['宫位象'] = set(_GONGWEI_DOMAIN.get(pname, []))
-        ss = _compute_shishen(day_gan, gan)
+        ss = '' if pk == 'day' else _compute_shishen(day_gan, gan)
         if ss and ss in _SHISHEN_DOMAIN:
             layer_domains['十神象'] = {_SHISHEN_DOMAIN[ss]}
         else:
@@ -352,6 +352,8 @@ def gongxiang(
 
         # 干支性情象（滴天髓）：该柱天干命中的性情规则所述五行之主体域
         layer_domains['性情象'] = _ganqing_layer_domains(gan, day_gan, gans, zhis)
+        if pk == 'day':
+            layer_domains['性情象'].discard('比劫')
 
         # 主体域 -> 命中层列表
         domain_layers: Dict[str, List[str]] = {}
@@ -915,6 +917,8 @@ def daixiang(
 
     qi_label = {0: '本气', 1: '中气', 2: '余气'}
     for i, pk in enumerate(PILLAR_KEYS):
+        if pk == 'day':
+            continue
         gan, zhi = gans[i], zhis[i]
         if not gan or not zhi:
             continue

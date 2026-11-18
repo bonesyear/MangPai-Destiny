@@ -333,6 +333,8 @@ def _analyze_fei_shen_activation(
     zhi_wx = ZHI_WX.get(dy_zhi, '')
 
     for pos in natal_fei_shen:
+        if pos == 'day_gan':
+            continue
         if not pos or '_' not in pos:
             continue
         pk, pt = pos.split('_', 1)

@@ -173,7 +173,8 @@ def classify_parent_star(
           'desc': str,
         }
     """
-    all_cats: List[Set[str]] = [_pillar_cats(day_gan, gans[i], zhis[i]) for i in range(4)]
+    all_cats: List[Set[str]] = [
+        _pillar_cats(day_gan, '' if i == 2 else gans[i], zhis[i]) for i in range(4)]
     flat = set().union(*all_cats) if all_cats else set()
 
     # ── 父星 ──
@@ -605,7 +606,7 @@ def detect_zixi_youwu(
     yuan_cat = '财' if cat == '官杀' else ('比劫' if cat == '食伤' else '食伤')
     # 原神柱受冲穿破
     for i in range(4):
-        if _pillar_has_cat(day_gan, gans[i], zhis[i], yuan_cat):
+        if _pillar_has_cat(day_gan, '' if i == 2 else gans[i], zhis[i], yuan_cat):
             kinds = [k for k in _attacked_kinds_on_pillar(wa, i) if k in ('冲', '穿', '破')]
             if kinds:
                 markers.append(f'子息原神（{yuan_cat}）被{"、".join(kinds)}')
@@ -620,7 +621,9 @@ def detect_zixi_youwu(
 
     # 5. 满盘比劫（男）/伤官（女）
     if gender == '男':
-        bijie_count = sum(1 for i in range(4) if _pillar_has_cat(day_gan, gans[i], zhis[i], '比劫'))
+        bijie_count = sum(
+            1 for i in range(4)
+            if _pillar_has_cat(day_gan, '' if i == 2 else gans[i], zhis[i], '比劫'))
         if bijie_count >= 3:
             markers.append('满盘比劫克财（不利子息）')
     else:
@@ -795,7 +798,9 @@ def classify_xiongdi_shuliang(
     adjust = 0
 
     # 物极必反：满盘比劫
-    bijie_pillars = sum(1 for i in range(4) if _pillar_has_cat(day_gan, gans[i], zhis[i], '比劫'))
+    bijie_pillars = sum(
+        1 for i in range(4)
+        if _pillar_has_cat(day_gan, '' if i == 2 else gans[i], zhis[i], '比劫'))
     wuji = bijie_pillars >= 3
     if wuji:
         # 物极必反：独子
@@ -873,7 +878,8 @@ def detect_xiongdi_keshun(
     muku = analyze_muku(zhis, gans)
     tombs_zhis = {tb.get('zhi') for tb in (muku.get('tombs') or [])}
     for i in range(4):
-        if _pillar_has_cat(day_gan, gans[i], zhis[i], '比劫') and zhis[i] in tombs_zhis:
+        if _pillar_has_cat(day_gan, '' if i == 2 else gans[i], zhis[i], '比劫') \
+                and zhis[i] in tombs_zhis:
             if any(a.get('type') == '冲' and (a.get('from_pos') == f'{PILLAR_KEYS[i]}_zhi'
                    or a.get('to_pos') == f'{PILLAR_KEYS[i]}_zhi') for a in wa):
                 markers.append(f'比劫坐{zhis[i]}墓逢冲（手足早夭）')

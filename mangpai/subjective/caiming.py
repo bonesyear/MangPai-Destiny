@@ -1312,13 +1312,21 @@ def classify_qucai_method(
     # 劫刃制财
     jieyang_zhi_cai = False
     for a in wa:
-        if (a.get('type') not in _ZHI_CONTROL
+        if (a.get('type') not in _ZHI_CONTROL or a.get('auxiliary')
+                or a.get('relation_only')
                 or a.get('relation_direction') in ('mutual', 'unknown')):
             continue
-        from_pk = _pos_pillar(a.get('from_pos', ''))
+        from_pos = a.get('from_pos', '')
+        if from_pos == 'day_gan':
+            continue
+        from_pk = _pos_pillar(from_pos)
         to_pk = _pos_pillar(a.get('to_pos', ''))
         if from_pk in PILLAR_KEYS and to_pk in PILLAR_KEYS:
-            if '比劫' in cats[PILLAR_KEYS.index(from_pk)] and '财' in cats[PILLAR_KEYS.index(to_pk)]:
+            actor = _pos_element(from_pos, gans, zhis)
+            actor_wx = (GAN_WX.get(actor, '') if from_pos.endswith('_gan')
+                        else ZHI_WX.get(actor, ''))
+            if _wx_to_cat(day_gan, actor_wx) == '比劫' \
+                    and '财' in cats[PILLAR_KEYS.index(to_pk)]:
                 jieyang_zhi_cai = True
                 break
 

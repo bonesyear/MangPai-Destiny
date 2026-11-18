@@ -79,6 +79,8 @@ def _pos_main_cat(pos: str, day_gan: str, gans: List[str], zhis: List[str]) -> s
     if pk not in PILLAR_KEYS:
         return ''
     idx = PILLAR_KEYS.index(pk)
+    if pos == 'day_gan':
+        return '日主'
     if pos.endswith('_gan'):
         g = gans[idx] if idx < len(gans) else ''
         return _shishen_cat(_compute_shishen(day_gan, g))
@@ -879,7 +881,7 @@ def classify_guanming_combo(
                            if zhis[i] not in _kw_zhis
                            and ZHI_WX.get(zhis[i]) == guan_wx]
         if len(_guan_main_idxs) >= 2:
-            _open_tombs = {t['zhi'] for t in analyze_muku(zhis).get('tombs', [])
+            _open_tombs = {t['zhi'] for t in analyze_muku(zhis, gans).get('tombs', [])
                            if t.get('status') == '开库'}
             for _t in sorted(_guan_tombs):
                 if _t in zhis and _t not in _open_tombs and all(

@@ -250,7 +250,8 @@ def infer_comprehensive_yingqi(
     if active:
         info = DAXIAN_MAP.get(active, {})
         idx = PILLAR_KEYS.index(active)
-        gan_ss = _compute_shishen(day_gan, gans[idx]) if idx < len(gans) else ''
+        gan_ss = ('日主' if active == 'day' else
+                  _compute_shishen(day_gan, gans[idx]) if idx < len(gans) else '')
         daxian_content = f'{info.get("pillar")}（{info.get("desc")}）主{gan_ss or "本气"}结构兑现'
         daxian_signals.append(f'大限应期：{daxian_content}')
         # 大限柱是否含禄原身（原神在大限阶段到场）
@@ -571,7 +572,7 @@ def detect_daxian_dayun_jiaotuo(
 
     # _judge_xiji 返回喜/忌，交脱诀以吉/凶表述——喜=吉、忌=凶（marker 级映射）
     _XI_JI_TO_JX = {'喜': '吉', '忌': '凶'}
-    dx = _XI_JI_TO_JX.get(_jx(gans[idx], zhis[idx]), '')
+    dx = _XI_JI_TO_JX.get(_jx('' if active == 'day' else gans[idx], zhis[idx]), '')
     dy = _XI_JI_TO_JX.get(_jx(dayun_gan, dayun_zhi), '')
     markers: List[Dict] = []
     if dx and dy:

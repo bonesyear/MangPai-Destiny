@@ -94,6 +94,14 @@ def test_a17_cj1395_not_guanming():
     assert any('入墓' in d and '墓不开' in d for d in r['combo']['details'])
 
 
+def test_a17_remote_chong_with_tou_gan_is_open():
+    """遥冲且官杀透干引拔即开库，不触发墓不开否决（理象学:2039-2041）。"""
+    r = _analyze(('癸未', '辛酉', '乙酉', '丁丑'))
+    assert r['is_guanming'] is True
+    assert not any('墓不开' in d and '不立官命' in d
+                   for d in r['combo']['details'])
+
+
 def test_a17_zeng_guofan_true_anchor_kept():
     """真阳锚 曾国藩（亥亥入辰墓未开）：伤食制官杀 combo 在场=「功在墓杀」
     （墓统杀为所用），豁免不否（lixiangxue:6972，官至极品）。"""

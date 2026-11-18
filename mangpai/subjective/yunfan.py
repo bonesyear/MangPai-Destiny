@@ -190,6 +190,8 @@ def _detect_jishen_fufu(
     """忌神反客为主：运岁五行生扶废神（被制忌神）五行。"""
     fei_wxs = set()
     for pos in (fei_shen or []):
+        if pos == 'day_gan':
+            continue
         e = _pos_elem(pos, natal_gans, natal_zhis)
         w = GAN_WX.get(e) or ZHI_WX.get(e)
         if w:

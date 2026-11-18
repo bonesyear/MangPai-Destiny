@@ -91,9 +91,12 @@ def _pos_idx(pos: str) -> int:
     return PILLAR_KEYS.index(k) if k in PILLAR_KEYS else -1
 
 
-def _has_cat(day_gan, gans, zhis, cat) -> bool:
+def _has_cat(day_gan, gans, zhis, cat, exclude_day_gan=False) -> bool:
     n = min(len(gans), len(zhis))
-    return any(cat in _pillar_cats(day_gan, gans[i], zhis[i]) for i in range(n))
+    return any(
+        cat in _pillar_cats(
+            day_gan, '' if exclude_day_gan and i == 2 else gans[i], zhis[i])
+        for i in range(n))
 
 
 def _action_between_cats(wa, day_gan, gans, zhis, cat_a, cat_b, types) -> List[Dict]:
@@ -159,7 +162,7 @@ def classify_junguan(
         ev.append('伤官制杀（以技取权，技术兵种/参谋）')
 
     # 组合3：官杀配比劫/比劫库（比劫库冲官杀库）
-    if has_qisha and _has_cat(day_gan, gans, zhis, '比劫'):
+    if has_qisha and _has_cat(day_gan, gans, zhis, '比劫', exclude_day_gan=True):
         combos.append('官杀配比劫/比劫库')
         ev.append('官杀管比劫（兵众），调动管理之象')
         if '未' in zhis and ('丑' in open_tombs or '戌' in open_tombs):
