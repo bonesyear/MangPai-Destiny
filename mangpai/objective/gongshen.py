@@ -32,6 +32,8 @@ from mangpai.objective.xiangfa import (
     get_gan_xiang, get_zhi_xiang, get_gongwei_xiang,
 )
 from mangpai.objective.body_parts import PILLAR_BODY as _PILLAR_BODY
+from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.shishen import shishen_of
 
 
 # ── 宫位名（柱位 -> 六亲宫）──
@@ -191,6 +193,12 @@ def analyze_gongshen(
 
     # ── 2. 星宫关系（六亲星与所在宫位同位/异位）──
     star_table = _LIUQING_FEMALE if gender == '女' else _LIUQING_MALE
+    if 'day_zhi' not in shishen:
+        cgs = get_canggan_mangpai(day_zhi)
+        day_zhi_ss = shishen_of(day_gan, cgs[0][0]) if cgs else ''
+        spouse_stars = ('正官', '七杀') if gender == '女' else ('正财',)
+        if day_zhi_ss in spouse_stars:
+            shishen = {**shishen, 'day_zhi': day_zhi_ss}
     star_palace: List[Dict] = []
     for pos, ss in shishen.items():
         if not ss or ss == '日主':

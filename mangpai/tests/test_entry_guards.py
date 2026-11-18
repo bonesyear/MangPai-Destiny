@@ -113,3 +113,10 @@ class TestPrcDst:
         result = calc_mangpai_full(1988, 7, 7, 6, 0, '男', 116.4, is_dst=True)  # synthetic
         assert result['bazi']['month'] == '戊午'
         assert result['input']['dst_applied'] is True
+
+
+def test_gongshen_reads_spouse_star_from_day_branch():
+    from mangpai.engine import calc_mangpai_full
+    result = calc_mangpai_full(2000, 1, 31, 12, 0, '男', 116.4)  # synthetic
+    assert any(s['position'] == 'day_zhi' and s['same_position']
+               for s in result['gongshen']['star_palace'])

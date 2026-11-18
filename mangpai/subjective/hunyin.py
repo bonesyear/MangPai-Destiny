@@ -170,10 +170,10 @@ def _star_positions(day_gan: str, gans: List[str], zhis: List[str], gender: str)
         if ZHI_WX.get(z) == swx:
             out.append(i)
             continue
-        # 中气藏干含配偶星
+        # 中气藏干含配偶星；余气不计，与早晚婚口径一致
         for idx, (cg, _) in enumerate(get_canggan_mangpai(z)):
-            if idx == 0:
-                continue  # 本气已由主气五行覆盖
+            if idx != 1:
+                continue
             if GAN_WX.get(cg) == swx:
                 out.append(i)
                 break
@@ -1129,18 +1129,8 @@ def infer_hunqi_zaowan(
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'verdict': '', 'markers': []}
-    # 「出现」取明现口径（透干/本气/中气，同 _star_mingxian_count；余气藏星
-    # 过弱不算——_star_positions 含余气，不用）
-    swx_zw = _spouse_wx(day_gan, gender, gans, zhis)
-    star_idxs: List[int] = []
-    if swx_zw:
-        for i in range(4):
-            if GAN_WX.get(gans[i]) == swx_zw or ZHI_WX.get(zhis[i]) == swx_zw:
-                star_idxs.append(i)
-                continue
-            cgs = get_canggan_mangpai(zhis[i])
-            if len(cgs) > 1 and GAN_WX.get(cgs[1][0]) == swx_zw:
-                star_idxs.append(i)
+    # 透干/本气/中气统一复用星位函数，余气不计。
+    star_idxs = _star_positions(day_gan, gans, zhis, gender)
     ym = any(i in (0, 1) for i in star_idxs)
     dr = any(i in (2, 3) for i in star_idxs)
     markers: List[str] = []
@@ -1281,7 +1271,7 @@ def classify_jiehun_sifa(
       法一·星来合身：配偶星天干合日干（星主动来合日主）；
       法二·合动夫妻宫：日支（婚姻宫）被地支合/半合引动；
       法三·星居主位：配偶星在日/时柱（主位），星到主位易成婚；
-      法四·桃花合宫：桃花支合日支或桃花居日支，桃花引动婚姻宫。
+      法四·桃花合宫：桃花支合日支，桃花引动婚姻宫。
     与 infer_jiehun_yingqi 区别：yingqi 看大运流年引动（时间触发），本函数看
     原局结构倾向（成婚方式配置）。
 
@@ -1306,7 +1296,7 @@ def classify_jiehun_sifa(
 
     # 法一·星来合身：配偶星干合日干
     he_gan = TIAN_GAN_HE.get(day_gan, '')
-    if he_gan and GAN_WX.get(he_gan) == swx:
+    if he_gan in (gans[0], gans[1], gans[3]) and GAN_WX.get(he_gan) == swx:
         methods.append('星来合身（配偶星干合日干）')
 
     # 法二·合动夫妻宫：日支被地支合/半合
@@ -1321,22 +1311,24 @@ def classify_jiehun_sifa(
     if any(i in (day_idx, PILLAR_KEYS.index('hour')) for i in star_idxs):
         methods.append('星居主位（配偶星在日/时柱）')
 
-    # 法四·桃花合宫/居宫（F13：取日支起算口径——day_ref 子键恒在，
+    # 法四·桃花合宫（F13：取日支起算口径——day_ref 子键恒在，
     # engine 默认 reference='day' 时主键即日支口径，gaoji:7912）
     shen = resolve_shensha(day_gan, zhis, shensha_result)
     _tao = shen.get('桃花') or {}
     th = (_tao.get('day_ref') or _tao).get('zhi', '')
     if th:
-        if th == day_zhi:
-            methods.append('桃花居夫妻宫')
-        else:
-            th_he_gong = any(a.get('type') in ('地支合', '半合') for a in wa
-                             if th in {zhis[PILLAR_KEYS.index(a.get('from_pos', '').split('_')[0])]
-                                       if a.get('from_pos', '').split('_')[0] in PILLAR_KEYS else '',
-                                       zhis[PILLAR_KEYS.index(a.get('to_pos', '').split('_')[0])]
-                                       if a.get('to_pos', '').split('_')[0] in PILLAR_KEYS else ''})
-            if th_he_gong:
+        for a in wa:
+            if a.get('type') not in ('地支合', '半合'):
+                continue
+            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+            if 'day_zhi' not in (fp, tp):
+                continue
+            other = tp if fp == 'day_zhi' else fp
+            k = other.split('_')[0]
+            if other.endswith('_zhi') and k in PILLAR_KEYS \
+                    and zhis[PILLAR_KEYS.index(k)] == th:
                 methods.append('桃花合夫妻宫')
+                break
 
     primary = methods[0] if methods else '无明显成婚结构'
     return {'methods': methods, 'primary': primary}

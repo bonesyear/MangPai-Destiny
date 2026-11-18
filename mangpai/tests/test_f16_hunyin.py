@@ -453,3 +453,22 @@ def test_zhenbao01_bad_marriage_but_not_duohun():
                                       ['午', '丑', '酉', '亥'], '男')
     # 好婚姻中即使配偶星多现，也不越过「婚差才判多婚」的前提。
     assert male_good_quality['is_duohun'] is False
+
+
+def test_jiehun_requires_actual_star_and_gong_tao():
+    from mangpai.subjective.hunyin import classify_jiehun_sifa
+    gans, zhis = ['丙', '乙', '丁', '甲'], ['午', '未', '巳', '辰']
+    result = classify_jiehun_sifa('丁', gans, zhis, '女')
+    assert '星来合身（配偶星干合日干）' not in result['methods']
+    assert '桃花合夫妻宫' not in result['methods']
+    present = classify_jiehun_sifa('丁', ['丙', '乙', '丁', '壬'], zhis, '女')
+    assert '星来合身（配偶星干合日干）' in present['methods']
+
+
+def test_star_positions_exclude_yuqi_consistently():
+    from mangpai.subjective.hunyin import classify_jiehun_sifa
+    gans, zhis = ['庚', '戊', '丙', '癸'], ['寅', '子', '戌', '巳']
+    result = classify_jiehun_sifa('丙', gans, zhis, '男')
+    timing = infer_hunqi_zaowan('丙', gans, zhis, '男')
+    assert '星居主位（配偶星在日/时柱）' not in result['methods']
+    assert any('配偶星见年月' in m for m in timing['markers'])
