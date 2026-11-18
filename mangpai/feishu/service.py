@@ -33,7 +33,7 @@ def engine_result_solar(year, month, day, hour, minute, gender, lon) -> Dict[str
 def engine_result_pillars(pillars, gender, year: Optional[int] = None) -> Dict[str, Any]:
     """四柱直输：最小 bazi_data。pillars = [年, 月, 日, 时] 各为干支两字。"""
     if len(pillars) != 4 or not all(_PILLAR_RE.match(p) for p in pillars):
-        raise ValueError(f'四柱须为 4 组干支（如 戊辰 己未 庚午 丁亥），收到: {pillars}')
+        raise ValueError(f'四柱须为 4 组干支（如 己卯 丙子 戊午 戊午，虚构示例），收到: {pillars}')
     for p in pillars:
         if _GAN.index(p[0]) % 2 != _ZHI.index(p[1]) % 2:
             raise ValueError(f'干支阴阳错配（非六十甲子）: {p}')

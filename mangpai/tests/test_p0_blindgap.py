@@ -326,14 +326,20 @@ class TestTierBaseCalibration:
         assert lv['tier'] == '小康'
         assert '基阶校准' in lv['adjust']
 
-    def test_level1_no_gong_stays_pin(self):
-        # 无功/半层（points=0 且 penalty=无功）-> 仍为贫（乞丐口径）
-        lv = assess_caiming_level(
-            self._DG, self._GANS, self._ZHIS,
-            gongliang_result={'level': 1, 'gong_points': 0.0, 'penalty': '无功',
-                              'wealth_grade': '百万级'},
-            caifu_view=dict(self._CV), direction_signals={})
-        assert lv['tier'] == '贫'
+    def test_level0_no_gong_stays_pin(self):
+        # 功量真实输出 level=0 是无功，不是缺省；无功/半层均从贫起步。
+        for points in (0.0, 0.5):
+            lv = assess_caiming_level(
+                self._DG, self._GANS, self._ZHIS,
+                gongliang_result={'level': 0, 'gong_points': points, 'penalty': '无功'},
+                caifu_view=dict(self._CV), direction_signals={})
+            assert lv['tier'] == '贫'
+
+    def test_level0_chali3_not_wealthy(self):
+        # 差例三书断一生没有富贵；无功基阶不得被抬成富。
+        cm = analyze_caiming('己', ['甲', '乙', '己', '辛'], ['午', '亥', '巳', '未'])
+        assert cm['level_static']['base_level'] == 0
+        assert cm['tier_static'] in ('贫', '小康')
 
     def test_level1_xiong_not_calibrated(self):
         # 凶向命中者不做基阶校准（方向封顶收尾，免留升后复降矛盾文本）

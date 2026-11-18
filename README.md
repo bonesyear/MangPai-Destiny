@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1675 验证用例全绿。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1680 验证用例全绿。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,8 +47,8 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 404 passed（404 项） | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1675 passed | ✅ |
-| blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261118_batch6.json`（rubric v10）；相对批5有7条官命退化、1条未计分职业换档及3条文字变化，均已归因，双 seed 一致 | ⚠️ 撤掉伪比劫证据后的官命偏差留专项复核 |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1680 passed | ✅ |
+| blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261118_batch7.json`（rubric v10）；相对批6有5条财档翻转（2改善/2退化/1同分）及6条理由变化，均已归因，双 seed 一致 | ⚠️ 差例三富→小康仍未完全达到书断贫 |
 
 ## 入仓前的脱敏闸门
 
@@ -67,13 +67,14 @@ python3 scripts/check_doc_numbers.py --github  # 追加核对 GitHub 仓库 desc
 
 - **P0 真凭证**（阻止）：ark-/sk-/GitHub/AWS/Slack token、私钥块、Bearer、邻近 key/secret/token 的高熵串
 - **P1 隐私**（阻止）：手机号、身份证、非 example 域名邮箱
+- **P1 出生信息**（首批仅警告）：按日期、时刻、性别、地点组合检测同行/相邻行；标注 `synthetic` 或「虚构示例」的合成值豁免
 - **P2 本机路径**（默认仅警告，`--strict` 可升级为阻止）
 - 输出一律打码（前 4 + 后 2），白名单占位符（`your-`/`<REDACTED>`/`sk-fake*` 等）放行
 
 ```bash
 bash scripts/install_git_hooks.sh   # 安装 pre-commit hook（.git/hooks/ 不入库，克隆后需执行一次）
 python3 scripts/check_credentials.py          # 手动扫暂存区（默认 --staged）
-python3 scripts/check_credentials.py --all    # 全量审计（存量 P2 路径命中属预期）
+python3 scripts/check_credentials.py --all    # 全量审计（存量出生信息告警/P2 路径命中属预期）
 ```
 
 ## 三层审计
@@ -88,7 +89,7 @@ python3 scripts/check_credentials.py --all    # 全量审计（存量 P2 路径�
 
 ```python
 from mangpai.engine import calc_mangpai_full
-result = calc_mangpai_full(1992, 10, 9, 13, 58, 'male', 114.09)
+result = calc_mangpai_full(2000, 1, 1, 12, 0, 'male', 116.41)  # synthetic
 print(result['summary'])
 ```
 
@@ -160,7 +161,7 @@ from mangpai.engine import calc_mangpai_full
 from mangpai.subjective.llm_channel import render_structured_reading
 
 # 1) 引擎层：本地确定性计算，零外发
-result = calc_mangpai_full(1992, 10, 9, 13, 58, 'male', 114.09)
+result = calc_mangpai_full(2000, 1, 1, 12, 0, 'male', 116.41)  # synthetic
 print(result['summary'])
 
 # 2) LLM 叙事层：须按上面显式开启并配置；未开启或未配有效 key 时降级返回 prompt 文本

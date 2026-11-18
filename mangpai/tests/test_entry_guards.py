@@ -40,8 +40,8 @@ class TestGenderRequired:
         """性别别名须归一：婚姻、六亲等下游结果与中文性别完全一致。"""
         from mangpai.engine import calc_mangpai_full
 
-        expected = calc_mangpai_full(1992, 10, 9, 13, 58, canonical, 114.09)
-        actual = calc_mangpai_full(1992, 10, 9, 13, 58, alias, 114.09)
+        expected = calc_mangpai_full(2000, 1, 1, 12, 0, canonical, 116.41)  # synthetic
+        actual = calc_mangpai_full(2000, 1, 1, 12, 0, alias, 116.41)  # synthetic
         assert actual == expected
 
 

@@ -1,8 +1,8 @@
 """命令路由：自然语言排盘 + /help + /ver（细挖 focus=财运/婚姻 二期预留）。
 
 排盘输入两种：
-  阳历 1992-10-09 13:58 男 河南信阳   （农历请用户自转阳历；性别必填）
-  四柱 戊辰 己未 庚午 丁亥 男 [1992]  （year 可选，仅影响流年锚）
+  阳历 2000-01-01 12:00 男 北京（虚构示例）   （农历请用户自转阳历；性别必填）
+  四柱 己卯 丙子 戊午 戊午 男 [2000]（虚构示例）  （year 可选，仅影响流年锚）
 城市名查内置经度表；未收录城市可直接写给定经度（如 114.07）。
 """
 from __future__ import annotations
@@ -27,9 +27,9 @@ CITY_LON = {
 }
 
 HELP = """盲派排盘用法：
-· 阳历排盘：阳历 1992-10-09 13:58 男 河南信阳
+· 阳历排盘：阳历 2000-01-01 12:00 男 北京（虚构示例）
   （农历请先自转阳历；性别必填；城市未收录可直接写给定经度，如 … 男 114.07）
-· 四柱直排：四柱 戊辰 己未 庚午 丁亥 男 [1992]
+· 四柱直排：四柱 己卯 丙子 戊午 戊午 男 [2000]（虚构示例）
 · /ver 版本基线 · /help 本帮助
 （细挖 focus=财运/婚姻 二期开放）
 隐私提示：排盘数据（生辰/性别/出生地经度）将提交第三方大模型生成叙述。
@@ -78,13 +78,13 @@ def _pop_lon_or_city(rest: str) -> tuple[str, Optional[float], str]:
 def parse_solar(text: str) -> dict:
     dm = _DATE_RE.search(text)
     if not dm:
-        raise ParseError('没识别到阳历日期，示例：阳历 1992-10-09 13:58 男 河南信阳')
+        raise ParseError('没识别到阳历日期，示例：阳历 2000-01-01 12:00 男 北京（虚构示例）')
     rest = text[:dm.start()] + ' ' + text[dm.end():]
     tm = _TIME_RE.search(rest)
     if not tm:
-        raise ParseError('没识别到出生时刻（时柱必需），示例：… 13:58 …')
+        raise ParseError('没识别到出生时刻（时柱必需），示例：… 12:00 …')
     if re.match(r'\s*[:：]\s*\d', rest[tm.end():]):
-        raise ParseError('时刻给到分钟即可，不支持秒位，示例：… 13:58 …')
+        raise ParseError('时刻给到分钟即可，不支持秒位，示例：… 12:00 …')
     rest = rest[:tm.start()] + ' ' + rest[tm.end():]
     rest, gender = _pop_gender(rest)
     if not gender:

@@ -32,7 +32,7 @@ def _dims(conclusion='一段断语'):
 # ---------------------------------------------------------------- P0 免责声明
 
 def test_disclaimer_engine_direct_path():
-    md = handle('阳历 1992-10-09 13:58 男 河南信阳', use_llm=False)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=False)
     assert md.rstrip().endswith(DISCLAIMER.strip())
 
 
@@ -50,14 +50,14 @@ def test_help_carries_privacy_notice_and_disclaimer():
 # ---------------------------------------------------------------- P1 lark_md 三符
 
 def test_no_larkmd_unsupported_chars_engine_path():
-    md = handle('阳历 1992-10-09 13:58 男 河南信阳', use_llm=False)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=False)
     assert '\n- ' not in md and '\n> ' not in md and '---' not in md
 
 
 def test_no_larkmd_unsupported_chars_llm_path(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '【性格】(中) mock 五维')
-    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '---' not in md and '\n> ' not in md and 'mock 五维' in md
 
 
@@ -85,7 +85,7 @@ def test_death_word_reject_degrades_via_service(monkeypatch):
     """'[断语被' 前缀命中 service 降级白名单 → 引擎直出（不展示被拦断语）。"""
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '[断语被死亡红线校验拦截，不予展示]')
-    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '引擎直出结论' in md and '断语被' not in md
 
 

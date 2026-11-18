@@ -111,30 +111,30 @@ def test_missing_credentials(monkeypatch):
 
 # ---------------------------------------------------------------- 命令路由
 def test_parse_solar_city():
-    spec = parse_solar('阳历 1992-10-09 13:58 男 河南信阳')
-    assert (spec['year'], spec['month'], spec['day']) == (1992, 10, 9)
-    assert (spec['hour'], spec['minute']) == (13, 58)
-    assert spec['gender'] == '男' and spec['lon'] == 114.07
+    spec = parse_solar('阳历 2000-01-01 12:00 男 北京（虚构示例）')
+    assert (spec['year'], spec['month'], spec['day']) == (2000, 1, 1)
+    assert (spec['hour'], spec['minute']) == (12, 0)
+    assert spec['gender'] == '男' and spec['lon'] == 116.41
 
 
 def test_parse_solar_direct_lon():
-    spec = parse_solar('1992/10/09 13点58 女 114.07')
-    assert spec['gender'] == '女' and spec['lon'] == 114.07
+    spec = parse_solar('2000/01/01 12点00 女 116.41（虚构示例）')
+    assert spec['gender'] == '女' and spec['lon'] == 116.41
 
 
 def test_parse_solar_gender_required():
     with pytest.raises(ParseError, match='性别必填'):
-        parse_solar('阳历 1992-10-09 13:58 信阳')
+        parse_solar('阳历 2000-01-01 12:00 北京（虚构示例）')
 
 
 def test_parse_solar_unknown_city():
     with pytest.raises(ParseError, match='经度'):
-        parse_solar('阳历 1992-10-09 13:58 男 某小县城')
+        parse_solar('阳历 2000-01-01 12:00 男 某小县城（虚构示例）')
 
 
 def test_parse_pillars_ok():
-    spec = parse_pillars('四柱 戊辰 己未 庚午 丁亥 男')
-    assert spec['pillars'] == ['戊辰', '己未', '庚午', '丁亥']
+    spec = parse_pillars('四柱 己卯 丙子 戊午 戊午 男')
+    assert spec['pillars'] == ['己卯', '丙子', '戊午', '戊午']
     assert spec['gender'] == '男' and spec['year'] is None
 
 
@@ -155,19 +155,19 @@ def test_unknown_input_returns_help_hint():
 
 # ---------------------------------------------------------------- 全链路（LLM 关闭或 mock）
 def test_e2e_solar_engine_only():
-    md = handle('阳历 1992-10-09 13:58 男 河南信阳', use_llm=False)
-    assert '壬申 庚戌 戊午 己未' in md
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=False)
+    assert '己卯 丙子 戊午 戊午' in md
     for sec in ('**做功**', '**层功**', '**三维**', '**婚姻**', '**应期**', '**一句话**：'):
         assert sec in md
 
 
 def test_e2e_pillars_engine_only():
-    md = handle('四柱 戊辰 己未 庚午 丁亥 男', use_llm=False)
-    assert '戊辰 己未 庚午 丁亥' in md and '**一句话**：' in md
+    md = handle('四柱 己卯 丙子 戊午 戊午 男', use_llm=False)
+    assert '己卯 丙子 戊午 戊午' in md and '**一句话**：' in md
 
 
 def test_pillars_without_year_do_not_invent_one():
-    res = engine_result_pillars(['戊辰', '己未', '庚午', '丁亥'], '男')
+    res = engine_result_pillars(['己卯', '丙子', '戊午', '戊午'], '男')
     assert 'year' not in res['input']
     assert res['yingqi_subj']['daxian_yingqi']['active'] is None
 
@@ -186,14 +186,14 @@ def test_report_separates_static_and_yunsui_wealth_tiers():
 def test_llm_success_appended(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '【性格】(高) mock 五维')
-    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert 'LLM 七维叙述' in md and 'mock 五维' in md
 
 
 def test_llm_failure_degrades_to_engine(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '[LLM 不可用，降级返回 prompt 文本 | 原因: x]')
-    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '引擎直出结论' in md and 'LLM 七维叙述' not in md
 
 
@@ -202,12 +202,12 @@ def test_llm_off_by_default_env(monkeypatch, tmp_path):
     monkeypatch.setattr('mangpai.subjective.llm_backend._PROJECT_ENV_FILE',
                         tmp_path / 'no-project.env')
     monkeypatch.setenv('FEISHU_USE_LLM', '0')
-    md = handle('阳历 1992-10-09 13:58 男 信阳')  # 不传 use_llm → 读环境变量
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）')  # 不传 use_llm → 读环境变量
     assert 'LLM 七维叙述' not in md
 
 
 # ---------------------------------------------------------------- webhook 事件
-def _msg_event(mid='om_1', text='阳历 1992-10-09 13:58 男 信阳'):
+def _msg_event(mid='om_1', text='阳历 2000-01-01 12:00 男 北京（虚构示例）'):
     return {'schema': '2.0',
             'header': {'event_type': 'im.message.receive_v1', 'token': ''},
             'event': {'message': {'message_id': mid, 'message_type': 'text',
@@ -420,19 +420,19 @@ def test_token_refresh_locked_concurrent():
 def test_time_rejects_three_digit_hour():
     """'123:45' 不得静默截断成 23:45，应报解析错。"""
     with pytest.raises(ParseError):
-        parse_solar('阳历 1992-10-09 123:45 男 信阳')
+        parse_solar('阳历 2000-01-01 123:45 男 北京（虚构示例）')
 
 
 def test_time_rejects_seconds():
     """秒位不静默丢弃：明确报错。"""
     with pytest.raises(ParseError, match='秒'):
-        parse_solar('阳历 1992-10-09 13:58:59 男 信阳')
+        parse_solar('阳历 2000-01-01 12:00:59 男 北京（虚构示例）')
 
 
 def test_solar_date_wins_over_sizhu_keyword():
     """文本同时含阳历日期和「四柱」触发词 → 阳历优先，不抢占。"""
-    md = handle('阳历 1992-10-09 13:58 男 信阳 四柱 戊辰 己未 庚午 丁亥', use_llm=False)
-    assert '壬申 庚戌 戊午 己未' in md  # 阳历盘，非四柱直排
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例） 四柱 己卯 丙子 戊午 戊午', use_llm=False)
+    assert '己卯 丙子 戊午 戊午' in md  # 阳历盘，非四柱直排
 
 
 def test_500_no_internal_echo():
@@ -459,7 +459,7 @@ def test_llm_reject_death_shows_safety_notice(monkeypatch):
     """F6-1：死词拒出场景提示语区分——明示安全过滤，不误写「暂不可用」。"""
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '[断语被死亡红线校验拦截，不予展示]')
-    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '安全过滤' in md and '引擎直出结论' in md
     assert '暂不可用' not in md
 
@@ -468,13 +468,13 @@ def test_llm_generic_failure_keeps_unavailable_notice(monkeypatch):
     """F6-1：一般失败（非安全拦截）维持「暂不可用」口径。"""
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
                         lambda res, validate='mark': '[LLM 输出非合法 JSON，不予展示 | x]')
-    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=True)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '暂不可用' in md and '引擎直出结论' in md
 
 
 def test_engine_report_has_qianyi_xiangmao_sections():
     """F6-1 补两维：引擎直出报告含迁移/相貌两段（与七维口径对齐）。"""
-    md = handle('阳历 1992-10-09 13:58 男 信阳', use_llm=False)
+    md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=False)
     assert '**迁移**' in md and '**相貌**' in md
 
 

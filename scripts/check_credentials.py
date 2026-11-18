@@ -4,10 +4,10 @@
 用法：
     python3 scripts/check_credentials.py            # 默认 --staged：只扫暂存区新增行
     python3 scripts/check_credentials.py --staged   # 供 pre-commit hook 调用
-    python3 scripts/check_credentials.py --all      # 全量审计模式（存量会大量命中 P2，属预期）
+    python3 scripts/check_credentials.py --all      # 全量审计（存量出生信息告警/P2 命中属预期）
     python3 scripts/check_credentials.py --strict   # P2 本机路径也升级为退出码 1
 
-退出码：P0/P1 命中 → 1（阻止 commit）；仅 P2 → 0 + 警告（--strict 时 1）；无命中 → 0。
+退出码：P0/P1 命中 → 1（阻止 commit；birth-data 首批只告警）；仅 P2 → 0 + 警告（--strict 时 1）；无命中 → 0。
 
 红线：输出一律打码（前 4 + 后 2），绝不打印完整敏感串；脚本自身只含扫描模式，
 不含任何真实凭证。零依赖（纯标准库）。
@@ -43,13 +43,27 @@ ENTROPY_CONTEXT = re.compile(
 def _is_mixed_secret_shape(value: str) -> bool:
     return all(re.search(c, value) for c in (r"[a-z]", r"[A-Z]", r"[0-9]"))
 
-# P1 隐私：默认阻止
+# P1 隐私：默认阻止；birth-data 首批只告警，见 _verdict。
 P1_PATTERNS = [
     ("cn-mobile", re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")),
     ("cn-id-card", re.compile(r"(?<![\dXx])\d{17}[\dXx](?!\d)")),
 ]
 EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)\b")
 EMAIL_EXEMPT = ("example.", "test.", "localhost")
+BIRTH_DATE_RE = re.compile(
+    r"(?<!\d)(?:(?:19|20)\d{2}\s*[-/.年]\s*\d{1,2}\s*[-/.月]\s*\d{1,2}\s*日?"
+    r"|(?:19|20)\d{2}\s*,\s*\d{1,2}\s*,\s*\d{1,2})")
+BIRTH_TIME_RE = re.compile(
+    r"(?<![\d:：])(?:[01]?\d|2[0-3])\s*[:：]\s*[0-5]\d(?!\d)"
+    r"|(?<!\d)(?:[01]?\d|2[0-3])\s*,\s*[0-5]\d(?!\d)")
+BIRTH_GENDER_RE = re.compile(r"男|女|\bmale\b|\bfemale\b", re.IGNORECASE)
+BIRTH_PLACE_RE = re.compile(r"[\u4e00-\u9fff]{2,12}|\d{2,3}\.\d{1,4}")
+BIRTH_DATA_RE = re.compile(
+    r"(?:" + BIRTH_DATE_RE.pattern + r")[^\n]{0,40}?(?:"
+    + BIRTH_TIME_RE.pattern + r")[^\n]{0,20}?(?:"
+    + BIRTH_GENDER_RE.pattern + r")\s*[,，]?\s*(?:"
+    + BIRTH_PLACE_RE.pattern + r")")
+BIRTH_EXEMPT = ("# synthetic", "虚构示例")
 
 # P2 本机路径：默认仅警告
 P2_PATTERNS = [
@@ -133,6 +147,16 @@ def scan_lines(lines, fname: str):
             if any(t in domain for t in EMAIL_EXEMPT) or local.startswith(("test", "your")):
                 continue
             findings.append(Finding("P1", "email", fname, lineno, mask(m.group(0))))
+        birth_windows = [line]
+        if lineno > 1 and any(p.search(line) for p in (
+                BIRTH_DATE_RE, BIRTH_TIME_RE, BIRTH_GENDER_RE, BIRTH_PLACE_RE)):
+            birth_windows.append(lines[lineno - 2] + " " + line)
+        for window in birth_windows:
+            if any(tok in window.lower() for tok in BIRTH_EXEMPT):
+                continue
+            if BIRTH_DATA_RE.search(window):
+                findings.append(Finding("P1", "birth-data", fname, lineno, "<REDACTED>"))
+                break
         for kind, pat in P2_PATTERNS:
             for m in pat.finditer(line):
                 findings.append(Finding("P2", kind, fname, lineno, mask(m.group(0))))
@@ -159,7 +183,9 @@ def _verdict(findings, strict: bool):
     n2 = sum(1 for f in findings if f.level == "P2")
     lines.append(f"汇总: P0={n0} P1={n1} P2={n2}"
                  + ("（--strict 生效）" if strict else ""))
-    if n0 or n1:
+    blocking_p1 = sum(
+        f.level == "P1" and f.kind != "birth-data" for f in findings)
+    if n0 or blocking_p1:
         rc = 1
     elif n2 and strict:
         rc = 1

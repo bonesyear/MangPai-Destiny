@@ -26,7 +26,7 @@ foundation/                # 2 个跨流派基础模块
 from mangpai import calc_mangpai_full
 from mangpai.subjective import build_payload
 
-result = calc_mangpai_full(1992, 10, 9, 13, 58, 'male', 114.09)
+result = calc_mangpai_full(2000, 1, 1, 12, 0, 'male', 116.41)  # synthetic
 features = build_payload(result)
 ```
 

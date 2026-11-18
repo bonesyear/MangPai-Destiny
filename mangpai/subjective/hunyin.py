@@ -511,9 +511,11 @@ def classify_hunyin_quality(
 def classify_duohun(
     day_gan: str, gans: List[str], zhis: List[str],
     gender: str = '男', relations: Optional[Dict] = None,
+    quality_result: Optional[Dict] = None,
 ) -> Dict:
-    """多婚命理判定（M3 补三检测）。
+    """多婚命理判定（M3 补三检测），以婚姻差为前提。
 
+    好/平婚姻不进入多婚因素计数。
     男财星多(正偏财混杂)/女官杀多(正官七杀混杂)、婚姻宫被冲合多次、
     比劫克财(男)/伤官克官(女) -> 多婚（离婚再婚之象）。
     M3 补（源文第二节规则1 + 高级篇盖头）：配偶星被穿/破/冲、
@@ -531,6 +533,10 @@ def classify_duohun(
     zhis = zhis or []
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'is_duohun': False, 'factors': ['四柱不全']}
+    quality = quality_result if quality_result is not None else classify_hunyin_quality(
+        day_gan, gans, zhis, gender, relations)
+    if quality.get('quality') != '差':
+        return {'is_duohun': False, 'factors': []}
 
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
@@ -1486,7 +1492,8 @@ def analyze_hunyin(
     ss = resolve_shensha(day_gan, zhis or [], shensha_result)
 
     quality = classify_hunyin_quality(day_gan, gans or [], zhis or [], gender, relations)
-    duohun = classify_duohun(day_gan, gans or [], zhis or [], gender, relations)
+    duohun = classify_duohun(day_gan, gans or [], zhis or [], gender, relations,
+                             quality_result=quality)
     dushen = classify_dushen(day_gan, gans or [], zhis or [], gender, relations,
                              shensha_result=ss)
     laoyue = detect_shuizhong_laoyue(day_gan, gans or [], zhis or [], gender, relations)

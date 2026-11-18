@@ -843,7 +843,7 @@ def _self_check() -> None:
 if __name__ == '__main__':
     _self_check()
     # 示例排盘
-    r = calc_bazi_full(2026, 7, 12, 9, 30, '男', 116.4)
-    print('2026-07-12 09:30 男 北京 四柱：',
+    r = calc_bazi_full(2026, 7, 12, 9, 30, '男', 116.4)  # synthetic
+    print('2026-07-12 09:30 男 北京（虚构示例）四柱：',
           r['bazi']['year'], r['bazi']['month'], r['bazi']['day'], r['bazi']['hour'])
     print('日柱 =', r['bazi']['day'])

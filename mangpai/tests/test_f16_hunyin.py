@@ -420,6 +420,23 @@ class TestShangguanTeshuYingqi:
         assert not any('特殊结婚应期' in s for s in j['signals'])
 
 
+def test_good_marriage_never_duohun():
+    # zhongji:4294/4300/4493/4504：好婚姻不得同时输出多婚。
+    from mangpai.subjective.hunyin import analyze_hunyin, classify_duohun
+    cases = (
+        (['癸', '庚', '庚', '壬'], ['丑', '申', '子', '午'], '女'),
+        (['癸', '癸', '辛', '癸'], ['丑', '亥', '亥', '巳'], '女'),
+        (['壬', '庚', '壬', '癸'], ['寅', '戌', '辰', '卯'], '男'),
+        (['乙', '丙', '甲', '甲'], ['未', '戌', '子', '戌'], '男'),
+    )
+    for gans, zhis, gender in cases:
+        r = analyze_hunyin(gans[2], gans, zhis, gender=gender)
+        assert r['quality']['quality'] == '好'
+        assert r['duohun']['is_duohun'] is False
+        assert '多婚之象' not in r['summary']
+        assert classify_duohun(gans[2], gans, zhis, gender)['is_duohun'] is False
+
+
 def test_zhenbao01_bad_marriage_but_not_duohun():
     # shouke:7054-7060：巳中戊财得正位作忌，书明婚姻不好但不离婚。
     from mangpai.subjective.hunyin import analyze_hunyin, classify_duohun
@@ -432,6 +449,7 @@ def test_zhenbao01_bad_marriage_but_not_duohun():
                             ['亥', '子', '丑', '戌'], '男')
     assert other['is_duohun'] is False
     assert not any('不直接判多婚' in f for f in other['factors'])
-    male_wrong_star = classify_duohun('甲', ['戊', '辛', '甲', '己'],
+    male_good_quality = classify_duohun('甲', ['戊', '辛', '甲', '己'],
                                       ['午', '丑', '酉', '亥'], '男')
-    assert male_wrong_star['is_duohun'] is True
+    # 好婚姻中即使配偶星多现，也不越过「婚差才判多婚」的前提。
+    assert male_good_quality['is_duohun'] is False

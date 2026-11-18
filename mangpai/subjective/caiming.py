@@ -1628,8 +1628,8 @@ def assess_caiming_level(
                     or ds.get('yongshen_xiong') or ds.get('mingju_xiong'))
 
     # 基阶：level 4→富(偏巨富), 3→富, 2→小康, 1→贫/普通
-    # 用 1-4 整数阶表示 贫(1)/小康(2)/富(3)/巨富(4)
-    tier_idx = max(1, min(4, base_level)) if base_level else 2
+    # 用 1-4 整数阶表示 贫(1)/小康(2)/富(3)/巨富(4)；仅缺 level 时小康，level=0 从贫起步
+    tier_idx = max(1, min(4, base_level)) if 'level' in gl else 2
     adjust = '持平'
     # ── 从财格顺势档（D类从格细则，段氏从财书例直判）──
     # 从弱且财为所从（财为最大异党明现）：扶抑浮财口径本不适用（下方豁免），

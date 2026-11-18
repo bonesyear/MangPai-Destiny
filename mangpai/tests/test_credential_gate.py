@@ -70,6 +70,29 @@ class TestWhitelist:
         assert findings == [], f"误报: {findings}"
 
 
+class TestBirthData:
+    _DATE = '2000-01-' + '01'
+
+    def test_datetime_gender_city_hits_p1(self, gate, tmp_path):
+        line = f'阳历 {self._DATE} 12:00 男 北京'
+        findings = gate.scan_lines([line], fname='t.md')
+        assert any(f.level == 'P1' and f.kind == 'birth-data' for f in findings)
+        f = tmp_path / 'birth.txt'
+        f.write_text(line + '\n', encoding='utf-8')
+        rc, out = gate.scan_paths([f])
+        assert rc == 0 and 'birth-data' in out
+
+    def test_adjacent_lines_hit_p1(self, gate):
+        findings = gate.scan_lines(
+            [f'阳历 {self._DATE} 12:00', '男 北京'], fname='t.md')
+        assert any(f.level == 'P1' and f.kind == 'birth-data' for f in findings)
+
+    def test_synthetic_marker_passes(self, gate):
+        findings = gate.scan_lines(
+            ['阳历 2000-01-01 12:00 男 北京  # synthetic'], fname='t.md')
+        assert not any(f.kind == 'birth-data' for f in findings)
+
+
 class TestMasking:
     def test_mask_never_contains_full(self, gate):
         for secret in (FAKE_ARK, FAKE_SK, FAKE_BEARER, FAKE_PHONE):
