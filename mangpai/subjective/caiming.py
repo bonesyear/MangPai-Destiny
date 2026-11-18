@@ -995,6 +995,8 @@ def _controlled_guan_positions(
     """
     pos: Set[str] = set()
     for a in wa:
+        if a.get('relation_only'):
+            continue
         t = a.get('type')
         if t not in (_ZHI_CONTROL | _HE_CONTROL):
             continue
@@ -1150,6 +1152,8 @@ def _detect_guohe_chaiqiao(
     found_action: Optional[Dict] = None
     bridge_pos = ''
     for a in wa:
+        if a.get('relation_only'):
+            continue
         if a.get('type') not in (_ZHI_CONTROL | _HE_CONTROL):
             continue
         from_pos, to_pos = a.get('from_pos', ''), a.get('to_pos', '')

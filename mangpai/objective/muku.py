@@ -185,7 +185,7 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
     Returns:
         是否入墓
     """
-    if not tombed_zhi or not tomb_zhi:
+    if not tombed_zhi or not tomb_zhi or tombed_zhi == tomb_zhi:
         return False
     if tomb_zhi not in TOMB_MAP:
         return False

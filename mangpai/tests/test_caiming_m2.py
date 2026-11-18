@@ -455,3 +455,11 @@ class TestCaiTongguanLiangji:
         r = analyze_caiming('乙', ['庚', '己', '乙', '庚'], ['申', '卯', '酉', '辰'])
         assert not r['caifu_view']['caixing_path']['has_yuanshen']
         assert r['tier_static'] == '小康'
+
+
+def test_relation_only_po_does_not_create_guohe_wealth():
+    r = analyze_caiming('庚', list('癸戊庚己'), list('卯午辰卯'))
+    assert r['primary_view'] == '财星当财'
+    assert not any(v.startswith('过河拆桥') for v in r['caifu_view']['views'])
+    assert '过河拆桥' not in r['path']
+    assert '官杀当财' not in r['level']['adjust']

@@ -205,8 +205,9 @@ def classify_guanming_combo(
         p for a in wa if not a.get('auxiliary')
         for p in ((a.get('to_pos'), a.get('from_pos'))
                   if a.get('type') in _HE_CONTROL else (a.get('to_pos'),))
-        if p and (a.get('type') in _HE_CONTROL
-                  or a.get('relation_direction') != 'unknown')
+        if p and ((a.get('type') in _HE_CONTROL and a.get('type') != '半合')
+                  or (a.get('type') not in _HE_CONTROL
+                      and a.get('relation_direction') != 'unknown'))
     }
     _zhi_hard_targets: Set[str] = {
         a.get('to_pos') for a in wa

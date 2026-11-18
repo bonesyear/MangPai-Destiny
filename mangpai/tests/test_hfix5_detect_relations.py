@@ -677,3 +677,35 @@ def test_r4_sanhe_tomb_priority_and_counterexamples():
         ['亥', '丑', '卯', '未'], ['乙', '丁', '乙', '己'])
     assert formed is True  # 不把多而墓与三合作全局互斥
     assert any(a['type'] == '三合局' for a in wa)
+
+
+def test_repeated_zhi_half_he_keeps_every_pillar_pair():
+    det = detect_relations('丙', '子', '甲', '子', '壬', '申', '辛', '卯')
+    half = [a for a in det['work_actions'] if a['type'] == '半合']
+    assert any('day_zhi' in (a.get('from_pos'), a.get('to_pos')) for a in half)
+    he = classify_he_types('子', '子', '申', '卯', '壬', '甲', '丙', '辛')['he_types']
+    assert any(a['he_type'] == '半合' and '日支(子)' in a['from'] + a['to']
+               for a in he)
+
+
+def test_dayun_ke_sheng_keep_repeated_pillar_positions():
+    from mangpai.objective.dayun import _analyze_zhi_relations
+
+    for dy, kind in [('子', '克'), ('寅', '生')]:
+        target = '午' if kind == '克' else '巳'
+        rows = [a for a in _analyze_zhi_relations(dy, [target] * 4)
+                if a['type'] == kind]
+        assert len(rows) == 4
+        assert {a['target_pos'] for a in rows} == {
+            'year_zhi', 'month_zhi', 'day_zhi', 'hour_zhi'}
+
+
+def test_same_zhi_never_entombs_itself():
+    from mangpai.objective.muku import is_entomb
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+
+    assert not is_entomb('辰', '辰', ['辰', '子', '辰', '寅'], ['戊', '甲', '戊', '甲'])
+    assert not is_entomb('戌', '戌', ['戌', '申', '戌', '午'], ['甲', '壬', '戊', '戊'])
+    result = analyze_zuogong('戊', '辰', '戊', '辰', '甲', '子', '甲', '寅')
+    assert result['primary_work']['type'] == '制用'
+    assert '墓用' not in result['work_types']

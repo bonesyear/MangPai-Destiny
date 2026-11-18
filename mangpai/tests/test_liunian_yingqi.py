@@ -26,7 +26,7 @@ xfail 1 条 = 引擎缺口收档（书锚不足 ≥2 同构门槛，勿无锚强
     被原局合去（yx2:5877 + zhongji:6111 双锚）。
   - he7 合绊：运-局合=合绊，classify_he_semantic 加 he_partner_dayun
     参数（仿 gender 参数模式；cj1:1816 + gaoji:5558 + chuji:3097 锚）。
-  - ch4 冲去：流年冲运支统看（phase_active='干支'）并入冲去分支
+  - ch4 冲去：流年冲运支统看或主事信息未知时并入冲去分支
     （cj2:6042 + shouke:1370 + gaoji:19348 锚）。
 """
 import pytest

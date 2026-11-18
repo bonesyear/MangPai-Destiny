@@ -495,7 +495,8 @@ def classify_hunyin_quality(
         signals.append('女命官杀多现（官杀混杂），婚姻易不稳')
         score += _STAR_MIXED_W
 
-    quality = '好' if score >= _QUALITY_GOOD_MIN else ('差' if score < 0 else '平')
+    quality = ('差' if star_broken else
+               '好' if score >= _QUALITY_GOOD_MIN else ('差' if score < 0 else '平'))
     return {
         'quality': quality,
         'score': round(score, 2),

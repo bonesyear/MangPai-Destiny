@@ -672,9 +672,10 @@ def _scan_sanhe_banhe(zhis: List[str], gans: Optional[List[str]] = None,
             san_he_formed = True
             parts: List[str] = []
             for m in members:
-                idx = zhis.index(m)
-                parts.append(f'{PILLAR_NAMES_CN[idx]}支({m})')
-                san_he_participants.append(f'{PILLAR_KEYS[idx]}_zhi')
+                for idx, z in enumerate(zhis):
+                    if z == m:
+                        parts.append(f'{PILLAR_NAMES_CN[idx]}支({m})')
+                        san_he_participants.append(f'{PILLAR_KEYS[idx]}_zhi')
             work_actions.append({
                 'type': '三合局',
                 'action': '成势做功',
@@ -691,30 +692,34 @@ def _scan_sanhe_banhe(zhis: List[str], gans: Optional[List[str]] = None,
             if pair_str in BAN_HE and any(
                     {r['from']['zhi'], r['to']['zhi']} == set(present_members)
                     for r in raw['半三合']):
-                a, b = present_members[0], present_members[1]
-                ia, ib = zhis.index(a), zhis.index(b)
-                action = {
-                    'type': '半合',
-                    'action': '半成势',
-                    'from': f'{PILLAR_NAMES_CN[ia]}支({a})',
-                    'to': f'{PILLAR_NAMES_CN[ib]}支({b})',
-                    'from_pos': f'{PILLAR_KEYS[ia]}_zhi',
-                    'to_pos': f'{PILLAR_KEYS[ib]}_zhi',
-                    'participants': [f'{PILLAR_KEYS[ia]}_zhi', f'{PILLAR_KEYS[ib]}_zhi'],
-                    'desc': f'{a}{b}半合{BAN_HE[pair_str]}局，气未全',
-                }
-                day_gan = gans[2] if gans and len(gans) > 2 else ''
-                ren_sha_he = (
-                    _YANG_REN_MAP.get(day_gan) == a
-                    and ZHI_WX.get(b) == WX_KE_ME.get(GAN_WX.get(day_gan, ''))
-                )
-                # 中级:3806-3814 的壬子入辰与羊刃合杀并存，不全局放宽旺墓半合。
-                if tomb_priority and not ren_sha_he:
-                    action['auxiliary'] = True
-                    action['relation_only'] = True
-                else:
-                    work_types.add('合用')
-                work_actions.append(action)
+                records = [r for r in raw['半三合']
+                           if {r['from']['zhi'], r['to']['zhi']} == set(present_members)]
+                for record in records:
+                    a, b = record['from']['zhi'], record['to']['zhi']
+                    ia = PILLAR_KEYS.index(record['from']['pillar'])
+                    ib = PILLAR_KEYS.index(record['to']['pillar'])
+                    action = {
+                        'type': '半合',
+                        'action': '半成势',
+                        'from': f'{PILLAR_NAMES_CN[ia]}支({a})',
+                        'to': f'{PILLAR_NAMES_CN[ib]}支({b})',
+                        'from_pos': f'{PILLAR_KEYS[ia]}_zhi',
+                        'to_pos': f'{PILLAR_KEYS[ib]}_zhi',
+                        'participants': [f'{PILLAR_KEYS[ia]}_zhi', f'{PILLAR_KEYS[ib]}_zhi'],
+                        'desc': f'{a}{b}半合{BAN_HE[pair_str]}局，气未全',
+                    }
+                    day_gan = gans[2] if gans and len(gans) > 2 else ''
+                    ren_sha_he = (
+                        _YANG_REN_MAP.get(day_gan) == a
+                        and ZHI_WX.get(b) == WX_KE_ME.get(GAN_WX.get(day_gan, ''))
+                    )
+                    # 中级:3806-3814 的壬子入辰与羊刃合杀并存，不全局放宽旺墓半合。
+                    if tomb_priority and not ren_sha_he:
+                        action['auxiliary'] = True
+                        action['relation_only'] = True
+                    else:
+                        work_types.add('合用')
+                    work_actions.append(action)
 
     for record in raw['拱局']:
         i = PILLAR_KEYS.index(record['from']['pillar'])
@@ -889,7 +894,7 @@ def _scan_tomb(zhis: List[str], gans: List[str]) -> Tuple[List[Dict], Set[str]]:
             if i == j:
                 continue
             z2 = zhis[j]
-            if not z2:
+            if not z2 or z2 == z:
                 continue
             if is_entomb(z2, z, zhis, gans):  # M4：不再要求日柱参与（i==2 or j==2）
                 _book_tomb_primary = z == '辰' and z2 == '丑'

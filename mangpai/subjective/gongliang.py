@@ -642,7 +642,8 @@ def _reconcile_gong_evidence(
         ]
     elif zb_bao_counted and active_tomb_works:
         tomb_xing = next((wa for wa in all_work_actions
-                          if wa.get('type') == '刑'
+                          if not wa.get('auxiliary') and not wa.get('relation_only')
+                          and wa.get('type') == '刑'
                           and any(_is_tomb(_elem_of(pos, gans, zhis))
                                   for pos in (wa.get('from_pos', ''), wa.get('to_pos', ''))
                                   if pos)), None)

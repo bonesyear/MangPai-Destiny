@@ -217,7 +217,8 @@ def classify_he_types(
         members = list(group)
         present = [m for m in members if m in zhis_set]
         if len(present) == len(members) and (len(members) > 3 or group in raw['三合']):
-            positions = [(m, zhis.index(m)) for m in members]
+            positions = [(m, idx) for m in members
+                         for idx, z in enumerate(zhis) if z == m]
             parts = [f'{_ZHI_PILLAR_NAMES[idx]}({m})' for m, idx in positions]
             results.append({
                 'he_type': '三合局',
@@ -230,13 +231,17 @@ def classify_he_types(
             wx_ban = _ban_he_wx(a, b)
             if wx_ban and any({r['from']['zhi'], r['to']['zhi']} == {a, b}
                               for r in raw['半三合']):
-                ia, ib = zhis.index(a), zhis.index(b)
-                results.append({
-                    'he_type': '半合',
-                    'from': f'{_ZHI_PILLAR_NAMES[ia]}({a})',
-                    'to': f'{_ZHI_PILLAR_NAMES[ib]}({b})',
-                    'desc': f'{a}{b}半合{wx_ban}局，气未全',
-                })
+                for record in raw['半三合']:
+                    if {record['from']['zhi'], record['to']['zhi']} != {a, b}:
+                        continue
+                    ia = PILLAR_KEYS.index(record['from']['pillar'])
+                    ib = PILLAR_KEYS.index(record['to']['pillar'])
+                    results.append({
+                        'he_type': '半合',
+                        'from': f'{_ZHI_PILLAR_NAMES[ia]}({a})',
+                        'to': f'{_ZHI_PILLAR_NAMES[ib]}({b})',
+                        'desc': f'{a}{b}半合{wx_ban}局，气未全',
+                    })
 
     # ── 拱局（关系/取象事实，不直接判做功）──
     for record in raw['拱局']:

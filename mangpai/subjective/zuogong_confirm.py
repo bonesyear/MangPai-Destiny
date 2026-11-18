@@ -693,9 +693,9 @@ def analyze_zuogong(
         def _repeat_tomb(wa):
             target = _elem_of(wa.get('to_pos', ''), gans, zhis)
             return (wa.get('action') == '墓用' and target
-                    and sum(other.get('action') == '墓用'
-                            and _elem_of(other.get('to_pos', ''), gans, zhis) == target
-                            for other in c['zhi_actions']) >= 2)
+                    and len({other.get('to_pos') for other in c['zhi_actions']
+                             if other.get('action') == '墓用'
+                             and _elem_of(other.get('to_pos', ''), gans, zhis) == target}) >= 2)
 
         def _strong_control(wa):
             if (_paired_wealth_control(wa) or _open_officer_tomb(wa)

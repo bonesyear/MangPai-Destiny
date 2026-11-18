@@ -226,3 +226,13 @@ def test_q2_ma_kongwang():
     blob = json.dumps(r, ensure_ascii=False)
     for term in ('出国', '移民', '海外'):
         assert term not in blob
+
+
+def test_repeated_horse_keeps_all_pillar_positions():
+    r = _run('丙寅庚子庚寅戊寅', dys=['丙申'], lns=['戊寅'])
+    moves = _moves(r)
+    chong = [w for w in moves if w['mechanism'] == '马逢冲']
+    assert {w['pillar'] for w in chong} == {'year', 'day', 'hour'}
+    assert r['qianyi_yuanju']['ma_dai_caiguan']['寅'] == ['官杀', '财']
+    fuyin = [w for w in moves if w['mechanism'] == '马星伏吟']
+    assert {w['pillar'] for w in fuyin} == {'year', 'day'}

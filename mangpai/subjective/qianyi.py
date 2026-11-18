@@ -154,8 +154,10 @@ def analyze_qianyi(
         ma_union_all.update(_YI_MA.get(z, []))
     ma_union_yr: Set[str] = set(_YI_MA.get(zhis[0], [])) | set(_YI_MA.get(zhis[2], []))
     # 原局在局的马星支 → 柱位（「马冲在哪儿，离开哪儿」的宫位锚，shouke:3602）
-    ma_positions: Dict[str, str] = {
-        z: _PILLAR_KEYS[i] for i, z in enumerate(zhis) if z in ma_union_all}
+    ma_positions: Dict[str, List[str]] = {}
+    for i, z in enumerate(zhis):
+        if z in ma_union_all:
+            ma_positions.setdefault(z, []).append(_PILLAR_KEYS[i])
 
     # ── 驿马带财官（gaoji:6727「驿马星与财星、官星同柱或相合，主因财、
     # 因工作而动」+口诀 gaoji:6759「马带财官因利动」）──
@@ -163,7 +165,7 @@ def analyze_qianyi(
     # 成合（消费 relations，缺省仅同柱档）。动的「原因」修饰 marker。
     _REASON_LABEL = {'财': ('财星', '财利'), '官杀': ('官星', '工作')}
     ma_reason: Dict[str, List[str]] = {}
-    for mz, pk in ma_positions.items():
+    for mz, pk in ((mz, pk) for mz, pks in ma_positions.items() for pk in pks):
         cats: Set[str] = set()
         i = _PILLAR_KEYS.index(pk)
         mc = _wx_cat(day_gan, ZHI_WX.get(mz, ''))  # 马星支本气
@@ -187,7 +189,8 @@ def analyze_qianyi(
             if oc in ('财', '官杀'):
                 cats.add(oc)
         if cats:
-            ma_reason[mz] = sorted(cats)
+            ma_reason.setdefault(mz, set()).update(cats)
+    ma_reason = {mz: sorted(cats) for mz, cats in ma_reason.items()}
 
     # ── 驿马空亡（gaoji:6728-6729「驿马落空，动而不实」+口诀 gaoji:6760
     # 「马落空亡动虚陈」）：马星支落空亡 → 动而不实（虚动）修饰 marker。
@@ -221,12 +224,12 @@ def analyze_qianyi(
     # 驿马带财官/落空亡 原局修饰 marker（gaoji:6727/6759、6728/6760）
     for mz in sorted(ma_reason):
         markers.append(
-            f'马星{mz}（{_PILLAR_SPACE[ma_positions[mz]]}之马）带'
+            f'马星{mz}（{"、".join(_PILLAR_SPACE[pk] for pk in ma_positions[mz])}之马）带'
             f'{"、".join(_REASON_LABEL[c][0] for c in ma_reason[mz])}，主因'
             f'{"兼".join(_REASON_LABEL[c][1] for c in ma_reason[mz])}而动'
             f'（gaoji:6727/6759）')
     for mz in sorted(ma_kong):
-        markers.append(f'马星{mz}（{_PILLAR_SPACE[ma_positions[mz]]}之马）落空亡，'
+        markers.append(f'马星{mz}（{"、".join(_PILLAR_SPACE[pk] for pk in ma_positions[mz])}之马）落空亡，'
                        f'动而不实（虚动）（gaoji:6728/6760）')
     if beijing and anju:
         # 月日冲与日时合并存：书未给优先级，两 marker 并列呈现
@@ -268,7 +271,8 @@ def analyze_qianyi(
             return
         # 马逢冲/马逢合：岁运支冲合原局在局马星支（shouke:3602 总纲 +
         # gaoji:6757 口诀「马星逢合动则止，马星逄冲急如焚」）
-        for mz, pk in sorted(ma_positions.items()):
+        for mz, pk in sorted((mz, pk) for mz, pks in ma_positions.items()
+                             for pk in pks):
             if _pair_in(dz, mz, LIU_CHONG):
                 _emit(move_windows, dy, ln, '马逢冲', pk, '中',
                       'shouke:3600-3602;gaoji:6757',
@@ -295,12 +299,14 @@ def analyze_qianyi(
                       f'流年{dg}{dz}与时柱（门户）干支全同，门户伏吟，'
                       f'或有外出/远行之象（或然）')
             # 马星伏吟：流年支与原局马星支伏吟（shouke:6692「马星伏吟而动」）
-            if dz in ma_positions \
-                    and not (menhu_fuyin and ma_positions[dz] == 'hour'):
-                _emit(move_windows, dy, ln, '马星伏吟', ma_positions[dz], '或然',
-                      'shouke:6692',
-                      f'流年{dz}与原局{_PILLAR_SPACE[ma_positions[dz]]}马星伏吟，'
-                      f'或有迁移/远动之象（或然）' + _ma_suffix(dz))
+            if dz in ma_positions:
+                for pk in ma_positions[dz]:
+                    if menhu_fuyin and pk == 'hour':
+                        continue
+                    _emit(move_windows, dy, ln, '马星伏吟', pk, '或然',
+                          'shouke:6692',
+                          f'流年{dz}与原局{_PILLAR_SPACE[pk]}马星伏吟，'
+                          f'或有迁移/远动之象（或然）' + _ma_suffix(dz))
             # 冲出年时：流年支冲年支/时支（shouke:72「冲出」，
             # 书自承「未必所有人都会出门」）
             for zi in (0, 3):

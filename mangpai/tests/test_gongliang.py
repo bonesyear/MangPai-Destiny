@@ -204,6 +204,12 @@ class TestSourceRegression:
     def test_kelintun_4(self):
         assert _run(KELINTUN)['level'] == 4
 
+    def test_relation_only_self_xing_does_not_raise_gongliang(self):
+        result = analyze_gongliang(
+            day_gan='己', gans=['壬', '壬', '己', '戊'], zhis=['辰', '子', '亥', '辰'])
+        assert result['level'] == 3
+        assert not any('刑制墓库' in reason for reason in result['reasons'])
+
     def test_jiangjieshi_3(self):
         assert _run(JIANGJIESHI)['level'] == 3
 

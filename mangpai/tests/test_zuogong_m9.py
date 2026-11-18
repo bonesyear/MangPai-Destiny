@@ -160,3 +160,8 @@ def test_heli8_controlled_officer_linked_to_day_is_primary():
     # 理象学:6875-6877：伤官制官为功，被制官星暗合到主位是结果。
     pw = _pw('乙', '卯', '丙', '申', '甲', '午', '甲', '申')
     assert pw['type'] == '制用'
+
+
+def test_one_day_branch_into_multiple_tombs_is_not_multi_entombment():
+    pw = _pw('丁', '亥', '甲', '辰', '戊', '辰', '甲', '辰')
+    assert pw['type'] == '生用'

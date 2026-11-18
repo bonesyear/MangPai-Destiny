@@ -171,25 +171,21 @@ def _analyze_zhi_relations(
         nz_wx = ZHI_WX.get(nz, '')
         if dy_wx and nz_wx:
             if WX_KE.get(dy_wx) == nz_wx:
-                existing = any(r['type'] == '克' and r['target'] == nz for r in relations)
-                if not existing:
-                    relations.append({
-                        'type': '克',
-                        'target': nz,
-                        'target_pos': f'{PILLAR_KEYS[i]}_zhi',
-                        'target_pillar': _PILLAR_LABELS[i],
-                        'desc': f'大运{dy_zhi}({dy_wx})克{nz}({nz_wx})（{_PILLAR_LABELS[i]}）',
-                    })
+                relations.append({
+                    'type': '克',
+                    'target': nz,
+                    'target_pos': f'{PILLAR_KEYS[i]}_zhi',
+                    'target_pillar': _PILLAR_LABELS[i],
+                    'desc': f'大运{dy_zhi}({dy_wx})克{nz}({nz_wx})（{_PILLAR_LABELS[i]}）',
+                })
             elif WX_SHENG.get(dy_wx) == nz_wx:
-                existing = any(r['type'] == '生' and r['target'] == nz for r in relations)
-                if not existing:
-                    relations.append({
-                        'type': '生',
-                        'target': nz,
-                        'target_pos': f'{PILLAR_KEYS[i]}_zhi',
-                        'target_pillar': _PILLAR_LABELS[i],
-                        'desc': f'大运{dy_zhi}({dy_wx})生{nz}({nz_wx})（{_PILLAR_LABELS[i]}）',
-                    })
+                relations.append({
+                    'type': '生',
+                    'target': nz,
+                    'target_pos': f'{PILLAR_KEYS[i]}_zhi',
+                    'target_pillar': _PILLAR_LABELS[i],
+                    'desc': f'大运{dy_zhi}({dy_wx})生{nz}({nz_wx})（{_PILLAR_LABELS[i]}）',
+                })
 
     for combo, wx in SAN_HE.items():
         if dy_zhi in combo:

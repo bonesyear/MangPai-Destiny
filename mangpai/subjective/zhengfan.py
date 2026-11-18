@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     PILLAR_KEYS, GAN_WX, ZHI_WX, WX_SHENG, WX_KE, WX_KE_ME,
-    TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP, CANG_GAN_MANGPAI,
+    TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP, CANG_GAN_MANGPAI, BAN_HE,
 )
 from mangpai.objective.zihe import detect_zihe
 
@@ -351,7 +351,23 @@ def analyze_zhengfan(
     # 反局判定：日柱做功方向与全局气势相背
     fan_reason = ''
     gan_elems = {e for e in (_pos_element(t, gans, zhis) for t in gan_targets) if e}
-    zhi_elems = {e for e in (_pos_element(t, gans, zhis) for t in zhi_targets) if e}
+    zhi_elems: Set[str] = set()
+    for target in zhi_targets:
+        elem = _pos_element(target, gans, zhis)
+        for wa in work_actions:
+            if wa.get('type') != '半合' or target not in (
+                    wa.get('from_pos'), wa.get('to_pos')):
+                continue
+            left = _pos_zhi(wa.get('from_pos', ''), zhis)
+            right = _pos_zhi(wa.get('to_pos', ''), zhis)
+            changed = BAN_HE.get(left + right) or BAN_HE.get(right + left)
+            dominant = (qishi or {}).get('dominant', '')
+            # 半合化神与单向旺势同党或为其原神时，属势内之功，不判相背。
+            if qishi and qishi.get('kind') == '单向' and (
+                    changed == dominant or WX_SHENG.get(changed) == dominant):
+                elem = ''
+        if elem:
+            zhi_elems.add(elem)
     main_guest_qucai = False
     day_wx = GAN_WX.get(day_gan, '')
     cai_wx = WX_KE.get(day_wx, '')
