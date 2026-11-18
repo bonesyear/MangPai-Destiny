@@ -188,3 +188,18 @@ class TestR5DirectionAndQualification:
                    and a['to_pos'] == 'hour_zhi')
         assert hit['auxiliary'] is True and hit['tomb_covered'] is True
         assert not hit.get('efficiency_discount')
+
+    def test_fire_party_keeps_dry_soil_when_wood_present(self):
+        for month_gan in ('乙', '戊'):
+            result = analyze_zuogong('庚', '申', '丙', '寅', month_gan, '未', '辛', '巳')
+            hit = next(a for a in result['work_actions'] if a['type'] == '刑'
+                       and {a['from_pos'], a['to_pos']} == {'day_zhi', 'hour_zhi'})
+            assert (hit['from_pos'], hit['to_pos']) == ('hour_zhi', 'day_zhi')
+
+    def test_earth_branch_direction_uses_integer_party_count(self):
+        result = analyze_zuogong('壬', '辰', '甲', '寅', '丙', '寅', '癸', '卯')
+        hit = next(a for a in result['work_actions'] if a['type'] == '穿'
+                   and {a['from_pos'], a['to_pos']} == {'day_zhi', 'hour_zhi'})
+        assert (hit['from_pos'], hit['to_pos']) == ('hour_zhi', 'day_zhi')
+        assert not hit.get('weak_faction')
+        assert not hit.get('auxiliary')

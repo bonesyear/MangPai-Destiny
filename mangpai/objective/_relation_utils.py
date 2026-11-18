@@ -109,7 +109,11 @@ def _main_qi_count(wx: str, gans: List[str], zhis: List[str],
         return sum(GAN_WX.get(g) in ('金', '水', '土') for g in gans) + sum(
             ZHI_WX.get(z) in ('金', '水') or z in ('丑', '辰') for z in zhis)
     if wx == '土' and zhi:
-        return _single_zhi_party(wx, zhi, zhis, gans)
+        dry = zhi in ('未', '戌')
+        gan_party = ('木', '火', '土') if dry else ('金', '水', '土')
+        soil = ('未', '戌') if dry else ('辰', '丑')
+        return sum(GAN_WX.get(g) in gan_party for g in gans) + sum(
+            ZHI_WX.get(z) in gan_party[:2] or z in soil for z in zhis)
     if wx in ('金', '水'):
         return sum(GAN_WX.get(g) in ('金', '水') for g in gans) + sum(
             ZHI_WX.get(z) in ('金', '水') or z in ('丑', '辰') for z in zhis)
@@ -123,7 +127,7 @@ def _main_qi_count(wx: str, gans: List[str], zhis: List[str],
             return wood + fire if wood + fire >= 4 else wood
         if fire + dry >= 4:
             return wood + fire + dry
-        return fire if wood + fire >= 4 else fire + dry
+        return fire + dry
     return sum(GAN_WX.get(g) == wx for g in gans) + sum(
         ZHI_WX.get(z) == wx for z in zhis)
 
