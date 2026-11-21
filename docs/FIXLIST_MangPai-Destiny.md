@@ -35,6 +35,7 @@
 | 历史夏令时 | F1 | 批次 8 已修：显式 is_dst 换算、切换点校验与飞书追问；默认标准时兼容旧调用 |
 | 婚姻星宫定位 | F45、H62、H100 | 批次 9 已修：合干在局、桃花真合日支、星位排除余气，日支本气配偶星可入宫身 |
 | 做功方向量纲 | F10、F8 | 批次 10 已修：火党保留燥土，土支定向与弱方判断统一整数阵营计数 |
+| 提交链与凭证扫描 | A67、A68、A69、A70、A71、A72、F85、F86、F87、F89、F91、F92、F98 | 批次 11 已修：Git 对象直读、编码失败关闭、新密钥/隐私格式、pre-merge/pre-push 与 CI |
 
 环境边界：`test_500_no_internal_echo` 在断网代理下的失败不是产品缺陷；`test_jiaoyun_book_2005_xu_sui` 只在安装 `sxtwl` 时断言精确交运时刻。同文件位置或同模块不自动视为重复，未列条目仍按各自证据独立复核。
 
@@ -3239,7 +3240,7 @@ LLM 叙述开关只认字面值「0」为关闭，其他值都算开启。运维
 
 README 承诺提交前的隐私检查（check_credentials.py）会拦下手机号和真实邮箱，但在中文文本里很容易漏掉。第一，邮箱前后直接挨着汉字时检测不到，例如「联系邮箱zhangsan@&lt;邮箱域名&gt;」「请发至lisi@&lt;邮箱域名&gt;获取」；原因是 Python 的单词边界把汉字也当成单词字符。第二，手机号只认 11 位连写，「+86&lt;11位手机号&gt;」「&lt;横线分隔手机号&gt;」「&lt;空格分隔手机号&gt;」都会放行。第三，测试域名的豁免只看域名里有没有 test. 或 example. 这样的片段，所以 contest.com.cn、latest.io 这类真实域名，以及 yourong@&lt;真实域名&gt; 这种以 your 开头的拼音名，也都被放过。实测以上写法提交时退出码都是 0，闸门不会拦。
 
-**实际观察到的输出**：对照 全角冒号 "邮箱：zhangsan@&lt;邮箱域名&gt;" hits=[('P1','email')] rc=1 汉字紧贴邮箱(前) "联系邮箱zhangsan@&lt;邮箱域名&gt;" hits=[] rc=0 汉字紧贴邮箱(前后) "请发至lisi@&lt;邮箱域名&gt;获取" hits=[] rc=0 含test.的真实域名 "a.b@contest.com.cn" hits=[] rc=0 含test.的真实域名2 "dev@latest.io" hits=[] rc=0 your开头拼音名 "联系人 yourong@&lt;真实域名&gt;" hits=[] rc=0 对照 裸手机号 "电话&lt;11位手机号&gt;" hits=[('P1','cn-mobile')] rc=1 +86手机号 "tel:+86&lt;11位手机号&gt;" hits=[] rc=0 横线分隔手机号 "电话 &lt;横线分隔手机号&gt;" hits=[] rc=0 空格分隔手机号 "电话 &lt;空格分隔手机号&gt;" hits=[] rc=0 （rc=0 表示 pre-commit 闸门放行）
+**实际观察到的输出**：对照 全角冒号 "邮箱：zhangsan@&lt;邮箱域名&gt;" hits=[('P1','email')] rc=1 汉字紧贴邮箱(前) "联系邮箱zhangsan@&lt;邮箱域名&gt;" hits=[] rc=0 汉字紧贴邮箱(前后) "请发至lisi@&lt;邮箱域名&gt;获取" hits=[] rc=0 含test.的真实域名 "a.b@contest.com.cn" hits=[] rc=0 含test.的真实域名2 "dev@latest.io" hits=[] rc=0 your开头拼音名 "联系人 yourong@&lt;真实域名&gt;" hits=[] rc=0 对照 裸手机号 "电话&lt;11位手机号&gt;" hits=[('P1','cn-mobile')] rc=1 +86手机号 "tel:+86&lt;11位手机号&gt;" hits=[] rc=0 横线分隔手机号 "电话 &lt;横线分隔手机号&gt;" hits=[] rc=0 空格分隔手机号 "电话 &lt;空格分隔手机号&gt;" hits=[] rc=0 （rc=0 表示 pre-commit 闸门放行） <!-- credscan: allow-email -->
 
 **修改要点**
 

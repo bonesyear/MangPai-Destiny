@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1691 验证用例全绿。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1719 验证用例全绿。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,7 +47,7 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 404 passed（404 项） | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1691 passed | ✅ |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1719 passed | ✅ |
 | blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261118_batch10.json`（rubric v10）；相对批9有1条财档退化和3条理由变化，均已归因，双 seed 一致 | ⚠️ yx-医师方向纠正后暴露财坏印压档过重，留专项 |
 
 ## 入仓前的脱敏闸门
@@ -72,10 +72,13 @@ python3 scripts/check_doc_numbers.py --github  # 追加核对 GitHub 仓库 desc
 - 输出一律打码（前 4 + 后 2），白名单占位符（`your-`/`<REDACTED>`/`sk-fake*` 等）放行
 
 ```bash
-bash scripts/install_git_hooks.sh   # 安装 pre-commit hook（.git/hooks/ 不入库，克隆后需执行一次）
+bash scripts/install_git_hooks.sh   # 安装 pre-commit / pre-merge-commit / pre-push（不入库，克隆后需执行）
+MANGPAI_PYTHON=python bash scripts/install_git_hooks.sh  # Windows 无 python3 时可显式指定
 python3 scripts/check_credentials.py          # 手动扫暂存区（默认 --staged）
 python3 scripts/check_credentials.py --all    # 全量审计（存量出生信息告警/P2 路径命中属预期）
 ```
+
+本地钩子覆盖提交、自动合并和推送；`.github/workflows/credentials.yml` 对 PR/push 再跑全量扫描。已有非本脚本钩子不会被覆盖，可用 `MANGPAI_PYTHON` 指定 Python 3.10+。
 
 ## 三层审计
 

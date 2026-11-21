@@ -115,20 +115,21 @@ class TestLocalPathP2:
         f.write_text("sys.path.insert(0, '/root/somewhere/x')\n", encoding="utf-8")
         rc, out = gate.scan_paths([f], strict=False)
         assert rc == 0
-        assert "P2" in out
+        assert "[P2] abs-path-root" in out
 
     def test_p2_strict_exit_1(self, gate, tmp_path):
         f = tmp_path / "b.py"
         f.write_text("p = '/Users/somebody/project'\n", encoding="utf-8")
         rc, out = gate.scan_paths([f], strict=True)
         assert rc == 1
+        assert "[P2] abs-path-macos-user" in out
 
     def test_home_of_real_user_is_p2(self, gate, tmp_path):
         import getpass
         f = tmp_path / "c.sh"
         f.write_text(f"cd /home/{getpass.getuser()}/work\n", encoding="utf-8")
         findings = gate.scan_paths([f], strict=False)[1]
-        assert "P2" in findings
+        assert "[P2] abs-path-home-user" in findings
 
 
 class TestStagedMode:
@@ -173,3 +174,151 @@ class TestStagedMode:
         subprocess.run(["git", "add", "old.py"], cwd=repo, check=True)
         r = self._run_gate(repo)
         assert r.returncode == 0, r.stdout + r.stderr
+
+
+class TestExtendedPatterns:
+    @pytest.mark.parametrize('line', [
+        f'FEISHU_APP_SECRET={FAKE_ARK[4:]}',
+        f'OPENAI_API_KEY=sk-proj-{FAKE_ARK[4:]}',
+        f'ANTHROPIC_API_KEY=sk-ant-api03-{FAKE_ARK[4:]}',
+        f'GITHUB_TOKEN=ghs_{FAKE_ARK[4:]}',
+        f'app_secret="{FAKE_ARK[4:]}"',
+    ])
+    def test_new_secret_shapes_hit(self, gate, line):
+        assert any(f.level == 'P0' for f in gate.scan_lines([line], fname='t.env'))
+
+    @pytest.mark.parametrize('suffix', ['# your-key', '# TODO xxx', '# ***'])
+    def test_nearby_placeholder_does_not_exempt(self, gate, suffix):
+        line = f'key = "{FAKE_SK}" {suffix}'
+        assert any(f.level == 'P0' for f in gate.scan_lines([line], fname='t.py'))
+        line = f'phone={FAKE_PHONE} {suffix}'
+        assert any(f.level == 'P1' for f in gate.scan_lines([line], fname='t.py'))
+
+    @pytest.mark.parametrize('word', ['spark-submit', 'dark-themes'])
+    def test_ark_requires_word_boundary(self, gate, word):
+        assert not any(f.kind == 'volcengine-ark-key'
+                       for f in gate.scan_lines([word], fname='t.md'))
+
+
+class TestPrivacyFormats:
+    @pytest.mark.parametrize('line', [
+        '联系邮箱zhangsan@real-domain.cn',  # credscan: allow-email
+        '请发至lisi@real-domain.cn获取',  # credscan: allow-email
+        'dev@latest.io',  # credscan: allow-email
+        '联系人 yourong@real-domain.cn',  # credscan: allow-email
+    ])
+    def test_email_boundaries_and_exemptions(self, gate, line):
+        assert any(f.kind == 'email' for f in gate.scan_lines([line], fname='t.md'))
+
+    @pytest.mark.parametrize('line', [
+        f'tel:+86{FAKE_PHONE}',
+        f'tel:{FAKE_PHONE[:3]}-{FAKE_PHONE[3:7]}-{FAKE_PHONE[7:]}',
+        f'tel:{FAKE_PHONE[:3]} {FAKE_PHONE[3:7]} {FAKE_PHONE[7:]}',
+    ])
+    def test_mobile_formats(self, gate, line):
+        assert any(f.kind == 'cn-mobile' for f in gate.scan_lines([line], fname='t.md'))
+
+
+class TestRobustInputs:
+    @pytest.mark.parametrize('encoding', ['utf-16', 'gb18030'])
+    def test_encoded_files_are_not_skipped(self, gate, tmp_path, encoding):
+        f = tmp_path / f'{encoding}.txt'
+        f.write_text(f'中文注释\napi_key={FAKE_SK}\n', encoding=encoding)
+        rc, out = gate.scan_paths([f])
+        assert rc == 1 and 'P0' in out
+
+    def test_getuser_failure_does_not_break_import(self, monkeypatch):
+        import getpass
+        monkeypatch.setattr(getpass, 'getuser', lambda: (_ for _ in ()).throw(OSError()))
+        gate = _load_mod()
+        assert gate.scan_lines([f'key={FAKE_SK}'], fname='t.py')
+
+    def test_all_from_subdirectory_and_unicode_name(self, tmp_path):
+        repo = TestStagedMode()._repo(tmp_path)
+        (repo / 'sub').mkdir()
+        (repo / '笔记.md').write_text(f'tel={FAKE_PHONE}\n', encoding='utf-8')
+        subprocess.run(['git', 'add', '.'], cwd=repo, check=True)
+        r = subprocess.run([sys.executable, str(SCRIPT), '--all'], cwd=repo / 'sub',
+                           capture_output=True, text=True, encoding='utf-8', errors='replace')
+        assert r.returncode == 1 and 'P1=1' in r.stdout
+
+    @pytest.mark.parametrize('kind', ['nodiff', 'external', 'u2028'])
+    def test_staged_bypasses_closed(self, tmp_path, kind):
+        repo = TestStagedMode()._repo(tmp_path)
+        name = 'config.yaml' if kind == 'nodiff' else 'notes.txt'
+        text = f'note: see below\u2028api_key={FAKE_SK}' if kind == 'u2028' else f'api_key={FAKE_SK}'
+        (repo / name).write_text(text, encoding='utf-8')
+        if kind == 'nodiff':
+            (repo / '.gitattributes').write_text('*.yaml -diff\n', encoding='utf-8')
+            subprocess.run(['git', 'add', '.gitattributes'], cwd=repo, check=True)
+        if kind == 'external':
+            subprocess.run(['git', 'config', 'diff.external', 'echo'], cwd=repo, check=True)
+        subprocess.run(['git', 'add', name], cwd=repo, check=True)
+        r = TestStagedMode()._run_gate(repo)
+        assert r.returncode == 1 and 'P0' in r.stdout
+
+
+class TestHookChain:
+    def _install(self, repo):
+        import shutil
+        (repo / 'scripts').mkdir()
+        for name in ('check_credentials.py', 'install_git_hooks.sh'):
+            shutil.copy2(REPO_ROOT / 'scripts' / name, repo / 'scripts' / name)
+        bash = shutil.which('bash')
+        if not bash:
+            pytest.skip('bash unavailable')
+        env = dict(os.environ, MANGPAI_PYTHON=sys.executable)
+        return subprocess.run([bash, 'scripts/install_git_hooks.sh'], cwd=repo,
+                              env=env, capture_output=True, text=True), env
+
+    def test_existing_hook_is_not_overwritten(self, tmp_path):
+        repo = TestStagedMode()._repo(tmp_path)
+        (repo / '.git' / 'hooks' / 'pre-commit').write_text('# custom\n', encoding='utf-8')
+        r, _env = self._install(repo)
+        assert r.returncode == 1
+        assert (repo / '.git' / 'hooks' / 'pre-commit').read_text() == '# custom\n'
+
+    def test_pre_push_scans_incoming_commit_range(self, tmp_path):
+        repo = TestStagedMode()._repo(tmp_path)
+        r, env = self._install(repo)
+        assert r.returncode == 0, r.stdout + r.stderr
+        subprocess.run(['git', 'config', 'user.email', 't@example.com'], cwd=repo, check=True)
+        subprocess.run(['git', 'config', 'user.name', 't'], cwd=repo, check=True)
+        (repo / 'ok.txt').write_text('ok\n', encoding='utf-8')
+        subprocess.run(['git', 'add', '.'], cwd=repo, check=True)
+        subprocess.run(['git', 'commit', '-qm', 'init'], cwd=repo, env=env, check=True)
+        old = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip()
+        (repo / 'bad.txt').write_text(f'key={FAKE_SK}\n', encoding='utf-8')
+        subprocess.run(['git', 'add', '.'], cwd=repo, check=True)
+        subprocess.run(['git', 'commit', '--no-verify', '-qm', 'incoming'], cwd=repo, check=True)
+        new = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip()
+        import shutil
+        pushed = subprocess.run(
+            [shutil.which('bash'), str(repo / '.git' / 'hooks' / 'pre-push')],
+            cwd=repo, env=env, input=f'refs/heads/main {new} refs/heads/main {old}\n',
+            capture_output=True, text=True, encoding='utf-8', errors='replace')
+        assert pushed.returncode == 1, pushed.stdout + pushed.stderr
+        assert 'P0' in pushed.stdout + pushed.stderr
+
+
+class TestStagedSpecialContent:
+    def test_utf16_staged_blob(self, tmp_path):
+        repo = TestStagedMode()._repo(tmp_path)
+        (repo / 'utf16.txt').write_text(f'api_key={FAKE_SK}\n', encoding='utf-16')
+        subprocess.run(['git', 'add', 'utf16.txt'], cwd=repo, check=True)
+        r = TestStagedMode()._run_gate(repo)
+        assert r.returncode == 1 and 'P0' in r.stdout
+
+    def test_lfs_smudged_blob(self, tmp_path):
+        import shutil
+        if not shutil.which('git-lfs'):
+            pytest.skip('git-lfs unavailable')
+        repo = TestStagedMode()._repo(tmp_path)
+        subprocess.run(['git', 'lfs', 'install', '--local'], cwd=repo, check=True,
+                       capture_output=True)
+        (repo / '.gitattributes').write_text('*.env filter=lfs diff=lfs merge=lfs -text\n',
+                                             encoding='utf-8')
+        (repo / 'secret.env').write_text(f'api_key={FAKE_SK}\n', encoding='utf-8')
+        subprocess.run(['git', 'add', '.gitattributes', 'secret.env'], cwd=repo, check=True)
+        r = TestStagedMode()._run_gate(repo)
+        assert r.returncode == 1 and 'P0' in r.stdout

@@ -13,7 +13,8 @@
 不含任何真实凭证。零依赖（纯标准库）。
 """
 import argparse
-import getpass
+import difflib
+import os
 import re
 import subprocess
 import sys
@@ -25,9 +26,9 @@ SELF = Path(__file__).resolve()
 # ---------------------------------------------------------------- 扫描模式（分类分级）
 # P0 真凭证：命中即阻止
 P0_PATTERNS = [
-    ("volcengine-ark-key", re.compile(r"ark-[A-Za-z0-9]{6,}")),
-    ("sk-style-key", re.compile(r"\bsk-[A-Za-z0-9]{16,}")),
-    ("github-token", re.compile(r"\b(?:ghp|gho)_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}")),
+    ("volcengine-ark-key", re.compile(r"\bark-[A-Za-z0-9]{6,}")),
+    ("sk-style-key", re.compile(r"\bsk-(?:[a-z0-9]+-)*[A-Za-z0-9_-]{16,}")),
+    ("github-token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}")),
     ("aws-access-key", re.compile(r"\bAKIA[A-Z0-9]{16}\b")),
     ("slack-token", re.compile(r"\bxox[bp]-[A-Za-z0-9-]{10,}")),
     ("private-key-block", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY")),
@@ -37,7 +38,10 @@ P0_PATTERNS = [
 # 纯 snake_case 标识符、小写连字符文件名、纯 hex 摘要等不计）
 HIGH_ENTROPY = re.compile(r"[A-Za-z0-9_-]{32,}")
 ENTROPY_CONTEXT = re.compile(
-    r"(?i)\b(?:api[_-]?key|secret|token|password|passwd|credentials?|auth(?:orization)?)\b")
+    r"(?i)(?:api[_-]?key|secret|token|passw(?:or)?d|credentials?|auth)(?![a-z])")
+ENV_ASSIGN_RE = re.compile(
+    r"\b[A-Z][A-Z0-9_]*(?:KEY|SECRET|TOKEN|PASSWORD)\s*=\s*[\"']?"
+    r"([A-Za-z0-9_./+\-=]{16,})")
 
 
 def _is_mixed_secret_shape(value: str) -> bool:
@@ -45,11 +49,14 @@ def _is_mixed_secret_shape(value: str) -> bool:
 
 # P1 隐私：默认阻止；birth-data 首批只告警，见 _verdict。
 P1_PATTERNS = [
-    ("cn-mobile", re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")),
+    ("cn-mobile", re.compile(
+        r"(?<!\d)(?:\+?86[-\s]?)?1[3-9]\d[-\s]?\d{4}[-\s]?\d{4}(?!\d)")),
     ("cn-id-card", re.compile(r"(?<![\dXx])\d{17}[\dXx](?!\d)")),
 ]
-EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)\b")
-EMAIL_EXEMPT = ("example.", "test.", "localhost")
+EMAIL_RE = re.compile(
+    r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@"
+    r"([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)(?![A-Za-z0-9-])")
+EMAIL_EXEMPT = ("example.com", "example.org", "example.net", ".example", ".test", ".invalid")
 BIRTH_DATE_RE = re.compile(
     r"(?<!\d)(?:(?:19|20)\d{2}\s*[-/.年]\s*\d{1,2}\s*[-/.月]\s*\d{1,2}\s*日?"
     r"|(?:19|20)\d{2}\s*,\s*\d{1,2}\s*,\s*\d{1,2})")
@@ -70,21 +77,22 @@ P2_PATTERNS = [
     ("abs-path-root", re.compile(r"/root/")),
     ("abs-path-macos-user", re.compile(r"/Users/")),
     ("abs-path-win-user", re.compile(r"[A-Za-z]:\\Users\\")),
-    ("abs-path-home-user", re.compile(r"/home/" + re.escape(getpass.getuser()) + r"/")),
+    ("abs-path-home-user", re.compile(r"/home/[^/]+/")),
 ]
 
 # ---------------------------------------------------------------- 白名单/豁免
-PLACEHOLDER_TOKENS = ("your-", "<REDACTED>", "***", "xxx")
 FAKE_PREFIXES = ("sk-fake", "sk-file")
 
 
 def _is_placeholder(value: str, line: str, start: int, end: int) -> bool:
-    """占位符/测试假值豁免：看命中值本身与邻近上下文。"""
+    """只按命中值本身豁免，邻近注释不得连带放行真实凭证。"""
     v = value.lower()
-    if v.startswith(FAKE_PREFIXES) or v.startswith("your-"):
-        return True
-    ctx = line[max(0, start - 24):end + 24].lower()
-    return any(tok.lower() in ctx for tok in PLACEHOLDER_TOKENS)
+    return (v.startswith(FAKE_PREFIXES) or v.startswith("your-") or "-fake-" in v
+            or v == "<redacted>" or re.fullmatch(r"(?:sk-)?x{3,}|\*+", v) is not None)
+
+
+def _allowed(line: str, kind: str) -> bool:
+    return re.search(rf"credscan:\s*allow-(?:{re.escape(kind)}|all)\b", line) is not None
 
 
 def mask(value: str) -> str:
@@ -123,7 +131,7 @@ def scan_lines(lines, fname: str):
     for lineno, line in enumerate(lines, 1):
         for kind, pat in P0_PATTERNS:
             for m in pat.finditer(line):
-                if _is_placeholder(m.group(0), line, m.start(), m.end()):
+                if _is_placeholder(m.group(0), line, m.start(), m.end()) or _allowed(line, kind):
                     continue
                 findings.append(Finding("P0", kind, fname, lineno, mask(m.group(0))))
         for m in HIGH_ENTROPY.finditer(line):
@@ -133,18 +141,29 @@ def scan_lines(lines, fname: str):
             ctx = line[max(0, m.start() - 48):m.end() + 48]
             if not ENTROPY_CONTEXT.search(ctx):
                 continue
-            if _is_placeholder(value, line, m.start(), m.end()):
+            if _is_placeholder(value, line, m.start(), m.end()) or _allowed(line, "high-entropy-near-key"):
                 continue
             findings.append(Finding("P0", "high-entropy-near-key", fname, lineno, mask(value)))
+        for m in ENV_ASSIGN_RE.finditer(line):
+            value = m.group(1)
+            if _allowed(line, "sensitive-env-assignment"):
+                continue
+            if not _is_placeholder(value, line, m.start(1), m.end(1)):
+                findings.append(Finding("P0", "sensitive-env-assignment", fname, lineno, mask(value)))
         for kind, pat in P1_PATTERNS:
             for m in pat.finditer(line):
-                if _is_placeholder(m.group(0), line, m.start(), m.end()):
+                if _is_placeholder(m.group(0), line, m.start(), m.end()) or _allowed(line, kind):
                     continue
                 findings.append(Finding("P1", kind, fname, lineno, mask(m.group(0))))
         for m in EMAIL_RE.finditer(line):
             domain = m.group(1).lower()
             local = m.group(0).split("@", 1)[0].lower()
-            if any(t in domain for t in EMAIL_EXEMPT) or local.startswith(("test", "your")):
+            exempt = domain == "localhost" or any(
+                domain == token or domain.endswith(token if token.startswith(".") else "." + token)
+                for token in EMAIL_EXEMPT)
+            if exempt or local in ("test", "your", "your-email"):
+                continue
+            if _allowed(line, "email"):
                 continue
             findings.append(Finding("P1", "email", fname, lineno, mask(m.group(0))))
         birth_windows = [line]
@@ -163,21 +182,36 @@ def scan_lines(lines, fname: str):
     return findings
 
 
+def _decode_text(data: bytes) -> str:
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return data.decode("utf-16")
+    for encoding in ("utf-8-sig", "gb18030"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            pass
+    return data.decode("latin-1")
+
+
 def scan_paths(paths, strict: bool = False):
-    """扫描文件列表，返回 (退出码, 报告文本)。报告只含打码片段。"""
+    """扫描文件列表，返回 (退出码, 报告文本)。不可读文件失败关闭。"""
     findings = []
+    unscanned = []
     for p in paths:
         p = Path(p)
         try:
-            text = p.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            continue  # 二进制/不可读文件跳过
-        findings.extend(scan_lines(text.splitlines(), fname=str(p)))
-    return _verdict(findings, strict)
+            text = _decode_text(p.read_bytes())
+        except OSError:
+            unscanned.append(str(p))
+            continue
+        findings.extend(scan_lines(text.split('\n'), fname=str(p)))
+    return _verdict(findings, strict, unscanned)
 
 
-def _verdict(findings, strict: bool):
+def _verdict(findings, strict: bool, unscanned=None):
+    unscanned = unscanned or []
     lines = [f.render() for f in findings]
+    lines.extend(f"{p}: [ERROR] unscanned" for p in unscanned)
     n0 = sum(1 for f in findings if f.level == "P0")
     n1 = sum(1 for f in findings if f.level == "P1")
     n2 = sum(1 for f in findings if f.level == "P2")
@@ -185,7 +219,9 @@ def _verdict(findings, strict: bool):
                  + ("（--strict 生效）" if strict else ""))
     blocking_p1 = sum(
         f.level == "P1" and f.kind != "birth-data" for f in findings)
-    if n0 or blocking_p1:
+    if unscanned:
+        rc = 2
+    elif n0 or blocking_p1:
         rc = 1
     elif n2 and strict:
         rc = 1
@@ -195,39 +231,62 @@ def _verdict(findings, strict: bool):
     return rc, "\n".join(lines) + "\n"
 
 
-def _staged_lines():
-    """解析 git diff --cached --unified=0，产出 (文件名, 新增行) 列表。"""
-    proc = subprocess.run(
-        ["git", "diff", "--cached", "--unified=0", "--no-color", "--diff-filter=ACMR"],
-        capture_output=True, text=True,
-        encoding="utf-8", errors="replace")  # git diff 输出是 UTF-8，Windows locale(GBK) 解码会炸
+def _repo_root() -> str:
+    proc = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True)
     if proc.returncode != 0:
-        raise RuntimeError("git diff --cached 失败: " + proc.stderr.strip())
+        raise RuntimeError("git rev-parse 失败: " + proc.stderr.decode("utf-8", "replace").strip())
+    return proc.stdout.strip().decode("utf-8", "surrogateescape")
+
+
+def _git_blob(root: str, spec: str, missing_ok: bool = False) -> str:
+    proc = subprocess.run(["git", "cat-file", "--filters", spec],
+                          cwd=root, capture_output=True)
+    if proc.returncode != 0:
+        if missing_ok:
+            return ""
+        raise RuntimeError("读取 Git 内容失败: " + spec)
+    return _decode_text(proc.stdout)
+
+
+def _changed_lines(range_spec: str = None):
+    root = _repo_root()
+    if range_spec:
+        old_ref, new_ref = range_spec.split("..", 1)
+        args = ["diff", "--name-only", "-z", "--diff-filter=ACMRT", old_ref, new_ref]
+    else:
+        old_ref, new_ref = "HEAD", None
+        args = ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMRT"]
+    proc = subprocess.run(["git", *args], cwd=root, capture_output=True)
+    if proc.returncode != 0:
+        raise RuntimeError("git diff 失败: " + proc.stderr.decode("utf-8", "replace").strip())
     per_file = {}
-    fname = None
-    for raw in proc.stdout.splitlines():
-        if raw.startswith("+++ "):
-            path = raw[4:]
-            fname = None if path == "/dev/null" else (path[2:] if path.startswith("b/") else path)
-        elif raw.startswith("+++") or raw.startswith("@@"):
+    for raw_path in proc.stdout.split(b"\0"):
+        if not raw_path:
             continue
-        elif raw.startswith("+") and fname is not None:
-            per_file.setdefault(fname, []).append(raw[1:])
+        path = raw_path.decode("utf-8", "surrogateescape")
+        old_text = _git_blob(root, f"{old_ref}:{path}", missing_ok=True)
+        new_spec = f"{new_ref}:{path}" if new_ref else f":{path}"
+        new_text = _git_blob(root, new_spec)
+        old_lines, new_lines = old_text.split('\n'), new_text.split('\n')
+        added = []
+        matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
+        for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
+            if tag in ("insert", "replace"):
+                added.extend(new_lines[j1:j2])
+        per_file[path] = added
     return per_file
 
 
 def _all_files():
-    proc = subprocess.run(
-        ["git", "ls-files", "-z"] ,
-        capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError("git ls-files 失败: " + proc.stderr.strip())
-    tracked = proc.stdout.split("\0")
-    proc2 = subprocess.run(
-        ["git", "ls-files", "-z", "--others", "--exclude-standard"],
-        capture_output=True, text=True)
-    others = proc2.stdout.split("\0") if proc2.returncode == 0 else []
-    return [p for p in tracked + others if p]
+    root = _repo_root()
+    lists = []
+    for args in (["ls-files", "-z"], ["ls-files", "-z", "--others", "--exclude-standard"]):
+        proc = subprocess.run(["git", *args], cwd=root, capture_output=True)
+        if proc.returncode != 0:
+            raise RuntimeError("git ls-files 失败: " + proc.stderr.decode("utf-8", "replace").strip())
+        lists.append(proc.stdout)
+    return [os.path.join(root, raw.decode("utf-8", "surrogateescape"))
+            for output in lists for raw in output.split(b"\0") if raw]
 
 
 def main(argv=None) -> int:
@@ -238,6 +297,8 @@ def main(argv=None) -> int:
                       help="只扫暂存区新增行（默认，供 pre-commit hook 用）")
     mode.add_argument("--all", action="store_true",
                       help="全量审计：扫描全部已跟踪+未忽略文件")
+    mode.add_argument("--range", metavar="OLD..NEW",
+                      help="扫描提交范围的新增行（pre-push 用）")
     ap.add_argument("--strict", action="store_true",
                     help="P2 本机路径命中也返回退出码 1")
     ap.add_argument("paths", nargs="*", help="直接指定文件扫描（调试用途）")
@@ -248,19 +309,24 @@ def main(argv=None) -> int:
             rc, report = scan_paths(args.paths, strict=args.strict)
         elif args.all:
             rc, report = scan_paths(_all_files(), strict=args.strict)
-        else:  # 默认 --staged
+        else:  # 默认 --staged；--range 走同一 Git 对象比较逻辑
             findings = []
-            for fname, lines in _staged_lines().items():
+            for fname, lines in _changed_lines(args.range).items():
                 findings.extend(scan_lines(lines, fname=fname))
             rc, report = _verdict(findings, args.strict)
-    except RuntimeError as e:
+    except (RuntimeError, OSError, UnicodeError) as e:
         print(f"check_credentials: {e}", file=sys.stderr)
         return 2
+    except Exception as e:
+        print(f"check_credentials: 闸门自身异常: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
 
-    if rc != 0:
+    if rc == 1:
         report += ("修复指引：移除敏感串（改用环境变量/占位符），或确认其为测试假值后"
                    "按白名单形态（your-/sk-fake*/<REDACTED> 等）改写；"
                    "P2 本机路径改为相对路径或 __file__ 锚定。\n")
+    elif rc == 2:
+        report += "闸门自身异常或存在未扫描文件；请修复环境后重试，未执行内容扫描。\n"
     sys.stdout.write(report)
     return rc
 

@@ -1,5 +1,14 @@
 # 盲派客观层 变更记录
 
+## 2026-11-21 新审查批次 11 · 提交链与凭证扫描
+
+| 项目 | 内容 |
+|------|------|
+| 扫描根因 | A70/F86/F89：暂存区改为直接读取Git对象并与HEAD逐行比较，支持--range；避开外部diff、-diff、LFS指针、类型变更与U+2028。UTF-8/UTF-16/GBK统一解码，不可读文件返回2，不再静默跳过；A67/A71从子目录和中文路径均以仓库根扫描 |
+| 规则与豁免 | F85/F87/F92/F98：覆盖sk-proj/sk-ant/ghs、下划线secret/token、飞书密钥、中文邮箱边界及+86/分隔手机号；ark增加边界。占位符只看命中值本身，显式credscan allow按规则豁免；P2测试改为具体条目断言 |
+| 钩子与CI | A69/A68/A72/F91：安装pre-commit、pre-merge-commit、pre-push；pre-push扫描远端..本地提交范围。解释器支持MANGPAI_PYTHON/python3/python/py -3，已有非本脚本钩子拒绝覆盖，支持worktree/hooksPath。新增credentials工作流兜底PR与push |
+| 验收 | 安全专项51条通过，含真实LFS、UTF-16、外部diff、子目录中文路径和pre-push提交范围；pytest 1719通过，CI同款--all为P0=0。引擎零改动，509盘双seed对拍零差异；真实LLM/飞书未调用 |
+
 ## 2026-11-18 新审查批次 10 · 做功方向量纲
 
 | 项目 | 内容 |
