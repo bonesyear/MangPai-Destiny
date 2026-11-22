@@ -308,11 +308,11 @@ def analyze_zuogong(
 
     work_actions.extend(tomb_works)
     # 入墓优先：同一墓库/被收端点不再按普通相克做功；冲穿刑合仍按 R4 并存。
-    _tomb_pairs = {(tw.get('from_pos', ''), tw.get('to_pos', ''))
+    _tomb_pairs = {frozenset((tw.get('from_pos', ''), tw.get('to_pos', '')))
                    for tw in tomb_works}
     for _wa in work_actions:
         if (_wa.get('type') == '克'
-                and (_wa.get('from_pos', ''), _wa.get('to_pos', '')) in _tomb_pairs):
+                and frozenset((_wa.get('from_pos', ''), _wa.get('to_pos', ''))) in _tomb_pairs):
             _wa['auxiliary'] = True
             _wa['tomb_covered'] = True
 
@@ -375,14 +375,20 @@ def analyze_zuogong(
             continue
         _f_party = _main_qi_count(_f_wx, gans, zhis, camp=False)
         _t_party = _main_qi_count(_t_wx, gans, zhis, camp=False)
-        _weak = _f_party < 4 <= _t_party
-        if _f_party >= 4 and _t_party >= 4 and _relation_direction != 'mutual':
-            _f_compare = _party_strength(_f_wx, gans, zhis)
-            _t_compare = _party_strength(_t_wx, gans, zhis)
-            if _wa.get('type') in ('冲', '刑') and _f_wx == _t_wx == '土':
-                _f_compare = _single_zhi_party(_f_wx, _f_elem, zhis, gans)
-                _t_compare = _single_zhi_party(_t_wx, _t_elem, zhis, gans)
-            _weak = _f_compare <= _t_compare
+        if _relation_direction == 'mutual':
+            _from_main = _pillar_of(_wa.get('from_pos', '')) in binzhu_zhu
+            _main_party = _f_party if _from_main else _t_party
+            _bin_party = _t_party if _from_main else _f_party
+            _weak = _main_party < 4 <= _bin_party
+        else:
+            _weak = _f_party < 4 <= _t_party
+            if _f_party >= 4 and _t_party >= 4:
+                _f_compare = _party_strength(_f_wx, gans, zhis)
+                _t_compare = _party_strength(_t_wx, gans, zhis)
+                if _wa.get('type') in ('冲', '刑') and _f_wx == _t_wx == '土':
+                    _f_compare = _single_zhi_party(_f_wx, _f_elem, zhis, gans)
+                    _t_compare = _single_zhi_party(_t_wx, _t_elem, zhis, gans)
+                _weak = _f_compare <= _t_compare
         if _weak:
             _wa['auxiliary'] = True
             _wa['weak_faction'] = True
@@ -533,7 +539,7 @@ def analyze_zuogong(
     _has_shi_hezhi = False
     if _shi_wx:
         for wa in work_actions:
-            if wa.get('type') != '天干合':
+            if wa.get('type') != '天干合' or wa.get('auxiliary'):
                 continue
             if (wa.get('from_pos', '').startswith('day_')
                     or wa.get('to_pos', '').startswith('day_')):
@@ -578,19 +584,22 @@ def analyze_zuogong(
     # 化用强度：月干印（司令透干）=3；坐下印（日支本气贴身）=2（供规则表消费）
     _yin_wx_hua = next((wx for wx, prod in WX_SHENG.items() if prod == day_wx), '')
     _hua_strength = 3 if (len(gans) >= 2 and GAN_WX.get(gans[1], '') == _yin_wx_hua) else 2
-    # 生用候选（旧链口径）：非辅助 + 未入墓 + 穿让位过滤。食伤泄秀之伤官/食神
-    # 若入墓（gan_entombed），泄秀之器受制无力泄秀，生用不当主功，让位予弃干
-    # 看支之制用（制例二 戊日伤官辛入墓，主功在日支寅克丑/戌之制用）。
+    # 生用候选：非辅助 + 食伤自身所在柱未坐墓 + 穿让位；日柱坐墓不连坐。
+    # 食伤所在干入墓时让位弃干看支；制例二的制用/丙辛合制均属合法锚。
     _sheng_qualified = sorted(
         [a for a in sheng_yong_actions
          if not a.get('auxiliary')
-         and not a.get('gan_entombed')
+         and not (a.get('to_pos', '').endswith('_gan')
+                  and _pillar_of(a.get('to_pos', '')) in entombed_gan_pillars)
          and not (_chuan_yields and a.get('to_pos') == 'day_zhi')],
-        key=lambda a: not a.get('inner_food'),
+        key=lambda a: (not a.get('inner_food'), a.get('action') != '生用'),
     )
     def _target_ss(pos):
         target = _elem_of(pos, gans, zhis)
         return {_shishen_of(day_gan, cg) for cg, _ in get_canggan_mangpai(target)}
+
+    _muku_analysis = analyze_muku(zhis, gans)
+    _open_tombs = _muku_analysis.get('open_tombs', [])
 
     def _paired_wealth_control(wa):
         if wa.get('action') != '克':
@@ -601,10 +610,8 @@ def analyze_zuogong(
         if target_ss.isdisjoint(('正财', '偏财')) or target_ss.isdisjoint(('食神', '伤官')):
             return False
         return any(other.get('type') in ('地支合', '暗合')
-                   and other.get('to_pos') == wa.get('to_pos')
+                   and wa.get('to_pos') in (other.get('from_pos'), other.get('to_pos'))
                    and not other.get('auxiliary') for other in work_actions)
-
-    _open_tombs = analyze_muku(zhis, gans).get('open_tombs', [])
 
     def _open_officer_tomb(wa):
         if wa.get('action') not in ('冲', '克', '穿', '刑'):
@@ -706,7 +713,8 @@ def analyze_zuogong(
                 cg = get_canggan_mangpai(target)
                 if not cg or _shishen_of(day_gan, cg[0][0]) not in ('食神', '伤官'):
                     return False
-                return any(not other.get('auxiliary') and other.get('action') == '克'
+                return any((not other.get('auxiliary') or other.get('tomb_covered'))
+                           and other.get('action') == '克'
                            and other.get('from_pos') == wa.get('to_pos')
                            and other.get('to_pos') == wa.get('from_pos')
                            for other in work_actions)
@@ -757,11 +765,16 @@ def analyze_zuogong(
             return len(attackers) >= 2 and len(attacker_wx) == 1
 
         # 多而墓之、刑冲开库与成组控制，不让普通合/生抢占主功。
-        pa = next(
-            (wa for wa in c['zhi_actions']
-             if wa.get('book_tomb_primary') or _repeat_tomb(wa)),
-            next((wa for wa in c['zhi_actions'] if _strong_control(wa)),
-                 (c['active_zhi'] or c['zhi_actions'])[0]))
+        pa = next((wa for wa in c['zhi_actions']
+                   if wa.get('book_tomb_primary') or _repeat_tomb(wa)), None)
+        if pa is None:
+            pa = next((wa for wa in c['zhi_actions'] if _strong_control(wa)), None)
+        if pa is None and c['chuan_yields']:
+            pa = next((wa for wa in c['zhi_actions']
+                       if wa.get('action') == '穿' and wa.get('severity') == 'high'
+                       and 'day_zhi' in (wa.get('from_pos'), wa.get('to_pos'))), None)
+        if pa is None:
+            pa = (c['active_zhi'] or c['zhi_actions'])[0]
         _pa = pa.get('action')
         if _pa == '墓用':
             ptype, _path = '墓用', '弃干看支（日支墓用做功）'
@@ -770,7 +783,8 @@ def analyze_zuogong(
         else:
             ptype, _path = '制用', '弃干看支（日支刑冲穿做功）'
         strength = 4 if pa.get('book_tomb_primary') or _repeat_tomb(pa) or _strong_control(pa) else (
-            5 if c['chuan_yields'] else (2 if c['active_zhi'] else 1))
+            5 if c['chuan_yields'] and pa.get('action') == '穿'
+            else (2 if c['active_zhi'] else 1))
         return {'type': ptype, 'path': _path, 'action': pa, 'strength': strength}
 
     # 声明式规则表（priority=表序）
@@ -850,6 +864,15 @@ def analyze_zuogong(
                                 'path': f'日支合用做功（{_dw.get("desc", "")}）'}
         else:
             primary_work = {'type': '禄比', 'path': '日干支俱不做功，看禄/比劫'}
+    if primary_action is None and _candidates:
+        primary_work['candidates'] = [
+            {'rule': c['rule'], 'type': c['type'], 'strength': c['strength'],
+             'vetoed': c['vetoed'], 'veto_reasons': c['veto_reasons']}
+            for c in _candidates
+        ]
+        primary_work['resolution'] = {
+            'winner_rule': None, 'override_fired': False, 'margin': _OVERRIDE_MARGIN,
+        }
     if primary_action is not None:
         primary_action['primary'] = True
 

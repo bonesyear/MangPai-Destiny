@@ -729,4 +729,5 @@ def test_closed_tomb_does_not_suppress_shengyong():
     result = detect_relations(*args)
     assert any(a.get('to_pos') == 'month_zhi' and a.get('subtype') == '食伤生财'
                for a in result['sheng_yong_actions'])
-    assert analyze_zuogong(*args)['primary_work']['type'] == '生用'
+    # H50 同宫财食受克合规则参与主功裁决；生用动作恢复，但主功重裁为制用。
+    assert analyze_zuogong(*args)['primary_work']['type'] == '制用'

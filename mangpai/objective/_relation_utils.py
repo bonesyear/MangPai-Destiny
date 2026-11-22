@@ -181,8 +181,12 @@ def _directed_control_edges(zhis: List[str], gans: Optional[List[str]] = None
         else:
             continue
         if sa > sb:
+            if edge_type.get((b, a)) == '克':
+                edge_type.pop((b, a))
             _add(a, b, '冲')
         elif sb > sa:
+            if edge_type.get((a, b)) == '克':
+                edge_type.pop((a, b))
             _add(b, a, '冲')
     return [(a, b, t) for (a, b), t in edge_type.items()]
 

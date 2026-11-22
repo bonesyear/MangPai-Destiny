@@ -174,7 +174,9 @@ def _longest_path(edges: List[Tuple[str, str, str]]) -> Tuple[List[str], List[Tu
 
     def _dfs(node: str, path_nodes: List[str], path_edges: List[Tuple[str, str, str]]):
         nonlocal best_nodes, best_edges
-        if len(path_edges) > len(best_edges):
+        score = (len(path_edges), sum(t == '冲' for _a, _b, t in path_edges))
+        best_score = (len(best_edges), sum(t == '冲' for _a, _b, t in best_edges))
+        if score > best_score:
             best_nodes = list(path_nodes)
             best_edges = list(path_edges)
         for nxt, t in adj.get(node, []):
@@ -293,7 +295,7 @@ def detect_bao_zhi(gans: List[str], zhis: List[str], day_gan: str = ''
     wing_wx = _SAN_HE_WINGS.get(frozenset({year_zhi, hour_zhi}))
 
     for w in sorted(shared):  # sorted：多候选包制制局取定序首中者（M1 复跑确定性，
-        # 土<火<水 按码点序；li003-七次婚姻/qi02-工商局长贪官/qi20-李连英 多候选例）
+        # 土<木<水<火<金 按码点序；li003-七次婚姻/qi02-工商局长贪官/qi20-李连英 多候选例）
         # (c) W 克某内柱主气五行
         target_pillar = ''
         target_wx = ''
@@ -445,7 +447,8 @@ def detect_zeishen_bushen(
     # 制局目标五行集合（被冲/克/合方五行，含 work_actions 透传）
     target_wx_set: Set[str] = set()
     for a, b, _t in _directed_control_edges(zhis, gans):
-        target_wx_set.add(ZHI_WX.get(b, ''))
+        if any(z and z in (day_zhi, zhis[3] if len(zhis) > 3 else '') for z in (a, b)):
+            target_wx_set.add(ZHI_WX.get(b, ''))
     for _bw, zw, _p, _d in he_cands:
         if zw:
             target_wx_set.add(zw)
@@ -456,7 +459,7 @@ def detect_zeishen_bushen(
             # 滤 auxiliary：宾位/非日主参与之制非真做功（yanjiu:6192-6206 蒋介石
             # 命造「局中伤官庚金作为亥水的原神也在制当中，只是制之不净」——宾位
             # 干克不得塞入制局目标集，否则原神同制误净，「制之不净达不到四层功」）
-            if (wa.get('auxiliary')
+            if (wa.get('auxiliary') or wa.get('to_pos') == 'day_gan'
                     or wa.get('relation_direction') in ('mutual', 'unknown')):
                 continue
             to = wa.get('to_pos', '')
