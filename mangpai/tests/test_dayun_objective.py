@@ -141,3 +141,21 @@ def test_po_and_noncore_xing_do_not_create_work_type():
     xing = [x for x in r['zhi_relations'] if x['type'] == '刑']
     assert po and all(x.get('relation_only') for x in po + xing)
     assert '制用' not in r['work_types']
+
+
+def test_repeated_branch_does_not_complete_sanhe():
+    from mangpai.objective.dayun import _analyze_zhi_relations
+    for dy in ('申', '辰'):
+        rows = _analyze_zhi_relations(dy, ['子', '子', '午', '寅'])
+        assert not any(r.get('completed') for r in rows)
+        assert any(r['type'] == '半合' and r['target'] == '子' for r in rows)
+
+
+def test_siku_has_no_half_soil_and_liunian_uses_own_label():
+    from mangpai.objective.dayun import _analyze_zhi_relations
+    rows = _analyze_zhi_relations('辰', ['子', '戌', '午', '寅'])
+    assert any(r['type'] == '冲' for r in rows)
+    assert not any(r.get('combo') == '辰戌丑未' for r in rows)
+    flow = _analyze_pillar_interaction('壬', '申', ['甲', '丙', '庚', '壬'],
+                                      ['子', '子', '午', '寅'], '庚', is_liunian=True)
+    assert all('大运' not in r['desc'] for r in flow['zhi_relations'])

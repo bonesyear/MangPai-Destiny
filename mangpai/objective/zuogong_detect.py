@@ -283,6 +283,13 @@ def _scan_gan_relations(day_gan: str, day_wx: str, gans: List[str],
     }
 
 
+def _entombed_in_open_tomb(z: str, tomb: str, zhis: List[str],
+                           gans: List[str], closed_tomb_zhis: Set[str]) -> bool:
+    if tomb in closed_tomb_zhis and not (z == '丑' and tomb == '辰'):
+        return False
+    return is_entomb(z, tomb, zhis, gans)
+
+
 def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
                     zhis: List[str]) -> Dict:
     """生用（食伤泄秀）扫描：天干食伤 / 地支食伤（月支·日支本气）/ 内食神格。
@@ -293,6 +300,7 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
     work_actions: List[Dict] = []
     work_types: Set[str] = set()
     sheng_yong_actions: List[Dict] = []
+    closed_tomb_zhis = {t['zhi'] for t in analyze_muku(zhis, gans).get('closed_tombs', [])}
 
     # ── 生用（食伤泄秀）──
     # 盲派生用 = 食伤泄秀：日干有食神/伤官贴近日干（天干月干/时干，或地支月支/日支
@@ -376,7 +384,8 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
             _ss_gan = _cang[0][0]
             if _shishang_of(day_gan, _ss_gan) is None:
                 continue
-            if any(zk and zk != _zhi and zk in TOMB_MAP and is_entomb(_zhi, zk, zhis, gans)
+            if any(zk and zk != _zhi and zk in TOMB_MAP
+                   and _entombed_in_open_tomb(_zhi, zk, zhis, gans, closed_tomb_zhis)
                    for zk in zhis):
                 continue
             # 内食神格由下方专门路径产出，不能与普通生宾财重复计功。
@@ -448,7 +457,9 @@ def _scan_shengyong(day_gan: str, day_wx: str, gans: List[str],
                 _nshi_ben = _nshi_cang[0][0]
                 if (_shishang_of(day_gan, _nshi_ben) is not None
                         and not any(zk and zk != _nshi_zhi and zk in TOMB_MAP
-                                    and is_entomb(_nshi_zhi, zk, zhis, gans) for zk in zhis)
+                                    and _entombed_in_open_tomb(
+                                        _nshi_zhi, zk, zhis, gans, closed_tomb_zhis)
+                                    for zk in zhis)
                         and any(GAN_WX.get(g, '') == cai_wx for g, _ in _nshi_cang)
                         and not any(GAN_WX.get(g, '') == cai_wx for g in gans)):
                     _nshi_ss = _shishang_of(day_gan, _nshi_ben)
@@ -888,15 +899,13 @@ def _scan_tomb(zhis: List[str], gans: List[str]) -> Tuple[List[Dict], Set[str]]:
         z = zhis[i]
         if not z or z not in TOMB_MAP:
             continue
-        if z in closed_tomb_zhis and z != '辰':
-            continue  # 闭库之墓不收纳；丑入辰的书证主功另列
         for j in range(4):
             if i == j:
                 continue
             z2 = zhis[j]
             if not z2 or z2 == z:
                 continue
-            if is_entomb(z2, z, zhis, gans):  # M4：不再要求日柱参与（i==2 or j==2）
+            if _entombed_in_open_tomb(z2, z, zhis, gans, closed_tomb_zhis):
                 _book_tomb_primary = z == '辰' and z2 == '丑'
                 if z in closed_tomb_zhis and not _book_tomb_primary:
                     continue

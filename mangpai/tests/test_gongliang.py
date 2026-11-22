@@ -223,7 +223,7 @@ class TestR6TombActivation:
                                    zhis=['辰', '午', '午', '戌'])
         assert not any('开库加层' in reason for reason in result['reasons'])
 
-    def test_remote_chong_with_tougan_keeps_independent_open(self):
+    def test_remote_chong_with_tougan_has_no_open_point_without_tomb_work(self):
         from mangpai.subjective.gongliang import (
             _apply_gong_point_rules, _compute_position_sets, _prepare_inputs,
         )
@@ -239,7 +239,8 @@ class TestR6TombActivation:
             zhi_targets=set(), gan_cats=pos['gan_cats'], strong_positions=set(),
             destructive_positions=set(), _zb_bao=None, _zb_clian=None, _zb_jing='',
             all_work_actions=inp['wa_list'])
-        assert any('开库加层' in reason for reason in result['reasons'])
+        assert not pos['active_tomb_works']
+        assert not any('开库加层' in reason for reason in result['reasons'])
 
     def test_near_chong_does_not_double_count_controlled_tomb(self):
         result = analyze_gongliang(day_gan='戊', gans=['戊', '戊', '戊', '甲'],

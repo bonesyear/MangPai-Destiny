@@ -150,3 +150,22 @@ def test_r4_natal_self_xing_does_not_open_tomb():
     chen = next(t for t in r['tombs'] if t['zhi'] == '辰' and t['pillar'] == '年柱')
     assert chen['status'] == '墓库'
     assert not any(t['zhi'] == '辰' for t in r['open_tombs'])
+
+
+def test_sanhe_priority_ignores_other_same_element_branches():
+    from mangpai.objective.muku import sanhe_tomb_priority
+    assert not sanhe_tomb_priority('巳酉丑', ['申', '酉', '丑', '午'],
+                                  ['丙', '丁', '丁', '丙'])
+    assert not sanhe_tomb_priority('亥卯未', ['寅', '卯', '未', '子'],
+                                  ['甲', '丁', '辛', '戊'])
+
+
+def test_remote_chong_open_xu_does_not_collect_or_do_tomb_work():
+    from mangpai.objective.zuogong_detect import _scan_tomb
+    zhis = ['辰', '巳', '午', '戌']
+    gans = ['戊', '丁', '丙', '戊']
+    result = analyze_muku(zhis, gans)
+    assert any(t['zhi'] == '戌' for t in result['open_tombs'])
+    assert not any(r['to']['zhi'] == '戌' for r in result['tomb_relations'])
+    works, _ = _scan_tomb(zhis, gans)
+    assert not any('入戌墓' in work['desc'] for work in works)

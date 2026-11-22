@@ -709,3 +709,24 @@ def test_same_zhi_never_entombs_itself():
     result = analyze_zuogong('戊', '辰', '戊', '辰', '甲', '子', '甲', '寅')
     assert result['primary_work']['type'] == '制用'
     assert '墓用' not in result['work_types']
+
+
+def test_half_he_not_suppressed_by_other_same_element_branch():
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+    for args in (
+        ('丁', '丑', '丙', '申', '丁', '酉', '丙', '午'),
+        ('辛', '未', '甲', '寅', '丁', '卯', '戊', '子'),
+    ):
+        result = detect_relations(*args)
+        half = [a for a in result['work_actions'] if a['type'] == '半合']
+        assert half and all(not a.get('relation_only') for a in half)
+        assert '合用' in analyze_zuogong(*args)['work_types']
+
+
+def test_closed_tomb_does_not_suppress_shengyong():
+    from mangpai.subjective.zuogong_confirm import analyze_zuogong
+    args = ('庚', '寅', '丁', '酉', '辛', '亥', '庚', '辰')
+    result = detect_relations(*args)
+    assert any(a.get('to_pos') == 'month_zhi' and a.get('subtype') == '食伤生财'
+               for a in result['sheng_yong_actions'])
+    assert analyze_zuogong(*args)['primary_work']['type'] == '生用'

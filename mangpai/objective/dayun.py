@@ -188,15 +188,17 @@ def _analyze_zhi_relations(
                 })
 
     for combo, wx in SAN_HE.items():
+        if len(combo) != 3:  # 四库会不是三合，不能两两字就报半土局
+            continue
         if dy_zhi in combo:
-            present = [z for z in natal_zhis if z and z in combo and z != dy_zhi]
-            if len(present) >= 1:
+            present = [z for z in combo if z != dy_zhi and z in natal_zhis]
+            if present:
                 missing = [z for z in combo if z != dy_zhi and z not in present]
-                formed = len(present) >= len(combo) - 1
-                if not formed and len(present) == 1:
+                formed = len(present) == 2
+                if not formed:
                     pair = dy_zhi + present[0]
-                    if GONG_JU.get(pair) or GONG_JU.get(pair[::-1]):
-                        continue  # 生墓两端归拱局，不误报半合
+                    if not (BAN_HE.get(pair) or BAN_HE.get(pair[::-1])):
+                        continue
                 relations.append({
                     'type': '三合局' if formed else '半合',
                     'target': '、'.join(present),
@@ -586,6 +588,9 @@ def _analyze_pillar_interaction(
     """
     gan_relations = _analyze_gan_relations(pillar_gan, natal_gans, day_gan)
     zhi_relations = _analyze_zhi_relations(pillar_zhi, natal_zhis)
+    if is_liunian:
+        for relation in zhi_relations:
+            relation['desc'] = relation['desc'].replace('大运', '流年', 1)
     tomb_effect = _analyze_tomb_effect(pillar_zhi, natal_zhis, natal_gans, tomb_extra_gans)
     tiyong = _analyze_tiyong_import(pillar_gan, day_gan)
     qishi_change = _analyze_qishi_change(pillar_gan, pillar_zhi, natal_gans, natal_zhis)

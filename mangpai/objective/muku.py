@@ -4,7 +4,7 @@ muku — 盲派墓库规则
 理论来源：《渊海子平》墓库篇 + 盲师口传墓库体系
 核心思想：墓库是盲派重要的做功手段。
   木墓在未, 火墓在戌, 金墓在丑, 水墓在辰, 土墓在辰、戌（盲派，理象学:2035 双位）
-  开库：刑冲可使墓库发挥作用；遥冲仅记动库，远刑可开（初级:3447、授课:418）
+  开库：刑冲可使墓库发挥作用；遥冲无透干记动库、透干可开，远刑可开（初级:3447、授课:418）
   闭库：墓库逢合则闭，闭则不可用
   多而墓之：天干地支合在一起同类≥2，见墓即入（理象学:3002-3005）
   丑未之土直接入辰墓：丑入辰墓，未也入辰墓，无「多」前提（理象学:3008）
@@ -54,19 +54,20 @@ def _is_xing(a: str, b: str) -> bool:
             and not pair_in(a, b, [('子', '卯'), ('丑', '未')]))
 
 
-def _is_tomb_opened(tomb_zhi: str, all_zhis: List[str]) -> bool:
-    """非遥冲或刑可开墓；遥冲仅动，远刑仍可开（chuji:3447、shouke:418）。
-
-    仅判地支层面冲/刑，不涉透干引拔。合闭由调用方处理。
-    """
+def _is_tomb_opened(tomb_zhi: str, all_zhis: List[str],
+                    all_gans: Optional[List[str]] = None) -> bool:
+    """近冲/刑可开；遥冲须有所收五行透干，与 analyze_muku 开库口径一致。"""
     tomb_indices = [i for i, z in enumerate(all_zhis) if z == tomb_zhi]
     for j, z in enumerate(all_zhis):
         if not z or z == tomb_zhi:
             continue
         if _is_xing(z, tomb_zhi):
             return True
-        if _is_chong(z, tomb_zhi, all_zhis) and any(abs(i - j) < 3 for i in tomb_indices):
-            return True
+        if _is_chong(z, tomb_zhi, all_zhis):
+            if any(abs(i - j) < 3 for i in tomb_indices):
+                return True
+            if _tou_gan_elements(TOMB_MAP.get(tomb_zhi, []), all_gans or []):
+                return True
     return False
 
 
@@ -169,8 +170,8 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
       - 戌论冲开不入墓（段氏两书）：戌被冲/刑开时循冲开论（释出所藏不入
         墓，《理象学研究》:12311「未运刑开戌中之火使巳火不入戌」）；未开
         时火支巳午正常入戌墓（《理象学》:3058 两午见戌以入墓看、《理象学
-        研究》:6200 蒋介石例巳午同入戌墓加一层功）。土支皆冲/刑戌，「多」
-        要件成立时戌必已开，故土支入戌实际不成立（书亦无此明文）
+        研究》:6200 蒋介石例巳午同入戌墓加一层功）。土支不入戌另作明确规则，
+        不再依赖「戌必已开」的推断（书亦无土支入戌明文）
 
     "多而墓之"计数排除墓库自身：墓库为容器而非被收之物。all_gans 提供时
     天干参与计数（书:3002「天干地支合在一起」）；缺省为 None 时维持旧口径
@@ -196,9 +197,10 @@ def is_entomb(tombed_zhi: str, tomb_zhi: str, all_zhis: List[str],
     # 《理象学研究》:12311「未运刑开戌中之火使巳火不入戌」）；未开（无辰戌冲、
     # 未遭丑戌未刑）时火支巳午正常入戌墓（《理象学》:3058「两午并见见戌便以入
     # 墓看」、《理象学研究》:6200 蒋介石例「主位巳、午同入戌墓，墓加一层功」）。
-    # 注：土支（辰丑未）皆冲/刑戌，「多而墓之」要件成立时戌必已开，故土支入戌
-    # 实际不成立；书亦无土支入戌明文（原则5 仅言丑未入辰，:3008）——维持旧口径。
-    if tomb_zhi == '戌' and _is_tomb_opened('戌', all_zhis):
+    # 注：土支不入戌由上方明确规则保证；书亦无此明文（原则5仅言丑未入辰，:3008）。
+    if tomb_zhi == '戌' and tombed_wx == '土':
+        return False  # 书无土支入戌明文；不再依赖「戌必已开」的间接推断
+    if tomb_zhi == '戌' and _is_tomb_opened('戌', all_zhis, all_gans):
         return False
     # 生位（四生）见墓库 → 入墓
     if tombed_zhi in SI_SHENG:
@@ -231,9 +233,14 @@ def sanhe_tomb_priority(group: str, zhis: List[str],
     full = first in zhis
     if full and zhis.count(middle) < 2:
         return False
-    # shortcut: 仅重复中神或同柱干支同五行的直接书例，其他旺衰待书证再扩展。
-    same_pillar_gans = [g for g, z in zip(gans or [], zhis) if z == middle]
-    return is_entomb(middle, tomb, zhis, None if full else same_pillar_gans)
+    if full:
+        return is_entomb(middle, tomb, zhis)
+    # shortcut: 缺首字时仅重复中神或同柱干支同五行，其他旺衰待书证再扩展。
+    if tomb == '戌' and _is_tomb_opened('戌', zhis, gans):
+        return False
+    same_pillar = sum(1 for g, z in zip(gans or [], zhis)
+                      if z == middle and GAN_WX.get(g, '') == ZHI_WX.get(middle, ''))
+    return zhis.count(middle) + same_pillar >= 2
 
 
 # ── 库制库（阳库制阴库）做功检测（P4，2026-09-18）──
