@@ -242,6 +242,7 @@ class GanQingRule:
       no_branches     : list[str]  柱中地支均无这些
       day_gz          : list[str]  日柱命中其一（如 ['乙未','乙丑']）
       state           : list[str]  旺衰/多寡态命中其一（如 ['火旺','水多','燥','湿']）
+      state_all       : list[str]  旺衰/多寡态须全部成立（如 ['火土并旺','无金水']）
       branch_yang/yin : True       地支规则：branches 中含阳支/阴支
       branch_shengfang/siku/sibai : True  含生方/四库/四败
       general         : True       无条件（恒成立，常与说明性规则同用）
@@ -531,7 +532,7 @@ _REN_RULES: List[GanQingRule] = [
     _r('壬', '化则有情', {'stems': ['丁']}, '合丁化木（有情）', '化',
        '合丁化木又能生火，不息之妙',
        '合丁化木，又能生火，不息之妙，化则有情也'),
-    _r('壬', '从则相济', {'season': '夏', 'state': ['火土并旺', '无金水']}, '从火土（相济）', '从',
+    _r('壬', '从则相济', {'season': '夏', 'state_all': ['火土并旺', '无金水']}, '从火土（相济）', '从',
        '四五六月火土并旺无金水，火旺透干从火、土旺透干从土，调和润泽仍有相济之功',
        '生于四、五、六月，柱中火土并旺，别无金水相助。火旺透干则从火，土旺透干则从土，调和润泽，仍有相济之功也'),
 ]
@@ -664,8 +665,10 @@ def _rule_matches(cond: Dict[str, Any], *, season: str, month_zhi: str,
     # day_gz
     if 'day_gz' in cond and day_gz not in cond['day_gz']:
         return False
-    # state：旺衰/多寡态命中其一
+    # state：旺衰/多寡态命中其一；state_all：全部成立
     if 'state' in cond and not any(s in states for s in cond['state']):
+        return False
+    if 'state_all' in cond and not all(s in states for s in cond['state_all']):
         return False
     # 地支分类键（branch_yang/yin/shengfang/siku/sibai）：对单支判定，
     # 由 match_zhiqing 逐支调用前注入 branches=单支；此处按 branches 中是否存在该类支判定
@@ -734,7 +737,8 @@ def get_ganqing(gan: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def derive_states(gans: List[str], zhis: List[str]) -> List[str]:
+def derive_states(gans: List[str], zhis: List[str],
+                  exclude_gan: str = '') -> List[str]:
     """由四柱干支推导 match_ganqing 上下文的可得旺衰/多寡态（states）。
 
     批D 接线用（xiangfa_ops 干支性情象层）。工程化近似口径：
@@ -742,6 +746,7 @@ def derive_states(gans: List[str], zhis: List[str]) -> List[str]:
               （火->火旺/火多；水->水多/水旺/水盈/水狂；土->土多/土气深固；
               金->金多；木->木盛），<=1 判「少」（火->火少）；
       合众态：火+土合计 >=5 -> 火土并旺/火土多；金 0 且水 0 -> 无金水；
+      exclude_gan：仅在「无金水」计数时扣除当前匹配干自身，避免壬水误判有外援；
       燥湿态：燥土（未/戌）在支 -> 燥；湿土（丑/辰）在支 -> 湿；
       关系态：水在局（壬癸亥子任一）-> 有水不争克；辛乙俱透 -> 辛克乙；
               戊壬俱透 -> 戊克壬。
@@ -772,7 +777,10 @@ def derive_states(gans: List[str], zhis: List[str]) -> List[str]:
         states.add('木盛')
     if cnt['火'] + cnt['土'] >= 5:
         states |= {'火土并旺', '火土多'}
-    if cnt['金'] == 0 and cnt['水'] == 0:
+    exclude_wx = _GAN_WX.get(exclude_gan, '')
+    metal_count = cnt['金'] - (exclude_wx == '金')
+    water_count = cnt['水'] - (exclude_wx == '水')
+    if metal_count == 0 and water_count == 0:
         states.add('无金水')
     zset = {z for z in (zhis or []) if z}
     if zset & {'未', '戌'}:

@@ -160,7 +160,7 @@ def _ganqing_layer_domains(
     tougian = [g for g in gans if g]
     branches = [z for z in zhis if z]
     ctx_complete = len(tougian) == 4 and len(branches) == 4
-    states = _ganqing_derive_states(gans, zhis) if _ganqing_derive_states else []
+    states = _ganqing_derive_states(gans, zhis, exclude_gan=gan) if _ganqing_derive_states else []
     try:
         rules = match_ganqing(
             gan, season=season, month_zhi=month_zhi,

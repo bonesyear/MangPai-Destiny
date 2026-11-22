@@ -303,7 +303,8 @@ def analyze_zhengfan(
         and ((wa.get('relation_direction') != 'mutual'
               and wa.get('from_pos', '') in ('day_gan', 'day_zhi'))
              or (wa.get('relation_direction') == 'mutual'
-                 and 'day' in (wa.get('from_pos', '') + wa.get('to_pos', ''))))
+                 and 'day' in (wa.get('from_pos', '') + wa.get('to_pos', '')))
+             or any(p.startswith(('day_', 'hour_')) for p in wa.get('participants') or []))
         for wa in work_actions
     )
 
@@ -325,7 +326,13 @@ def analyze_zhengfan(
         if (he_guan_pos == 'hour' and from_pos == 'hour_zhi'
                 and to_pos and not _is_zhu(to_pos)):
             gan_targets.append(to_pos)
-        if _is_zhu(from_pos) or _is_zhu(to_pos):
+        participants = wa.get('participants') or []
+        if not (_is_zhu(from_pos) or _is_zhu(to_pos)) \
+                and any(_is_zhu(p) for p in participants):
+            target = to_pos or from_pos
+            if target:
+                day_targets.append(target)
+        elif _is_zhu(from_pos) or _is_zhu(to_pos):
             target = to_pos if _is_zhu(from_pos) else from_pos
             if target and not _is_zhu(target):
                 day_targets.append(target)
@@ -558,9 +565,6 @@ def analyze_zhengfan(
             if wa.get('type') != '冲':
                 continue
             fp, tp = wa.get('from_pos', ''), wa.get('to_pos', '')
-            if (wa.get('relation_direction') not in ('mutual', 'unknown')
-                    and fp != 'day_zhi'):
-                continue
             if 'day_zhi' not in (fp, tp):
                 continue
             _xz = _pos_zhi(tp if fp == 'day_zhi' else fp, zhis)
@@ -570,6 +574,7 @@ def analyze_zhengfan(
                 continue  # 自刑/伏吟（亥亥亥类同名自缠）非「反制」——王阳明造锚
             if ZHI_WX.get(_xz) != ZHI_WX.get(zhis[2]):
                 continue  # 非同性相冲不论力量反制（zhenbao-05 卯辰穿/异行锚）
+            # shortcut: 日支主动冲辰的反例与既有书例同构，待方向专项拆分，暂保留原证据口径
             _rev = any(
                 (not w2.get('auxiliary') or w2.get('relation_direction') == 'unknown')
                 and w2.get('type') in ('冲', '刑', '穿', '破', '克')

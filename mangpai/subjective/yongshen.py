@@ -197,18 +197,14 @@ def _cong_gen_fu_state(day_gan: str, gans: List[str], zhis: List[str]) -> Dict:
         chong_hit = sum(1 for w in neighbors if _pair_hit(z, w, LIU_CHONG))
         if chong_hit >= 2:
             return True
-        # 土冲变虚（批N2-N4，限日主五行为土、限丑未相冲）：土日主之土根被邻支
-        # 丑未单冲即虚——qi19「两土逢冲…土冲变虚，对戊土之根来说则等于根被冲坏，
-        # 戊土无所依托，以从格看」；辰戌冲为冲开墓库之象不判虚（cj-富财墓
-        # 「财墓喜冲发大财」——辰戌冲开财库反主大发，与丑未冲虚书内两读，
-        # 各从书锚）；他五行日主之土支根不受此虚（例5 壬水 辰中癸单冲不坏）。
-        if dw == '土' and z in ('丑', '未') \
+        # 日支坐本气强根先于土冲变虚：己未/己丑受单次丑未冲不判根坏。
+        day_benqi = (i == 2 and ZHI_WX.get(z) == dw)
+        # 土冲变虚仅限非日支本气根；双夹冲仍在上方优先判坏。
+        if not day_benqi and dw == '土' and z in ('丑', '未') \
                 and any(w in ('丑', '未') and _pair_hit(z, w, LIU_CHONG)
                         for w in neighbors):
             return True
-        # 日支坐本气强根（日支本气=日主五行）：单点刑/穿/单冲俱不判坏
-        # （li128「日主坐强根，此造不从…戌根原自己的」；qi03 丁坐巳被亥冲书仍不从）。
-        day_benqi = (i == 2 and ZHI_WX.get(z) == dw)
+        # 其他单点刑/穿/单冲同样遵守日支本气强根豁免。
         if not day_benqi:
             # 单点刑/穿（邻支）；刑合相兼（刑穿对同时为六合——巳申）者以合论
             # 不判坏（li002「日主有巳印不从…巳火被合，合坏用神为病」——合绊
@@ -1422,7 +1418,7 @@ def detect_caisheng_sha_gongshen(
         if all(_t in zhis for _t in _trio) and ZHI_WX.get(_trio[0], '') == sha_wx:
             huiju = set(_trio)
             break
-    if huiju and len(zhis) == 4 and zhis[2] in huiju \
+    if huiju and len(zhis) == 4 and zhis[2] in huiju and strength != '从弱' \
             and _mingxian_cat_count(day_gan, gans, zhis, '财') >= 1:
         kill_pos = {f'{_PK4[i]}_gan' for i in range(4)
                     if i != 2 and GAN_WX.get(gans[i], '') == sha_wx}

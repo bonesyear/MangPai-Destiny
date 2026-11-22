@@ -112,7 +112,7 @@ def analyze_virtual_solid(
 
     results: List[Dict] = []
     for pk, gan, _zhi in pillars:
-        if gan == day_gan:
+        if not gan:
             continue
         gan_wx = GAN_WX.get(gan, '')
         has_root, has_sheng, root_details = _pillar_gen_sheng(gan_wx, _zhi)
