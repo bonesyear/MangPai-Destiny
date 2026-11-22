@@ -10,6 +10,7 @@ import json
 import os
 import threading
 import time
+import urllib.parse
 import urllib.request
 
 BASE = 'https://open.feishu.cn/open-apis'
@@ -88,5 +89,5 @@ class FeishuClient:
 
     def reply(self, message_id, msg_type, text):
         """回复原消息（引用回复）。"""
-        return self._api(f'/im/v1/messages/{message_id}/reply', {
+        return self._api(f'/im/v1/messages/{urllib.parse.quote(message_id, safe="")}/reply', {
             'msg_type': msg_type, 'content': self.build_content(msg_type, text)})

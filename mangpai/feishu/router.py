@@ -66,19 +66,32 @@ def _pop_gender(rest: str) -> tuple[str, Optional[str]]:
     return rest, None
 
 
+_PROVINCE_PREFIXES = frozenset(
+    '北京 天津 上海 重庆 河北 河南 山东 山西 陕西 湖南 湖北 江西 江苏 浙江 安徽 '
+    '福建 广东 广西 海南 四川 贵州 云南 辽宁 吉林 黑龙江 甘肃 青海 新疆 西藏 宁夏 内蒙古'
+    .split())
+
+
 def _pop_lon_or_city(rest: str) -> tuple[str, Optional[float], str]:
+    rest = rest.replace('北京时间', ' ').replace('（虚构示例）', ' ').replace('# synthetic', ' ')
     m = _LON_RE.search(rest)
     if m:
         lon = float(m.group(1))
         if -180.0 <= lon <= 180.0:
             return (rest[:m.start()] + rest[m.end():]), lon, f'经度{lon}'
     for name in sorted(CITY_LON, key=len, reverse=True):
-        if name in rest:
-            return rest.replace(name, ' ', 1), CITY_LON[name], name
+        for word in rest.split():
+            if word == name:
+                return rest.replace(word, ' ', 1), CITY_LON[name], name
+            for province in _PROVINCE_PREFIXES:
+                if word == province + name:
+                    return rest.replace(word, ' ', 1), CITY_LON[name], name
     return rest, None, ''
 
 
 def parse_solar(text: str) -> dict:
+    if re.search(r'农历|阴历|旧历', text):
+        raise ParseError('农历/阴历输入请先换算为阳历，避免日期误排')
     is_dst = True if '夏令时' in text else (False if '标准时' in text else None)
     dm = _DATE_RE.search(text)
     if not dm:
@@ -89,6 +102,14 @@ def parse_solar(text: str) -> dict:
         raise ParseError('没识别到出生时刻（时柱必需），示例：… 12:00 …')
     if re.match(r'\s*[:：]\s*\d', rest[tm.end():]):
         raise ParseError('时刻给到分钟即可，不支持秒位，示例：… 12:00 …')
+    hour = int(tm.group(1))
+    minute = 30 if re.match(r'\s*半', rest[tm.end():]) else int(tm.group(2) or 0)
+    period = re.search(r'凌晨|上午|中午|下午|傍晚|晚上|AM|PM', rest, re.IGNORECASE)
+    if period and period.group(0).upper() in ('下午', '傍晚', '晚上', 'PM'):
+        if hour > 12:
+            raise ParseError(f'{period.group(0)}与 24 小时制时刻矛盾，请核对')
+        if hour < 12:
+            hour += 12
     rest = rest[:tm.start()] + ' ' + rest[tm.end():]
     rest, gender = _pop_gender(rest)
     if not gender:
@@ -102,11 +123,10 @@ def parse_solar(text: str) -> dict:
             and is_dst is None:
         raise ParseError('该日期可能处于历史夏令时，请在末尾注明「夏令时」或「标准时」')
     label = f"{dm.group(1)}-{int(dm.group(2)):02d}-{int(dm.group(3)):02d} " \
-            f"{int(tm.group(1)):02d}:{int(tm.group(2) or 0):02d} {gender} {place}"
+            f"{hour:02d}:{minute:02d} {gender} {place}"
     return {'kind': 'solar', 'year': year, 'month': month,
-            'day': day, 'hour': int(tm.group(1)),
-            'minute': int(tm.group(2) or 0), 'gender': gender, 'lon': lon,
-            'is_dst': bool(is_dst), 'label': label}
+            'day': day, 'hour': hour, 'minute': minute, 'gender': gender, 'lon': lon,
+            'is_dst': bool(is_dst), 'place': place, 'label': label}
 
 
 def parse_pillars(text: str) -> dict:

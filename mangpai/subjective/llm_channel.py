@@ -516,7 +516,8 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
     t = safety_blob
     for w in _QIANYI_FORBID:
         if w in t:
-            v.append({'layer': 'L2', 'detail': f'输出 越措辞上限词「{w}」'})
+            v.append({'layer': 'L2', 'detail': f'输出 越措辞上限词「{w}」',
+                      'reject': True})
             break
     for w in _XIANGMAO_FORBID:
         start = 0
@@ -527,7 +528,8 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
             start = j + 1
             if _xiangmao_exempt(t, w, j):
                 continue
-            v.append({'layer': 'L2', 'detail': f'输出 触禁结论词「{w}」'})
+            v.append({'layer': 'L2', 'detail': f'输出 触禁结论词「{w}」',
+                      'reject': True})
             break
     return v
 
@@ -615,11 +617,14 @@ def render_structured_reading(
     call_llm: bool = True,
     model: str | None = None,
     validate: str = 'mark',
+    timeout: float | None = None,
+    retries: int | None = None,
 ) -> str:
     """引擎 dict → DeepSeek 七维 JSON 叙述 → 三层校验 → 展示文本。
 
-    validate: 'mark'(默认)=违规附注于成品后；'reject'=L0 不过则拦截；
-    'off'=不校验。LLM 不可用时降级返回 prompt 文本（不抛错）。
+    validate: 'mark'(默认)=普通违规附注于成品后；'reject'=L0 不过也拦截；
+    两种模式遇结构化 reject 红线均整段拒出；'off'=不校验。
+    LLM 不可用时降级返回 prompt 文本（不抛错）。
     """
     system, user = build_prompts(engine_result, user_question)
     features = build_payload(engine_result)
@@ -627,7 +632,7 @@ def render_structured_reading(
         return f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
 
     try:
-        resp = call_deepseek(system, user, model=model)
+        resp = call_deepseek(system, user, model=model, timeout=timeout, retries=retries)
     except LLMBackendError as e:
         return (f"[LLM 不可用，降级返回 prompt 文本 | 原因: {e}]\n\n"
                 f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
@@ -644,12 +649,12 @@ def render_structured_reading(
 
     report = validate_reading(data, features, engine_result) if validate != 'off' \
         else {'ok': True, 'violations': []}
-    # 死亡红线命中 = reject 级（V4 P1-1）：mark 模式也不展示、不附注，
+    # 结构化 reject 红线在 mark 模式也不展示、不附注，
     # 整段拒出（前缀 '[断语被' 触发 service 层降级引擎直出）。scrub 守输入端
     # （payload 死亡词典物理屏蔽），reject 守输出端，拒答误报窗已在 _l2_enum 豁免。
     # G2（F6-3）：闸改结构化 reject 字段（不再按 detail 子串「死亡红线」匹配）。
     if validate != 'off' and any(x.get('reject') for x in report['violations']):
-        return f'[断语被死亡红线校验拦截，不予展示]\n{_DISCLAIMER_LINE}'
+        return f'[断语被安全红线校验拦截，不予展示]\n{_DISCLAIMER_LINE}'
     if validate == 'reject' and any(x['layer'] == 'L0' for x in report['violations']):
         return ('[断语被 L0 schema 校验拦截，不予输出]\n'
                 + '\n'.join(f"  - {x['detail']}" for x in report['violations'])

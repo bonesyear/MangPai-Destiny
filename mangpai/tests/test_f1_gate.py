@@ -56,7 +56,7 @@ def test_no_larkmd_unsupported_chars_engine_path():
 
 def test_no_larkmd_unsupported_chars_llm_path(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
-                        lambda res, validate='mark': '【性格】(中) mock 五维')
+                        lambda res, validate='mark', **_: '【性格】(中) mock 五维')
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '---' not in md and '\n> ' not in md and 'mock 五维' in md
 
@@ -76,7 +76,7 @@ def test_death_word_mark_mode_rejects(monkeypatch):
     monkeypatch.setattr('mangpai.subjective.llm_channel.call_deepseek',
                         lambda *a, **kw: _fake_backend(json.dumps(data, ensure_ascii=False)))
     out = render_structured_reading(_ENGINE, validate='mark')
-    assert out.startswith('[断语被死亡红线校验拦截，不予展示]')
+    assert out.startswith('[断语被安全红线校验拦截，不予展示]')
     assert '寿终' not in out  # 附注也不展示
     assert DISCLAIMER.strip() in out  # G2 F6-4：拦截文本自带免责行
 
@@ -84,7 +84,7 @@ def test_death_word_mark_mode_rejects(monkeypatch):
 def test_death_word_reject_degrades_via_service(monkeypatch):
     """'[断语被' 前缀命中 service 降级白名单 → 引擎直出（不展示被拦断语）。"""
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
-                        lambda res, validate='mark': '[断语被死亡红线校验拦截，不予展示]')
+                        lambda res, validate='mark', **_: '[断语被安全红线校验拦截，不予展示]')
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '引擎直出结论' in md and '断语被' not in md
 

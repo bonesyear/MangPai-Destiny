@@ -72,7 +72,7 @@ def paipan(spec: Dict[str, Any], use_llm: Optional[bool] = None) -> str:
     if use_llm is None:
         use_llm = use_llm_default()
     if use_llm:
-        out = render_structured_reading(res, validate='mark')
+        out = render_structured_reading(res, validate='mark', timeout=30, retries=0)
         if out.startswith(_LLM_FAIL_PREFIXES):
             # G1（F6-1）：提示语按场景区分——死词拒出=安全过滤，不写「暂不可用」
             if out.startswith('[断语被'):

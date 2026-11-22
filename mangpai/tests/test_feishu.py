@@ -15,6 +15,13 @@ from mangpai.feishu.formatter import format_report, one_liner
 from mangpai.feishu.service import engine_result_pillars, paipan
 
 
+@pytest.fixture(autouse=True)
+def _webhook_test_env(monkeypatch):
+    monkeypatch.setenv('FEISHU_VERIFICATION_TOKEN', 'test-token')
+    bot._rate_events.clear()
+    bot._llm_calls.clear()
+
+
 # ---------------------------------------------------------------- 客户端（mock HTTP）
 class FakeHTTP:
     """记录调用并按序返回响应。"""
@@ -197,14 +204,14 @@ def test_report_separates_static_and_yunsui_wealth_tiers():
 
 def test_llm_success_appended(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
-                        lambda res, validate='mark': '【性格】(高) mock 五维')
+                        lambda res, validate='mark', **_: '【性格】(高) mock 五维')
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert 'LLM 七维叙述' in md and 'mock 五维' in md
 
 
 def test_llm_failure_degrades_to_engine(monkeypatch):
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
-                        lambda res, validate='mark': '[LLM 不可用，降级返回 prompt 文本 | 原因: x]')
+                        lambda res, validate='mark', **_: '[LLM 不可用，降级返回 prompt 文本 | 原因: x]')
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '引擎直出结论' in md and 'LLM 七维叙述' not in md
 
@@ -221,8 +228,11 @@ def test_llm_off_by_default_env(monkeypatch, tmp_path):
 # ---------------------------------------------------------------- webhook 事件
 def _msg_event(mid='om_1', text='阳历 2000-01-01 12:00 男 北京（虚构示例）'):
     return {'schema': '2.0',
-            'header': {'event_type': 'im.message.receive_v1', 'token': ''},
-            'event': {'message': {'message_id': mid, 'message_type': 'text',
+            'header': {'event_type': 'im.message.receive_v1', 'token': 'test-token',
+                       'event_id': 'event-' + mid,
+                       'create_time': str(int(time.time() * 1000))},
+            'event': {'sender': {'sender_id': {'open_id': 'test-user'}, 'sender_type': 'user'},
+                      'message': {'message_id': mid, 'message_type': 'text', 'chat_type': 'p2p',
                                   'content': json.dumps({'text': text})}}}
 
 
@@ -235,7 +245,7 @@ class FakeClient:
 
 
 def test_url_verification_challenge(monkeypatch):
-    monkeypatch.delenv('FEISHU_VERIFICATION_TOKEN', raising=False)
+    monkeypatch.setenv('FEISHU_VERIFICATION_TOKEN', 'x')
     resp = bot.handle_event({'type': 'url_verification', 'token': 'x', 'challenge': 'abc'})
     assert resp == {'challenge': 'abc'}
 
@@ -306,7 +316,7 @@ def test_error_logs_do_not_include_sensitive_content(monkeypatch, caplog):
         def reply(self, mid, msg_type, text):
             raise FeishuError(marker)
 
-    def bad_route(text):
+    def bad_route(text, use_llm=None):
         raise ValueError(marker)
 
     monkeypatch.setattr(bot, 'route', bad_route)
@@ -345,12 +355,13 @@ def test_dedupe_window_rolls_not_clears():
 
 
 def test_background_jobs_respect_worker_limit(monkeypatch):
+    monkeypatch.setenv('FEISHU_RATE_PER_MIN', '1000')
     """40 个后台任务同时到达：执行中不超过 32 个，并最终全部完成。"""
     condition = threading.Condition()
     release = threading.Event()
     state = {'active': 0, 'peak': 0, 'completed': 0}
 
-    def blocking_route(text):
+    def blocking_route(text, use_llm=None):
         with condition:
             state['active'] += 1
             state['peak'] = max(state['peak'], state['active'])
@@ -398,7 +409,7 @@ def test_concurrent_duplicate_message_processed_once(monkeypatch):
             captured_gate.wait(0.5)
             return result
 
-    monkeypatch.setattr(bot, 'route', lambda text: 'ok')
+    monkeypatch.setattr(bot, 'route', lambda text, use_llm=None: 'ok')
     bot._seen_mids = RacingDict()
     fc = FakeClient()
     try:
@@ -455,7 +466,9 @@ def test_500_no_internal_echo():
     try:
         req = urllib.request.Request(
             f'http://127.0.0.1:{srv.server_port}/feishu/callback',
-            data=json.dumps({'header': {'token': ''}, 'event': 'oops'}).encode(),
+            data=json.dumps({'header': {'token': 'test-token',
+                                        'create_time': str(int(time.time() * 1000))},
+                             'event': 'oops'}).encode(),
             method='POST')
         with pytest.raises(urllib.error.HTTPError) as ei:
             urllib.request.urlopen(req, timeout=5)
@@ -470,7 +483,7 @@ def test_500_no_internal_echo():
 def test_llm_reject_death_shows_safety_notice(monkeypatch):
     """F6-1：死词拒出场景提示语区分——明示安全过滤，不误写「暂不可用」。"""
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
-                        lambda res, validate='mark': '[断语被死亡红线校验拦截，不予展示]')
+                        lambda res, validate='mark', **_: '[断语被安全红线校验拦截，不予展示]')
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '安全过滤' in md and '引擎直出结论' in md
     assert '暂不可用' not in md
@@ -479,7 +492,7 @@ def test_llm_reject_death_shows_safety_notice(monkeypatch):
 def test_llm_generic_failure_keeps_unavailable_notice(monkeypatch):
     """F6-1：一般失败（非安全拦截）维持「暂不可用」口径。"""
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
-                        lambda res, validate='mark': '[LLM 输出非合法 JSON，不予展示 | x]')
+                        lambda res, validate='mark', **_: '[LLM 输出非合法 JSON，不予展示 | x]')
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）', use_llm=True)
     assert '暂不可用' in md and '引擎直出结论' in md
 
