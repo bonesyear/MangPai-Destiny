@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 import json
+import unicodedata
 from pathlib import Path
 
 from mangpai.objective.dayun import dayun_gz_sequence
@@ -29,13 +30,13 @@ ENVELOPE_RULES = """\
   },
   "data_gaps": ["数据不足、无法判断或本派不覆盖之处"]
 }
-- <维度名> 由你按本派习惯自定（如 性格/事业/财运/婚姻/健康/大运/流年 等），不限定统一格式与数量。
+- <维度名> 由你按本派习惯自定（如 性格/事业/财运/婚姻/大运/流年 等），不限定统一格式与数量。
 - **篇幅硬约束**：reading ≤400 字、每个 summary ≤80 字。宁可内容精炼，也要保证 JSON 完整闭合、可解析。
 - 若接近输出上限，优先收尾闭合 JSON，reading 可再缩短。
 - basis 必须落到输入数据的具体字段或本派经典，不要空泛。
 - 若输入数据不足以判断某维度，写入 data_gaps，绝不编造。
 - 输入数据若与本派所需有遗漏，在 data_gaps 注明「缺 XXX」。
-- **安全红线（最高优先级）**：禁止预测死亡、寿数、寿命长短、夭折、大限生死。即使输入数据含寿元/死亡相关字段或暗示，也不得给出任何死亡时间、寿数断言或「命不久矣」类表述；灾祸类信息仅可作一般性安全提醒（如注意健康、谨慎出行），不得断言生死。"""
+- **安全红线（最高优先级）**：禁止预测死亡、寿数、寿命长短、夭折、大限生死。即使输入数据含寿元/死亡相关字段或暗示，也不得给出任何死亡时间、寿数断言或「命不久矣」类表述；灾祸类信息仅可作一般性安全提醒（如注意健康、谨慎出行），不得断言生死；不得给出具体病名或诊断，不得推测胎儿或子女性别，问到时直接拒答。"""
 
 _MISSING = object()
 _DROP = object()
@@ -128,14 +129,32 @@ def _synthesize_dayun(data: dict):
 # LLM 视图层（payload）过滤。zaihuo 键本体由 zaihuo_llm_view 屏蔽（F14），
 # 本词典兜 zaihuo 键外泄漏：shipaige 寿元域断语/liuqin 早夭类 marker/
 # xiangfa_ops lianti 寿命 warning/guanming 制死/liunian 冲破主死亡 等。
-_DEATH_TERMS = (
+DEATH_WORDS = (
     '短命', '早夭', '夭折', '早没', '寿元', '寿命', '寿数', '伤寿',
-    '死亡', '制死', '父死', '母死', '丧母', '丧父', '丧偶',
-    '命不久', '大限生死',
-    # 红3：同步 llm_channel._DEATH_WORDS 补词（对抗用例实测逃逸族），
-    # 输入/输出两侧口径对齐
-    '早逝', '病故', '亡故', '终年', '卒于', '活不过', '往生', '百年之后',
+    '死亡', '寿终', '享年', '制死', '父死', '母死', '丧母', '丧父', '丧偶', '命不久', '大限生死',
+    '离世', '去世', '归西', '病逝', '过世', '身故', '辞世', '早逝', '病故',
+    '亡故', '终年', '卒于', '活不过', '往生', '百年之后', '大限将至', '大限已到',
+    '死别', '凶死', '横死', '猝死', '身亡', '死于', '丧命', '殒命',
+    '恐有不测', '遭遇不测', '恐遭不测', '性命不测', '不测之虞',
 )
+_SAFETY_TRAD = str.maketrans({
+    '壽': '寿', '國': '国', '離': '离', '過': '过', '終': '终', '於': '于',
+    '帥': '帅', '醜': '丑', '緻': '致', '莊': '庄', '靚': '靓', '麗': '丽',
+    '顏': '颜', '當': '当', '貴': '贵', '權': '权', '變': '变', '滿': '满',
+    '愛': '爱', '喪': '丧', '屍': '尸', '歲': '岁', '運': '运', '後': '后',
+    '發': '发', '學': '学', '醫': '医', '藥': '药', '診': '诊', '斷': '断',
+    '兒': '儿', '產': '产', '婦': '妇', '長': '长', '腫': '肿', '體': '体',
+})
+
+
+def normalize_safety_text(value) -> str:
+    """安全扫描统一去 Cf 零宽字符、NFKC 与词表涉及的繁简归一。"""
+    raw = ''.join(c for c in str(value) if unicodedata.category(c) != 'Cf')
+    return unicodedata.normalize('NFKC', raw).translate(_SAFETY_TRAD)
+
+
+# 旧名保留给既有调用方；输出侧 llm_channel 也引用同一 DEATH_WORDS。
+_DEATH_TERMS = DEATH_WORDS
 
 
 def _scrub_death(obj):
@@ -144,11 +163,11 @@ def _scrub_death(obj):
     只动 LLM 视图层（build_payload 出口），引擎内部 result 不受影响。
     """
     if isinstance(obj, str):
-        return _DROP if any(t in obj for t in _DEATH_TERMS) else obj
+        return _DROP if any(t in normalize_safety_text(obj) for t in DEATH_WORDS) else obj
     if isinstance(obj, dict):
         out = {}
         for k, v in obj.items():
-            if isinstance(k, str) and any(t in k for t in _DEATH_TERMS):
+            if isinstance(k, str) and any(t in normalize_safety_text(k) for t in DEATH_WORDS):
                 continue
             sv = _scrub_death(v)
             if sv is not _DROP:
@@ -225,7 +244,7 @@ def build_payload(data: dict, school: School = MANGPAI_SCHOOL) -> dict:
 
 
 def load_template(school: School = MANGPAI_SCHOOL) -> str:
-    """加载流派 prompt 模板。"""
+    """加载旧 assemble 模板；生产七维 prompt 在 llm_prompt.py，不混用此模板。"""
     path = _PROMPT_DIR / school.prompt
     if not path.exists():
         raise FileNotFoundError(f"流派 prompt 模板缺失: {path}")
@@ -238,7 +257,7 @@ def assemble(
     scope: str = "本命",
     school: School = MANGPAI_SCHOOL,
 ) -> tuple[str, str]:
-    """组装 (system, user) 两段 prompt。
+    """旧 assemble 通道组装 (system, user)；不是 llm_prompt.py 的生产七维模板。
 
     Args:
         question: 用户问题，空则用默认

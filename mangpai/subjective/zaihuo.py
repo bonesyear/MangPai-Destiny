@@ -785,13 +785,14 @@ def zaihuo_llm_view(zh: Dict) -> Dict:
                    key=lambda r: order.get(r, 0))
     parts = [f'灾祸总风险{max_risk}']
     if jb.get('risk', '无') != '无':
-        parts.append(f'疾病{jb["risk"]}({(jb.get("desc") or "")[:20]})')
+        parts.append(f'疾病风险{jb["risk"]}')
     if ch.get('risk', '无') != '无':
         parts.append(f'车祸{ch["risk"]}')
     if laoyu_risk != '无':
         parts.append(f'牢狱{laoyu_risk}')
+    # LLM 只保留疾病风险档，具体病名不进入 payload。
     return {
-        'jibing': jb,
+        'jibing': {'risk': jb.get('risk', '无')},
         'chehuo': ch,
         'laoyu_risk': laoyu_risk,
         'max_risk': max_risk,

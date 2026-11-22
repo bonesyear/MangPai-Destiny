@@ -812,20 +812,18 @@ _DUANYU_A_MARKERS: List[tuple] = [
 
 
 def _duanyu_a_select(duanyu_hits: List[Dict], duanju_hits: List[Dict]) -> List[Dict]:
-    """从全量命中中筛 A 组 5 条，换装 marker 级措辞（evidence 留原始 detail 备查）。"""
+    """从全量命中中筛 A 组 5 条；payload 只留 marker，原始 hits 留引擎存档。"""
     by_id = {h['id']: h for h in duanyu_hits}
     out: List[Dict] = []
     for source, rid, marker in _DUANYU_A_MARKERS:
         if source == 'duanyu':
             h = by_id.get(rid)
             if h:
-                out.append({'source': 'duanyu', 'id': rid, 'title': h['title'],
-                            'marker': marker, 'evidence': h['detail']})
+                out.append({'source': 'duanyu', 'id': rid, 'marker': marker})
         else:  # duanju：配偶星多（text 前缀定位，DUANJU_TABLE 常量稳定）
             for h in duanju_hits:
                 if h['text'].startswith('配偶星多'):
-                    out.append({'source': 'duanju', 'id': rid, 'title': h['text'],
-                                'marker': marker, 'evidence': h['detail']})
+                    out.append({'source': 'duanju', 'id': rid, 'marker': marker})
                     break
     return out
 

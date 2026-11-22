@@ -26,7 +26,9 @@ import logging
 import re
 from typing import Any, Dict, Optional
 
-from mangpai.subjective import build_payload, _resolve, _MISSING
+from mangpai.subjective import (
+    build_payload, _resolve, _MISSING, DEATH_WORDS, normalize_safety_text,
+)
 from mangpai.subjective.llm_backend import call_deepseek, LLMBackendError
 from mangpai.subjective.llm_prompt import build_system_prompt, build_user_prompt
 from mangpai.subjective.prompts.hao_style_fewshot import (
@@ -61,24 +63,22 @@ _TIER_ORDER = ('贫', '小康', '富', '巨富')
 # G1（F6-2）：补近义词 离世/去世/归西/病逝 + 同类 过世/身故/辞世（W1 合成例 9）。
 # 红3：再补 早逝/病故/亡故/终年/卒于/活不过/往生/百年之后（对抗用例实测逃逸族；
 # 输入侧 subjective._DEATH_TERMS 同步补同一批，两侧口径对齐）。
-_DEATH_WORDS = ('死亡', '寿终', '享年', '夭折', '早夭', '短命',
-                '命不久', '寿数', '寿命', '寿元', '大限生死',
-                '离世', '去世', '归西', '病逝', '过世', '身故', '辞世',
-                '早逝', '病故', '亡故', '终年', '卒于', '活不过', '往生',
-                '百年之后',
-                # 批R④b：「大限」单字有应期术语义（批O 大限管限/大限×大运交脱诀），
-                # 只拦「将至/已到」组合形态，术语不误杀
-                '大限将至', '大限已到')
+_DEATH_WORDS = DEATH_WORDS
 
 # L2 死亡词误报窗（V4 P2-2/2-3）：模型合规拒答句会复述死亡词（如「寿数」）
 # 并外露「红线」字样——死亡词所在句内出现拒答标记则该处不计。
 # G1（F6-2）：句界符补「，；」——逗号/分号不断句曾致「死断+拒答标记同逗号句」
 # 误豁免（W1 合成例 6/10）。
 # ponytail: 拒答识别是同句关键词启发式，语义级拒答变体漏判由 mark/reject 输出人工兜底
-_DEATH_REFUSAL = ('不测', '不予', '拒绝', '红线', '不预测', '不涉')
-# 红3：句界符补冒号「：:」——「按规不涉寿数：寿元六旬而终」式冒号不断句
-# 曾使拒答标记跨句豁免真死断。
-_SENT_END = '。！？!?\n，；：:'
+_DEATH_REFUSAL = ('不予预测', '不予断言', '不涉生死', '不测生死', '不测寿',
+                  '不做生死断言', '寿数属红线', '生死属红线', '不预测寿')
+_SENT_END = '。！？!?\n，；：:,;.、…— \t'
+_DISEASE_WORDS = ('糖尿', '白血', '血病', '血液病', '尿毒', '癌', '肿瘤',
+                  '精神病', '心梗', '脑溢血', '中风', '瘫痪')
+_CHILD_GENDER_WORDS = ('生男', '生女', '得子', '得女', '男胎', '女胎',
+                       '头胎男', '头胎女', '次胎男', '次胎女')
+_ENGLISH_DEATH_WORDS = ('lifespan', 'life expectancy', 'pass away', 'death',
+                        'die', 'dying')
 
 # L2 官命正向断言关键词（仅在引擎 is_guanming=False 时拦截）。
 # ponytail: 关键词回对是启发式，否定语境按「前 5 字符+后 5 字符」窗口排除
@@ -141,12 +141,12 @@ def _l0_schema(data: Any) -> list:
         if not isinstance(node.get('basis'), list):
             v.append({'layer': 'L0', 'detail': f'{dim}.basis 缺失或非数组'})
         if node.get('confidence') not in _CONFIDENCE:
-            v.append({'layer': 'L0', 'detail': f'{dim}.confidence 非法值: {node.get("confidence")!r}'})
+            v.append({'layer': 'L0', 'detail': f'{dim}.confidence 非法值'})
     # 批R①：七维之外的额外维度记违规——自造第 8 维（如「健康」）静默通过则
     # 其内容不受 L2 检查（L2 只扫 DIMENSIONS 内维度文本）
     for key in data:
         if key not in DIMENSIONS:
-            v.append({'layer': 'L0', 'detail': f'额外维度「{key}」不在 schema 七维内'})
+            v.append({'layer': 'L0', 'detail': '额外维度不在 schema 七维内'})
     return v
 
 
@@ -214,17 +214,19 @@ def _l1_basis(data: dict, features: dict, remapped: list | None = None) -> list:
             continue  # 非对象维度已由 L0 记违规，L1 跳过防崩
         for path in node.get('basis') or []:
             if not isinstance(path, str):
-                v.append({'layer': 'L1', 'detail': f'{dim}.basis 含非字符串项: {path!r}'})
+                v.append({'layer': 'L1', 'detail': f'{dim}.basis 含非字符串项'})
                 continue
             if _ARRAY_INDEX.search(path):
-                v.append({'layer': 'L1', 'detail': f'{dim}.basis 数组路径禁止带下标: {path}'})
+                v.append({'layer': 'L1', 'detail': f'{dim}.basis 数组路径禁止带下标'})
                 continue
-            val = _resolve(features, path)
+            val = features.get(path, _MISSING)
+            if val is _MISSING:
+                val = _resolve(features, path)
             real = None
             if val is _MISSING:
                 real, val = _remap_basis(features, path)
             if val is _MISSING or (val in (None, {}, [], '') and path not in _L1_EMPTY_OK):
-                v.append({'layer': 'L1', 'detail': f'{dim}.basis 路径无出处或为空: {path}'})
+                v.append({'layer': 'L1', 'detail': f'{dim}.basis 路径无出处或为空'})
             elif real is not None and remapped is not None:
                 remapped.append({'layer': 'L1',
                                  'detail': f'{dim}.basis remap: {path} → {real}'})
@@ -248,7 +250,9 @@ _TIER_NEG_PHRASES = ('未能', '没有', '并无', '毫无', '难成', '难发',
 _TIER_NEG_AFTER = re.compile(r'^[一-鿿]?(?:难求|不足|不起|不了|无望)')
 _NEG_CLAUSE_BREAK = '，。！？；：、;:!?…—'
 _NEG_FALSE_PATTERNS = ('不是没', '并非没', '并非不', '不是不', '未必不', '未尝不',
-                       '非常', '非凡', '不小', '不弱', '不低', '不微')
+                       '非常', '非凡', '不小', '不弱', '不低', '不微',
+                       '特别', '级别', '个别', '区别', '分别', '不仅', '不但',
+                       '不断', '不久', '不愁', '莫大')
 _NEG_UNIT_RE = re.compile('|'.join(list(_TIER_NEG_PHRASES)
                                    + ['[' + _TIER_NEG + ']']))
 
@@ -371,7 +375,6 @@ def _tier_rank(text: str, corpus: str = '') -> int:
             if t != '巨富' and corpus and _quoted(text, j, len(t), corpus):
                 continue  # ③引擎原文引用豁免（巨富档除外）
             best = max(best, r)
-            break
     return best
 
 
@@ -412,25 +415,34 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
     texts = {dim: str(((data.get(dim) or {}) if isinstance(data.get(dim), dict) else {}).get('conclusion') or '')
              for dim in DIMENSIONS}
 
-    # 死亡红线（所有维度；拒答句误报窗豁免——合规拒答复述死亡词不计）
-    for dim, t in texts.items():
-        for w in _DEATH_WORDS:
-            start = 0
-            while True:
-                j = t.find(w, start)
-                if j == -1:
-                    break
-                start = j + 1
-                l = max((t.rfind(p, 0, j) for p in _SENT_END), default=-1)
-                r = min((c for p in _SENT_END
-                         if (c := t.find(p, j + len(w))) != -1), default=len(t))
-                seg = t[l + 1:r]  # 同句窗：拒答标记与死亡词同句 = 合规拒答复述
-                if any(m in seg for m in _DEATH_REFUSAL):
-                    continue
-                # G2（F6-3）：结构化 reject 字段，闸不再按 detail 子串匹配
-                v.append({'layer': 'L2', 'detail': f'{dim} 触死亡红线词「{w}」',
-                          'reject': True})
+    # 安全红线扫描整份模型输出，覆盖 conclusion/basis/confidence/额外键名。
+    safety_blob = normalize_safety_text(json.dumps(data, ensure_ascii=False))
+    for w in _DEATH_WORDS:
+        start = 0
+        while True:
+            j = safety_blob.find(w, start)
+            if j == -1:
                 break
+            start = j + 1
+            l = max((safety_blob.rfind(p, 0, j) for p in _SENT_END), default=-1)
+            r = min((c for p in _SENT_END
+                     if (c := safety_blob.find(p, j + len(w))) != -1), default=len(safety_blob))
+            seg = safety_blob[l + 1:r]
+            if any(m in seg for m in _DEATH_REFUSAL) \
+                    and not re.search(r'\d|岁|年|旬', seg):
+                continue
+            v.append({'layer': 'L2', 'detail': f'输出 触死亡红线词「{w}」',
+                      'reject': True})
+            break
+    for words, label in ((_DISEASE_WORDS, '疾病诊断'), (_CHILD_GENDER_WORDS, '子女性别')):
+        hit = next((w for w in words if w in safety_blob), '')
+        if hit:
+            v.append({'layer': 'L2', 'detail': f'输出 触{label}红线词「{hit}」',
+                      'reject': True})
+    hit = next((w for w in _ENGLISH_DEATH_WORDS if w in safety_blob.lower()), '')
+    if hit:
+        v.append({'layer': 'L2', 'detail': f'输出 触英文死亡红线词「{hit}」',
+                  'reject': True})
 
     # 财命档位（corpus=引擎 caiming 原文，供③引用豁免）
     cm = engine_result.get('caiming') or {}
@@ -500,22 +512,23 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
     # 出境词 + 相貌结论词：红2 起全维度扫描（词表口径与死词表一致；
     # 财档/官命仍按维——其 ceiling/是非逻辑依赖维度上下文）。
     # 相貌排除窗（美元/丑时/干支）按词法放行，与所在维度无关。
-    for dim, t in texts.items():
-        for w in _QIANYI_FORBID:
-            if w in t:
-                v.append({'layer': 'L2', 'detail': f'{dim} 越措辞上限词「{w}」'})
+    # 出境/相貌红线同样覆盖整份输出，排除窗只影响美元/丑时/干支。
+    t = safety_blob
+    for w in _QIANYI_FORBID:
+        if w in t:
+            v.append({'layer': 'L2', 'detail': f'输出 越措辞上限词「{w}」'})
+            break
+    for w in _XIANGMAO_FORBID:
+        start = 0
+        while True:
+            j = t.find(w, start)
+            if j == -1:
                 break
-        for w in _XIANGMAO_FORBID:
-            start = 0
-            while True:
-                j = t.find(w, start)
-                if j == -1:
-                    break
-                start = j + 1
-                if _xiangmao_exempt(t, w, j):
-                    continue
-                v.append({'layer': 'L2', 'detail': f'{dim} 触禁结论词「{w}」'})
-                break
+            start = j + 1
+            if _xiangmao_exempt(t, w, j):
+                continue
+            v.append({'layer': 'L2', 'detail': f'输出 触禁结论词「{w}」'})
+            break
     return v
 
 
@@ -549,11 +562,14 @@ def _larkmd_sanitize(text: str) -> str:
 def format_reading(reading: dict, validation: dict, backend: dict) -> str:
     """成品展示文本。"""
     lines = []
+    bad_l1 = {x['detail'].split('.')[0] for x in validation.get('violations', [])
+              if x.get('layer') == 'L1'} if validation else set()
     for dim in DIMENSIONS:
         node = (reading or {}).get(dim) or {}
-        lines.append(f"【{dim}】({node.get('confidence', '?')}) "
+        confidence = node.get('confidence') if node.get('confidence') in _CONFIDENCE else '?'
+        lines.append(f"【{dim}】({confidence}) "
                      f"{_larkmd_sanitize(node.get('conclusion', ''))}")
-        if node.get('basis'):
+        if node.get('basis') and dim not in bad_l1:
             lines.append(f"  依据: {', '.join(str(b) for b in node['basis'])}")
     if validation and not validation['ok']:
         lines.append('')

@@ -433,10 +433,12 @@ def test_duanyu_a_marker_wording_safe():
     for r in charts:
         for e in r['duanyu_a']:
             n += 1
-            assert set(e) == {'source', 'id', 'title', 'marker', 'evidence'}
+            assert set(e) == {'source', 'id', 'marker'}
             assert ('象' in e['marker']) or ('倾向' in e['marker'])
             blob = _json.dumps(e, ensure_ascii=False)
             assert not any(t in blob for t in _DEATH_TERMS), e
+            assert not any(t in blob for t in ('克子', '伤身', '必主', '灾殃', '病灾',
+                                               '小妾', '偏房', '婚难成')), e
     assert n >= 4  # 五条精选至少覆盖 4 条（D1/D6/D12/D13/spouse_many）
 
 
