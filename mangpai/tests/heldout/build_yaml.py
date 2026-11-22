@@ -41,7 +41,7 @@ def bazi_of(gans, zhis):
 
 
 def entry(cid, name, c, ann):
-    e = {'id': cid, 'name': name,
+    e = {'id': cid, 'name': cid,
          'bazi': bazi_of(c['gans'], c['zhis'])}
     if ann.get('dy'):
         e['dayun'] = ann['dy']
@@ -50,13 +50,7 @@ def entry(cid, name, c, ann):
     e['gender'] = c['gender']
     e['verdicts'] = ann['v']
     e['source'] = ';'.join(c['sources']) if isinstance(c['sources'], list) else c['sources']
-    q = ann.get('q') or c.get('context', '')
-    if ann.get('qs'):
-        a, b = ann['qs']
-        i, j = q.find(a), q.find(b)
-        if i >= 0 and j > i:
-            q = q[i:j + len(b)]
-    e['raw_quote'] = q
+    # raw_quote 不入库；逐字原文只在本地资料中核对。
     return e
 
 
@@ -102,9 +96,9 @@ def main():
     # 手动补录
     for m in MANUAL:
         c = {'gans': list(m['gans']), 'zhis': list(m['zhis']), 'gender': m['gender'],
-             'sources': [m['source']], 'context': m['q']}
+             'sources': [m['source']], 'context': ''}
         held.append(entry(m['id'], m['id'].split('-', 1)[-1], c,
-                          {'v': m['v'], 'dy': m.get('dy'), 'ln': m.get('ln'), 'q': m['q']}))
+                          {'v': m['v'], 'dy': m.get('dy'), 'ln': m.get('ln')}))
     # 校验
     orphan_kept = [k for k in KEPT if k not in bykey]
     for k in orphan_kept:
@@ -119,7 +113,7 @@ def main():
               '# V3/K1 郝金阳/段建业断例留出集 — 仅供引擎评估，任何引擎修改不得参考本文件断语。\n'
               '# 来源: shouke-jiaocheng.txt(授课教程) + mingli-zhenbao-50qi.txt(50期资料)\n'
               '# 提取: extract_cases.py -> curate.py -> 人工逐例审定(annotations_*.py) -> build_yaml.py\n'
-              '# verdicts 仅标注明文断语维度；raw_quote 为原文逐字摘录。\n')
+              '# verdicts 仅标注明文断语维度；不入库 raw_quote 或长篇原文。\n')
     head_t = ('# 训练侧案例集（已用于校准/修引擎，可安全使用）\n'
               '# calib10 = calib_assertions.yaml 金标准10例的简单格式镜像；\n'
               '# b67-*  = regression67.py 67例中出自这两本书的书例（已用于修引擎）。\n')

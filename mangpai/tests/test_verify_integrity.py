@@ -113,7 +113,7 @@ def test_verify_layer3_guanming_error_exit_nonzero(monkeypatch):
     real = gm_mod.analyze_guanming
 
     def selective(day_gan, gans, zhis, **kw):
-        if list(gans) == ['戊', '己', '乙', '丁']:  # 第1期·生孩子/官司/职业
+        if list(gans) == ['戊', '己', '乙', '丁']:  # zhenbao-01
             raise RuntimeError('injected guanming failure')
         return real(day_gan, gans, zhis, **kw)
 

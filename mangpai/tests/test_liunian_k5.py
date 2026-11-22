@@ -8,7 +8,7 @@
   合四种：合留（己酉丁丑癸卯庚申女命，癸合大运戊夫星结婚）/合动（流年合
     大运非配偶星引动）/合去（戊子辛酉壬戌壬子，丙合辛母星虚透丧母）/
     合绊（甲寅癸酉丁丑庚子，子丑贴丁丑年合绊用神）
-  分看统看：甲寅运前五年分看（张克东例），己未年甲己合转统看；
+  分看统看：甲寅运前五年分看（案例H例），己未年甲己合转统看；
     丙午同气附 note 不自动统看（口诀以流年冲合运为统看唯一机械触发）。
 """
 import pytest
@@ -120,7 +120,7 @@ class TestHeFour:
         assert r['he_type'] == '合动'
 
 
-# ── 分看统看（书例：张克东 / 丙午统看例） ────────────────────────────
+# ── 分看统看（书例：案例H / 丙午统看例） ────────────────────────────
 
 class TestDayunPhase:
     def test_fenkan_gan_half(self):
@@ -145,7 +145,7 @@ class TestDayunPhase:
         assert p['per_year'][1978] == {'position': 7, 'active': '支'}
 
     def test_tongkan_on_liunian_he(self):
-        # 张克东例转统看：己未年甲己合 → 十年统看
+        # 案例H例转统看：己未年甲己合 → 十年统看
         p = determine_dayun_phase(
             '甲', '寅', [{'gz': '己未', 'year': 1979}],
             birth_year=1932, dayun_start_age=41)

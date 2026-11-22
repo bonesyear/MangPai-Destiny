@@ -59,7 +59,7 @@ class TestWuJianMuHuo:
 
 
 # ── 批D：no_tougian/no_branches 上下文缺失保守不命中 ──
-# 书证：乙赋「虚湿之地，骑马亦忧」任氏曰「生于亥子月，四柱无丙丁，又无戌未燥土」
+# 书证：乙赋「虚湿之地，骑马亦忧」案例E曰「生于亥子月，四柱无丙丁，又无戌未燥土」
 # ——「无丙丁」为排除条件，tougian 上下文未提供时旧实现空集恒真，柱有丙仍命中
 # （反向误命中）。修复：tougian/branches 为 None（未提供）时含 no_tougian/
 # no_branches 之规则保守不命中；显式传入则正常判定。
@@ -91,21 +91,21 @@ class TestYiXuShiZhiDiGuard:
 
 # ── 批D：戊「生于秋冬」2 条 fu_clause 归类修正 ──
 # ditianchansui:421-422「生于秋冬，水多宜火暖之，则万物化成，湿则物病」
-# 实出自任氏曰非赋文——fu_clause 归准为所发挥之赋文原句「水润物生，火燥物病」，
-# 任氏曰文句留 renshi 字段（source='任氏发挥' 不变）。
+# 实出自案例E曰非赋文——fu_clause 归准为所发挥之赋文原句「水润物生，火燥物病」，
+# 案例E曰文句留 renshi 字段（source='案例E发挥' 不变）。
 class TestWuQiuDongAnchor:
     def test_wuhuan_fu_clause(self):
         rs = [r for r in GAN_QING_RULES['戊'] if r.behavior == '宜火暖（物化）']
         assert len(rs) == 1
         assert rs[0].fu_clause == '水润物生，火燥物病'
-        assert rs[0].source == '任氏发挥'
+        assert rs[0].source == '案例E发挥'
         assert '生于秋冬，水多宜火暖之' in rs[0].renshi
 
     def test_shibing_fu_clause(self):
         rs = [r for r in GAN_QING_RULES['戊'] if r.behavior == '湿则物病']
         assert len(rs) == 1
         assert rs[0].fu_clause == '水润物生，火燥物病'
-        assert rs[0].source == '任氏发挥'
+        assert rs[0].source == '案例E发挥'
 
 
 # ── 批D：辛冬月 2 条 fu_clause 自造缩写 → 真实原文句 ──

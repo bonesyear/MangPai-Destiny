@@ -2,7 +2,7 @@
 output/*
 !output/*.py
 !output/*.sh
-!output/*.md
+!output/README.md
 output/_kang*
 output/*.jsonl
 output/*.json
@@ -23,8 +23,9 @@ __pycache__/
 
 # 环境
 .env
-.env.local
-.env.*.local
+.env.*
+*.env
+!.env.example
 .hermes/
 
 # 知识库（版权：原著全文不入库；仅索引元数据入库）
@@ -35,6 +36,7 @@ mangpai/docs/book-index/*
 
 # 临时文件
 /tmp/
+mangpai/tests/heldout/review.txt
 
 # 原著原本/整书文本不入库（版权红线，2026-10-17；书证只引行号）
 /mangpai-docs-full-*.tar.gz

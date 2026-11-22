@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """批D 哨兵：xiangfa_ops 干支性情象层 ganqing 接线（tougian/states 传入）。
 
-书证：乙赋「虚湿之地，骑马亦忧」，任氏曰「生于亥子月，四柱无丙丁，又无戌未
+书证：乙赋「虚湿之地，骑马亦忧」，案例E曰「生于亥子月，四柱无丙丁，又无戌未
 燥土，即使年支有午，亦难发生也」。修复前 _ganqing_layer_domains 调
 match_ganqing 不传 tougian/states——依赖 tougian_any/state 之约 15 条规则
 永不命中，且 no_tougian 空集恒真致柱有丙仍命中「虚湿之地」（反向误命中）。

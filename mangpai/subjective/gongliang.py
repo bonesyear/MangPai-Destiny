@@ -1158,7 +1158,7 @@ def _apply_gong_point_rules(
     #   计」（如体之库作功神）方独立加层。
     #   F6 注（批3 P0-1b）：「杀库作功一层功」（理象学 6470-6474 奥纳西斯未杀库）
     #   之路径由 block 2 制墓库承担（冲互向 from 端计入），7f 放门（同制成立时
-    #   计未覆盖墓库）实证误伤 zj-邢铭芬（书判「发不了大财」平命，+1 越 L4 致
+    #   计未覆盖墓库）实证误伤 zj-案例I（书判「发不了大财」平命，+1 越 L4 致
     #   caiming 巨富 ❌），故本门维持 yuanshen_hit is None 不放。
     _tomb_elems_involved: List[str] = []
     if day_wx and gans and zhis:

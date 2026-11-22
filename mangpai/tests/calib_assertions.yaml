@@ -28,7 +28,7 @@ meta:
 
 cases:
   - id: zhenbao-01
-    name: 第1期·生孩子/官司/职业
+    name: zhenbao-01
     gans: [戊, 己, 乙, 丁]
     zhis: [戌, 未, 巳, 亥]
     gender: 男
@@ -45,7 +45,7 @@ cases:
       - {dim: 层功, gold: {level_max: 2, note: 普通个体+破财}, baseline: ⚠️}
 
   - id: zhenbao-04
-    name: 第4期·赔媳妇赔娶媳妇钱
+    name: zhenbao-04
     gans: [丁, 丙, 庚, 丁]
     zhis: [未, 午, 申, 丑]
     gender: 男
@@ -61,7 +61,7 @@ cases:
       - {dim: 层功, gold: {level_max: 2, note: 普通人赔钱}, baseline: ⚠️}
 
   - id: zhenbao-05
-    name: 第5期·厅级官壬午升丁亥到顶
+    name: zhenbao-05
     gans: [乙, 庚, 辛, 壬]
     zhis: [巳, 辰, 卯, 辰]
     gender: 男
@@ -75,7 +75,7 @@ cases:
       - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 厅级官；书「伤官与官不紧贴故官职不大」无L4据}, baseline: ✅}
 
   - id: zhenbao-09
-    name: 第9期·乞丐(丙午运讨乞)
+    name: zhenbao-09
     gans: [壬, 癸, 壬, 丙]
     zhis: [子, 卯, 子, 午]
     gender: 男
@@ -89,7 +89,7 @@ cases:
       - {dim: 层功, gold: {level_max: 1, note: 乞丐}, baseline: ✅}
 
   - id: zhenbao-10
-    name: 第10期·李凡丁公检法/两次婚/庚辰
+    name: zhenbao-10
     gans: [壬, 壬, 庚, 辛]
     zhis: [子, 寅, 辰, 巳]
     gender: 男
@@ -104,7 +104,7 @@ cases:
       - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 公检法职员}, baseline: ✅}
 
   - id: zhenbao-12
-    name: 第12期·阎锡山半壁天下/勿冒头
+    name: zhenbao-12
     gans: [癸, 辛, 乙, 丁]
     zhis: [未, 酉, 酉, 丑]
     gender: 男
@@ -118,7 +118,7 @@ cases:
       - {dim: 层功, gold: {level: 3, note: 理象学7188「功量有三层强一点」；郝金阳L4双标准以书为准(F6)}, baseline: ✅}
 
   - id: zhenbao-14a
-    name: 第14期·刘XX名演员卖身/三婚/无子
+    name: zhenbao-14a
     gans: [乙, 丙, 甲, 乙]
     zhis: [未, 戌, 子, 亥]
     gender: 女
@@ -131,7 +131,7 @@ cases:
       - {dim: 层功, gold: {level_min: 2, level_max: 3, note: 名演员}, baseline: ✅}
 
   - id: zhenbao-14b
-    name: 第14期·贪财坐牢
+    name: zhenbao-14b
     gans: [戊, 戊, 戊, 甲]
     zhis: [戌, 午, 午, 寅]
     gender: 男
@@ -143,7 +143,7 @@ cases:
       - {dim: 层功, gold: {level_max: 2, note: 坐牢凶}, baseline: ✅}
 
   - id: zhenbao-23a
-    name: 第23期·官司输破财/明年转机后年赢
+    name: zhenbao-23a
     gans: [庚, 戊, 壬, 庚]
     zhis: [戌, 子, 午, 子]
     gender: 男
@@ -158,7 +158,7 @@ cases:
       - {dim: 层功, gold: {level_max: 2, note: 清家荡产；但家底可破+地委书记贵人+后续有转机(50qi:761-765)，至少小康}, baseline: ✅}
 
   - id: zhenbao-23b
-    name: 第23期·找二婚妻(大姑娘找不成)
+    name: zhenbao-23b
     gans: [壬, 癸, 壬, 甲]
     zhis: [子, 卯, 子, 辰]
     gender: 男

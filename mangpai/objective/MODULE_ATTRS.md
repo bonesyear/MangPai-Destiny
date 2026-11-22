@@ -12,7 +12,7 @@
 | `changsheng.py` | 中性但有流派变体 | 长生表「阴阳同生同死」及己墓分歧（辰/戌双轨）是盲派特色，非书房派共识 |
 | `shensha.py` | 中性但运用方式特化 | 神煞计算各流派共用，盲派在取用与应事上特化（如羊刃只取阳干、桃花以日支起）。**神煞配置口径**：盲派核心只用 5 个（禄神/羊刃/墓库/驿马/空亡），本模块其余为书房派扩展（见下方「神煞配置（核心5+扩展）」），暂不删减，等多流派开关再裁剪 |
 | `nayin.py` | -> foundation（计算已迁移） | 纯计算（NAYIN_TABLE/NAYIN_WUXING/get_nayin）已迁至 `foundation.objective.nayin`；本模块仅保留盲派纳音权重与做功分析（get_nayin_mangpai/analyze_nayin_work），并 `from foundation.objective.nayin import *` 重新导出 |
-| `ganqing`（滴天髓干支性情） | 在 `foundation/objective/` | 滴天髓天干/地支性情赋，结构化为「条件->行为」规则，附原注与任氏曰；中性，不依附盲派机制 |
+| `ganqing`（滴天髓干支性情） | 在 `foundation/objective/` | 滴天髓天干/地支性情赋，结构化为「条件->行为」规则，附原注与案例E曰；中性，不依附盲派机制 |
 | `constants.py` | 混合（中性常量 + 盲派特异常量） | 含中性数据（DI_ZHI/WU_XING/LIU_HE/LIU_CHONG/NAYIN_TABLE 等）与盲派特异常量（CANG_GAN_MANGPAI/CHANGSHENG_START_MANGPAI/NAYIN_WEIGHT/TOMB_MAP 等）；纳音表已与 foundation 同源（未删本处副本以不动其余模块逻辑）|
 | `anhe.py` | 盲派特异 | 暗合（寅丑/午亥/卯申，仅三对——初级:3218 排他）——盲派独有，私下联系/隐秘之事 |
 | `biqi.py` | 盲派特异 | 闭气——六合闭墓库藏干（子丑闭丑金、辰酉闭辰水…），逢冲方解 |

@@ -26,8 +26,8 @@ if not os.path.exists(_ZY_ALL):
 d = json.load(open(_ZY_ALL))
 
 TARGETS = sys.argv[1:] or [
-    'cj-中医', 'cj-中医李阳波', 'yx-中医',
-    'zj-邢铭芬', 'zj-教师无官', 'yx-梁羽生', 'cj-2097', 'cj-校长',
+    'cj-中医', 'cj-中医案例J', 'yx-中医',
+    'zj-案例I', 'zj-教师无官', 'yx-梁羽生', 'cj-2097', 'cj-校长',
     'cj-组织部宣传', 'yx-书法家', 'yx-记者', 'zj-图书管理员',
     'yx-会计', 'zj-注册会计师', 'reg67-银行行长央行', 'cj-财务总监',
     'yx-14085', 'yx-3290', 'yx-科级', 'cj-2075', 'yx-2658',
