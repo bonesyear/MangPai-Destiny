@@ -2,7 +2,7 @@
 
 红线验证：未设任何 MANGPAI_LLM_* 新变量时，请求与旧版 DeepSeek 路径逐字节一致；
 新配置项（BASE_URL/API_KEY/MODEL/THINKING/REASONING_EFFORT/TIMEOUT/RETRIES/
-ENV_FILE）各自生效；未知 provider 成本显式 None（未计价）；MANGPAI_USE_LLM
+ENV_FILE/MAX_TOKENS/CONTEXT）各自生效；未知 provider 成本显式 None（未计价）；MANGPAI_USE_LLM
 通用别名。全部 mock（urllib.request.urlopen 拦截 + tmp env 文件），不调真实 API。
 """
 import json
@@ -23,6 +23,7 @@ from mangpai.feishu import service as feishu_service
 _LLM_VARS = ('MANGPAI_LLM_BASE_URL', 'MANGPAI_LLM_API_KEY', 'MANGPAI_LLM_MODEL',
              'MANGPAI_LLM_THINKING', 'MANGPAI_LLM_REASONING_EFFORT',
              'MANGPAI_LLM_TIMEOUT', 'MANGPAI_LLM_RETRIES', 'MANGPAI_LLM_ENV_FILE',
+             'MANGPAI_LLM_MAX_TOKENS', 'MANGPAI_LLM_CONTEXT',
              'DEEPSEEK_API_KEY', 'DEEPSEEK_MODEL',
              'MANGPAI_USE_LLM', 'FEISHU_USE_LLM')
 
@@ -37,8 +38,8 @@ class _FakeResp:
     def __exit__(self, *a):
         return False
 
-    def read(self):
-        return self._body
+    def read(self, n=-1):
+        return self._body if n < 0 else self._body[:n]
 
 
 _OK_BODY = json.dumps({
@@ -65,6 +66,8 @@ def _capture(monkeypatch, body=_OK_BODY):
         return _FakeResp(body)
 
     monkeypatch.setattr(urllib.request, 'urlopen', fake_urlopen)
+    opener = type('Opener', (), {'open': staticmethod(fake_urlopen)})
+    monkeypatch.setattr(urllib.request, 'build_opener', lambda *args: opener())
     return captured
 
 
@@ -188,7 +191,7 @@ def test_timeout_retries_env(clean_env):
     clean_env.setattr(urllib.request, 'urlopen', boom)
     with pytest.raises(LLMBackendError, match='HTTP 500'):
         call_deepseek('S', 'U')
-    assert boom.calls == [300.0]  # 超时透传 + 零重试（仅 1 次调用）
+    assert boom.calls == [pytest.approx(300.0, abs=0.01)]  # 总时限内取剩余秒数；零重试
 
 
 def test_env_file_custom_path(clean_env, tmp_path):

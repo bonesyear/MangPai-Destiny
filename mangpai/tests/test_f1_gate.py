@@ -5,11 +5,13 @@
 - 死亡词 mark→reject（V4 P1-1）：validate=mark 命中死亡红线词即整段拒出
   （'[断语被' 前缀触发 service 降级引擎直出），附注也不展示；
   合规拒答句（复述死亡词+拒答标记，V4 P2-2/2-3）经误报窗豁免不误拦
-- bot isinstance（V6 P2-3）：非 dict body 静默丢弃不抛 TypeError；
+- bot isinstance：非 dict body 明确按 ValueError 拒绝，不写鉴权前 ERROR 日志；
   S7 异常回用户脱敏（V2 P2-1，不回显 str(e)）
 - llm_backend：max_tokens 默认 8192（V4 P2-1）+ _self_check 人民币口径（V4 P2-4）
 """
 import json
+
+import pytest
 
 from mangpai.feishu import bot
 from mangpai.feishu.formatter import DISCLAIMER, format_report
@@ -113,10 +115,10 @@ def test_l2_death_refusal_passes_render(monkeypatch):
 # ---------------------------------------------------------------- F3 bot 健壮性
 
 def test_handle_event_non_dict_body_dropped():
-    """非 dict body（畸形 JSON 数组/字符串）静默丢弃，不抛 TypeError。"""
-    assert bot.handle_event(['not', 'a', 'dict']) == {}
-    assert bot.handle_event('oops') == {}
-    assert bot.handle_event(None) == {}
+    """非 dict body 明确拒绝，不再鉴权前写 ERROR 日志。"""
+    for body in (['not', 'a', 'dict'], 'oops', None):
+        with pytest.raises(ValueError):
+            bot.handle_event(body)
 
 
 def test_respond_error_sanitized(monkeypatch, caplog):
@@ -142,7 +144,8 @@ def test_respond_error_sanitized(monkeypatch, caplog):
 # ---------------------------------------------------------------- F3 llm_backend
 
 def test_max_tokens_default_8192():
-    assert llm_backend.call_deepseek.__kwdefaults__['max_tokens'] == 8192
+    # None 进入环境变量回退链；实际默认请求体由 S1 字节级测试钉住 8192。
+    assert llm_backend.call_deepseek.__kwdefaults__['max_tokens'] is None
 
 
 def test_self_check_rmb_offline():

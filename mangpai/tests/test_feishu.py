@@ -333,9 +333,10 @@ def test_main_requires_verification_token(monkeypatch):
 
 
 def test_encrypt_body_warns_and_drops(caplog):
-    """控制台误配 Encrypt Key → 回调体只有 encrypt 字段：告警并丢弃，不静默。"""
+    """控制台误配 Encrypt Key：限频告警并明确拒绝。"""
     with caplog.at_level('WARNING', logger='mangpai.feishu.bot'):
-        assert bot.handle_event({'encrypt': 'deadbeef'}) == {}
+        with pytest.raises(ValueError):
+            bot.handle_event({'encrypt': 'deadbeef'})
     assert any('Encrypt Key' in r.message for r in caplog.records)
 
 

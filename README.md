@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1781 验证用例全绿。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1822 验证用例全绿。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,7 +47,7 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 404 passed（404 项） | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1781 passed | ✅ |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1822 passed | ✅ |
 | blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261122_batch12.json`（rubric v10）；案例去标识键映射后引擎字段/评分逐例一致，双 seed 一致 | ✅ 长引文、审核稿与书籍正文索引已清理 |
 
 ## 入仓前的脱敏闸门
@@ -123,7 +123,8 @@ LLM 叙事层是**可选组件**：默认关闭，零外发；须显式设置 `M
 | `MANGPAI_LLM_MODEL` | `deepseek-flash` | 模型名（回退链：→ `DEEPSEEK_MODEL`） |
 | `MANGPAI_LLM_THINKING` | `1` | `0`=请求体剔除 `thinking`/`reasoning_effort` 两字段——**接 OpenAI/Ollama/vLLM 等严格兼容服务时设 0**（否则可能 HTTP 400 unknown field） |
 | `MANGPAI_LLM_REASONING_EFFORT` | `low` | 仅 thinking 开启时发出 |
-| `MANGPAI_LLM_TIMEOUT` / `MANGPAI_LLM_RETRIES` | `120` / `2` | 本地模型首载慢可调大超时 |
+| `MANGPAI_LLM_TIMEOUT` / `MANGPAI_LLM_RETRIES` | `120` / `2` | 单次超时秒数（0<t≤600）/重试次数（0..5）；非法值回退缺省。总预算约束重试/退避，不能中断任意滴流式响应 |
+| `MANGPAI_LLM_MAX_TOKENS` / `MANGPAI_LLM_CONTEXT` | `8192` / 不预检 | 输出上限 / 模型上下文窗口；设置后者后按字符保守估算，不足则不外发 |
 | `MANGPAI_LLM_ENV_FILE` | 项目根 `.env`；可选 | env 文件路径；缺省只读项目根 `.env`，不读取 `~/.env` |
 | `MANGPAI_USE_LLM` | `0` | `1/true/on/yes`=显式开启；其余或缺省=纯引擎零外发（旧名 `FEISHU_USE_LLM` 仍兼容） |
 
@@ -145,13 +146,16 @@ export MANGPAI_LLM_MODEL=gpt-4o-mini
 export MANGPAI_LLM_THINKING=0
 
 # 本地 Ollama（key 任意非空即可；首载慢，超时调大）
+# 服务端须用 OLLAMA_CONTEXT_LENGTH=65536 启动，或 Modelfile: PARAMETER num_ctx 65536
 export MANGPAI_LLM_BASE_URL=http://localhost:11434/v1/chat/completions
 export MANGPAI_LLM_API_KEY=ollama
 export MANGPAI_LLM_MODEL=qwen2.5:14b
 export MANGPAI_LLM_THINKING=0
 export MANGPAI_LLM_TIMEOUT=300
+export MANGPAI_LLM_CONTEXT=65536
 
-# vLLM / 其他 OpenAI 兼容服务：同上，须单独设 MANGPAI_LLM_API_KEY，不继承 DEEPSEEK_API_KEY
+# vLLM：同上并单独设 MANGPAI_LLM_API_KEY；服务端加 --max-model-len 65536
+# 本地、私网 IP 和 .local 端点自动绕过环境代理，不继承 DEEPSEEK_API_KEY
 
 # 关闭 LLM（纯引擎模式，零外发）
 export MANGPAI_USE_LLM=0   # 或干脆不配 API Key

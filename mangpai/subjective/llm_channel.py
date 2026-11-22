@@ -212,9 +212,18 @@ def _l1_basis(data: dict, features: dict, remapped: list | None = None) -> list:
         node = data.get(dim)
         if not isinstance(node, dict):
             continue  # 非对象维度已由 L0 记违规，L1 跳过防崩
-        for path in node.get('basis') or []:
+        basis = node.get('basis') or []
+        if not isinstance(basis, list):
+            continue
+        if len(basis) > 20:
+            v.append({'layer': 'L1', 'detail': f'{dim}.basis 超过20条'})
+            basis = basis[:20]
+        for path in basis:
             if not isinstance(path, str):
                 v.append({'layer': 'L1', 'detail': f'{dim}.basis 含非字符串项'})
+                continue
+            if len(path) > 120 or path.count('.') >= 8:
+                v.append({'layer': 'L1', 'detail': f'{dim}.basis 路径超长或层级过深'})
                 continue
             if _ARRAY_INDEX.search(path):
                 v.append({'layer': 'L1', 'detail': f'{dim}.basis 数组路径禁止带下标'})
@@ -551,14 +560,15 @@ def validate_reading(data: Any, features: dict, engine_result: dict) -> dict:
 
 
 def _larkmd_sanitize(text: str) -> str:
-    """lark_md 三符（G2 F6-5）：LLM 原文行首 '- '/'>' 改 '· '，'---' 改 '——'。"""
+    """禁用 LLM 文本中的卡片链接、at/font 标签及三类排版符。"""
     out = []
     for ln in str(text).split('\n'):
         s = ln.lstrip()
         if s.startswith(('- ', '> ')):
             ln = ln[:len(ln) - len(s)] + '· ' + s[2:]
         out.append(ln.replace('---', '——'))
-    return '\n'.join(out)
+    return '\n'.join(out).translate(str.maketrans({
+        '[': '［', ']': '］', '(': '（', ')': '）', '<': '＜', '>': '＞'}))
 
 
 def format_reading(reading: dict, validation: dict, backend: dict) -> str:
@@ -567,17 +577,19 @@ def format_reading(reading: dict, validation: dict, backend: dict) -> str:
     bad_l1 = {x['detail'].split('.')[0] for x in validation.get('violations', [])
               if x.get('layer') == 'L1'} if validation else set()
     for dim in DIMENSIONS:
-        node = (reading or {}).get(dim) or {}
+        node = (reading or {}).get(dim) or {} if isinstance(reading, dict) else {}
+        if not isinstance(node, dict):
+            node = {}
         confidence = node.get('confidence') if node.get('confidence') in _CONFIDENCE else '?'
         lines.append(f"【{dim}】({confidence}) "
                      f"{_larkmd_sanitize(node.get('conclusion', ''))}")
         if node.get('basis') and dim not in bad_l1:
-            lines.append(f"  依据: {', '.join(str(b) for b in node['basis'])}")
+            lines.append(f"  依据: {_larkmd_sanitize(', '.join(str(b) for b in node['basis']))}")
     if validation and not validation['ok']:
         lines.append('')
         lines.append('【引擎校验】以下要点未通过三层校验（请人工复核，勿直采信）：')
         for x in validation['violations']:
-            lines.append(f"  · [{x['layer']}] {x['detail']}")
+            lines.append(f"  · [{x['layer']}] {_larkmd_sanitize(x['detail'])}")
     if backend:
         u = backend.get('usage') or {}
         # S1：定价表仅 DeepSeek 有效，其他 provider cost_cny=None → 显式「未计价」
@@ -634,18 +646,24 @@ def render_structured_reading(
     try:
         resp = call_deepseek(system, user, model=model, timeout=timeout, retries=retries)
     except LLMBackendError as e:
+        _logger.warning('LLM 不可用，已降级: %s', e)
         return (f"[LLM 不可用，降级返回 prompt 文本 | 原因: {e}]\n\n"
                 f"===== SYSTEM =====\n{system}\n\n===== USER =====\n{user}"
                 f"\n\n{_DISCLAIMER_LINE}")
 
-    raw = resp['text']
+    raw = resp.get('text') if isinstance(resp, dict) else None
+    if not isinstance(raw, str) or len(raw) > 16_000:
+        _logger.warning('LLM 输出类型非法或超长，不予展示')
+        return f"[LLM 输出非合法 JSON，不予展示 | 类型非法或超过16000字符]\n{_DISCLAIMER_LINE}"
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError as e:
-        # 红1：降级不回显 raw——未校验原文直达用户则死亡红线全旁路；
-        # 原文不写日志，仅保留解析错误。返回前缀契约不变（feishu service 前缀白名单兜底）
-        _logger.warning('LLM 输出非合法 JSON，不予展示（%s）', e)
-        return f"[LLM 输出非合法 JSON，不予展示 | {e}]\n{_DISCLAIMER_LINE}"
+    except ValueError as e:
+        _logger.warning('LLM 输出非合法 JSON，不予展示（%s）', type(e).__name__)
+        return f"[LLM 输出非合法 JSON，不予展示 | {type(e).__name__}]\n{_DISCLAIMER_LINE}"
+    if not isinstance(data, dict) or validate != 'reject' \
+            and any(not isinstance(data.get(d), dict) for d in DIMENSIONS):
+        _logger.warning('LLM 输出 schema 结构异常，不予展示')
+        return f"[LLM 输出非合法 JSON，不予展示 | 七维结构异常]\n{_DISCLAIMER_LINE}"
 
     report = validate_reading(data, features, engine_result) if validate != 'off' \
         else {'ok': True, 'violations': []}

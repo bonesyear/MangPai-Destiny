@@ -313,13 +313,12 @@ def test_render_input_death_scrubbed():
     assert '早逝' not in out
 
 
-# ---------- 批D：遗留通道 DeprecationWarning ----------
+# ---------- 遗留通道默认可见的 FutureWarning ----------
 
 def test_render_hao_narrative_emits_deprecation_warning():
-    """批D：render_hao_narrative 为遗留通道（S1 裁定正式通道 =
-    llm_channel.render_structured_reading），调用须发 DeprecationWarning。"""
+    """遗留通道使用默认可见的 FutureWarning，避免库调用方收不到提示。"""
     er = {'bazi': {'year': '壬子'}, 'zuogong': {'work_types': ['制用']}}
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(FutureWarning):
         render_hao_narrative(er, user_question=None, call_llm=False)
 
 

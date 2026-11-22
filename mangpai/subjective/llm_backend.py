@@ -15,8 +15,11 @@
   缺省=1 即现状：thinking 开启 + reasoning_effort + JSON mode
   response_format={"type": "json_object"}，thinking 计入 output tokens）
 - MANGPAI_LLM_REASONING_EFFORT → 缺省 low（仅 thinking 开启时发出）
-- MANGPAI_LLM_TIMEOUT / MANGPAI_LLM_RETRIES → 缺省 120 / 2（本地模型可调大超时）
-- 重试：超时/5xx/429（限流）/网络错误重试，指数退避；其余 4xx 不重试直接抛
+- MANGPAI_LLM_TIMEOUT / MANGPAI_LLM_RETRIES → 缺省 120 / 2；合法范围 0<t≤600 / 0..5
+- MANGPAI_LLM_MAX_TOKENS / MANGPAI_LLM_CONTEXT → 输出上限与可选上下文窗口预检
+- 本地、私网 IP 和 .local 端点自动绕过环境代理；响应体限 2MB
+- 重试：超时/5xx/429（尊重 Retry-After）/网络错误；总预算限制重试与退避；
+  其余 4xx 及 HTTP 200 非 JSON 不重试，直接抛错由上层降级
 - 成本：按官方定价表折算人民币（¥/1M tokens），按请求时间（北京时间）自动选峰/谷档，
   随返回 dict 带出 usage/cost/price_tier/elapsed；定价表仅 DeepSeek 有效——
   未知模型/其他 provider 的 cost_cny 显式返回 None（未计价），不显示误导性 ¥0
@@ -32,10 +35,15 @@ deepseek-flash = V4.1，价格沿用 V4 口径待官网逐项复核；cache miss
 """
 from __future__ import annotations
 
+import http.client
+import ipaddress
 import json
+import logging
+import math
 import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -52,6 +60,8 @@ _PRICE = {
     'deepseek-v4-pro': {'peak': (9.0, 27.0), 'offpeak': (4.5, 13.5)},
 }
 _DEFAULT_MODEL = 'deepseek-flash'
+_MAX_RESPONSE = 2_000_000
+_logger = logging.getLogger(__name__)
 
 _BJT = timezone(timedelta(hours=8))
 # 峰段（北京时间，整点边界）：09:00-12:00、14:00-18:00；其余半价
@@ -93,12 +103,15 @@ def _env_value(name: str, default=None):
         return os.environ[name].strip()
     for path in _env_files():
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding='utf-8-sig') as f:
                 for line in f:
                     line = line.strip()
                     if line.startswith(name + '='):
                         return line.split('=', 1)[1].strip().strip('"').strip("'")
         except OSError:
+            continue
+        except UnicodeError as e:
+            _logger.warning('env 文件编码错误，已跳过: %s (%s)', path, type(e).__name__)
             continue
     return default
 
@@ -142,6 +155,16 @@ def _estimate_cost(model: str, usage: dict, at: float | None = None) -> float | 
     return (pin * rin + pout * rout) / 1_000_000
 
 
+def _bypass_proxy(base_url: str) -> bool:
+    try:
+        host = (urllib.parse.urlsplit(base_url).hostname or '').rstrip('.').lower()
+        if host in ('localhost', '::1') or host.endswith('.local'):
+            return True
+        return ipaddress.ip_address(host).is_private
+    except ValueError:
+        return False
+
+
 def call_deepseek(
     system_prompt: str,
     user_prompt: str,
@@ -150,7 +173,7 @@ def call_deepseek(
     json_mode: bool = True,
     thinking: bool = True,
     reasoning_effort: str | None = None,
-    max_tokens: int = 8192,
+    max_tokens: int | None = None,
     timeout: float | None = None,
     retries: int | None = None,
 ) -> dict:
@@ -172,6 +195,28 @@ def call_deepseek(
         timeout = _env_float('MANGPAI_LLM_TIMEOUT', 120.0)
     if retries is None:
         retries = _env_int('MANGPAI_LLM_RETRIES', 2)
+    if max_tokens is None:
+        max_tokens = _env_int('MANGPAI_LLM_MAX_TOKENS', 8192)
+    if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) \
+            or not math.isfinite(timeout) or not 0 < timeout <= 600:
+        _logger.warning('MANGPAI_LLM_TIMEOUT 非法，回退 120 秒')
+        timeout = 120.0
+    if isinstance(retries, bool) or not isinstance(retries, int) or not 0 <= retries <= 5:
+        _logger.warning('MANGPAI_LLM_RETRIES 非法，回退 2 次')
+        retries = 2
+    if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or not 1 <= max_tokens <= 65536:
+        _logger.warning('MANGPAI_LLM_MAX_TOKENS 非法，回退 8192')
+        max_tokens = 8192
+    context = _env_value('MANGPAI_LLM_CONTEXT', '')
+    if context:
+        try:
+            context = int(context)
+            estimated = (len(system_prompt) + len(user_prompt) + 1) // 2
+            if context <= 0 or estimated + max_tokens > context:
+                raise LLMBackendError(
+                    f'上下文不足：估算输入 {estimated} + 输出 {max_tokens} 超过窗口 {context}')
+        except ValueError:
+            _logger.warning('MANGPAI_LLM_CONTEXT 非法，本次不做发送前窗口检查')
     key = _load_api_key(base_url)
     body = {
         'model': model,
@@ -190,64 +235,81 @@ def call_deepseek(
         body['response_format'] = {'type': 'json_object'}
     data = json.dumps(body).encode('utf-8')
 
+    open_request = urllib.request.urlopen
+    if _bypass_proxy(base_url):
+        open_request = urllib.request.build_opener(urllib.request.ProxyHandler({})).open
+    # shortcut: 总预算只约束重试/退避，不能中断滴流式响应；需硬截止时用独立进程隔离
+    deadline = time.monotonic() + min(600.0, timeout * (retries + 1))
     last_err: Exception | None = None
+    retry_delay = None
     for attempt in range(retries + 1):
         if attempt:
-            time.sleep(2 ** attempt)  # 2s, 4s
+            delay = 2 ** attempt if retry_delay is None else retry_delay
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise LLMBackendError('总超时') from last_err
+            time.sleep(min(delay, remaining))
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise LLMBackendError('总超时') from last_err
         try:
             req = urllib.request.Request(
                 base_url, data=data,
                 headers={'Content-Type': 'application/json'}, method='POST')
             req.add_unredirected_header('Authorization', f'Bearer {key}')
         except ValueError as e:
-            # 红6b：畸形 URL（unknown url type 等）Request 构造即抛 ValueError——
-            # 包装为 LLMBackendError，llm_channel except 方能接住降级；
-            # 畸形不会自愈，不重试
             raise LLMBackendError(f'URL 畸形: {type(e).__name__}') from e
         t0 = time.monotonic()
-        t0_wall = time.time()  # 计价按请求发出的实际时段选峰/谷档
+        t0_wall = time.time()
+        retry_delay = None
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw = resp.read()
+            with open_request(req, timeout=min(timeout, remaining)) as resp:
+                raw = resp.read(_MAX_RESPONSE + 1)
+            if len(raw) > _MAX_RESPONSE:
+                raise LLMBackendError('响应过大（超过 2MB）')
         except urllib.error.HTTPError as e:
-            # 4xx（鉴权/参数错）重试无意义，直接抛；429 限流除外——与 5xx 同策略重试
             if 400 <= e.code < 500 and e.code != 429:
-                hint = ''
-                if e.code == 400 and base_url != _API_URL:
-                    hint = ('（若报错为 unknown field/不支持的参数：该服务不接受 '
-                            'thinking/reasoning_effort，请设 MANGPAI_LLM_THINKING=0）')
+                hint = ('（参数或上下文长度不被接受：请核对 THINKING=0、'
+                        '模型上下文窗口和 max_tokens）') if e.code == 400 else ''
                 raise LLMBackendError(f'HTTP {e.code}{hint}') from e
+            if e.code == 429:
+                try:
+                    retry_delay = max(0.0, float(e.headers.get('Retry-After', '')))
+                except (TypeError, ValueError):
+                    retry_delay = None
             last_err = LLMBackendError(f'HTTP {e.code}')
             continue
         except ValueError as e:
-            # 红6b：urlopen 阶段同族 ValueError（如重定向后 URL 畸形）同口径包装
             raise LLMBackendError(f'URL 畸形: {type(e).__name__}') from e
-        except (urllib.error.URLError, TimeoutError, OSError) as e:
+        except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError) as e:
             last_err = LLMBackendError(f'网络错误: {type(e).__name__}')
             continue
         try:
             payload = json.loads(raw.decode('utf-8'))
-        except (UnicodeDecodeError, json.JSONDecodeError) as e:
-            # HTTP 200 但返回体非 JSON（网关错误页/代理拦截/编码异常）：
-            # 包装为 LLMBackendError 走重试，禁止 JSONDecodeError 裸穿透（H4 P0）
-            last_err = LLMBackendError(f'HTTP 200 但返回体非 JSON: {e}')
-            continue
+        except (UnicodeError, ValueError) as e:
+            raise LLMBackendError('HTTP 200 但返回体非 JSON') from e
         try:
             msg = payload['choices'][0]['message']
-            text = msg.get('content') or ''
-            if not text.strip():
-                raise LLMBackendError('content 为空（仅 reasoning_content）')
+            if not isinstance(msg, dict):
+                raise TypeError('message 非对象')
+            content = msg.get('content') or ''
+            if isinstance(content, list):
+                content = ''.join(str(p.get('text') or '') for p in content if isinstance(p, dict))
+            if not isinstance(content, str) or not content.strip():
+                raise LLMBackendError('content 为空或非字符串')
             usage = payload.get('usage') or {}
+            if not isinstance(usage, dict):
+                raise TypeError('usage 非对象')
             return {
-                'text': text,
+                'text': content,
                 'usage': usage,
                 'cost_cny': _estimate_cost(model, usage, at=t0_wall),
                 'price_tier': _price_tier(t0_wall),
                 'elapsed_s': time.monotonic() - t0,
                 'model': model,
             }
-        except (KeyError, IndexError, TypeError) as e:
-            raise LLMBackendError(f'返回体结构异常: {e}') from e
+        except (KeyError, IndexError, TypeError, AttributeError) as e:
+            raise LLMBackendError(f'返回体结构异常: {type(e).__name__}') from e
     raise last_err or LLMBackendError('未知失败')
 
 

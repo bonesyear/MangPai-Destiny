@@ -539,7 +539,7 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
 
     # 年龄（修批F⑤：补中文数字——「四十二岁有一劫」修复前逃逸；十百千两零组合
     # 走 _cn_to_int 转数值后回对，解析失败不计）
-    for m in re.finditer(r'(\d{1,2}|[零一二两三四五六七八九十百千]+)岁', text):
+    for m in re.finditer(r'(\d{1,2}|[零一二两三四五六七八九十百千]{1,6})岁', text):
         g = m.group(1)
         a = int(g) if g.isdigit() else _cn_to_int(g)
         if a is None:
@@ -548,21 +548,35 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
             violations.append({'text': m.group(0), 'kind': 'age',
                                'detail': f'{m.group(1)}岁不在引擎年龄白名单'})
 
-    # 计数：N次婚/段情/场官司、N个孩子/兄弟/丈夫（阿拉伯+中文数字）
-    num = r'(\d+|[一二两三四五六七八九十]+)'
+    # 计数：数字有界，覆盖名词前置及份/任/回等量词。
+    num = r'(\d{1,12}|[零一二两三四五六七八九十]{1,6})'
     for m in re.finditer(num + r'(?:次|段|场)(?:婚|情|官司|牢狱)', text):
         n = int(m.group(1)) if m.group(1).isdigit() else _cn_to_int(m.group(1))
         if n is not None and n not in wl['counts']:
             violations.append({'text': m.group(0), 'kind': 'count',
                                'detail': f'{m.group(1)}(次/段/场)不在引擎计数白名单'})
-    for m in re.finditer(num + r'个(?:孩子|兄弟|姐妹|丈夫|老婆|妻子|儿子|女儿)', text):
-        n = int(m.group(1)) if m.group(1).isdigit() else _cn_to_int(m.group(1))
-        if n is not None and n not in wl['counts']:
-            violations.append({'text': m.group(0), 'kind': 'count',
-                               'detail': f'{m.group(1)}个不在引擎计数白名单'})
+    count_patterns = (
+        num + r'个(?:孩子|兄弟|姐妹|丈夫|老婆|妻子|儿子|女儿)',
+        r'(?:丈夫|老婆|妻子|孩子|兄弟|姐妹|儿子|女儿)(?:有|共|约|超过|不足)?' + num + r'个',
+        num + r'(?:份情|任|回)',
+    )
+    for pattern in count_patterns:
+        for m in re.finditer(pattern, text):
+            n = int(m.group(1)) if m.group(1).isdigit() else _cn_to_int(m.group(1))
+            if n is not None and n not in wl['counts']:
+                violations.append({'text': m.group(0), 'kind': 'count',
+                                   'detail': f'{m.group(1)}不在引擎计数白名单'})
+
+    # 中文年限及「载」与短年份同样回对，不让顶多一年/两载逃逸。
+    for m in re.finditer(r'([一二两三四五六七八九十]{1,6}年|[一二两三四五六七八九十]{1,6}载|\d{1,2}载)', text):
+        raw_n = m.group(1)[:-1]
+        n = int(raw_n) if raw_n.isdigit() else _cn_to_int(raw_n)
+        if n is not None and not any(y % 100 == n for y in wl['years']):
+            violations.append({'text': m.group(0), 'kind': 'year',
+                               'detail': f'{m.group(0)}无对应引擎年限'})
 
     # 具体金额：引擎只出档位不出具体金额，一律标记
-    for m in re.finditer(r'(\d+(?:\.\d+)?)\s*(万|亿)(?![级档])', text):
+    for m in re.finditer(r'(\d{1,12}(?:\.\d{1,4})?)\s*(万|亿)(?![级档])', text):
         violations.append({'text': m.group(0), 'kind': 'amount',
                            'detail': '具体金额非引擎产出（引擎仅出金额档）'})
 
@@ -611,9 +625,8 @@ def render_hao_narrative(
         prompt 文本（系统提示+few-shot+引擎结论+所问），供外部接 LLM。
       fewshot_examples: 自定义 few-shot 列表覆盖默认 FEWSHOT_EXAMPLES。
       model: 指定 LLM 模型 id，默认取 ANTHROPIC_MODEL 环境变量或 claude-sonnet-5。
-      validate: 生成后数字校验（N1）。'mark'(默认)=断语后附【引擎校验】
-        未出处的数字清单；'reject'=有未出处数字则不出断语，返回拦截说明；
-        'off'=不校验。仅对 LLM 实调路径生效（prompt 降级路径不校验）。
+      validate: 生成后红线与数字校验。'mark'(默认)=红线拒出，普通数字违规附注；
+        'reject'=红线或无出处数字均拒出；'off'=不校验。仅对 LLM 实调路径生效。
 
     Returns:
       郝金阳口吻的断语文本；LLM 不可用时返回降级 prompt 文本。
@@ -623,7 +636,7 @@ def render_hao_narrative(
     warnings.warn(
         'render_hao_narrative 为遗留通道（新调用方禁用）；正式通道 = '
         'mangpai.subjective.llm_channel.render_structured_reading',
-        DeprecationWarning, stacklevel=2)
+        FutureWarning, stacklevel=2)
     # 红5b：prompt 构造输入侧死亡词典 scrub（复用 payload 装配层实现）
     engine_result = _scrub_death(engine_result)
     engine_conclusion = summarize_engine_result(engine_result)
@@ -651,8 +664,8 @@ def render_hao_narrative(
 
     try:
         text = _call_llm(HAO_STYLE_SYSTEM_PROMPT, user_prompt, model=model)
-    except (ImportError, OSError) + _LLM_CALL_EXC as e:
-        _logger.warning('郝断语 LLM 调用失败，降级返回 prompt', exc_info=True)
+    except (ImportError, OSError, TypeError) + _LLM_CALL_EXC as e:
+        _logger.warning('郝断语 LLM 调用失败，降级返回 prompt: %s', type(e).__name__)
         # 降级：返回组装好的 prompt，供外部接 LLM；不抛错、不破验证。
         return (
             f"[LLM 不可用，降级返回 prompt 文本 | 原因: {e}]\n\n"
@@ -660,8 +673,10 @@ def render_hao_narrative(
             f"===== USER =====\n{user_prompt}\n\n{_disclaimer_line()}"
         )
 
-    # N1 生成后校验：断语数字回对引擎字段
     if validate != 'off':
+        from mangpai.subjective.llm_channel import _l2_enum
+        if any(v.get('reject') for v in _l2_enum({'性格': {'conclusion': text}}, engine_result)):
+            return f'[断语被安全红线校验拦截，不予展示]\n{_disclaimer_line()}'
         report = validate_narrative_numbers(text, engine_result)
         if not report['ok']:
             if validate == 'reject':

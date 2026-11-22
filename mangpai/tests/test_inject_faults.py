@@ -289,8 +289,8 @@ class _FakeResp:
     def __exit__(self, *a):
         return False
 
-    def read(self):
-        return self._body
+    def read(self, n=-1):
+        return self._body if n < 0 else self._body[:n]
 
 
 def test_llm_backend_http200_non_json_wrapped(monkeypatch):

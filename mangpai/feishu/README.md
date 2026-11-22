@@ -14,6 +14,7 @@
 | `FEISHU_HOST` / `FEISHU_PORT` | 否 | 默认 `127.0.0.1:9700`；对外服务须由 HTTPS 反代转发，不要直接暴露明文 HTTP |
 | `FEISHU_RATE_PER_MIN` | 否 | 每个 open_id 每分钟最多处理消息数，默认 3；超限回复不含生辰的繁忙提示 |
 | `FEISHU_LLM_DAILY_MAX` | 否 | 本进程每日 LLM 调用额度，默认 100；超额只返回引擎结果。重启会重置，非多实例共享限额 |
+| `FEISHU_SHUTDOWN_TIMEOUT` | 否 | 停机等待已接收任务的秒数，默认 60；未开始任务取消并提示重发 |
 | `MANGPAI_LLM_API_KEY` | LLM 开时必填 | 完整配置项（端点/模型/THINKING/超时等）见根目录 README「配置你自己的 LLM」节与 [`.env.example`](../../.env.example)；旧名 `DEEPSEEK_API_KEY` 仍兼容（峰谷价计价仅对 DeepSeek 有效，其他 provider 显示「未计价」） |
 
 凭证一律走环境变量，仓库内不落地。
@@ -38,13 +39,18 @@
 
 ## 运行
 
+先在 `.env` 填入真实的 `FEISHU_*` 和可选 LLM 配置，再显式导出；占位值、短于 16 位或含空白的飞书凭证会拒绝启动：
+
 ```bash
-FEISHU_APP_ID=cli_xxx FEISHU_APP_SECRET=xxx \
-FEISHU_VERIFICATION_TOKEN=xxx MANGPAI_USE_LLM=1 MANGPAI_LLM_API_KEY=your-api-key \
+set -a; . ./.env; set +a
 python3 -m mangpai.feishu.bot
 ```
 
+`FEISHU_*` 不会由飞书组件自动从 `.env` 读取，必须导出为进程环境。控制台重置 Verification Token 后也须同步更新并重启。
+
 事件回调立即 200 ack，排盘+LLM 在后台线程算完走 reply 接口回原消息（markdown 卡片）。
+
+SIGINT/SIGTERM 会停止接收新回调；未开始任务取消并回复「服务正在重启，请稍后重发」，不再排盘或调用 LLM。已开始任务最多等待 `FEISHU_SHUTDOWN_TIMEOUT` 秒，超时仍运行的只记日志，不另发可能重复的回复。Docker/ systemd 应配置足够的 stop 宽限期并传递信号；强杀、断电和崩溃不提供恢复保证。
 
 ## 服务参数（webhook 加固）
 
@@ -72,5 +78,5 @@ python3 -m mangpai.feishu.bot
 在仓库根目录运行，全部使用本地 HTTP/mock，不触真实飞书或 LLM：
 
 ```bash
-python3 -m pytest mangpai/tests/test_feishu.py mangpai/tests/test_feishu_security.py -q
+python3 -m pytest mangpai/tests/test_feishu.py mangpai/tests/test_feishu_security.py mangpai/tests/test_external_reliability.py -q
 ```

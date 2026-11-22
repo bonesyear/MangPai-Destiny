@@ -10,6 +10,7 @@ import json
 import os
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -36,8 +37,16 @@ class FeishuClient:
         req = urllib.request.Request(
             url, data=json.dumps(payload).encode('utf-8'), method='POST',
             headers={'Content-Type': 'application/json; charset=utf-8', **(headers or {})})
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            return json.loads(resp.read().decode('utf-8'))
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                return json.loads(resp.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            if e.code != 400:
+                raise
+            try:
+                return json.loads(e.read().decode('utf-8'))
+            except (OSError, UnicodeError, ValueError) as exc:
+                raise FeishuError(f'HTTP {e.code}，返回体非 JSON') from exc
 
     def tenant_access_token(self):
         """取 tenant_access_token，进程内缓存（飞书 expire 通常 7200s）。"""

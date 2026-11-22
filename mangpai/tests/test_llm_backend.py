@@ -64,9 +64,10 @@ class _FakeResp:
     def __exit__(self, *a):
         return False
 
-    def read(self):
-        return json.dumps({'choices': [{'message': {'content': '{}'}}],
+    def read(self, n=-1):
+        body = json.dumps({'choices': [{'message': {'content': '{}'}}],
                            'usage': {}}).encode('utf-8')
+        return body if n < 0 else body[:n]
 
 
 def test_http_429_retried_like_5xx(monkeypatch):
@@ -135,7 +136,7 @@ def test_error_paths_do_not_echo_sensitive_content(monkeypatch):
         def __exit__(self, *args):
             return False
 
-        def read(self):
+        def read(self, n=-1):
             return marker.encode()
 
     monkeypatch.setattr('urllib.request.urlopen', lambda req, timeout=None: BadJSON())

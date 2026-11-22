@@ -11,8 +11,8 @@
   2. 事件订阅 → 回调地址填 https://<公网域名>/feishu/callback（webhook 方式），
      订阅事件 im.message.receive_v1，开通 im:message 相关权限；
   3. 环境变量：FEISHU_APP_ID / FEISHU_APP_SECRET（必填），
-     FEISHU_VERIFICATION_TOKEN（事件订阅的 Verification Token，必填，不配启动即报错；
-     切勿配置 Encrypt Key——不支持解密，配了事件全丢），
+     FEISHU_VERIFICATION_TOKEN（事件订阅的 Verification Token，必填；三项凭证遇缺失、
+     占位值、过短或空白均拒绝启动。切勿配置 Encrypt Key——不支持解密，事件返回400），
      MANGPAI_USE_LLM=0 可关 LLM 段（旧名 FEISHU_USE_LLM 兼容），FEISHU_PORT 默认 9700；
      默认只监听 127.0.0.1，经 HTTPS 反代对外；FEISHU_HOST 可改监听地址，
      FEISHU_RATE_PER_MIN=3、FEISHU_LLM_DAILY_MAX=100 限制费用与刷屏；
@@ -26,9 +26,10 @@ import logging
 import math
 import os
 import re
+import signal
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from mangpai.feishu.client import FeishuClient, FeishuError
@@ -42,7 +43,28 @@ _SEEN_MAX = 2000
 _rate_events = {}
 _llm_calls = {'day': '', 'count': 0}
 _rate_lock = threading.Lock()
+_log_events = {}
+_jobs = {}
+_jobs_lock = threading.Lock()
+_stopping = threading.Event()
 _client = None
+
+
+def _log_limited(key, message):
+    now = time.monotonic()
+    with _rate_lock:
+        count, last = _log_events.get(key, (0, None))
+        count += 1
+        if last is not None and now - last < 600:
+            _log_events[key] = (count, last)
+            return
+        _log_events[key] = (0, now)
+    log.warning('%s（累计%d次）', message, count)
+
+
+def _forget_event(event_key):
+    with _seen_lock:
+        _seen_mids.pop(event_key, None)
 
 
 def _get_client():
@@ -106,19 +128,26 @@ def _respond(client, message_id, text, use_llm=None):
 
 def _respond_managed(client, message_id, text, use_llm=None):
     try:
+        if _stopping.is_set():
+            try:
+                client.reply(message_id, 'text', '服务正在重启，请稍后重发')
+            except Exception as e:
+                log.warning('停机提示发送失败 mid=%s: %s', message_id, type(e).__name__)
+            return
         _respond(client, message_id, text, use_llm=use_llm)
     finally:
+        with _jobs_lock:
+            _jobs.pop(message_id, None)
         _sem.release()
 
 
 def handle_event(body: dict, client=None, background=True) -> dict:
     """飞书事件回调入口（可注入 client/background=False 供测试）。"""
     if not isinstance(body, dict):
-        log.error('回调体非 JSON 对象，已丢弃: %r', type(body).__name__)
-        return {}
+        raise ValueError('回调体须为 JSON 对象')
     if 'encrypt' in body:
-        log.error('回调体已加密：请勿配置 Encrypt Key（本实现不支持解密），事件已丢弃')
-        return {}
+        _log_limited('encrypt', '回调体已加密：请勿配置 Encrypt Key，事件已拒绝')
+        raise ValueError('不支持加密回调')
     if body.get('type') == 'url_verification':
         _check_token(body.get('token'))
         return {'challenge': body.get('challenge')}
@@ -155,7 +184,11 @@ def handle_event(body: dict, client=None, background=True) -> dict:
         text = json.loads(msg.get('content') or '{}').get('text', '')
     except json.JSONDecodeError:
         return {}
-    client = client or _get_client()
+    try:
+        client = client or _get_client()
+    except Exception:
+        _forget_event(event_key)
+        raise
     if background:
         sender_id = str((sender.get('sender_id') or {}).get('open_id') or 'unknown')
         if not _rate_allowed(sender_id):
@@ -165,9 +198,14 @@ def handle_event(body: dict, client=None, background=True) -> dict:
             client.reply(mid, 'text', '当前请求较多，繁忙，请稍后再试')
             return {}
         try:
-            _executor.submit(_respond_managed, client, mid, text, _llm_allowed())
+            with _jobs_lock:
+                future = _executor.submit(_respond_managed, client, mid, text, _llm_allowed())
+                _jobs[mid] = (client, future)
         except Exception:
+            with _jobs_lock:
+                _jobs.pop(mid, None)
             _sem.release()
+            _forget_event(event_key)
             raise
     else:
         _respond(client, mid, text, use_llm=_llm_allowed())
@@ -179,6 +217,37 @@ _MAX_BODY = 1_048_576   # 回调 body 上限 1MB，超出 413
 _READ_TIMEOUT = 15.0    # 整个请求体读取截止（秒）
 _sem = threading.BoundedSemaphore(64)  # 最多64个在途任务；入队前非阻塞拒绝
 _executor = ThreadPoolExecutor(max_workers=_MAX_WORKERS)
+
+
+def _drain_jobs():
+    _stopping.set()
+    with _jobs_lock:
+        jobs = list(_jobs.items())
+    try:
+        timeout = float(os.environ.get('FEISHU_SHUTDOWN_TIMEOUT', '60'))
+    except ValueError:
+        timeout = 60.0
+    if not math.isfinite(timeout) or timeout < 0:
+        timeout = 60.0
+    if jobs:
+        _, pending = wait([future for _mid, (_client, future) in jobs], timeout=timeout)
+    else:
+        pending = set()
+    _executor.shutdown(wait=False, cancel_futures=True)
+    for mid, (client, future) in jobs:
+        if future not in pending or future.done() and not future.cancelled():
+            continue
+        if future.cancelled():
+            try:
+                client.reply(mid, 'text', '服务正在重启，请稍后重发')
+            except Exception as e:
+                log.warning('停机提示发送失败 mid=%s: %s', mid, type(e).__name__)
+            with _jobs_lock:
+                _jobs.pop(mid, None)
+            _sem.release()
+        else:
+            # shortcut: 不强杀执行中线程，避免重复回复；需硬停时用进程级隔离
+            log.warning('停机宽限期结束，任务仍在执行 mid=%s', mid)
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -218,6 +287,8 @@ class _Handler(BaseHTTPRequestHandler):
             resp = handle_event(body)
             code, data = 200, json.dumps(resp).encode('utf-8')
         except PermissionError as e:
+            _log_limited('auth:' + self.client_address[0],
+                         '回调鉴权失败：请检查 Verification Token 是否已同步')
             code, data = 401, str(e).encode('utf-8')
         except (ValueError, TimeoutError, json.JSONDecodeError):
             code, data = 400, b'{"error":"bad request"}'
@@ -229,16 +300,45 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def log_message(self, *a):  # 静默
+    def log_error(self, fmt, *args):
+        _log_limited('protocol:' + self.client_address[0], 'HTTP 协议或请求错误')
+
+    def log_message(self, *a):  # 正常访问静默；错误由 log_error 限频记录
         pass
 
 
+def _validate_startup():
+    for name in ('FEISHU_VERIFICATION_TOKEN', 'FEISHU_APP_ID', 'FEISHU_APP_SECRET'):
+        value = os.environ.get(name, '').strip()
+        lower = value.lower()
+        if not value:
+            raise RuntimeError(f'{name} 未配置；须作为进程环境变量提供')
+        if len(value) < 16 or any(c.isspace() for c in value) \
+                or lower.startswith(('your-', 'sk-fake', 'sk-test', 'sk-file')) \
+                or lower in ('xxx', '<redacted>') or set(value) == {'*'}:
+            raise RuntimeError(f'{name} 为过短、空白或公开占位值，请换成真实配置')
+    _get_client()
+
+
 def main():
-    if not os.environ.get('FEISHU_VERIFICATION_TOKEN', '').strip():
-        raise RuntimeError('FEISHU_VERIFICATION_TOKEN 未配置：不配则回调零校验可被伪造事件白嫖，上线必配')
+    _validate_startup()
     port = int(os.environ.get('FEISHU_PORT', '9700'))
     host = os.environ.get('FEISHU_HOST', '127.0.0.1')
-    ThreadingHTTPServer((host, port), _Handler).serve_forever()
+    server = ThreadingHTTPServer((host, port), _Handler)
+
+    def stop(signum, _frame):
+        log.warning('收到停机信号 %s，停止接收新回调', signum)
+        _stopping.set()
+        threading.Thread(target=server.shutdown, daemon=True).start()
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, stop)
+    try:
+        server.serve_forever()
+    finally:
+        _stopping.set()
+        server.server_close()
+        _drain_jobs()
 
 
 if __name__ == '__main__':

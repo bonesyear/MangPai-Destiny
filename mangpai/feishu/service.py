@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Dict, Optional
 
@@ -16,6 +17,8 @@ from mangpai import MangpaiEngine, calc_mangpai_full
 from mangpai.feishu.formatter import format_report
 from mangpai.subjective.llm_backend import llm_enabled
 from mangpai.subjective.llm_channel import render_structured_reading
+
+_logger = logging.getLogger(__name__)
 
 # llm_channel 降级/拦截成品的固定前缀（llm_channel.py 契约：降级不抛错，
 # 返回带方括号前缀的说明文本）。命中即视为 LLM 不可用 → 引擎直出。
@@ -72,7 +75,11 @@ def paipan(spec: Dict[str, Any], use_llm: Optional[bool] = None) -> str:
     if use_llm is None:
         use_llm = use_llm_default()
     if use_llm:
-        out = render_structured_reading(res, validate='mark', timeout=30, retries=0)
+        try:
+            out = render_structured_reading(res, validate='mark', timeout=30, retries=0)
+        except Exception as e:
+            _logger.warning('LLM 叙述异常，保留引擎直出: %s', type(e).__name__)
+            out = '[LLM 不可用，已降级]'
         if out.startswith(_LLM_FAIL_PREFIXES):
             # G1（F6-1）：提示语按场景区分——死词拒出=安全过滤，不写「暂不可用」
             if out.startswith('[断语被'):
