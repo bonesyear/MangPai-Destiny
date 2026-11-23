@@ -47,12 +47,12 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_SHENG, WX_KE_ME,
-    TIAN_GAN_HE, LU, TOMB_MAP, LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS, SAN_HE,
+    TIAN_GAN_HE, LU, TOMB_MAP, LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS, SAN_HE, BAN_HE,
     CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective.muku import analyze_muku
-from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
+from mangpai.objective.muku import analyze_muku, is_entomb, is_gan_entombed
+from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha, _YANG_REN_FULL
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _cat,
 )
@@ -669,6 +669,8 @@ def classify_duohun(
     if tombs and has_zheng_star:
         star_mingxian = bool(star_zhis_main) or any(
             g and GAN_WX.get(g) == swx for g in gans)
+        star_mingxian = bool(star_zhis_main - set(tombs)) or any(
+            g and GAN_WX.get(g) == swx for g in gans)
         if star_mingxian:
             factors.append(f'配偶星入{"".join(sorted(set(tombs)))}墓，婚缘受损')
 
@@ -797,7 +799,7 @@ def detect_shuizhong_laoyue(
 # ───────────────────── 5/6. 结离婚应期 ─────────────────────
 
 def _dayzhi_natal_he_chong(zhis: List[str]) -> tuple:
-    """日支（婚姻宫）在原局的合/冲状态（六合/三合同局两支为合，六冲为冲）。
+    """日支（婚姻宫）在原局的合/冲状态（六合/正半合为合，六冲为冲；拱局不算）。
 
     应期分向之本（chuji:6096「原局逢合大运和流年逢冲时为应期，原局有冲时
     大运和流年逢合时为应期」；中级:5283-5284「原有合…应在冲其合为结婚
@@ -813,11 +815,8 @@ def _dayzhi_natal_he_chong(zhis: List[str]) -> tuple:
             continue  # 伏吟不是合，也不是冲
         if (dz, z) in LIU_HE or (z, dz) in LIU_HE:
             he = True
-        else:
-            for key in SAN_HE:
-                if len(key) == 3 and dz in key and z in key:
-                    he = True
-                    break
+        elif f'{dz}{z}' in BAN_HE or f'{z}{dz}' in BAN_HE:
+            he = True
         if (dz, z) in LIU_CHONG or (z, dz) in LIU_CHONG:
             chong = True
     return he, chong
@@ -888,13 +887,13 @@ def infer_jiehun_yingqi(
         mu_tombs = set(_star_in_tomb(day_gan, gans, zhis, gender))
         dz_wx = ZHI_WX.get(day_zhi, '')
         for z in zhis:
-            if z and z != day_zhi and dz_wx and dz_wx in TOMB_MAP.get(z, []):
+            if z and z != day_zhi and is_entomb(day_zhi, z, zhis, gans):
                 mu_tombs.add(z)  # 配偶宫（日支五行）入墓
         for label, _dgan, dzhi in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
             if not dzhi:
                 continue
             for t in sorted(mu_tombs):
-                if dzhi != t and (
+                if dzhi != t and (t != day_zhi or gong_natal_he) and (
                         (dzhi, t) in LIU_CHONG or (t, dzhi) in LIU_CHONG
                         or (dzhi, t) in XING_PAIRS or (t, dzhi) in XING_PAIRS):
                     signals.append(f'{label}支{dzhi}刑冲开{t}墓（配偶星/宫入墓，刑冲其墓为婚期，'
@@ -980,9 +979,17 @@ def _star_in_tomb(day_gan: str, gans: List[str], zhis: List[str], gender: str) -
         return []
     tombs: List[str] = []
     for z in zhis:
-        if not z:
+        if not z or swx not in TOMB_MAP.get(z, []):
             continue
-        if swx in TOMB_MAP.get(z, []):
+        if (z != zhis[PILLAR_KEYS.index('day')] or ZHI_WX.get(z) != swx) and any(
+                GAN_WX.get(cg) == swx for cg, _q in get_canggan_mangpai(z)):
+            tombs.append(z)
+            continue
+        if any(g and GAN_WX.get(g) == swx and is_gan_entombed(g, z) for g in gans):
+            tombs.append(z)
+            continue
+        if any(other != z and ZHI_WX.get(other) == swx
+               and is_entomb(other, z, zhis, gans) for other in zhis):
             tombs.append(z)
     return tombs
 
@@ -1436,12 +1443,13 @@ def classify_dushen_sige(
     # 格一·宫占比劫禄印，星不得入（gaoji 案例六/七、zhongji:4946 教授例）
     # 三型居一：星全无 / 宫拒星（案例六·教授）/ 宫占印+时柱占禄刃（案例七）
     gong_main = _zhi_main_cat(day_gan, day_zhi)
-    hour_main = _zhi_main_cat(day_gan, zhis[PILLAR_KEYS.index('hour')])
+    hour_lu_ren = zhis[PILLAR_KEYS.index('hour')] in (
+        {LU.get(day_gan, '')} | set(_YANG_REN_FULL.get(day_gan, [])))
     if gong_main in ('比劫', '印') and not (
             gender == '女' and gong_main == '印'
             and _zheng_star_count(day_gan, gans, zhis, gender) == 0) and (
             star_count == 0 or gong_rejects_star
-            or (gong_main == '印' and hour_main == '比劫')):
+            or (gong_main == '印' and hour_lu_ren)):
         grids.append('宫占比劫禄印格')
 
     # 格二·宫星互害反成克（宫坐制星之星，制之不成星反坏宫）
@@ -1466,9 +1474,10 @@ def classify_dushen_sige(
 
     # 格三·星入墓库不开（宫占星之墓 或 星透干入墓，无冲刑开库）
     tombs = _star_in_tomb(day_gan, gans, zhis, gender)
-    gong_is_tomb = bool(swx) and swx in TOMB_MAP.get(day_zhi, [])
+    gong_is_tomb = bool(swx) and swx in TOMB_MAP.get(day_zhi, []) \
+        and ZHI_WX.get(day_zhi, '') != swx
     star_tou_ru_mu = bool(tombs) and any(g and GAN_WX.get(g) == swx for g in gans)
-    if tombs and (gong_is_tomb or star_tou_ru_mu):
+    if gong_is_tomb or star_tou_ru_mu:
         opened = any(
             t.get('zhi') in tombs and t.get('status') == '开库'
             for t in analyze_muku(zhis, gans).get('tombs', []))
