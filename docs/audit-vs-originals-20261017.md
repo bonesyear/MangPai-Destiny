@@ -267,7 +267,7 @@ selectors↔engine 48 键三方契约锁（test_key_contract 实测绿）；五�
 ### 已修 24+1 项（pytest 1207 passed + 1 xfailed；verify 432/70/64/20 全绿；数字闸门一致）
 - **A 注释锚批（零行为变化）**：changsheng 归属改正（沈孝瞻→任铁樵，真诠:178/滴天髓:807）；天乙贵人版本选择注（渊海:928 vs 通行版）；六破无书明文注；暗合高级本异文注；muku 双轨「未决」口径统一；guanming 锚 7 处、zhiye 锚 2 处、yunfan 锚 1 处、liuqin 锚 3 处、caiming 锚 3 处坐标修正；ganqing 计数 65→实测 75；yingqi_subj 虚构章名改正；zaihuo 灾煞无书据注；zeishen 蒋介石锚改正（yanjiu:6192-6206）
 - **B1 上游方向性**：xiangfa_ops 财带印帽判反改正+补「印带财帽」键（中级:2435-2436）；ganqing 三条条件语义（乙「或」拆条、辛必须含丙、戊补四季月前提，滴天髓:392/443/423）；yunfan 流年冲墓豁免对齐大运侧（zhenbao:691）；liunian 虚岁 off-by-one（对齐 jiaoyun 口径，test_liunian_k5 锁错已修正）；dayun 气势变化移出吉信号、反向标凶（中级:314-316）；zeishen 虚贼「不成」分支（yanjiu:5543-5545）
-- **B2 人生事项**：liuqin 财克印恒真改为实际克坏动作（gaoji:13502-13506）+土墓表统一 TOMB_MAP；hunyin 配偶星替代（中级:4280）+正偏星之制（:4466-4468）；xueli 删恒假死代码 sha_zhi_shang+财克印方向纠正（:5404）；laoyu 墓开方向纠正（gaoji:14850-14851）；shipaige 丁见丙寅补丙；caiming 过河拆桥去「制不尽=破财」冒称（中级:2976-2978）；yongshen R3 六合化气豁免删除（理象学:2311+shouke:2574 书禁）
+- **B2 人生事项**：liuqin 财克印恒真改为实际克坏动作（gaoji:13502-13506）+土墓表统一 TOMB_MAP；hunyin 配偶星替代（中级:4280）+正偏星之制（:4466-4468）；xueli 删恒假死代码 sha_zhi_shang+财克印方向纠正（:5404）；laoyu 墓开方向纠正（gaoji:14850-14851；当时仅改文案，批次25补齐开墓计险）；shipaige 丁见丙寅补丙；caiming 过河拆桥去「制不尽=破财」冒称（中级:2976-2978）；yongshen R3 六合化气豁免删除（理象学:2311+shouke:2574 书禁）
 - **C LLM 校验器**：非 JSON 路径不再回显原文（留痕走日志）；出境词/美丑词扩词并全维扫描；死词表双侧同步补 8 词+冒号断句；上游缺数据按最严口径拦；narrative 遗留通道全路径免责+输入 scrub+「新调用方禁用」标注；backend 429 重试+畸形 URL 包装
 - **收尾**：过河拆桥制不尽不吃贼捕净制豁免（qi05/普例3 巨富过冲收至富）
 

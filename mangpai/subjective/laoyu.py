@@ -33,6 +33,7 @@ from mangpai.objective.constants import (
     LU, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.muku import analyze_muku
 from mangpai.objective.shensha import resolve_shensha
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _cat,
@@ -179,10 +180,10 @@ def detect_laoyu_zi(
         t = a.get('type', '')
         from_pos = a.get('from_pos', '')
         to_pos = a.get('to_pos', '')
-        if t not in control_types:
-            continue
-        # 牢狱字作用于阳性柱
-        for pos in (from_pos, to_pos):
+        if t not in control_types or a.get('relation_direction') in ('mutual', 'unknown'):
+            continue  # 无明确施受方向不冒充阴灭阳
+        # 牢狱字作用于阳性柱，只认施动方
+        for pos in (from_pos,):
             if not pos or '_' not in pos:
                 continue
             pk = pos.split('_')[0]
@@ -226,15 +227,17 @@ def detect_laoyu_zi(
             continue
         from_pos = a.get('from_pos', '')
         to_pos = a.get('to_pos', '')
-        if from_pos and '_' in from_pos and from_pos.endswith('_gan'):
+        if from_pos and '_' in from_pos:
             fpk = from_pos.split('_')[0]
             fidx = PILLAR_KEYS.index(fpk) if fpk in PILLAR_KEYS else -1
-            if fidx >= 0 and gans[fidx] in _YANG_GAN_SET:
-                if to_pos and '_' in to_pos and to_pos.endswith('_zhi'):
-                    tpk = to_pos.split('_')[0]
-                    tidx = PILLAR_KEYS.index(tpk) if tpk in PILLAR_KEYS else -1
-                    if tidx >= 0 and zhis[tidx] in _LAOYU_ZI:
-                        yang_zhi_yin = True
+            is_yang = fidx >= 0 and (
+                gans[fidx] in _YANG_GAN_SET
+                or (from_pos.endswith('_zhi') and zhis[fidx] in _YANG_ZHI_SET))
+            if is_yang and to_pos and '_' in to_pos and to_pos.endswith('_zhi'):
+                tpk = to_pos.split('_')[0]
+                tidx = PILLAR_KEYS.index(tpk) if tpk in PILLAR_KEYS else -1
+                if tidx >= 0 and zhis[tidx] in _LAOYU_ZI:
+                    yang_zhi_yin = True
 
     details: List[str] = []
     if hits:
@@ -663,8 +666,9 @@ def detect_kuigang(
                 'with_xingchong': False, 'wu_zhi': False, 'laoyu_signal': False, 'details': []}
 
     has_guansha = _has_shen_in_mingxian(day_gan, gans, zhis, {'正官', '七杀'})
-    has_shi = _has_shen_in_mingxian(day_gan, gans, zhis, {'食神', '伤官'})
-    has_yin = _has_shen_in_mingxian(day_gan, gans, zhis, {'正印', '偏印'})
+    other_gans, other_zhis = gans[:2] + gans[3:], zhis[:2] + zhis[3:]
+    has_shi = _has_shen_in_mingxian(day_gan, other_gans, other_zhis, {'食神', '伤官'})
+    has_yin = _has_shen_in_mingxian(day_gan, other_gans, other_zhis, {'正印', '偏印'})
     wu_zhi = not has_shi and not has_yin
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
@@ -729,20 +733,12 @@ def detect_guansha_rumu(
             tomb_zhi = z
             break
     in_tomb = has_guansha and bool(tomb_zhi)
-    # 墓开否（该墓支被冲/刑开库）
-    rel = _ensure_relations(day_gan, gans, zhis, relations)
-    wa: List[Dict] = rel.get('work_actions') or []
+    # 墓开否只认墓库模块「开库」，闭库/制库/墓库/动库均不算明确开库
     tomb_open = False
     if tomb_zhi:
-        tomb_open = any(
-            a.get('type') in ('冲', '刑') and
-            ((a.get('from_pos', '').endswith('_zhi') and
-              zhis[PILLAR_KEYS.index(a['from_pos'].split('_')[0])] == tomb_zhi if a['from_pos'].split('_')[0] in PILLAR_KEYS else False) or
-             (a.get('to_pos', '').endswith('_zhi') and
-              zhis[PILLAR_KEYS.index(a['to_pos'].split('_')[0])] == tomb_zhi if a['to_pos'].split('_')[0] in PILLAR_KEYS else False))
-            for a in wa
-        )
-    laoyu_signal = in_tomb and not tomb_open
+        tomb_open = any(t.get('zhi') == tomb_zhi and t.get('status') == '开库'
+                        for t in analyze_muku(zhis, gans).get('tombs', []))
+    laoyu_signal = in_tomb
     details: List[str] = []
     if in_tomb:
         details.append(f'官杀({guan_wx}五行)入墓{tomb_zhi}，' +
@@ -826,7 +822,7 @@ def analyze_laoyu(
     if r_kg.get('laoyu_signal'):
         methods.append('魁罡逢冲官')
     if r_gshm.get('laoyu_signal'):
-        methods.append('官杀入墓')
+        methods.append('官杀墓动' if r_gshm.get('tomb_open') else '官杀入墓')
 
     hit_count = len(methods)
     # 段氏「占其一即有象，多者灾重」：1法=低，2法=中，3+法=高

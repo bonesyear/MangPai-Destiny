@@ -268,7 +268,7 @@
   "detail": "ok=True 审计档=✅ val=高"
  },
  "laoyu:受贿": {
-  "verdict": "⚠️",
-  "detail": "ok=False 审计档=⚠️ val=中"
+  "verdict": "✅",
+  "detail": "ok=True 审计档=⚠️ val=高"
  }
 }
