@@ -236,6 +236,7 @@ def _liuqin_line(lq: dict) -> str:
     if not lq:
         return ''
     sm = lq.get('summary', '') or ''
+    sm = '；'.join(part for part in sm.split('；') if not part.startswith('头胎'))
     return f"六亲：{sm}" if sm else ''
 
 

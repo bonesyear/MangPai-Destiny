@@ -163,10 +163,22 @@ def _scrub_death(obj):
     只动 LLM 视图层（build_payload 出口），引擎内部 result 不受影响。
     """
     if isinstance(obj, str):
+        obj = obj.replace('；头胎男', '').replace('；头胎女', '')
+        if obj.startswith(('头胎男', '头胎女')):
+            obj = obj[3:].lstrip('；')
+        if any(t in normalize_safety_text(obj)
+               for t in ('生男', '生女', '男胎', '女胎', '双女', '难生儿')):
+            return _DROP
         return _DROP if any(t in normalize_safety_text(obj) for t in DEATH_WORDS) else obj
     if isinstance(obj, dict):
         out = {}
         for k, v in obj.items():
+            if k == 'zixi_xingbie':
+                continue
+            if k == 'parent_zaoshi' and isinstance(v, dict) and v.get('is_zaoshi'):
+                continue
+            if k == 'xiongdi_keshun' and isinstance(v, dict) and v.get('has_keshun'):
+                continue
             if isinstance(k, str) and any(t in normalize_safety_text(k) for t in DEATH_WORDS):
                 continue
             sv = _scrub_death(v)

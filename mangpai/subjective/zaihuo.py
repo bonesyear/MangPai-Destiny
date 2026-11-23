@@ -566,10 +566,9 @@ def detect_siwang(
         muku = analyze_muku(zhis, gans)
         tombs = muku.get('tombs') or []
         open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
-        closed_tombs = {t.get('zhi') for t in (muku.get('closed_tombs') or [])}
         star_tombs = _tomb_zhis_of_wx(swx) if swx else set()
         for z in star_tombs:
-            if z in closed_tombs:
+            if z in zhis and z not in open_tombs:
                 mu_jue_kong.append(f'寿元星（{swx}）入{z}墓不开')
             if z in open_tombs:
                 mu_jue_kong.append(f'寿元星（{swx}）入{z}墓被冲开（寿终之兆）')

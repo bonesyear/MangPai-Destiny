@@ -57,7 +57,7 @@ def test_siwang_high_requires_mu_jue_kong_all_three():
 
 def test_siwang_jue_plus_kong_without_mu_not_high():
     """绝+空亡而墓不见 → 不得判高（批7 P0-2 假阳方向收窄）。"""
-    gans, zhis, rel = _rel('甲申辛未壬子壬寅')
+    gans, zhis, rel = _rel('甲申辛巳壬子壬寅')
     sw = detect_siwang('壬', gans, zhis, rel)
     mjk = sw['mu_jue_kong']
     assert any('绝' in m for m in mjk) and any('空亡' in m for m in mjk)

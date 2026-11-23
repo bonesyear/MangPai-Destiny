@@ -105,7 +105,7 @@ def _attacked_kinds_on_pillar(wa: List[Dict], pillar_idx: int) -> List[str]:
     kinds: List[str] = []
     for a in wa:
         fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
-        if target not in (fp, tp):
+        if target not in (a.get('participants') or [fp, tp]):
             continue
         t = a.get('type', '')
         if t in ('刑', '冲', '穿', '破', '地支合', '半合', '三合局', '暗合'):
@@ -140,7 +140,7 @@ def _cai_ke_yin_actual(day_gan: str, gans: List[str], zhis: List[str],
         if (gc == '财' and zc == '印') or (gc == '印' and zc == '财'):
             return True
     for a in wa:
-        if a.get('type') not in ('克', '冲', '刑', '穿', '破'):
+        if a.get('type') not in ('冲', '刑', '穿', '破'):
             continue
         fc = _pos_cat(day_gan, gans, zhis, a.get('from_pos', ''))
         tc = _pos_cat(day_gan, gans, zhis, a.get('to_pos', ''))
@@ -260,16 +260,22 @@ def detect_parent_zaoshi(
     # 父母宫=年月柱
     parent_palace_idx = [0, 1]
 
-    # 1. 财临库地：父星坐墓库
+    # 1. 财临库地：父星坐墓库且墓开，或无原神
     muku = analyze_muku(zhis, gans)
     tombs = muku.get('tombs') or []
+    open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
     for i in (0, 1, 2, 3):
         z = zhis[i]
         # 父星坐墓库（天干父星坐墓）
         g = gans[i]
         if g and GAN_WX.get(g) in parent_wxs:
+            source_wx = WX_SHENG.get(day_wx) if GAN_WX.get(g) == cai_wx else cai_wx
+            has_yuanshen = any(GAN_WX.get(h) == source_wx for h in gans) or any(
+                ZHI_WX.get(other) == source_wx or any(
+                    GAN_WX.get(cg) == source_wx for cg, _q in get_canggan_mangpai(other))
+                for other in zhis if other)
             for tb in tombs:
-                if tb.get('zhi') == z:
+                if tb.get('zhi') == z and (z in open_tombs or not has_yuanshen):
                     markers.append(f'父星{g}坐{z}墓库（财临库地）')
                     break
 
@@ -287,6 +293,7 @@ def detect_parent_zaoshi(
     # 3. 三刑夹刑：年月宫犯三刑
     year_month_zhis = [zhis[0], zhis[1]]
     xing_hits = [t for t in wa if t.get('type') == '刑'
+                 and not t.get('auxiliary') and not t.get('relation_only')
                  and (t.get('from_pos', '').split('_')[0] in ('year', 'month')
                       or t.get('to_pos', '').split('_')[0] in ('year', 'month'))]
     if xing_hits:
@@ -353,6 +360,16 @@ def detect_parent_duohun(
         if c >= 2 and GAN_WX.get(g) == yin_wx:
             markers.append(f'母星{g}伏吟（双透）')
 
+    zhi_counts: Dict[str, int] = {}
+    for z in zhis:
+        if z:
+            zhi_counts[z] = zhi_counts.get(z, 0) + 1
+    for z, count in zhi_counts.items():
+        if count >= 2 and ZHI_WX.get(z) in (cai_wx, guan_wx):
+            markers.append(f'父星{z}伏吟（双现）')
+        if count >= 2 and ZHI_WX.get(z) == yin_wx:
+            markers.append(f'母星{z}伏吟（双现）')
+
     # 双合：父母星与他干相合（非日主）
     for a in wa:
         if a.get('type') not in ('天干合', '地支合', '半合', '三合局', '暗合'):
@@ -401,13 +418,12 @@ def detect_parent_qiyang(
     wa: List[Dict] = rel.get('work_actions') or []
     markers: List[str] = []
 
-    muku = analyze_muku(zhis, gans)
-    tombs_zhis = {tb.get('zhi') for tb in (muku.get('tombs') or [])}
-
     # 1. 年月食伤入墓
+    day_wx_qy = GAN_WX.get(day_gan, '')
+    shishang_wx = WX_SHENG.get(day_wx_qy, '')
     for i in (0, 1):
         if _pillar_has_cat(day_gan, gans[i], zhis[i], '食伤'):
-            if zhis[i] in tombs_zhis:
+            if shishang_wx in TOMB_MAP.get(zhis[i], []):
                 markers.append(f'年月食伤入{zhis[i]}墓（父母无力抚养）')
                 break
     # 食伤被合绊（年月食伤柱受合）
@@ -429,8 +445,9 @@ def detect_parent_qiyang(
 
     # 3. 年柱偏财：年柱干支皆偏财
     year_gan_ss = _compute_shishen(day_gan, gans[0])
-    year_zhi_cats = _pillar_cats(day_gan, '', zhis[0])
-    if year_gan_ss == '偏财' and '财' in year_zhi_cats:
+    year_canggan = get_canggan_mangpai(zhis[0])
+    year_zhi_ss = _compute_shishen(day_gan, year_canggan[0][0]) if year_canggan else ''
+    if year_gan_ss == '偏财' and year_zhi_ss == '偏财':
         markers.append('年柱干支皆偏财（养子之象）')
 
     # 4. 日时见合迎新主
@@ -445,8 +462,6 @@ def detect_parent_qiyang(
     # 5. 食伤重现换门楼（批Q1 补）：年月食伤其五行被局中墓库支收（入墓）
     #    + 时柱再现食伤 → 主过继（gaoji:13878 口诀；案例十七 :13885-13897
     #    月令亥水食神入日支辰墓、时上又见壬午食神）
-    day_wx_qy = GAN_WX.get(day_gan, '')
-    shishang_wx = WX_SHENG.get(day_wx_qy, '')
     ym_ss_tomb = False
     for i in (0, 1):
         if _pillar_has_cat(day_gan, gans[i], zhis[i], '食伤'):
@@ -570,7 +585,6 @@ def detect_zixi_youwu(
     muku = analyze_muku(zhis, gans)
     tombs = muku.get('tombs') or []
     open_tombs = {t.get('zhi') for t in (muku.get('open_tombs') or [])}
-    closed_tombs = {t.get('zhi') for t in (muku.get('closed_tombs') or [])}
 
     # 1. 子息星入墓库不开
     child_wx = ''
@@ -588,17 +602,18 @@ def detect_zixi_youwu(
         for w in ('木', '火', '土', '金', '水'):
             if z in _tomb_zhis_of_wx(w):
                 stored.append(w)
-        if child_wx in stored and z in closed_tombs:
+        if child_wx in stored and z not in open_tombs:
             markers.append(f'子息星（{child_wx}）入{z}墓不开')
             break
 
-    # 2. 子息宫（时柱）空亡或受穿破刑冲
+    # 2. 子息宫（时柱）空亡或受穿破刑冲，同属一个宫标志，不重复计数
     hour_kinds = _attacked_kinds_on_pillar(wa, 3)
-    if zhis[3] in kong_wang_zhis:
-        markers.append('子息宫（时支）空亡')
     bad_kinds = [k for k in hour_kinds if k in ('穿', '破', '刑', '冲')]
-    if bad_kinds:
-        markers.append(f'子息宫受{"、".join(bad_kinds)}')
+    if zhis[3] in kong_wang_zhis or bad_kinds:
+        palace = ['空亡'] if zhis[3] in kong_wang_zhis else []
+        if bad_kinds:
+            palace.append(f'受{"、".join(bad_kinds)}')
+        markers.append(f'子息宫（时支）{"、".join(palace)}')
 
     # 3. 子息星原神被坏：官杀原神=财，食伤原神=比劫，财星统看原神=食伤
     #    （gaoji:14040「官杀之原神为财，食伤之原神为比劫」；比劫克财是忌神
@@ -707,15 +722,17 @@ def detect_zixi_xingbie(
                 break
     base_gender = _child_star_gender(gender, day_gan, first_ss)
 
-    # 换象触发：先现子息星柱被刑/冲/穿/合
-    kinds = _attacked_kinds_on_pillar(wa, first)
+    # 换象触发：须子息星本身被刑/冲/穿/合，日主或他神被合不算
+    z_has_star = any(idx <= 1 and _cat(_compute_shishen(day_gan, cg)) == cat
+                     for idx, (cg, _src) in enumerate(get_canggan_mangpai(z)))
+    kinds = _attacked_kinds_on_pillar(wa, first) if z_has_star else []
     swap_kinds = [k for k in kinds if k in ('刑', '冲', '穿', '地支合', '半合', '三合局', '暗合')]
-    # 亦看天干合涉该柱
-    for a in wa:
-        if a.get('type') == '天干合':
-            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
-            if f'{PILLAR_KEYS[first]}_gan' in (fp, tp) and '合' not in swap_kinds:
-                swap_kinds.append('合')
+    if first != PILLAR_KEYS.index('day') and _cat(_compute_shishen(day_gan, g)) == cat:
+        for a in wa:
+            if a.get('type') == '天干合':
+                fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+                if f'{PILLAR_KEYS[first]}_gan' in (fp, tp) and '合' not in swap_kinds:
+                    swap_kinds.append('合')
     huanxiang = bool(swap_kinds)
 
     # 互证：xiangfa_ops.huanxiang 制尽换象
@@ -813,7 +830,7 @@ def classify_xiongdi_shuliang(
 
     # 月令为比劫旺地 → +1
     month_zhi = zhis[1] if len(zhis) == 4 else ''
-    if _pillar_has_cat(day_gan, gans[1], month_zhi, '比劫'):
+    if _pillar_has_cat(day_gan, '', month_zhi, '比劫'):
         adjust += 1
         factors.append('月令比劫旺地 +1')
 
@@ -1040,9 +1057,9 @@ def classify_xiongdi_qingyi(
     hou = False
     bo = False
     for a in wa:
-        pair = {a.get('from_pos'), a.get('to_pos')}
+        pair = set(a.get('participants') or [a.get('from_pos'), a.get('to_pos')])
         t = a.get('type', '')
-        if pair == {'month_zhi', 'day_zhi'} or pair == {'month_gan', 'day_gan'}:
+        if {'month_zhi', 'day_zhi'} <= pair or pair == {'month_gan', 'day_gan'}:
             if t in ('地支合', '半合', '三合局', '暗合', '天干合'):
                 hou = True
                 markers.append(f'兄弟宫与日柱相{t}（情谊厚）')
