@@ -446,10 +446,13 @@ class TestCaiTongguanLiangji:
         assert r['caifu_view']['caixing_path']['hecai_work'] is True
         assert r['tier_static'] == '巨富'
 
-    def test_hecai_work_requires_open_guan_tomb(self):
+    def test_zb_jingzhi_allows_jufu_without_caitongguan(self):
         r = analyze_caiming('丁', ['戊', '丙', '丁', '癸'], ['申', '辰', '巳', '卯'])
         assert r['caifu_view']['caixing_path']['hecai_work'] is True
-        assert r['tier_static'] == '富'
+        # 被制字按本字判定后不再构成财统官，改走贼捕净制豁免。
+        assert '财统官' not in r['caifu_view']['views']
+        assert '贼神捕神净制' in r['level_static']['adjust']
+        assert r['tier_static'] == '巨富'
 
     def test_hecai_work_does_not_replace_yuanshen(self):
         r = analyze_caiming('乙', ['庚', '己', '乙', '庚'], ['申', '卯', '酉', '辰'])

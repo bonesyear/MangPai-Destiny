@@ -377,7 +377,7 @@ def test_regression67_keeps_book_and_engine_levels_separate():
     import regression67
 
     out, _ = regression67.compute()
-    for name, book, current in [('例7', 2, 3), ('普例3', 1, 2)]:
+    for name, book, current in [('例7', 2, 3)]:
         verdict, detail = out[f'gl:{name}']
         assert verdict == '⚠️'
         assert f'书{book}' in detail and f'口径{current}' in detail

@@ -116,8 +116,8 @@
   "detail": "level=1(书1；口径1) score=0"
  },
  "gl:普例3": {
-  "verdict": "⚠️",
-  "detail": "level=2(书1；口径2) score=50"
+  "verdict": "✅",
+  "detail": "level=1(书1；口径2) score=12"
  },
  "gl:普例4": {
   "verdict": "✅",

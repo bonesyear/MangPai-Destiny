@@ -172,7 +172,7 @@ class TestSourceRegression:
         (YANXISHAN, 3),
         (PUTONG1, 1),
         (PUTONG2, 1),
-        (PUTONG3, 2),  # R4 对拍已为 2（气势浪费），不是 R5 抬升
+        (PUTONG3, 1),  # 财统官按被制本字判定后，撤销误计的一层统摄功
         (PUTONG4, 2),
         (PUTONG5, 2),
     ])

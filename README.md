@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1850 验证用例全绿。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1858 验证用例全绿。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -47,8 +47,8 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 404 passed（404 项） | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 70 / 64 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1850 passed | ✅ |
-| blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261123_batch19.json`（rubric v10）；qi18 连墓去重差异已归因，双 seed 一致 | ✅ 计分零翻转 |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1858 passed | ✅ |
+| blind_eval（heldout 215 + trainset 294 三维盲测） | `LATEST=20261123_batch20.json`（rubric v10）；5 换档与 48 字段差异已归因，双 seed 一致 | ✅ 新基线零差异 |
 
 ## 入仓前的脱敏闸门
 
