@@ -1703,6 +1703,8 @@ def xiangfa_fallback(
             if fk in PILLAR_KEYS and tk in PILLAR_KEYS:
                 fz = zhis[PILLAR_KEYS.index(fk)] if fp.endswith('_zhi') else ''
                 tz = zhis[PILLAR_KEYS.index(tk)] if tp.endswith('_zhi') else ''
+                if fz == tz or a.get('relation_only'):
+                    continue
                 if fz in TOMB_MAP and tz in TOMB_MAP:
                     out['lianmu_zuogong'].append({
                         'pair': f'{fz}{tz}',

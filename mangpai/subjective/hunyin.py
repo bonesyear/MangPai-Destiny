@@ -51,6 +51,7 @@ from mangpai.objective.constants import (
     CANG_GAN_MANGPAI, PILLAR_KEYS, PILLAR_NAMES_CN, is_pillars,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.muku import analyze_muku
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _cat,
@@ -202,6 +203,15 @@ def _star_mingxian_count(day_gan: str, gans: List[str], zhis: List[str], gender:
     return cnt
 
 
+def _zheng_star_count(day_gan: str, gans: List[str], zhis: List[str], gender: str) -> int:
+    """原局正配星明现柱数，替代配偶星不计入混杂/多婚。"""
+    day_wx = GAN_WX.get(day_gan, '')
+    primary = WX_KE.get(day_wx, '') if gender == '男' else WX_KE_ME.get(day_wx, '')
+    if not _wx_star_present(gans, zhis, primary):
+        return 0
+    return _star_mingxian_count(day_gan, gans, zhis, gender)
+
+
 def _dayzhi_attacked(wa: List[Dict]) -> List[str]:
     """日支(婚姻宫)被冲/合/穿/刑的动作类型列表。"""
     kinds: List[str] = []
@@ -216,6 +226,8 @@ def _dayzhi_attacked(wa: List[Dict]) -> List[str]:
                     kinds.append('穿')
                 if '刑' not in kinds and t == '刑':
                     kinds.append('刑')
+                if '破' not in kinds and t == '破':
+                    kinds.append('破')
             elif t in ('地支合', '半合'):
                 if '合' not in kinds:
                     kinds.append('合')
@@ -255,15 +267,37 @@ def _zhi_main_cat(day_gan: str, z: str) -> str:
     return _cat(_compute_shishen(day_gan, cg[0][0])) if cg else ''
 
 
-def _gong_actions(wa: List[Dict], zhis: List[str]) -> tuple:
-    """日支(婚姻宫)涉入的作用拆两类：冲穿刑(攻制) / 合(地支合·半合·暗合)。
+def _gong_he_partners(wa: List[Dict], zhis: List[str]) -> List[tuple]:
+    """合入婚姻宫的地支，含完整三合局的全部参与支。"""
+    out = []
+    day_pos = 'day_zhi'
+    for a in wa:
+        fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
+        if a.get('type') in ('地支合', '半合', '暗合'):
+            if day_pos not in (fp, tp):
+                continue
+            other = tp if fp == day_pos else fp
+            k = other.split('_')[0]
+            if other.endswith('_zhi') and k in PILLAR_KEYS:
+                out.append((zhis[PILLAR_KEYS.index(k)], a))
+        elif a.get('type') == '三合局':
+            participants = a.get('participants') or [fp, tp]
+            if day_pos not in participants:
+                continue
+            for pos in participants:
+                k = pos.split('_')[0]
+                if pos != day_pos and pos.endswith('_zhi') and k in PILLAR_KEYS:
+                    out.append((zhis[PILLAR_KEYS.index(k)], a))
+    return out
 
-    每项 (type, other_zhi, action)；自刑（同支）非攻击，排除
-    （zhenbao-05 锚：自刑/伏吟非反制）。
+
+def _gong_actions(wa: List[Dict], zhis: List[str]) -> tuple:
+    """日支(婚姻宫)涉入的作用拆两类：冲穿刑破(攻制) / 合(含三合)。
+
+    每项 (type, other_zhi, action)；自刑及仅作关系标记的刑非攻击。
     """
     day_zhi = zhis[PILLAR_KEYS.index('day')]
     adv: List = []
-    he: List = []
     for a in wa:
         fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
         if 'day_zhi' not in (fp, tp):
@@ -274,13 +308,13 @@ def _gong_actions(wa: List[Dict], zhis: List[str]) -> tuple:
             continue
         oz = zhis[PILLAR_KEYS.index(k)]
         t = a.get('type', '')
-        if t in ('冲', '穿', '刑'):
+        if t in ('冲', '穿', '刑', '破'):
             if oz == day_zhi:
                 continue  # 自刑
+            if t == '刑' and (a.get('auxiliary') or a.get('relation_only')):
+                continue
             adv.append((t, oz, a))
-        elif t in ('地支合', '半合', '暗合'):
-            he.append((oz, a))
-    return adv, he
+    return adv, _gong_he_partners(wa, zhis)
 
 
 _ZHONGHUAI_TYPES = ('冲', '穿', '刑', '破')
@@ -310,9 +344,10 @@ def _star_zhonghuai(day_gan: str, zhis: List[str], gender: str,
             key = f'{PILLAR_KEYS[i]}_zhi'
             other = tp if fp == key else (fp if tp == key else '')
             ok = other.split('_')[0]
-            if not other.endswith('_zhi') or ok not in PILLAR_KEYS \
-                    or ok in (PILLAR_KEYS[i], day_key):
+            if not other.endswith('_zhi') or ok not in PILLAR_KEYS or ok == PILLAR_KEYS[i]:
                 continue
+            if ok == day_key and a.get('type') == '冲':
+                continue  # 宫星相冲的制去语境，不计众坏
             oz = zhis[PILLAR_KEYS.index(ok)]
             if _zhi_party(oz) == my_party:
                 continue
@@ -368,7 +403,7 @@ def classify_hunyin_quality(
 
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
-    star_count = _star_mingxian_count(day_gan, gans, zhis, gender)
+    star_count = _zheng_star_count(day_gan, gans, zhis, gender)
     gong_attacked = _dayzhi_attacked(wa)
 
     signals: List[str] = []
@@ -390,28 +425,39 @@ def classify_hunyin_quality(
     # 宫为忌被夫妻星制去=较好；宫有用被刑冲破穿/合他星=差；宫坐库喜刑冲（开库）；
     # 合正偏印与禄不论坏（:4351）；制不住反为坏婚姻（:4290，戴安娜:4516-4518）。
     adv, he_acts = _gong_actions(wa, zhis)
+    best_adv = {}
+    for t, oz, a in adv:
+        other = a.get('to_pos') if a.get('from_pos') == 'day_zhi' else a.get('from_pos')
+        if other not in best_adv or _GONG_ATTACK_W[t] > _GONG_ATTACK_W[best_adv[other][0]]:
+            best_adv[other] = (t, oz, a)
+    adv = list(best_adv.values())
     day_zhi = zhis[day_idx]
     qs = _qishi_dang(gans, zhis)
     dang, opp = qs['dang'], qs['opp']
     gong_attacked = sorted({t for t, _oz, _a in adv} | ({'合'} if he_acts else set()))
 
-    # 宫坐四库：非星支之冲/刑/穿=开库为喜（库喜刑冲，zhongji:4493/4500；
-    # 「无刑冲克破者也易独身」:4927），免罚；星支攻制仍入宫星互制（戴安娜
-    # 未被戌刑坏=制不住 :4516-4518，不开库）
+    # 宫坐四库：冲刑才可开库，穿仍按攻制；星支逢冲须制得住，
+    # 戴安娜「制不住」（opp>=2）不以开库豁免。
     ku_open = False
     if day_zhi in _KU_ZHIS and adv:
         kept = []
         for t, oz, a in adv:
-            if not _is_star_zhi(day_gan, oz, gender, swx):
+            is_star = _is_star_zhi(day_gan, oz, gender, swx)
+            if not is_star:
+                if t in ('冲', '刑') or ku_open:
+                    ku_open = ku_open or t in ('冲', '刑')
+                    continue
+            if t == '冲' and opp < 2:
                 ku_open = True
-            else:
-                kept.append((t, oz, a))
+            kept.append((t, oz, a))
         adv = kept
     if ku_open:
         signals.append(f'婚姻宫坐库（{day_zhi}），刑冲开库为喜（库喜刑冲）')
         score += 1.0
 
-    star_adv = [(t, oz, a) for t, oz, a in adv if _is_star_zhi(day_gan, oz, gender, swx)]
+    star_adv = [(t, oz, a) for t, oz, a in adv
+                if _is_star_zhi(day_gan, oz, gender, swx)
+                and (t == '冲' or (t == '穿' and not a.get('relation_only')))]
     nonstar_adv = [(t, oz, a) for t, oz, a in adv
                    if not _is_star_zhi(day_gan, oz, gender, swx)]
     # 星被众坏=星坏婚差（zhenbao:769-770「卯木被两子破…故找的妻是破货」）：
@@ -424,6 +470,9 @@ def classify_hunyin_quality(
     for sz, atks in star_broken:
         signals.append(f'配偶星({sz})被{"、".join(atks)}众坏（众坏非制去），星坏婚差')
         score += _STAR_ZHONGHUAI_W
+    if _dayzhi_zuo_zhengxing(day_gan, day_zhi, swx) and any(
+            _is_star_zhi(day_gan, oz, gender, swx) for _t, oz, _a in adv):
+        signals.append('正星坐宫被制（正星不可以制），婚姻易出问题')
     gong_good = False
     if star_adv and dang and not star_broken:
         gong_dang = _zhi_party(day_zhi)
@@ -435,9 +484,7 @@ def classify_hunyin_quality(
             # 日支坐正财/正官（正星）被制 → 不加分，出「正星受制」负向信号
             # （gong_good=False，落入下方通用被攻罚则）；坐偏财/七杀（偏星）
             # 或星在外攻宫被宫制去 → 维持加分。
-            if _dayzhi_zuo_zhengxing(day_gan, day_zhi, swx):
-                signals.append('正星坐宫被制（正星不可以制），婚姻易出问题')
-            else:
+            if not _dayzhi_zuo_zhengxing(day_gan, day_zhi, swx):
                 # 宫制去夫妻星忌神且制得住→好婚姻（zhongji:4289-4294/4300）
                 signals.append('婚姻宫制去夫妻星忌神（宫方成势，制之得住），好婚姻')
                 score += 2.0
@@ -480,8 +527,8 @@ def classify_hunyin_quality(
         kinds = [t for t, _oz, _a in adv] + (['合'] if he_bad else [])
         signals.append(f'婚姻宫(日支)被{"、".join(kinds)}（破坏度-{loss:g}）')
         score -= loss
-    else:
-        signals.append('婚姻宫(日支)安稳无冲合穿刑')
+    elif not ku_open:
+        signals.append('婚姻宫(日支)安稳无冲合穿刑破')
         score += _GONG_SAFE_W
     # 争合（日干被两干以上合）
     if rel.get('zheng_he'):
@@ -541,7 +588,7 @@ def classify_duohun(
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
     factors: List[str] = []
-    star_count = _star_mingxian_count(day_gan, gans, zhis, gender)
+    star_count = _zheng_star_count(day_gan, gans, zhis, gender)
 
     if star_count >= 3:
         factors.append(f'配偶星多现（{star_count}位，{"财星" if gender=="男" else "官杀"}混杂）')
@@ -586,7 +633,8 @@ def classify_duohun(
                 break
     # 1. 配偶星被穿/破/冲（源文规则1：「夫妻宫穿了夫妻星的那个字，必离婚（可以冲）」，
     #    推及配偶星所在支被穿/破/冲即为多婚标志）
-    for a in wa:
+    has_zheng_star = _zheng_star_count(day_gan, gans, zhis, gender) > 0
+    for a in wa if has_zheng_star else []:
         t = a.get('type', '')
         if t not in ('穿', '破', '冲'):
             continue
@@ -605,7 +653,7 @@ def classify_duohun(
             break
     # 2. 盖头劫财(男)/盖头伤官(女)（高级篇：「酉金财星被丁火劫财盖头」、
     #    「酉金正官为夫星，但被丁火盖头」——克星干坐配偶星支上，同柱相克）
-    for i in range(4):
+    for i in range(4) if has_zheng_star else []:
         if i == PILLAR_KEYS.index('day'):
             continue
         g, z = gans[i], zhis[i]
@@ -618,7 +666,7 @@ def classify_duohun(
     #    须配偶星明现于天干或地支本气方论入墓——仅中气藏星且该星即藏于墓库
     #    自身者（如未中乙）为"星藏于库"，非星被收墓，不计（免 zb04 误中）。
     tombs = _star_in_tomb(day_gan, gans, zhis, gender)
-    if tombs:
+    if tombs and has_zheng_star:
         star_mingxian = bool(star_zhis_main) or any(
             g and GAN_WX.get(g) == swx for g in gans)
         if star_mingxian:
@@ -683,6 +731,7 @@ def classify_dushen(
 # 正星之偏（偏星干扰用，zhongji:5081-5083；扩大型含自合对象之偏:5099-5105）
 _PIAN_OF = {'正财': '偏财', '正官': '七杀', '正印': '偏印',
             '食神': '伤官', '比肩': '劫财', '偏财': '正财', '七杀': '正官'}
+_ZIHE_PILLARS = {'戊子', '壬午', '己亥', '丁亥', '辛巳', '癸巳'}
 
 
 def detect_shuizhong_laoyue(
@@ -722,7 +771,8 @@ def detect_shuizhong_laoyue(
                       if idx <= 1 and _compute_shishen(day_gan, cg) == zheng), '')
     # 要素2：日主与日支自合（日干之合干藏于日支）
     he_target = TIAN_GAN_HE.get(day_gan, '')
-    zihe_gan = next((cg for cg, _q in cg_list if cg == he_target), '')
+    zihe_gan = next((cg for cg, _q in cg_list if cg == he_target), '') \
+        if day_gan + zhis[day_idx] in _ZIHE_PILLARS else ''
     # 要素3：偏星透干（正星之偏，或自合对象十神之偏——扩大型）
     pians = {_PIAN_OF.get(zheng, '')}
     if zihe_gan:
@@ -759,8 +809,8 @@ def _dayzhi_natal_he_chong(zhis: List[str]) -> tuple:
     dz = zhis[day_idx]
     he = chong = False
     for i, z in enumerate(zhis):
-        if i == day_idx or not z:
-            continue
+        if i == day_idx or not z or z == dz:
+            continue  # 伏吟不是合，也不是冲
         if (dz, z) in LIU_HE or (z, dz) in LIU_HE:
             he = True
         else:
@@ -854,8 +904,9 @@ def infer_jiehun_yingqi(
     # (f) 女命官杀多而混杂或入墓，伤官运/年反为婚期（gaoji:13238-13258
     # 「女命官杀多而混杂，或官杀入墓，反可在伤官大运、伤官流年结婚。此乃
     # 以毒攻毒，制去多余官杀或冲出官杀之应」）——批Q1 补，marker 级信号
-    if gender == '女' and len(gans or []) == 4 and len(zhis or []) == 4:
-        guan_duo = _star_mingxian_count(day_gan, gans, zhis, gender) >= 2 \
+    if gender == '女' and len(gans or []) == 4 and len(zhis or []) == 4 \
+            and _zheng_star_count(day_gan, gans, zhis, gender) > 0:
+        guan_duo = _zheng_star_count(day_gan, gans, zhis, gender) >= 2 \
             or bool(_star_in_tomb(day_gan, gans, zhis, gender))
         if guan_duo:
             for label, dgan, dzhi in (('大运', dayun_gan, dayun_zhi), ('流年', liunian_gan, liunian_zhi)):
@@ -1300,9 +1351,7 @@ def classify_jiehun_sifa(
         methods.append('星来合身（配偶星干合日干）')
 
     # 法二·合动夫妻宫：日支被地支合/半合
-    gong_he = any(a.get('type') in ('地支合', '半合') and
-                  (a.get('from_pos') == 'day_zhi' or a.get('to_pos') == 'day_zhi')
-                  for a in wa)
+    gong_he = bool(_gong_he_partners(wa, zhis))
     if gong_he:
         methods.append('合动夫妻宫（日支被合引动）')
 
@@ -1317,16 +1366,8 @@ def classify_jiehun_sifa(
     _tao = shen.get('桃花') or {}
     th = (_tao.get('day_ref') or _tao).get('zhi', '')
     if th:
-        for a in wa:
-            if a.get('type') not in ('地支合', '半合'):
-                continue
-            fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
-            if 'day_zhi' not in (fp, tp):
-                continue
-            other = tp if fp == 'day_zhi' else fp
-            k = other.split('_')[0]
-            if other.endswith('_zhi') and k in PILLAR_KEYS \
-                    and zhis[PILLAR_KEYS.index(k)] == th:
+        for oz, a in _gong_he_partners(wa, zhis):
+            if oz == th:
                 methods.append('桃花合夫妻宫')
                 break
 
@@ -1384,8 +1425,10 @@ def classify_dushen_sige(
 
     gong_rejects_star = any(
         a.get('type') in ('冲', '穿', '刑', '克')
-        # 克须宫为施事方（宫克星=拒星；星克宫=宫被坏，非拒）
-        and (a.get('type') != '克' or a.get('from_pos') == 'day_zhi')
+        and not a.get('relation_only')
+        and (a.get('from_pos') == 'day_zhi'
+             or (a.get('relation_direction') == 'mutual'
+                 and _zhi_party(day_zhi) == _qishi_dang(gans, zhis)['dang']))
         and (oz := _other_zhi_of_day(a))
         and ZHI_WX.get(oz, '') == swx  # 本气星支方论（案例十二丑余气官不算）
         for a in wa)
@@ -1394,7 +1437,9 @@ def classify_dushen_sige(
     # 三型居一：星全无 / 宫拒星（案例六·教授）/ 宫占印+时柱占禄刃（案例七）
     gong_main = _zhi_main_cat(day_gan, day_zhi)
     hour_main = _zhi_main_cat(day_gan, zhis[PILLAR_KEYS.index('hour')])
-    if gong_main in ('比劫', '印') and (
+    if gong_main in ('比劫', '印') and not (
+            gender == '女' and gong_main == '印'
+            and _zheng_star_count(day_gan, gans, zhis, gender) == 0) and (
             star_count == 0 or gong_rejects_star
             or (gong_main == '印' and hour_main == '比劫')):
         grids.append('宫占比劫禄印格')
@@ -1404,18 +1449,18 @@ def classify_dushen_sige(
         star_tou = any(g and GAN_WX.get(g) == swx for g in gans)
         star_tombs = {z for z in zhis if z and swx in TOMB_MAP.get(z, [])}
         star_he = False
-        for a in wa:
-            if a.get('type') not in ('地支合', '半合'):
+        for oz, a in _gong_he_partners(wa, zhis):
+            if ZHI_WX.get(oz, '') != swx:
                 continue
-            pair = [zhis[PILLAR_KEYS.index(pk.split('_')[0])]
-                    for pk in (a.get('from_pos', ''), a.get('to_pos', ''))
-                    if pk.endswith('_zhi') and pk.split('_')[0] in PILLAR_KEYS]
-            for oz in pair:
-                if ZHI_WX.get(oz, '') == swx:  # 本气星支（辰余气癸不算）
-                    partner = next((z for z in pair if z != oz), '')
-                    # 合入己墓=星被收（教授例子入辰墓），非得援
-                    if partner not in star_tombs:
-                        star_he = True
+            pair = [oz] + [zhis[PILLAR_KEYS.index(pk.split('_')[0])]
+                           for pk in (a.get('participants')
+                                      or [a.get('from_pos'), a.get('to_pos')])
+                           if pk.endswith('_zhi') and pk.split('_')[0] in PILLAR_KEYS
+                           and zhis[PILLAR_KEYS.index(pk.split('_')[0])] != oz]
+            partner = next((z for z in pair if z != oz), '')
+            # 合入己墓=星被收（教授例子入辰墓），非得援
+            if partner not in star_tombs:
+                star_he = True
         if star_tou or star_he:
             grids.append('宫星互害反成克格')
 
@@ -1425,11 +1470,8 @@ def classify_dushen_sige(
     star_tou_ru_mu = bool(tombs) and any(g and GAN_WX.get(g) == swx for g in gans)
     if tombs and (gong_is_tomb or star_tou_ru_mu):
         opened = any(
-            a.get('type') in ('冲', '刑') and any(
-                pk.endswith('_zhi') and pk.split('_')[0] in PILLAR_KEYS
-                and zhis[PILLAR_KEYS.index(pk.split('_')[0])] in tombs
-                for pk in (a.get('from_pos', ''), a.get('to_pos', '')))
-            for a in wa)
+            t.get('zhi') in tombs and t.get('status') == '开库'
+            for t in analyze_muku(zhis, gans).get('tombs', []))
         if not opened:
             grids.append('星入墓不开格')
 
