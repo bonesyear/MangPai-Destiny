@@ -457,6 +457,8 @@ def _prepare_inputs(
     # 采纳 zb 的 党势判定）。bao_zhi/chong_lian 检出仅作上游参考录入输出，不重复
     # 计入功量点——zb 的包制/冲链启发式存在误检（如例六包制、普通4冲链），盲目 +1
     # 会与源文层数相悖，故功量点仍以本模块 san_he_formed / _chain_length 保守判为准。
+    if gans and zhis and not day_gan:
+        day_gan = gans[PILLAR_KEYS.index('day')]
     if zeishen_bushen_result is None and day_gan and gans and zhis and len(gans) == 4:
         zeishen_bushen_result = analyze_zeishen_bushen(day_gan, gans, zhis, zg)
     _zb = zeishen_bushen_result or {}
@@ -465,9 +467,7 @@ def _prepare_inputs(
     _zb_clian = _zb.get('chong_lian')
     _zb_jing: str = _zb_sub.get('jing_zhi', '') if _zb_sub else ''
 
-    # 推导 day_gan / gans / zhis（十神推断必需）
-    if gans and zhis and not day_gan:
-        day_gan = gans[PILLAR_KEYS.index('day')]
+    # day_gan 已在贼神捕神调用前完成推导，此处不再重复。
     day_wx = GAN_WX.get(day_gan, '')
     return {
         'zg': zg, 'wa_list': wa_list, 'wtypes': wtypes, 'fei': fei,
@@ -624,11 +624,12 @@ def _reconcile_gong_evidence(
         bundle = [
             {'id': 'bundle:zhiku', 'target': zhiku_tombs[0], 'points': 2.0,
              'reason': f'制墓库：制局冲/刑制墓库「{zhiku_tombs[0]}」（+2层）'},
-            {'id': 'bundle:shaku', 'target': zhiku_tombs[0], 'points': 1.0,
-             'reason': '杀库作功：杀库参与做功（+1层，理象学:6474）'},
-            {'id': 'bundle:baozhi', 'target': '方局', 'points': 1.0,
-             'reason': '包局/包制：方局（三会）成势围制（+1层）'},
         ]
+        if WX_KE_ME.get(day_wx, '') in _tomb_wx(zhiku_tombs[0]):
+            bundle.append({'id': 'bundle:shaku', 'target': zhiku_tombs[0], 'points': 1.0,
+                           'reason': '杀库作功：杀库参与做功（+1层，理象学:6474）'})
+        bundle.append({'id': 'bundle:baozhi', 'target': '方局', 'points': 1.0,
+                       'reason': '包局/包制：方局（三会）成势围制（+1层）'})
     elif san_he_formed and zhiku_tombs and any(
             _w for _w, _gen in WX_SHENG.items() if _gen == day_wx
             and ZHI_WX.get(zhis[1], '') == _w):
@@ -637,9 +638,13 @@ def _reconcile_gong_evidence(
              'reason': '制去杀与杀的原神：双层功（理象学:10595-10601）'},
             {'id': 'bundle:baozhi', 'target': '三合局', 'points': 1.0,
              'reason': '包局/包制：三合局成势围制（+1层）'},
-            {'id': 'bundle:yueling_yin', 'target': zhis[1], 'points': 1.0,
-             'reason': f'月令见印：月令{zhis[1]}为强印，计整层（+1层）'},
         ]
+        # 直接复用 7e 已产生的月令证据，不凭空补一整层。
+        yue = next((e for e in evidence
+                    if e.get('reason', '').startswith(('月令见印', '月令做功'))), None)
+        if yue:
+            bundle.append({'id': 'bundle:yueling_yin', 'target': zhis[1],
+                           'points': yue['points'], 'reason': yue['reason']})
     elif zb_bao_counted and active_tomb_works:
         tomb_xing = next((wa for wa in all_work_actions
                           if not wa.get('auxiliary') and not wa.get('relation_only')
@@ -903,7 +908,7 @@ def _apply_gong_point_rules(
                     # 入墓，如戌被丑戌刑开则午火不入戌），且该入墓对未经
                     # 入墓为功计点（同源去重）。
                     _mz = zhis[PILLAR_KEYS.index('month')] if len(zhis) > 1 else ''
-                    if (_mz and _mz != z
+                    if (_mz and _mz != z and _mz != ys_elem
                             and is_entomb(_mz, z, zhis, gans)
                             and (_mz, z) not in _entombed_pairs):
                         _emit(1)
@@ -1260,9 +1265,12 @@ def _apply_gong_point_rules(
                     break
             if not _yin_active_7d and ZHI_WX.get(zhis[1], '') == _yin_wx_7d:
                 _yin_active_7d = True  # 印居月令（司令之印）
+        _non_aux_hua = [wa for wa in non_aux
+                        if not (wa.get('type') in ('克', '天干合')
+                                and 'day_gan' in (wa.get('from_pos'), wa.get('to_pos')))]
         if (_sha_gan_idx_7d >= 0 and _yin_active_7d and _sha_wx_7d
                 and all(wa.get('type') in ('杀印相生', '支杀化印')
-                        for wa in non_aux)):
+                        for wa in _non_aux_hua)):
             sha_cnt = sum(1 for gg in gans if GAN_WX.get(gg) == _sha_wx_7d)
             sha_cnt += sum(1 for zz in zhis if ZHI_WX.get(zz) == _sha_wx_7d)
             sha_cnt += sum(1 for zz in zhis
@@ -1289,7 +1297,7 @@ def _apply_gong_point_rules(
                 # 跳过，不至此处；普通四柱（PUTONG）虽偶触发从杀格启发式但被普通四柱
                 # 降档封顶覆盖，不受加分影响。
                 _chun_hua = not active_tomb_works and not any(
-                    wa.get('type') in _CONTROL_TYPES for wa in non_aux)
+                    wa.get('type') in _CONTROL_TYPES for wa in _non_aux_hua)
                 if any(wa.get('type') == '杀印相生'
                        and not wa.get('auxiliary') for wa in non_aux) \
                         or (sha_cnt >= 5 and _chun_hua):
@@ -1831,7 +1839,7 @@ def _assess_penalty(
 
     # 三：只有相克之制（无冲/穿/刑/破/合制/墓用/成势）-> 功量较小
     only_ke = (zhi_types_present <= {'克'}) and not he_types_present and not has_mu and not has_chengshi
-    if only_ke and '制用' in wset:
+    if not hua_chengju and only_ke and '制用' in wset:
         return '相克之制', '仅有相克之制，无冲/合/穿/包制，功量较小'
 
     # 三：仅以相生做功（生用/化用，无制用）-> 功量较小
@@ -1842,7 +1850,8 @@ def _assess_penalty(
     real_zhi = [wa for wa in non_aux
                 if wa.get('type') in _ZHI_TYPES and not wa.get('auxiliary')
                 and wa.get('from_pos', '').endswith('_zhi')]
-    if wset and not real_zhi and (wset & {'生用', '泄用', '化用', '禄', '合用'}):
+    if not hua_chengju and wset and not real_zhi \
+            and (wset & {'生用', '泄用', '化用', '禄', '合用'}):
         return '相生之功', '仅以相生做功，无制局，功量较小'
 
     # 二：有气势但气势浪费（做功少）-> 功小（M5：回接 zeishen_bushen 党势判定）
