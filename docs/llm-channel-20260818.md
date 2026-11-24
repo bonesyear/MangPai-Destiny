@@ -128,13 +128,13 @@ python3 output/_llm_batch_rescore.py output/llm_batch_<日期>
 
 1. **死亡 scrub 双保险**：①供给侧 `build_payload` 统一 `_scrub_death` 递归过滤（死亡词典命中条目/键整条移除，修批A）；②输出侧 prompt 明禁（`llm_prompt.SAFETY_REDLINE`，F14 ENVELOPE_RULES 同款）+ L2 死亡词黑名单兜底（五轮批跑触发 0 次）。
 2. **LLM 不落 compute_all**：本通道输出永不回写引擎 dict；引擎内部 siwang/寿元机制保留（F14 不变），detect_shouyuan_jixie 只推演不进消费链。
-3. **只吃 trainset**：批跑/调优只用 trainset 294 例；heldout 215 例只评估不反推（few-shot 交叉污染 qi19/ans25 已备案，prompts 受保护不动）。
+3. **只吃 trainset**：批跑/调优只用 trainset 295 例；heldout 214 例只评估不反推（few-shot 污染5例已按四柱登记并排除出质量指标与抽样）。
 4. **措辞不放大**：LLM 措辞强度 ≤ 引擎断言（prompt 契约 + L2 枚举回对兜底），语义幻觉只压不消，违规附注由人工兜底。
 
 ## §5 维护项
 
 - **峰谷价机制**：定价表在 `llm_backend._PRICE`（peak/offpeak 双档，cache miss 口径，**仅 DeepSeek 有效**——其他 provider/未知模型 `cost_cny=None` 未计价）；官方调价时改表 + 复核 `test_llm_backend.py` 三测。`_estimate_cost(model, usage, at=None)` 的 `at` 缺省=调用时刻，探针可传任意 epoch 秒复算历史档位。
 - **历史成本口径**：2026-08-18 五轮批跑 jsonl 内 `cost_usd` 为旧平价口径（已标注，不回算）；此后新批次自动按峰谷档出账。
-- **未来迭代记录位**：prompt/校验器迭代历史见 `docs/tasks/kimi-llm-{mvp,iter,iter2,iter3,iter4,remap,polish}.md`；新迭代在同目录续档 + 本文件 §2 轨迹表追加一行。L2 财档越限 11 条（小康→富为主）与官命矛盾 3 条为下批候选面。
-- **与 narrative.py 的关系**：llm_channel = narrative 的结构化升级旁路，复用其 `_bazi_line` / `summarize_engine_result` / `validate_narrative_numbers` 与 few-shot 范例（`prompts/hao_style_fewshot`，受保护只读）；`render_hao_narrative` 旧散文通道保留并存，两通道互不回写引擎。
+- **未来迭代记录位**：prompt/校验器迭代历史见历史任务文档（未公开）；新迭代在同目录续档 + 本文件 §2 轨迹表追加一行。L2 财档越限 11 条（小康→富为主）与官命矛盾 3 条为下批候选面。
+- **与 narrative.py 的关系**：llm_channel = narrative 的结构化升级旁路，复用其 `_bazi_line` / `summarize_engine_result` / `validate_narrative_numbers` 与 few-shot 范例（`prompts/hao_style_fewshot`，仅作口吻锚并校正过期引擎术语）；`render_hao_narrative` 旧散文通道保留并存，两通道互不回写引擎。
 - **测试**：`mangpai/tests/test_llm_channel.py`（校验器 19 测）+ `test_llm_backend.py`（峰谷计价 3 测），全离线不触网。

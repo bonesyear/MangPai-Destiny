@@ -1,5 +1,8 @@
 # 第四轮审查 U3 · 财档 L2 越限 16 例定性报告（2026-08-19）
 
+> 历史路径说明：旧任务书与评审数据未公开，以 Git 历史为准。
+<!-- doc-links:ignore -->
+
 > 任务书：`docs/tasks/kimi-review4-u3.md`。只审不改（本报告 + 评审数据为全部产出）。
 > 数据：16 例清单自 `output/t3_s1_d4/dump.json` violations（L2「财运档位越引擎上限」）；
 > 评审 = deepseek-v4-pro 双实例隔离（A/B 独立调用无共享上下文），全谷段（32+4 补跑调用 price_tier 全 offpeak 核验）。

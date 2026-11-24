@@ -1,5 +1,8 @@
 # D6a · 子女断法立项——书锚收集 + 模块设计（纯设计，零实现）
 
+> 历史路径说明：旧任务书与部分原著路径未公开，以 Git 历史为准。
+<!-- doc-links:ignore -->
+
 > 任务书：`docs/tasks/kimi-d6a-zinv-design-20260819.md`。执行日期 2026-08-19。
 > 书源：`mangpai/docs/duan-books/` 下 mangpai-gaoji-ocr.txt（高级）、shouke-jiaocheng.txt（授课，utf8 版为 0 行空文件弃用）、mangpai-zhongji.txt（中级）、duan-shi-lixiangxue.txt / duan-shi-lixiangxue-yanjiu.txt（理象学两版）。
 > 红线遵守：纯设计零实现；书锚逐条原文引用带行号；旧归档仅参考。

@@ -93,11 +93,13 @@ def _judge_user(rec):
     )
 
 
-def run(mode, ids, dump):
-    run_llm_eval(mode, ids, dump, OUT,
+def run(mode, ids, dump, out_dir=None):
+    run_llm_eval(mode, ids, dump, out_dir or OUT,
                  review_system=REVIEW_SYSTEM, judge_system=JUDGE_SYSTEM,
                  make_review_user=_review_user, make_judge_user=_judge_user,
-                 review_out='review30.jsonl', judge_out='judge281.jsonl')
+                 review_out='review30.jsonl', judge_out='judge281.jsonl',
+                 review_dims=DIMS,
+                 judge_dims=('cai', 'guan', 'zhi', 'hun', 'ying'))
 
 
 def main():

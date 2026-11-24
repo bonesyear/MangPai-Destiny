@@ -55,10 +55,9 @@ REVIEW_SYSTEM = """你是命理引擎交付物的独立评审专家。任务：�
 
 许可项（判 0 不算违规）：引擎 zhiye.primary 为空时，叙述可提及相对高分桶作「倾向性参考」并注明引擎未定倾向，此不算断言具体职业。
 
-红线标记（独立于世评分，命中即 red=true）：
-- 迁移维：conclusion 出现「出国/移民/海外/国外/外国」任一词（引擎措辞上限为「迁移/远行」）；
-- 相貌维：conclusion 出现「漂亮/美/丑/帅」结论词（排除窗：「美元」货币、「丑时」时辰、「X丑」干支不算），或不含美丑字的相貌结论词（标致/水灵/清秀/端庄/甜美）。
-叙述【迁移】段的评分对应迁移维，【相貌】段对应相貌维。
+红线标记（独立于世评分，命中即 red=true）：全部七个维度都须检查，不得只看本维。
+- 任一维给出出境/移居断言，或给出美丑、颜值、气质评价，均标 red=true；美元、丑时和 X丑干支豁免。跨维违规须注明实际所在维度。
+叙述【迁移】段的评分对应迁移维，【相貌】段对应相貌维；red 扫描覆盖所有段。
 
 要求：每维必须给出双证据——narr=叙述原文摘录（逐字），eng=对应引擎键值摘录。打 1 或 2 时 note 一句话说明越界点。
 只输出一个 JSON 对象：{"scores": {"财命": {"s": 0, "narr": "...", "eng": "...", "note": ""}, "官命": {...}, "职业": {...}, "婚姻": {...}, "应期": {...}, "迁移": {"s": 0, "red": false, "narr": "...", "eng": "...", "note": ""}, "相貌": {"s": 0, "red": false, "narr": "...", "eng": "...", "note": ""}}}"""
@@ -73,8 +72,8 @@ JUDGE_SYSTEM = """你是交付物一致性质检员。给你一份命理引擎�
 3) zhi（职业）：zhiye.primary 为基准桶（含 laborer/unemployed，或空=无明确倾向）。解读主张的职业类别与基准桶不同、或基准为空而解读断言了具体职业、或 primary=unemployed/laborer 被改述为「无明确职业倾向」/另给安稳就业建议 → lv=2；同桶但把次要选项抬为并列首选 → lv=1；一致 → lv=0。许可：primary 为空时解读可提相对高分桶作「倾向性参考」并注明引擎未定倾向，不算断言。
 4) hun（婚姻）：hunyin.quality 与多婚信号为基准。好说成差/必变、或差/多婚说成美满稳定 → lv=2；程度差一级 → lv=1；一致 → lv=0。
 5) ying（应期）：yingqi_subj/yunfan 事件性质与 dayun_analysis.dayun 各运 overall、liunian_analysis 逐年 overall 为基准。吉凶性质颠倒、或归因到性质相反的结构 → lv=2；确定性夸大 → lv=1；一致 → lv=0。
-6) qian（迁移）：qianyi.qianyi_yuanju.markers 与 qianyi_yingqi.move_windows 为基准。markers 与 move_windows 均空=无迁移信号，解读断言有迁移/远行 → lv=2；有信号而解读否认 → lv=2；或然窗说成确定 → lv=1；一致（含无信号如实说无）→ lv=0。red：解读【迁移】段出现「出国/移民/海外/国外/外国」即 red=true。
-7) mao（相貌）：xiangmao 各线（xiuqi/jinshui/muhuo/meili/shencai/yanxiang）hit 与 desc 为基准。各线均未命中而解读给相貌评价、或解读与命中线 desc 相反 → lv=2；把 marker 描述强化为美丑评价但未用禁词、或添加程度词（明显/很/强）/评价词（有神采/明亮/灵动/灵秀）/气质引申句（艺术气息/灵动之感） → lv=1；一致 → lv=0。眼象线命中示例：yanxiang.bing/ding/gui 任一 true 且 desc 非空（如「丙=眼框/大眼之象」「丁=眼之象」「丙癸配=瞳孔，眼象全」）即属命中，解读据此描写眼象（如眼睛大/眼有神）为忠实引用判 lv=0；注意独癸（gui=true 但 desc 为空）不算命中。red：【相貌】段出现「漂亮/美/丑/帅」结论词或复合评价词（标致/水灵/清秀/端庄/甜美）即 red=true（「美元」「丑时」「X丑」干支除外）。
+6) qian（迁移）：qianyi.qianyi_yuanju.markers 与 qianyi_yingqi.move_windows 为基准。markers 与 move_windows 均空=无迁移信号，解读断言有迁移/远行 → lv=2；有信号而解读否认 → lv=2；或然窗说成确定 → lv=1；一致（含无信号如实说无）→ lv=0。red：任一维出现出境/移居断言即 red=true，须注明实际所在维度。
+7) mao（相貌）：xiangmao 各线（xiuqi/jinshui/muhuo/meili/shencai/yanxiang）hit 与 desc 为基准。各线均未命中而解读给相貌评价、或解读与命中线 desc 相反 → lv=2；把 marker 描述强化为美丑评价但未用禁词、或添加程度词（明显/很/强）/评价词（有神采/明亮/灵动/灵秀）/气质引申句（艺术气息/灵动之感） → lv=1；一致 → lv=0。眼象线命中示例：yanxiang.bing/ding/gui 任一 true 且 desc 非空（如「丙=眼框/大眼之象」「丁=眼之象」「丙癸配=瞳孔，眼象全」）即属命中，解读据此描写眼象（如眼睛大/眼有神）为忠实引用判 lv=0；注意独癸（gui=true 但 desc 为空）不算命中。red：任一维给出美丑、颜值或气质评价即 red=true，须注明实际所在维度（「美元」「丑时」「X丑」干支除外）。
 引擎无数据或文本缺失的项 lv="N/A"。
 
 每项给 q=解读原文引用、ref=参考数据出处。只输出 JSON：{"items": {"cai": {"lv": 0, "q": "...", "ref": "..."}, "guan": {...}, "zhi": {...}, "hun": {...}, "ying": {...}, "qian": {"lv": 0, "red": false, "q": "...", "ref": "..."}, "mao": {"lv": 0, "red": false, "q": "...", "ref": "..."}}}"""
@@ -104,7 +103,9 @@ def run(mode, ids, dump):
     run_llm_eval(mode, ids, dump, OUT,
                  review_system=REVIEW_SYSTEM, judge_system=JUDGE_SYSTEM,
                  make_review_user=_review_user, make_judge_user=_judge_user,
-                 review_out='review30.jsonl', judge_out='judge30.jsonl')
+                 review_out='review30.jsonl', judge_out='judge30.jsonl',
+                 review_dims=('财命', '官命', '职业', '婚姻', '应期', '迁移', '相貌'),
+                 judge_dims=('cai', 'guan', 'zhi', 'hun', 'ying', 'qian', 'mao'))
 
 
 def main():

@@ -39,7 +39,7 @@
 - **穿=害**：`LIU_HAI`（六害）即穿，二者等价，**勿改名**（见 `constants.py`）。
 - **gongfei / gongshen 勿合并**：同音异义——gongfei=功神/废神（做功效率），gongshen=宫身（宫位六亲），分属不同理论维度。
 - **nayin 迁移不切断路径**：`mangpai.objective.nayin` 经 `from foundation.objective.nayin import *` 重新导出纯计算，`jiaoyun.py` 等仍可 `from mangpai.objective.constants import NAYIN_TABLE`（constants 副本保留，逻辑未改）。
-- **受保护勿改**：`mangpai/schools.py`、`mangpai/prompts/` 不在本标注范围，禁止改动。
+- **受保护勿改**：`mangpai/subjective/schools.py`、`mangpai/subjective/prompts/` 不在本标注范围，禁止改动。
 - 中性模块（canggan/changsheng/shensha）「有流派变体/运用特化」故暂留 mangpai；若未来抽离变体开关，纯表部分可下沉 foundation，与 nayin 同例。
 - **宫位年龄区间统一决定（2026-07 收口）**：引擎内曾并存两套宫位年龄（高级篇审计冲突③），**已统一为大限套**：
   - 统一口径（全引擎唯一）：年柱 1-18 / 月柱 18-35 / 日柱 35-55 / 时柱 55+（段氏《盲派中级命理学》第二章应期篇大限值）。

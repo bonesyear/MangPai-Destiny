@@ -178,7 +178,8 @@ def call_deepseek(
     retries: int | None = None,
 ) -> dict:
     """调 OpenAI 兼容 chat completion（默认 DeepSeek），返回
-    {'text','usage','cost_cny','price_tier','elapsed_s','model'}。
+    {'text','usage','cost_cny','price_tier','elapsed_s','model',
+     'requested_model','endpoint','thinking'}。model 取响应回显，模型不一致不计价。
 
     thinking 模式下 temperature 等采样参数无效（API 忽略），不传。
     失败抛 LLMBackendError，由调用方降级（同 narrative._call_llm 契约）。
@@ -295,18 +296,27 @@ def call_deepseek(
             content = msg.get('content') or ''
             if isinstance(content, list):
                 content = ''.join(str(p.get('text') or '') for p in content if isinstance(p, dict))
-            if not isinstance(content, str) or not content.strip():
-                raise LLMBackendError('content 为空或非字符串')
             usage = payload.get('usage') or {}
             if not isinstance(usage, dict):
                 raise TypeError('usage 非对象')
+            actual_model = payload.get('model') or model
+            cost = _estimate_cost(actual_model, usage, at=t0_wall) \
+                if actual_model == model else None
+            if not isinstance(content, str) or not content.strip():
+                error = LLMBackendError('content 为空或非字符串')
+                error.usage = usage
+                error.cost_cny = cost
+                raise error
             return {
                 'text': content,
                 'usage': usage,
-                'cost_cny': _estimate_cost(model, usage, at=t0_wall),
+                'cost_cny': cost,
                 'price_tier': _price_tier(t0_wall),
                 'elapsed_s': time.monotonic() - t0,
-                'model': model,
+                'model': actual_model,
+                'requested_model': model,
+                'endpoint': base_url,
+                'thinking': body.get('thinking', {}).get('type') == 'enabled',
             }
         except (KeyError, IndexError, TypeError, AttributeError) as e:
             raise LLMBackendError(f'返回体结构异常: {type(e).__name__}') from e

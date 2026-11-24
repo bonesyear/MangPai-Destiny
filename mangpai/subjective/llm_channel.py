@@ -121,7 +121,8 @@ def _xiangmao_exempt(text: str, w: str, j: int) -> bool:
     """相貌禁词命中处的排除窗：美元/丑时/干支（X丑）不计。"""
     if w == '美' and text[j + 1:j + 2] == '元':
         return True
-    if w == '丑' and (text[j + 1:j + 2] == '时' or text[j - 1:j] in _STEMS):
+    if w == '丑' and (text[j + 1:j + 2] == '时'
+                      or (j > 0 and text[j - 1] in _STEMS)):
         return True
     return False
 
@@ -518,27 +519,32 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
             v.append({'layer': 'L2',
                       'detail': f'婚姻 与引擎婚姻质量={_hq}矛盾：叙述含「{w}」'})
 
-    # 出境词 + 相貌结论词：红2 起全维度扫描（词表口径与死词表一致；
-    # 财档/官命仍按维——其 ceiling/是非逻辑依赖维度上下文）。
-    # 相貌排除窗（美元/丑时/干支）按词法放行，与所在维度无关。
-    # 出境/相貌红线同样覆盖整份输出，排除窗只影响美元/丑时/干支。
-    t = safety_blob
+    # 出境/相貌扫描全部维的 conclusion，并记录实际所在维度；
+    # 财档/官命仍按维，相貌排除窗（美元/丑时/干支）按词法放行。
+    normalized_texts = {dim: normalize_safety_text(text) for dim, text in texts.items()}
     for w in _QIANYI_FORBID:
-        if w in t:
-            v.append({'layer': 'L2', 'detail': f'输出 越措辞上限词「{w}」',
-                      'reject': True})
+        matched = [dim for dim, text in normalized_texts.items() if w in text]
+        if matched:
+            for dim in matched:
+                v.append({'layer': 'L2', 'detail': f'输出 越措辞上限词「{w}」（{dim}）',
+                          'reject': True, 'kind': 'qianyi_redline', 'dim': dim})
             break
     for w in _XIANGMAO_FORBID:
-        start = 0
-        while True:
-            j = t.find(w, start)
-            if j == -1:
-                break
-            start = j + 1
-            if _xiangmao_exempt(t, w, j):
-                continue
-            v.append({'layer': 'L2', 'detail': f'输出 触禁结论词「{w}」',
-                      'reject': True})
+        matched = []
+        for dim, text in normalized_texts.items():
+            start = 0
+            while True:
+                j = text.find(w, start)
+                if j == -1:
+                    break
+                start = j + 1
+                if not _xiangmao_exempt(text, w, j):
+                    matched.append(dim)
+                    break
+        if matched:
+            for dim in matched:
+                v.append({'layer': 'L2', 'detail': f'输出 触禁结论词「{w}」（{dim}）',
+                          'reject': True, 'kind': 'xiangmao_redline', 'dim': dim})
             break
     return v
 

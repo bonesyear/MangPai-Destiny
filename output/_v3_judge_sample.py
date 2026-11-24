@@ -18,7 +18,7 @@ def main():
     with open(os.path.join(OUT, 'dump.json'), encoding='utf-8') as f:
         dump = json.load(f)
     sample = json.load(open(os.path.join(OUT, 'sample30.json'), encoding='utf-8'))['sample']
-    _t3_eval.run('judge', sample, dump)
+    _t3_eval.run('judge', sample, dump, out_dir=OUT)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,8 @@
 # Kimi 任务：修复批 D3 · dayun 补供（死 selector 修复，选 B 补供方案）
 
+> 历史路径说明：旧报告和私有绝对路径未公开，以 Git 历史为准。
+<!-- doc-links:ignore -->
+
 ## ⚠️ 执行指引
 1. **先读** `/root/metaphysics/docs/knowledge-base.md` + T3 报告（`docs/kimi-review3-t3-e2e-20260818.md` §A.1：dayun_analysis 死 selector 281/281 缺失，LLM 全程零大运表）+ T4 规划（D3 供给批）+ T2 报告（「大运为路」三书应期骨架）
 2. **方案已定（用户拍板）**：选 B **补供**——把 engine 已算的大运分析补进 payload（数据现成、大运是应期骨架、D4 前置、摘除伤核心能力）

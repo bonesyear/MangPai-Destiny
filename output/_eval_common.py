@@ -22,57 +22,164 @@
 口径红线：只下沉逐字相同的逻辑；任何脚本间差异一律走形参，且默认值保持
 原脚本行为。历史报告数字的可复现性由新老实现对拍（零 API）保证。
 """
+import glob
+import hashlib
 import json
 import os
 import re
 import sys
 import time
+import urllib.parse
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from mangpai.subjective.llm_channel import (
+    _QIANYI_FORBID, _XIANGMAO_FORBID, _xiangmao_exempt)
+
+
+FEWSHOT_CONTAMINATED_IDS = frozenset({
+    'zhenbao-01', 'zhenbao-14a', 'zhenbao-23b',
+    'cj-富火运发财数百', 'shouke-qi19-伤官去官官员',
+})
+
+
+def without_fewshot_contamination(records):
+    if isinstance(records, dict):
+        return {key: value for key, value in records.items()
+                if key not in FEWSHOT_CONTAMINATED_IDS}
+    return [rec for rec in records
+            if (rec if isinstance(rec, str) else rec['id']) not in FEWSHOT_CONTAMINATED_IDS]
 
 
 # ================================================================ 1. runner
 
+def _validate_eval_result(mode, result, dims):
+    root = 'scores' if mode == 'review' else 'items'
+    if not isinstance(result, dict) or not isinstance(result.get(root), dict):
+        raise ValueError(f'缺少对象字段 {root}')
+    if set(result[root]) != set(dims):
+        raise ValueError(f'{root} 维键不符: {sorted(result[root])}')
+    score_key = 's' if mode == 'review' else 'lv'
+    for dim in dims:
+        node = result[root][dim]
+        if not isinstance(node, dict):
+            raise ValueError(f'{dim} 不是对象')
+        _score_value(node.get(score_key), score_key)
+        if 'red' in node and type(node['red']) is not bool:
+            raise ValueError('red 必须为 bool')
+        for key in ('narr', 'eng', 'note', 'q', 'ref'):
+            if key in node and node[key] is not None and not isinstance(node[key], str):
+                raise ValueError(f'{key} 必须为字符串或 null')
+
+
+def _excerpt_check(mode, result, rec):
+    reading = rec.get('reading')
+    if not isinstance(reading, dict):
+        return 0, 0
+    original = json.dumps(reading, ensure_ascii=False)
+    root = 'scores' if mode == 'review' else 'items'
+    quote = 'narr' if mode == 'review' else 'q'
+    total = bad = 0
+    for node in result.get(root, {}).values():
+        text = node.get(quote)
+        if text:
+            total += 1
+            bad += text not in original
+    return total, bad
+
+
+def summarize_costs(records):
+    return {
+        'cost_cny': sum(r.get('cost_cny') or 0 for r in records),
+        'cost_usd': sum(r.get('cost_usd') or 0 for r in records),
+    }
+
+
+def load_batch(batch_dir):
+    attempts = []
+    for path in sorted(glob.glob(os.path.join(batch_dir, 'batch_*.jsonl'))):
+        with open(path, encoding='utf-8') as f:
+            attempts.extend(json.loads(line) for line in f if line.strip())
+    latest = {}
+    for index, rec in enumerate(attempts):
+        key = (rec.get('timestamp') or '', rec.get('run_id') or '', index)
+        if rec['id'] not in latest or key >= latest[rec['id']][0]:
+            latest[rec['id']] = (key, rec)
+    return attempts, [item[1] for item in latest.values()]
+
+
 def run_llm_eval(mode, ids, dump, out_dir, *,
                  review_system, judge_system,
                  make_review_user, make_judge_user,
-                 review_out='review30.jsonl', judge_out='judge281.jsonl'):
-    """评审（review）/ judge 双实例批跑（原 _t3_eval.run/_n2_eval.run 逐字下沉）。
+                 review_out='review30.jsonl', judge_out='judge281.jsonl',
+                 review_dims=(), judge_dims=()):
+    """评审/judge 批跑；只跳过同 prompt 的成功记录，错误续跑补做。"""
+    from mangpai.subjective.llm_backend import (
+        call_deepseek, LLMBackendError, _API_URL, _env_value)
 
-    断点续跑：已入 out jsonl 的 id 跳过；api_error/parse_error 记账不吞。
-    """
-    from mangpai.subjective.llm_backend import call_deepseek, LLMBackendError
-
+    base_url = _env_value('MANGPAI_LLM_BASE_URL', '') or _API_URL
+    thinking = (_env_value('MANGPAI_LLM_THINKING', '1') or '1') != '0'
+    if (base_url != _API_URL or not thinking) \
+            and os.environ.get('MANGPAI_ALLOW_NONDEFAULT_EVALUATOR') != '1':
+        raise RuntimeError('非默认评审端点或 thinking 配置；须显式设置 '
+                           'MANGPAI_ALLOW_NONDEFAULT_EVALUATOR=1')
     system = review_system if mode == 'review' else judge_system
     mk_user = make_review_user if mode == 'review' else make_judge_user
     out_path = os.path.join(out_dir, review_out if mode == 'review' else judge_out)
+    prompt_sha = hashlib.sha256(system.encode('utf-8')).hexdigest()
+    endpoint_host = urllib.parse.urlsplit(base_url).hostname or ''
     done = set()
     if os.path.exists(out_path):
         with open(out_path, encoding='utf-8') as f:
             for line in f:
-                done.add(json.loads(line)['id'])
+                rec = json.loads(line)
+                if 'result' in rec and rec.get('system_sha256', prompt_sha) == prompt_sha:
+                    done.add(rec['id'])
     todo = [cid for cid in ids if cid not in done]
     print(f'{mode}: 待跑 {len(todo)}/{len(ids)}')
 
     def one(cid):
-        rec = {'id': cid}
+        rec = {
+            'id': cid, 'requested_model': 'deepseek-v4-pro',
+            'endpoint_host': endpoint_host, 'thinking': thinking,
+            'system_sha256': prompt_sha,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+        }
         user = mk_user(dump[cid])
         t0 = time.monotonic()
         try:
             resp = call_deepseek(system, user, model='deepseek-v4-pro', max_tokens=16384)
         except LLMBackendError as e:
             rec['api_error'] = str(e)
+            if hasattr(e, 'usage'):
+                rec['usage'] = e.usage
+                rec['cost_cny'] = e.cost_cny
             return rec
         rec['usage'] = resp['usage']
         rec['cost_cny'] = resp['cost_cny']
         rec['price_tier'] = resp['price_tier']
         rec['elapsed_s'] = round(time.monotonic() - t0, 2)
+        rec['model'] = resp.get('model') or resp.get('requested_model') or 'deepseek-v4-pro'
+        rec['requested_model'] = resp.get('requested_model', 'deepseek-v4-pro')
+        if resp.get('endpoint'):
+            rec['endpoint_host'] = urllib.parse.urlsplit(resp['endpoint']).hostname or ''
+        rec['thinking'] = resp.get('thinking', thinking)
         try:
-            rec['result'] = json.loads(resp['text'])
+            result = json.loads(resp['text'])
         except json.JSONDecodeError:
             rec['parse_error'] = resp['text'][:300]
+            return rec
+        try:
+            _validate_eval_result(
+                mode, result, review_dims if mode == 'review' else judge_dims)
+        except (TypeError, ValueError) as e:
+            rec['schema_error'] = str(e)
+            return rec
+        rec['result'] = result
+        rec['excerpt_total'], rec['excerpt_mismatch'] = _excerpt_check(mode, result, dump[cid])
         return rec
 
     with ThreadPoolExecutor(max_workers=8) as ex, \
@@ -81,11 +188,15 @@ def run_llm_eval(mode, ids, dump, out_dir, *,
             f.write(json.dumps(rec, ensure_ascii=False) + '\n')
             f.flush()
     recs = [json.loads(l) for l in open(out_path, encoding='utf-8')]
-    n_err = sum(1 for r in recs if 'api_error' in r or 'parse_error' in r)
-    # S1：未知 provider cost_cny=None（未计价），不计入汇总；cost_usd=历史批兼容键
-    cost = sum(r.get('cost_cny') or r.get('cost_usd') or 0 for r in recs)
+    n_err = sum(1 for r in recs
+                if 'api_error' in r or 'parse_error' in r or 'schema_error' in r)
+    costs = summarize_costs(recs)
     tiers = {r.get('price_tier') for r in recs}
-    print(f'{mode}: 完成 {len(recs)}，异常 {n_err}，成本 ¥{cost:.2f}，档位={tiers}')
+    excerpts = sum(r.get('excerpt_mismatch', 0) for r in recs)
+    excerpt_tot = sum(r.get('excerpt_total', 0) for r in recs)
+    print(f'{mode}: 完成 {len(recs)}，异常 {n_err}，成本 ¥{costs["cost_cny"]:.2f}'
+          f' + ${costs["cost_usd"]:.4f}（分币别），档位={tiers}；'
+          f'摘录不符 {excerpts}/{excerpt_tot}')
 
 
 # ================================================================ 2. 材料组装
@@ -176,6 +287,15 @@ def load_json(path):
         return json.load(f)
 
 
+def load_id_file(path):
+    data = load_json(path)
+    if isinstance(data, dict):
+        if type(data.get('n')) is not int or data['n'] <= 0 or not data.get('batch'):
+            raise ValueError(f'名单缺少有效 n/batch 来源: {path}')
+        return data, data['ids']
+    return {'batch': None}, data
+
+
 def load_jsonl(path):
     out = {}
     with open(path, encoding='utf-8') as f:
@@ -183,6 +303,14 @@ def load_jsonl(path):
             r = json.loads(line)
             out[r['id']] = r
     return out
+
+
+def _score_value(value, key):
+    if value == 'N/A':
+        return value
+    if type(value) is not int or value not in (0, 1, 2):
+        raise ValueError(f'{key} 必须为整数 0/1/2 或 N/A，收到 {value!r}')
+    return value
 
 
 def review_stats(review, sample, dims, l2, new_dims=()):
@@ -196,15 +324,18 @@ def review_stats(review, sample, dims, l2, new_dims=()):
     for cid in sample:
         sc = review[cid]['result']['scores']
         for dim in dims:
-            s = sc[dim]['s']
+            s = _score_value(sc[dim]['s'], 's')
             r_stat[(dim, s)] += 1
             if s == 2:
                 r_flips.append({'id': cid, 'dim': dim,
-                                'note': sc[dim].get('note', ''),
-                                'narr': sc[dim].get('narr', ''),
-                                'eng': sc[dim].get('eng', ''),
+                                'note': sc[dim].get('note') or '',
+                                'narr': sc[dim].get('narr') or '',
+                                'eng': sc[dim].get('eng') or '',
                                 'l2': cid in l2})
-            if dim in new_dims and sc[dim].get('red'):
+            red = sc[dim].get('red', False)
+            if type(red) is not bool:
+                raise ValueError(f'red 必须为 bool，收到 {red!r}')
+            if dim in new_dims and red:
                 r_reds.append({'id': cid, 'dim': dim,
                                'narr': sc[dim].get('narr', '')})
     r_tot = sum(v for (d, s), v in r_stat.items() if s in (0, 1, 2))
@@ -224,13 +355,18 @@ def agreement_stats(review, judge, sample, dims, dim_map, *,
     per_dim = Counter()
     divergences = []
     for cid in sample:
-        if cid not in judge or 'result' not in judge[cid]:
-            continue
         rsc = review[cid]['result']['scores']
-        jsc = judge[cid]['result'].get('items', {})
+        jsc = judge.get(cid, {}).get('result', {}).get('items', {})
         for dim in dims:
-            rv = rsc[dim]['s']
-            jv = jsc.get(dim_map[dim], {}).get('lv')
+            rv = _score_value(rsc[dim]['s'], 's')
+            jkey = dim_map[dim]
+            if jsc and jkey not in jsc:
+                raise ValueError(f'judge 缺少维度键: {jkey}')
+            jv = _score_value(jsc[jkey]['lv'], 'lv') if jkey in jsc else None
+            if rv == 2:
+                flip_recall_tot += 1
+                if jv == 2:
+                    flip_recall_hit += 1
             if rv == 'N/A' or jv == 'N/A' or jv is None:
                 continue
             tot += 1
@@ -241,13 +377,9 @@ def agreement_stats(review, judge, sample, dims, dim_map, *,
             else:
                 d = {'id': cid, 'dim': dim, 'review': rv, 'judge': jv}
                 if divergence_detail:
-                    d['r_note'] = rsc[dim].get('note', '')[:60]
+                    d['r_note'] = (rsc[dim].get('note') or '')[:60]
                     d['j_ref'] = str(jsc.get(dim_map[dim], {}).get('ref', ''))[:60]
                 divergences.append(d)
-            if rv == 2:
-                flip_recall_tot += 1
-                if jv == 2:
-                    flip_recall_hit += 1
     return agree, tot, flip_recall_hit, flip_recall_tot, per_dim, divergences
 
 
@@ -263,10 +395,14 @@ def judge_stats(judge, dims, dim_map, new_dims=(), *, flip_with_ref=False):
     for cid, r in judge.items():
         if 'result' not in r:
             continue
+        items = r['result'].get('items', {})
         for dim in dims:
-            it = r['result'].get('items', {}).get(dim_map[dim], {})
-            lv = it.get('lv')
-            if lv in (0, 1, 2):
+            key = dim_map[dim]
+            if key not in items:
+                raise ValueError(f'judge 缺少维度键: {key}')
+            it = items[key]
+            lv = _score_value(it.get('lv'), 'lv')
+            if lv != 'N/A':
                 j_stat[(dim, lv)] += 1
                 if lv == 2:
                     f = {'id': cid, 'dim': dim,
@@ -274,7 +410,10 @@ def judge_stats(judge, dims, dim_map, new_dims=(), *, flip_with_ref=False):
                     if flip_with_ref:
                         f['ref'] = str(it.get('ref', ''))[:120]
                     j_flips.append(f)
-            if dim in new_dims and it.get('red'):
+            red = it.get('red', False)
+            if type(red) is not bool:
+                raise ValueError(f'red 必须为 bool，收到 {red!r}')
+            if dim in new_dims and red:
                 j_reds.append({'id': cid, 'dim': dim,
                                'q': str(it.get('q', ''))[:120]})
     j_tot = sum(j_stat.values())
@@ -290,8 +429,11 @@ def agreement_quality(review, judge, sample, dims, dim_map):
         rsc = review[cid]['result']['scores']
         jsc = judge[cid]['result'].get('items', {})
         for dim in dims:
-            rv = rsc[dim]['s']
-            jv = jsc.get(dim_map[dim], {}).get('lv')
+            rv = _score_value(rsc[dim]['s'], 's')
+            key = dim_map[dim]
+            if jsc and key not in jsc:
+                raise ValueError(f'judge 缺少维度键: {key}')
+            jv = _score_value(jsc[key]['lv'], 'lv') if key in jsc else None
             if rv in (0, 1, 2) and jv in (0, 1, 2):
                 pairs.append((rv, jv))
     n = len(pairs)
@@ -320,18 +462,25 @@ def judge_acceptance(agree, tot, flip_recall_hit, flip_recall_tot, *, quality=No
 
 # ================================================================ 4. 抽样
 
+def stratification_key(rec):
+    tier = (rec['engine_key'].get('caiming') or {}).get('tier_static') or 'NA'
+    gm = (rec['engine_key'].get('guanming') or {}).get('is_guanming')
+    return [tier, gm]
+
+
 def stratified_fill(dump, forced, n, rng):
     """分层随机补足（tier_static × is_guanming），原 _n2_sample/_v3_sample 逐字下沉。
 
     forced 之外的案例按层打乱（rng 由调用方持 seed），按层大小降序轮转取满
     n - len(forced) 个；层全空提前终止。
     """
+    if len(forced) > n:
+        raise ValueError(f'强制集 {len(forced)} 超过样本上限 {n}')
     strata = defaultdict(list)
     for cid, rec in dump.items():
         if cid in forced:
             continue
-        tier = (rec['engine_key'].get('caiming') or {}).get('tier_static') or 'NA'
-        gm = (rec['engine_key'].get('guanming') or {}).get('is_guanming')
+        tier, gm = stratification_key(rec)
         strata[(tier, gm)].append(cid)
     for v in strata.values():
         rng.shuffle(v)
@@ -350,9 +499,8 @@ def stratified_fill(dump, forced, n, rng):
 
 # ================================================================ 5. 检查
 
-QIANYI_FORBID = ('出国', '移民', '海外', '国外', '外国')
-XM_FORBID = ('漂亮', '美', '丑', '帅')
-XM_EXEMPT = ('美元', '美金')  # 丑时/X丑干支另行判定
+QIANYI_FORBID = _QIANYI_FORBID
+XM_FORBID = _XIANGMAO_FORBID
 GANZHI_RE = re.compile(r'[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]')
 _QIANYI_NOASSERT_RE = re.compile(r'(宜|适合|会|必有|主).{0,4}(迁移|远行)')
 
@@ -375,8 +523,35 @@ def engine_fe(c):
         if c.get('year') is not None:
             entry['year'] = c['year']
         bazi_data['liunian'] = [entry]
-    res = MangpaiEngine(bazi_data).compute_all()
+    as_of = c.get('as_of')
+    if as_of is None and c.get('as_of_year') is not None:
+        as_of = f'{c["as_of_year"]}-07-01T00:00:00'
+    res = MangpaiEngine(bazi_data, as_of=as_of).compute_all()
     return res, build_payload(res)
+
+
+def engine_for_record(case, record=None):
+    case = dict(case)
+    if record:
+        for key in ('as_of', 'as_of_year'):
+            if record.get(key) is not None:
+                case[key] = record[key]
+    res, computed = engine_fe(case)
+    return res, (record or {}).get('features') or computed
+
+
+def seconds_to_valley(now=None):
+    from mangpai.subjective.llm_backend import _price_tier
+
+    now = now or datetime.now()
+    if _price_tier(now.timestamp()) == 'offpeak':
+        return 0
+    for hour in (12, 18):
+        target = now.replace(hour=hour, minute=0, second=3, microsecond=0)
+        if target > now:
+            return int((target - now).total_seconds())
+    target = (now + timedelta(days=1)).replace(hour=12, minute=0, second=3, microsecond=0)
+    return int((target - now).total_seconds())
 
 
 def qianyi_info(fe):
@@ -408,23 +583,24 @@ def xiangmao_info(fe, *, require_desc=False):
 
 
 def xm_forbidden_scan(text):
-    """相貌维禁词直扫（±1 相邻字排除窗，与校验器同口径近似）。"""
+    """相貌维禁词直扫，排除窗与生产校验器一致。"""
     hits = []
     for w in XM_FORBID:
         for m in re.finditer(re.escape(w), text):
             i = m.start()
-            ctx = text[max(0, i - 1):i + len(w) + 1]
-            if any(e in ctx for e in XM_EXEMPT):
-                continue
-            if w == '丑':
-                after = text[i + 1:i + 2]
-                before = text[i - 1:i]
-                if after == '时' or before in '甲乙丙丁戊己庚辛壬癸':
-                    continue
-            hits.append((w, ctx))
+            if not _xiangmao_exempt(text, w, i):
+                hits.append((w, text[max(0, i - 1):i + len(w) + 1]))
     return hits
 
 
 def qianyi_honest_nosignal(text):
-    """迁移无信号如实判定：含「无」且不含迁移/远行断言（w4/w5/_n2_analyze 同口径）。"""
-    return '无' in text and not _QIANYI_NOASSERT_RE.search(text)
+    """迁移无信号须使用明确模板，且不得另给出境或迁居断言。"""
+    if '无迁移信号' not in text and '没有迁移信号' not in text:
+        return False
+    assertions = QIANYI_FORBID + ('迁居', '外出', '离开')
+    return not _QIANYI_NOASSERT_RE.search(text) \
+        and not any(w in text for w in assertions)
+
+
+def xiangmao_honest_nosignal(text):
+    return '无显著相貌特征' in text

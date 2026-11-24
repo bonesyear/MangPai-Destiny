@@ -14,8 +14,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from _eval_common import (  # noqa: E402
-    load_json, load_jsonl, review_stats, agreement_stats, agreement_quality,
-    judge_stats, judge_acceptance)
+    load_id_file, load_json, load_jsonl, review_stats, agreement_stats, agreement_quality,
+    judge_stats, judge_acceptance, without_fewshot_contamination)
 
 OUT = os.environ.get('T3_OUT_DIR') or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 't3_s1_n2')
@@ -23,13 +23,17 @@ DIMS_R = ('财命', '官命', '职业', '婚姻', '应期', '迁移', '相貌')
 DIMS_J = ('cai', 'guan', 'zhi', 'hun', 'ying', 'qian', 'mao')
 MAP = dict(zip(DIMS_R, DIMS_J))
 NEW_DIMS = ('迁移', '相貌')
-L2 = set(load_json(os.path.join(OUT, 'l2_ids.json')))
+_, L2 = load_id_file(os.path.join(OUT, 'l2_ids.json'))
+L2 = set(L2)
 
 
 def main():
-    review = load_jsonl(os.path.join(OUT, 'review30.jsonl'))
-    judge = load_jsonl(os.path.join(OUT, 'judge30.jsonl'))
-    sample = load_json(os.path.join(OUT, 'sample30.json'))['sample']
+    review = without_fewshot_contamination(
+        load_jsonl(os.path.join(OUT, 'review30.jsonl')))
+    judge = without_fewshot_contamination(
+        load_jsonl(os.path.join(OUT, 'judge30.jsonl')))
+    sample = without_fewshot_contamination(
+        load_json(os.path.join(OUT, 'sample30.json'))['sample'])
 
     r_stat, r_flips, r_reds, r_tot = review_stats(review, sample, DIMS_R, L2,
                                                   new_dims=NEW_DIMS)
@@ -56,7 +60,7 @@ def main():
             'flips': r_flips,
             'newdim_flips': new_flip,
             'newdim_reds': r_reds,
-            'soft_rate': sum(v for (d, s), v in r_stat.items() if s == 1) / r_tot,
+            'soft_rate': sum(v for (d, s), v in r_stat.items() if s == 1) / r_tot if r_tot else 0,
         },
         'agreement': {
             'quality': quality,

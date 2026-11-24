@@ -7,6 +7,7 @@ H-fix-7：分层补足下沉 output/_eval_common.py（薄包装，seed/强制集
 产出: output/t3_s1_v3/sample30.json + stdout 构成清单
 用法: T3_OUT_DIR=output/t3_s1_v3 python3 output/_v3_sample.py
 """
+import hashlib
 import json
 import os
 import random
@@ -14,7 +15,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from _eval_common import load_json, stratified_fill  # noqa: E402
+from _eval_common import (  # noqa: E402
+    load_id_file, load_json, stratified_fill, stratification_key,
+    without_fewshot_contamination)
 
 OUT = os.environ.get('T3_OUT_DIR') or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 't3_s1_v3')
@@ -23,12 +26,14 @@ N = 30
 
 
 def main():
-    dump = load_json(os.path.join(OUT, 'dump.json'))
-    cands = load_json(os.path.join(OUT, 'anchor_candidates.json'))
-    l2 = set(load_json(os.path.join(OUT, 'l2_ids.json')))
+    dump = without_fewshot_contamination(load_json(os.path.join(OUT, 'dump.json')))
+    cands = without_fewshot_contamination(
+        load_json(os.path.join(OUT, 'anchor_candidates.json')))
+    _, l2 = load_id_file(os.path.join(OUT, 'l2_ids.json'))
+    l2 = set(l2)
     rng = random.Random(SEED)
 
-    forced = list(l2)
+    forced = sorted(l2)
     cand2 = sorted(cid for cid, h in cands.items()
                    if any(x['cand'] == 2 for x in h.values()) and cid not in forced)
     forced += cand2
@@ -39,14 +44,17 @@ def main():
         rng.shuffle(pool)
         take = pool if k is None else pool[:k]
         forced += take
-    forced = list(dict.fromkeys(forced))
+    forced = [cid for cid in dict.fromkeys(forced) if cid in dump]
 
     # 分层随机补足：tier_static × is_guanming
     fill = stratified_fill(dump, forced, N, rng)
 
     sample = forced + fill
     out = {'seed': SEED, 'l2': sorted(l2),
-           'forced': forced, 'fill': fill, 'sample': sample}
+           'forced': forced, 'fill': fill, 'sample': sample,
+           'dump_sha256': hashlib.sha256(json.dumps(
+               dump, ensure_ascii=False, sort_keys=True).encode('utf-8')).hexdigest(),
+           'strata': {cid: stratification_key(dump[cid]) for cid in sample}}
     with open(os.path.join(OUT, 'sample30.json'), 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     print(f'forced {len(forced)} = L2 {len(l2)} + cand2 {len(cand2)} + cand1 补 '

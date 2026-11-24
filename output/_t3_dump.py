@@ -1,8 +1,7 @@
 """T3 端到端审查 · 公共数据 dump（零 API，只测不改）。
 
-复用 v5 批跑 reading（rescore 口径 281 例：glob batch_*.jsonl 同序合并，
-主批覆盖 retry——与 _llm_batch_rescore.py 完全同口径），逐例重跑引擎，
-落盘：引擎 digest/关键键值、payload features、payload 保真 diff
+复用批跑最新 reading（run_id/timestamp 合并，retry 不再靠文件名排序），
+优先复用存档 features 与 as_of_year，落盘：引擎 digest/关键键值、payload features、payload 保真 diff
 （scrub 删除项 / zaihuo_llm_view 降级项 / selector 缺失项）、v5 reading。
 
 产出: output/t3_s1/dump.json + output/t3_s1/payload_fidelity.json
@@ -11,7 +10,7 @@
 H-fix-7：引擎重算入口下沉 output/_eval_common.py（engine_fe，构造逐字相同）。
 """
 import difflib
-import glob
+import hashlib
 import json
 import os
 import sys
@@ -28,7 +27,8 @@ from mangpai.subjective.schools import MANGPAI_SCHOOL  # noqa: E402
 from mangpai.subjective.narrative import summarize_engine_result, _bazi_line  # noqa: E402
 from mangpai.subjective.llm_channel import validate_reading  # noqa: E402
 from mangpai.subjective.zaihuo import zaihuo_llm_view  # noqa: E402
-from _eval_common import engine_fe  # noqa: E402
+from _eval_common import (  # noqa: E402
+    engine_for_record, load_batch, without_fewshot_contamination)
 
 OUT_DIR = os.environ.get('T3_OUT_DIR') or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 't3_s1')
@@ -78,13 +78,8 @@ def _diff_removed(raw, cur, prefix=''):
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    # v5 记录（rescore 同口径：sorted(glob) 合并，后者覆盖前者——
-    # batch_retry.jsonl 字母序在主批后，retry 记录恒赢；修 T3 §A.2 glob 顺序隐患）
-    recs = {}
-    for p in sorted(glob.glob(os.path.join(V5_DIR, 'batch_*.jsonl'))):
-        for line in open(p, encoding='utf-8'):
-            r = json.loads(line)
-            recs[r['id']] = r
+    _, recs = load_batch(V5_DIR)
+    recs = without_fewshot_contamination(recs)
     with open(os.path.join(ROOT, 'mangpai/tests/trainset/cases.yaml'),
               encoding='utf-8') as f:
         cases = {c['id']: c for c in yaml.safe_load(f)}
@@ -96,14 +91,17 @@ def main():
     scrub_hits = Counter()   # 被 scrub 删除的路径前缀
     zaihuo_drop = Counter()  # zaihuo_llm_view 丢弃的顶层子键
     altered_cases = {}
+    violation_mismatch = []
     n = 0
     for cid, r in sorted(recs.items()):
         if 'reading' not in r:
             continue
         c = cases[cid]
-        res, features = engine_fe(c)
+        res, features = engine_for_record(c, r)
         # 离线重校验（复核 v5 违规清单可复现）
         rep = validate_reading(r['reading'], features, res)
+        if 'violations' in r and r['violations'] != rep['violations']:
+            violation_mismatch.append(cid)
 
         # ---- payload 保真：无 scrub 对照 ----
         raw_payload = {}
@@ -139,7 +137,7 @@ def main():
         zg = res.get('zuogong') or {}
         dump[cid] = {
             'id': cid, 'name': r.get('name', ''),
-            'gender': c.get('gender', '男'), 'year': c.get('year', 1960),
+            'gender': c.get('gender', '男'), 'year': c.get('year'),
             'verdicts': c.get('verdicts', {}),
             'bazi_line': _bazi_line(res),
             'digest': summarize_engine_result(res),
@@ -165,6 +163,13 @@ def main():
 
     with open(os.path.join(OUT_DIR, 'dump.json'), 'w', encoding='utf-8') as f:
         json.dump(dump, f, ensure_ascii=False)
+    source = {
+        'batch': V5_DIR, 'n': len(dump),
+        'dump_sha256': hashlib.sha256(
+            json.dumps(dump, ensure_ascii=False, sort_keys=True).encode('utf-8')).hexdigest(),
+    }
+    with open(os.path.join(OUT_DIR, 'dump_source.json'), 'w', encoding='utf-8') as f:
+        json.dump(source, f, ensure_ascii=False, indent=1)
 
     fidelity = {
         'n_cases': n,
@@ -177,7 +182,7 @@ def main():
     with open(os.path.join(OUT_DIR, 'payload_fidelity.json'), 'w', encoding='utf-8') as f:
         json.dump(fidelity, f, ensure_ascii=False, indent=1)
 
-    print(f'dump {n} 例 -> {OUT_DIR}/dump.json')
+    print(f'dump {n} 例 -> {OUT_DIR}/dump.json；新旧违规清单不一致={violation_mismatch}')
     print(f'保真: selector 缺失={sum(v["missing"] for v in key_stat.values())} '
           f'altered={sum(v["altered"] for v in key_stat.values())} '
           f'altered 例数={len(altered_cases)}')
