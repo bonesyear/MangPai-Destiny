@@ -451,6 +451,8 @@ def _analyze_qishi_change(
     natal_total = sum(counts.values())
     natal_ranked = sorted(counts.items(), key=lambda kv: -kv[1])
     natal_top = natal_ranked[0] if natal_ranked else ('', 0)
+    natal_dominant = ('不明' if len(natal_ranked) > 1
+                      and natal_ranked[0][1] == natal_ranked[1][1] else natal_top[0])
 
     dy_gan_wx = GAN_WX.get(dy_gan, '')
     dy_zhi_wx = ZHI_WX.get(dy_zhi, '')
@@ -469,17 +471,11 @@ def _analyze_qishi_change(
     if new_top[1] >= 4 and new_top[0] != natal_top[0]:
         return {
             'changed': True,
-            'natal_dominant': natal_top[0],
+            'natal_dominant': natal_dominant,
             'new_dominant': new_top[0],
-            'desc': f'大运加入{dy_gan_wx}、{dy_zhi_wx}，{new_top[0]}旺成势（原{natal_top[0]}为主）',
-        }
-
-    if natal_top[1] < 4 and new_top[1] >= 4:
-        return {
-            'changed': True,
-            'natal_dominant': natal_top[0],
-            'new_dominant': new_top[0],
-            'desc': f'大运加入后{new_top[0]}达半数成势',
+            'desc': (f'大运加入{dy_gan_wx}、{dy_zhi_wx}，{new_top[0]}旺成势（'
+                     + (f'原{natal_dominant}为主）' if natal_dominant != '不明'
+                        else '原局主导不明）')),
         }
 
     return None

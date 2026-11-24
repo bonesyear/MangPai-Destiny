@@ -44,6 +44,7 @@ from mangpai.objective.shensha import _YANG_REN_FULL
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.zhengfan import analyze_zhengfan
 from mangpai.subjective.yongshen import classify_strength, classify_cong_target
+from mangpai.subjective.liunian import _judge_xiji
 
 # ── 三刑组（寅巳申 / 丑戌未 / 子卯互刑；辰午酉亥自刑）──
 _SANXING_GROUPS = [frozenset('寅巳申'), frozenset('丑戌未'), frozenset('子卯')]
@@ -678,26 +679,11 @@ def _detect_liunian_fan(
 
 def _xiji_of_wx(day_gan: str, natal_gans: List[str], natal_zhis: List[str],
                 wx: str, strength: str = '') -> str:
-    """扶抑喜忌定向（同 liunian._judge_xiji 口径：身强/从强忌体喜用，
-    身弱/从弱喜体忌用，中和/不明/缺数据返回空串=喜忌不明）。
+    """扶抑喜忌定向，复用 liunian 的十神类别与从格口径。
 
     岁运三特殊法则（并临/晦太岁）定向用——marker 级，不入凶链。
     """
-    day_wx = GAN_WX.get(day_gan, '')
-    if not day_wx or not wx:
-        return ''
-    strength = strength or str(classify_strength(day_gan, natal_gans, natal_zhis))
-    if strength in ('中和', '不明', ''):
-        return ''
-    yin_wx = ''
-    for w, c in WX_SHENG.items():
-        if c == day_wx:
-            yin_wx = w
-            break
-    is_ti = wx in (day_wx, yin_wx)
-    if strength in ('身强', '从强'):
-        return '忌' if is_ti else '喜'
-    return '喜' if is_ti else '忌'
+    return _judge_xiji(day_gan, natal_gans, natal_zhis, wx, strength=strength)
 
 
 def _detect_suiyun_teshu(

@@ -66,17 +66,17 @@ def _teshu(gans, zhis, day_gan, dy_gz, ln_gz):
 
 def test_e_suiyun_binglin_ji():
     """岁运并临·吉向（gaoji:18894-18898「吉神并临福禄至」）：甲日从弱
-    （喜水木），壬子大运+壬子流年干支全同，并临喜神。"""
+    （喜土金），戊申大运+戊申流年干支全同，并临喜神。"""
     ts = _teshu(['庚', '辛', '甲', '丙'], ['申', '酉', '寅', '午'], '甲',
-                '壬子', '壬子')
+                '戊申', '戊申')
     assert any(t['teshu_type'] == '岁运并临' and t['direction'] == '吉向'
                for t in ts)
 
 
 def test_e_suiyun_binglin_xiong():
-    """岁运并临·凶向（「凶神并临祸灾殃」）：同盘戊申并临（土金=忌）。"""
+    """岁运并临·凶向（「凶神并临祸灾殃」）：同盘壬子并临（水木=忌）。"""
     ts = _teshu(['庚', '辛', '甲', '丙'], ['申', '酉', '寅', '午'], '甲',
-                '戊申', '戊申')
+                '壬子', '壬子')
     assert any(t['teshu_type'] == '岁运并临' and t['direction'] == '凶向'
                for t in ts)
 

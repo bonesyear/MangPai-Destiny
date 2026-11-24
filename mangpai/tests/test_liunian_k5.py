@@ -258,13 +258,13 @@ class TestChongXijiSplit:
         assert 'zhongji:935' in r['desc']
 
     def test_chongkai_xiji_split_ji(self):
-        # 墓库冲开·忌：己日从强（火土七党），丑土体党为忌，未冲丑仍判冲开
-        # （定向不动），补凶神入墓冲则发（gaoji:17460）marker
+        # 墓库冲开·喜：己日从强（火土七党），丑土体党为喜，未冲丑仍判冲开
+        # （定向不动），补吉神入墓冲则贫（gaoji:17461）marker
         r = classify_chong_semantic(
             '未', '丑', ['丙', '戊', '己', '丙'], ['戌', '辰', '丑', '午'], '己')
         assert r['chong_type'] == '冲开'
-        assert '凶神入墓冲则发' in r['desc']
-        assert r['xiji_direction'] == '凶向'
+        assert '吉神入墓冲则贫' in r['desc']
+        assert r['xiji_direction'] == '中性'
 
     def test_chongkai_xiji_unknown_no_mark(self):
         # 反例（书例五原造，癸卯丙辰己丑乙亥）：扶抑中和→喜忌不明→冲开不附加
@@ -296,7 +296,7 @@ class TestChongXijiSplit:
             '寅', '申', ['甲', '壬', '戊', '癸'], ['寅', '子', '辰', '亥'], '戊',
             dayun_zhi='申', target_location='dayun', phase_active='支')
         assert r_ji['chong_type'] == '冲去'
-        assert r_ji['xiji_direction'] == '吉向'  # 身弱申=食伤为忌，冲去忌神
+        assert r_ji['xiji_direction'] == '凶向'  # 从弱申=食伤为喜，冲去喜神
 
     def test_chongdong_neutral_no_alias(self):
         # 反例：力量相当之冲动（gaoji:19204）保持中性，不标冲起、无方向

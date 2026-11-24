@@ -65,9 +65,10 @@ def test_day_pillar_daxian_uses_daymaster_not_bijie_vote():
         '甲', ['庚', '乙', '甲', '庚'], ['申', '酉', '申', '午'],
         dayun_gan='己', dayun_zhi='丑', age=40)
     assert '比肩' not in result['daxian_yingqi']['content']
+    # 从弱喜土金：日限申金、己丑运皆喜，日主不计入比劫投票的规则不变
     jiaotuo = result['daxian_dayun_jiaotuo']
-    assert jiaotuo['daxian_jx'] == '凶'
-    assert any(m['jiaotuo_type'] == '限运俱凶' for m in jiaotuo['markers'])
+    assert jiaotuo['daxian_jx'] == '吉'
+    assert any(m['jiaotuo_type'] == '限运俱吉' for m in jiaotuo['markers'])
 
 
 def test_yunshi_daymaster_is_not_fei_shen():

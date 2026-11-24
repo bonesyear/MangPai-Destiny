@@ -228,12 +228,18 @@ def analyze_dayun_mangpai(
             if k not in ('positive_signals', 'negative_signals', 'overall', 'desc')
         }
         zhi_input['tiyong_import'] = {}
+        zhi_input['fei_shen_activated'] = [
+            f for f in result.get('fei_shen_activated', []) if f.get('type') == 'zhi']
+        gan_input = {
+            'tiyong_import': result.get('tiyong_import', {}),
+            'fei_shen_activated': [
+                f for f in result.get('fei_shen_activated', []) if f.get('type') == 'gan'],
+            'qishi_change': result.get('qishi_change'),
+        }
         segments = []
         for part, seg_start, seg_end in (
                 ('干', start_age, mid_age), ('支', mid_age, end_age)):
-            judged = judge_pillar_signals(
-                {'tiyong_import': result.get('tiyong_import', {})}
-                if part == '干' else zhi_input)
+            judged = judge_pillar_signals(gan_input if part == '干' else zhi_input)
             segments.append({
                 'gz': result['gz'], 'part': part,
                 'start_age': seg_start, 'end_age': seg_end, **judged,

@@ -35,15 +35,16 @@ from typing import Dict, List, Optional, Any
 from mangpai.objective.constants import (
     GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
     TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI,
-    XING_PAIRS, AN_HE, LU, PILLAR_KEYS, SAN_HE,
+    XING_PAIRS, AN_HE, LU, PILLAR_KEYS, BAN_HE,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
+from mangpai.objective.shishen import wx_cat as _wx_cat
 from mangpai.objective.zihe import detect_zihe
 from mangpai.objective.jiaoyun import _year_gz
 from mangpai.objective.muku import is_entomb
 from mangpai.objective._relation_utils import pair_in as _check_pair, GONG_JU
 from mangpai.subjective.dayun import _analyze_pillar_with_signals
-from mangpai.subjective.yongshen import classify_strength, _shishen_full
+from mangpai.subjective.yongshen import classify_strength, _shishen_full, _yongshen_cats
 
 # 刃位单一事实源在 objective.shensha（_YANG_REN 主刃位 / _YANG_REN_FULL 段氏
 # 全刃位，戊取午未双刃）；此处仅别名兼容，不再自带副本（M2 口径统一）。
@@ -145,37 +146,23 @@ def _judge_xiji(
     natal_gans: List[str],
     natal_zhis: List[str],
     wx: str,
+    strength: str = '',
 ) -> str:
-    """判定某五行对日主的喜忌方向（扶抑框架，方向总线统一口径）。
+    """判定某五行对日主的喜忌方向，复用扶抑总线的十神类别与从格口径。
 
-    段氏《段氏理象学》：「冲忌神反吉，冲喜神反凶」。喜忌定向复用
-    yongshen.classify_strength（扶抑身强弱）：
-      身强/从强（印比党众）-> 忌体（印比），喜用（财官食伤）
-      身弱/从弱（印比党寡）-> 喜体（印比），忌用（财官食伤）
-    中和/不明则喜忌不明，返回空串，调用方按中性处理。
-
-    Returns: '喜' / '忌' / ''（无法判定）
+    Returns: '喜' / '忌' / ''（中和、不明或数据不足）
     """
     day_wx = GAN_WX.get(day_gan, '')
     if not day_wx or not wx:
         return ''
-
-    # 印五行（生我）
-    yin_wx = ''
-    for _w, _gen in WX_SHENG.items():
-        if _gen == day_wx:
-            yin_wx = _w
-            break
-
-    strength = classify_strength(day_gan, natal_gans, natal_zhis)
-    if strength in ('中和', '不明'):
-        return ''  # 党势均衡/数据不足，喜忌不明
-    is_ti = (wx == day_wx) or (wx == yin_wx)
-    if strength in ('身强', '从强'):
-        # 身强忌体喜用
-        return '忌' if is_ti else '喜'
-    # 身弱/从弱喜体忌用
-    return '喜' if is_ti else '忌'
+    strength = strength or str(classify_strength(day_gan, natal_gans, natal_zhis))
+    ys_cats, js_cats = _yongshen_cats(strength)
+    cat = _wx_cat(day_wx, wx)
+    if cat in ys_cats:
+        return '喜'
+    if cat in js_cats:
+        return '忌'
+    return ''
 
 
 def _judge_chong_xiji(
@@ -346,9 +333,8 @@ def _zhi_has_natal_he(zhi: str, natal_zhis: List[str]) -> bool:
             continue
         if (zhi, o) in LIU_HE or (o, zhi) in LIU_HE:
             return True
-        for key in SAN_HE:
-            if len(key) == 3 and zhi in key and o in key:
-                return True
+        if BAN_HE.get(zhi + o) or BAN_HE.get(o + zhi):
+            return True
     return False
 
 
@@ -931,15 +917,13 @@ def analyze_liunian_mangpai(
                     target_location='natal', gender=gender, ln_gan=gan,
                 )
 
-        # K5: 强语义叠信号（保守：只补最凶两端，中性变迁不碰 overall）
+        # K5: 强语义叠信号；全部信号写完后统一重算 overall
         for r in result.get('zhi_relations', []):
             cs = r.get('chong_semantic')
             if cs and cs['chong_type'] == '冲破':
                 note = f'流年{zhi}冲破{r.get("target", "")}（极衰无救，主终结）'
                 if note not in result['negative_signals']:
                     result['negative_signals'].append(note)
-                if result['overall'] == '吉':
-                    result['overall'] = '吉凶参半'
         for r in result.get('zhi_relations', []) + result.get('gan_relations', []):
             hs = r.get('he_semantic')
             if hs and hs['he_type'] == '合去':
@@ -998,10 +982,6 @@ def analyze_liunian_mangpai(
                 elif chong_xiji == '喜':
                     result['negative_signals'].append(
                         f'流年冲大运{dy_zhi}，冲去喜神反凶')
-                    if result['overall'] == '吉':
-                        result['overall'] = '吉凶参半'
-                    elif result['overall'] == '平':
-                        result['overall'] = '凶'
                 else:
                     result['negative_signals'].append('流年冲大运，运局动荡')
             if dy_he:
@@ -1011,6 +991,16 @@ def analyze_liunian_mangpai(
             if dy_desc:
                 result['desc'] += f'；大运互动：{dy_desc}'
 
+        if result['positive_signals'] and result['negative_signals']:
+            result['overall'] = '吉凶参半'
+        elif result['positive_signals']:
+            result['overall'] = '吉'
+        elif result['negative_signals']:
+            result['overall'] = '凶'
+        else:
+            result['overall'] = '平'
+        result['desc'] = (result['desc'].rsplit('综合：', 1)[0]
+                          + f"综合：{result['overall']}")
         analyses.append(result)
 
     ji_count = sum(1 for a in analyses if a['overall'] == '吉')

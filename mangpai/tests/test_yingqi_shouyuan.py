@@ -288,41 +288,41 @@ class TestGanzhiHuying:
 #    大限区间判定不动。──
 
 class TestDaxianDayunJiaotuo:
-    # 公共盘：甲日从弱（庚辛申酉金官杀众，寅禄被申冲根坏），喜体（木水）忌用（金土火）
+    # 公共盘：甲日从弱（庚辛申酉金官杀众，寅禄被申冲根坏），喜用（金土火）忌体（木水）
     GANS = ['庚', '庚', '甲', '辛']
     ZHIS = ['申', '午', '寅', '酉']
 
     def test_xian_xiong_yun_ji(self):
-        # 限凶运吉（zhongji:650「大运应吉，此运不克，过运则凶」）：
-        # age=10→年柱庚申大限（金=忌=限凶），大运甲寅（木=喜=运吉）
+        # 限吉运凶（zhongji:651「此运不吉，过运则吉」）：
+        # age=10→年柱庚申大限（金=喜=限吉），大运甲寅（木=忌=运凶）
         r = detect_daxian_dayun_jiaotuo(
             '甲', self.GANS, self.ZHIS, age=10,
             dayun_gan='甲', dayun_zhi='寅')
-        assert r['daxian_jx'] == '凶' and r['dayun_jx'] == '吉'
-        assert any(m['jiaotuo_type'] == '限凶运吉' for m in r['markers'])
-        assert any('过运则凶' in m['reason'] for m in r['markers'])
-
-    def test_xian_ji_yun_xiong(self):
-        # 限吉运凶（zhongji:651「此运不吉，过运则吉」）：
-        # age=40→日柱甲寅大限（木=喜），大运庚申（金=忌）
-        r = detect_daxian_dayun_jiaotuo(
-            '甲', self.GANS, self.ZHIS, age=40,
-            dayun_gan='庚', dayun_zhi='申')
+        assert r['daxian_jx'] == '吉' and r['dayun_jx'] == '凶'
         assert any(m['jiaotuo_type'] == '限吉运凶' for m in r['markers'])
         assert any('过运则吉' in m['reason'] for m in r['markers'])
 
-    def test_ju_xiong(self):
-        # 限运俱凶（zhongji:656-657 闲注「与」的关系：俱凶应凶）
+    def test_xian_ji_yun_xiong(self):
+        # 限凶运吉（zhongji:650「大运应吉，此运不克，过运则凶」）：
+        # age=40→日柱甲寅大限（木=忌），大运庚申（金=喜）
         r = detect_daxian_dayun_jiaotuo(
-            '甲', self.GANS, self.ZHIS, age=10,
+            '甲', self.GANS, self.ZHIS, age=40,
             dayun_gan='庚', dayun_zhi='申')
+        assert any(m['jiaotuo_type'] == '限凶运吉' for m in r['markers'])
+        assert any('过运则凶' in m['reason'] for m in r['markers'])
+
+    def test_ju_xiong(self):
+        # 限运俱凶（zhongji:656-657 闲注「与」的关系：俱凶应凶）：日柱、运皆木
+        r = detect_daxian_dayun_jiaotuo(
+            '甲', self.GANS, self.ZHIS, age=40,
+            dayun_gan='甲', dayun_zhi='寅')
         assert any(m['jiaotuo_type'] == '限运俱凶' for m in r['markers'])
 
     def test_ju_ji(self):
         # 限运俱吉（闲注：俱吉应吉）
         r = detect_daxian_dayun_jiaotuo(
-            '甲', self.GANS, self.ZHIS, age=40,
-            dayun_gan='甲', dayun_zhi='寅')
+            '甲', self.GANS, self.ZHIS, age=10,
+            dayun_gan='庚', dayun_zhi='申')
         assert any(m['jiaotuo_type'] == '限运俱吉' for m in r['markers'])
 
     def test_buming_no_marker(self):
@@ -342,5 +342,5 @@ class TestDaxianDayunJiaotuo:
             '甲', self.GANS, self.ZHIS,
             dayun_gan='甲', dayun_zhi='寅', liunian_gan='丙',
             liunian_zhi='午', age=10)
-        assert any(m['jiaotuo_type'] == '限凶运吉'
+        assert any(m['jiaotuo_type'] == '限吉运凶'
                    for m in r['daxian_dayun_jiaotuo']['markers'])
