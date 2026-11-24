@@ -17,7 +17,7 @@ import os
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 from mangpai.objective.dayun import _analyze_pillar_interaction
 from mangpai.objective.shensha import compute_shensha_ext, _YANG_REN_FULL

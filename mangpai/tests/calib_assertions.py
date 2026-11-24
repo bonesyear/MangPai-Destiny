@@ -23,10 +23,6 @@ import yaml
 from _atomic_io import atomic_write
 
 from mangpai import MangpaiEngine
-from mangpai.subjective.caiming import analyze_caiming
-from mangpai.subjective.guanming import analyze_guanming
-from mangpai.subjective.hunyin import analyze_hunyin
-from mangpai.subjective.zhiye import analyze_zhiye
 from mangpai.subjective.liuqin import analyze_liuqin
 from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi, liunian_interactions
 
@@ -57,19 +53,13 @@ def run_case(case):
     dg = gans[2]
     # A1：案例显式运岁即「当前运岁」，切片入财命/官命/职业方向否决链
     # （与 engine 内 wiring 同口径；无运岁的案例切片为空，行为不变）
-    from mangpai.subjective.yunfan import current_fan_slice
-    yf_slice = current_fan_slice(
-        res.get('yunfan') or {},
-        (dayun[0] + dayun[1]) if dayun else '',
-        include_dayun=bool(dayun), include_liunian=bool(liunian),
-    )
     out = {
         'res': res,
         'gl': res.get('gongliang', {}),
-        'cm': analyze_caiming(dg, gans, zhis, yunfan_result=yf_slice),
-        'gm': analyze_guanming(dg, gans, zhis, yunfan_result=yf_slice),
-        'hy': analyze_hunyin(dg, gans, zhis, gender=gender),
-        'zy': analyze_zhiye(dg, gans, zhis, yunfan_result=yf_slice),
+        'cm': res.get('caiming', {}),
+        'gm': res.get('guanming', {}),
+        'hy': res.get('hunyin', {}),
+        'zy': res.get('zhiye', {}),
         'lq': analyze_liuqin(dg, gans, zhis, gender=gender),
         'yq': None,
         'has_yunsui': bool(dayun or liunian),  # P0-a：财命断语性质判别用
@@ -281,6 +271,8 @@ def main():
         for item in case['items']:
             key = (case['id'], item['dim'])
             if key not in cur:
+                if not item['gold'].get('not_applicable'):
+                    reg.append((key, item.get('baseline'), '缺失', '计算结果缺失'))
                 continue
             bv = item.get('baseline')
             v, d = cur[key]
@@ -302,6 +294,13 @@ def main():
         print('  无变化')
     n_reg = len(reg)
 
+    if write_baseline and reg:
+        accepted = {a.split('=', 1)[1] for a in sys.argv if a.startswith('--accept=')}
+        regression_keys = {f'{cid}/{dim}' for (cid, dim), *_ in reg}
+        if not regression_keys <= accepted:
+            print(f'  ⚠️ 含回归 {sorted(regression_keys)}，拒绝写回基线（显式 --accept=案例ID/维度 才例外）')
+            sys.exit(1)
+        print(f'  ⚠️ 已接受回归 {sorted(regression_keys)}，须在 CHANGELOG 记录')
     if write_baseline:
         _write_baseline(cur, cnt)
         print(f'\n(baseline 写回 -> {YAML_PATH})')

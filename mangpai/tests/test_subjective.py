@@ -6,13 +6,11 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from subjective import (
+from mangpai.subjective import (
     MANGPAI_SCHOOL, build_payload, assemble, load_template,
     ENVELOPE_RULES, School,
 )
-from subjective.schools import MANGPAI_SCHOOL as SCHOOL_FROM_SCHOOLS
+from mangpai.subjective.schools import MANGPAI_SCHOOL as SCHOOL_FROM_SCHOOLS
 
 
 class TestSchoolDefinition:
@@ -102,7 +100,6 @@ class TestBuildPayload:
             "input": {"year": 1979, "month": 11, "day": 10},
             "canggan": {"未": [("己", "本气")], "亥": [("壬", "本气")]},
             "chang_sheng": {"year_zhi": "死", "month_zhi": "长生"},
-            "chang_sheng": {"year_zhi": "死", "month_zhi": "长生"},
             "nayin": [{"name": "天上火", "wuxing": "火", "weight": 4}],
             "nayin_work": {"total_weight": 10, "dominant_wuxing": "火"},
             "shensha": {"羊刃": {"zhi": "未", "in_pillars": ["year"]}},
@@ -115,11 +112,11 @@ class TestBuildPayload:
                           "gong_shen_cats": [], "chain_length": 0,
                           "penalty": None, "confidence": "中"},
             "muku": {"tombs": [], "tomb_relations": []},
-            "anhe": [],
-            "biqi": [],
+            "anhe": {"anhe": []},
+            "biqi": {"biqi": []},
             "wood_type": {"is_wood": False, "wood_type": "非木日主"},
             "soil": {"wet_soil": [], "dry_soil": []},
-            "he_types": [],
+            "he_types": {"he_types": []},
             "virtual_solid": {"virtual_count": 0, "solid_count": 0},
             "zhengfan": {"type": "neutral"},
             "xiangfa": {"gan_xiang": {}, "zhi_xiang": {}, "shishen_xiang": {}},

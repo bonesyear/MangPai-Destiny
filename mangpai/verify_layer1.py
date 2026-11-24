@@ -15,12 +15,17 @@ from mangpai.objective.constants import (
     CANG_GAN_MANGPAI, CHANGSHENG_START_MANGPAI, KEY_STAGES, _STAGE_ALIASES,
     DI_ZHI, GAN_WX, ZHI_WX,
 )
-from mangpai.objective.jiaoyun import JIAOYUN_RULES, JIEQI_INDEX, _jieqi_jd, _jd_to_datetime
+from mangpai.objective.jiaoyun import (
+    JIAOYUN_RULES, JIEQI_INDEX, ZHI_HOUR, _jieqi_jd, _jd_to_datetime,
+    compute_jiaoyun_timeline,
+)
 TIAN_GAN = list('甲乙丙丁戊己庚辛壬癸')
 from mangpai.objective.changsheng import get_changsheng_mangpai, get_changsheng_all, is_key_stage
 from foundation.objective.ganqing import (
     GAN_QING_RULES, ZHI_QING_RULES, match_ganqing, match_zhiqing, GanQingRule,
 )
+
+sys.stdout.reconfigure(encoding='utf-8')
 
 passed = 0
 failed = 0
@@ -115,8 +120,23 @@ else:
     check('冬至恒在12月', dongzhi_ok, '冬至月份异常')
     # 2e. 命五行->交运节气规则完整（5行）
     check('JIAOYUN_RULES 覆盖5五行', set(JIAOYUN_RULES.keys())=={'木','火','土','金','水'}, '命五行规则不全')
-    for wx,(jq,off,zhi) in JIAOYUN_RULES.items():
-        check(f'交运节气 {wx}->{jq}{off:+d}天{zhi}时', jq in _NAME2IDX, f'{jq}不在24节气')
+    expected_rules = {
+        '火': ('清明', -3, '午'), '土': ('芒种', 9, '辰'),
+        '金': ('处暑', 0, '申'), '木': ('大寒', 0, '寅'),
+        '水': ('冬至', -3, '亥'),
+    }
+    check('命五行交运规则整表独立钉值', JIAOYUN_RULES == expected_rules,
+          f'实际{JIAOYUN_RULES}')
+    year_gz_of = {'火': '丙寅', '土': '庚午', '金': '庚辰', '木': '戊辰', '水': '壬戌'}
+    for wx, (jq, _off, zhi) in expected_rules.items():
+        timeline = compute_jiaoyun_timeline(
+            2000, dayun_list=[{'gz': '甲子', 'start_age': 1}],
+            start_age=1, year_gz=year_gz_of[wx])
+        first = timeline[0] if timeline else {}
+        check(f'{wx}命交运时辰生产函数={zhi}时',
+              first.get('jiaoyun_dt') is not None
+              and first['jiaoyun_dt'].hour == ZHI_HOUR[zhi],
+              f'实际{first.get("jiaoyun_iso", first)}')
 
 # ══════════════════════════════════════════════════════════════
 print('── 3. 藏干12 ──')
@@ -158,6 +178,9 @@ check('阴阳同生同死(阴干同阳干起点)', same_birth, f'实际{CHANGSHE
 # 4c. 每干起点位恰为'长生'
 cs_ok = all(get_changsheng_mangpai(g, CHANGSHENG_START_MANGPAI[g])=='长生' for g in TIAN_GAN)
 check('起点位=长生', cs_ok, '起点非长生')
+check('独立抽查 庚在巳为长生', get_changsheng_mangpai('庚', '巳') == '长生')
+check('独立抽查 乙在亥为长生', get_changsheng_mangpai('乙', '亥') == '长生')
+check('独立抽查 甲在午为死', get_changsheng_mangpai('甲', '午') == '死')
 # 4d. 5关键位 KEY_STAGES 齐全
 check('KEY_STAGES 含5位', KEY_STAGES=={'长生','禄旺','死','墓','绝'}, f'实际{KEY_STAGES}')
 check('临官/帝旺->禄旺别名', _STAGE_ALIASES.get('临官')=='禄旺' and _STAGE_ALIASES.get('帝旺')=='禄旺', '别名缺失')
@@ -177,7 +200,7 @@ print('── 5. 干支性情75条 ──')
 gan_total = sum(len(v) for v in GAN_QING_RULES.values())
 zhi_total = sum(len(v) for v in ZHI_QING_RULES.values())
 check('10干规则全覆盖', set(GAN_QING_RULES.keys())==set(TIAN_GAN), '干不全')
-check(f'天干性情规则数(规格65)', gan_total>=65, f'实际{gan_total}')
+check(f'天干性情规则数(规格70)', gan_total == 70, f'实际{gan_total}')
 # 5a. 每条规则结构完整（gan/fu_clause/condition/behavior/behavior_type 非空）
 struct_ok = True
 for g, rules in GAN_QING_RULES.items():
@@ -194,12 +217,12 @@ bt_ok = all(r.behavior_type in BEHAVIOR_TYPES for rules in GAN_QING_RULES.values
 check('behavior_type 合法', bt_ok, '存在非法behavior_type')
 # 5c. match_ganqing 可调用且返回 List[GanQingRule]
 m = match_ganqing('甲', month_zhi='寅', stems=['甲','丙','戊'], day_gz='甲子')
-check('match_ganqing 可调用', isinstance(m, list) and all(isinstance(x, GanQingRule) for x in m), '返回类型异常')
+check('match_ganqing 可调用且命中规则', bool(m) and all(isinstance(x, GanQingRule) for x in m), '未命中或类型异常')
 # 5d. match_zhiqing 可调用
 mz = match_zhiqing('寅')
-check('match_zhiqing 可调用', isinstance(mz, list) and all(isinstance(x, GanQingRule) for x in mz), '返回类型异常')
+check('match_zhiqing 可调用且命中规则', bool(mz) and all(isinstance(x, GanQingRule) for x in mz), '未命中或类型异常')
 # 5e. 地支5条规则
-check('地支性情规则数(规格5)', zhi_total>=5, f'实际{zhi_total}')
+check('地支性情规则数(规格5)', zhi_total == 5, f'实际{zhi_total}')
 # 5f. 抽样：甲春不容金——春月甲木规则中应含排斥金类行为
 jia_chun = [r for r in match_ganqing('甲', month_zhi='寅') if '金' in (r.behavior or '') or r.behavior_type in ('排斥','克')]
 check('甲春月匹配到涉金规则', len(jia_chun)>0, '甲春不容金规则未命中')

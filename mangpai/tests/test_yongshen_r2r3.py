@@ -63,13 +63,11 @@ class TestR2JishenZhiyongshen:
 
     def test_r2_daygan_actor_excluded(self):
         """日主作功神（我克者）不算忌神制用神（同R1口径）。"""
-        # 壬壬庚辛/子寅辰巳（zhenbao-10）：身弱；日干庚(金)不作用神计。
-        # precision pass 后此造财孤（1柱）印众（2柱），孤忌犯众豁免不触发
-        # （段氏「弱的忌神用旺的用神去之则吉」之正命题）；hits 恒不含 day_gan。
-        r = detect_jishen_zhiyongshen('庚', ['壬', '壬', '庚', '辛'],
-                                      ['子', '寅', '辰', '巳'])
-        for h in r['hits']:
-            assert 'day_gan' not in h
+        # 岳飞 癸乙甲己/未卯子巳：印夺食有真实命中，hits 不得含日主位。
+        r = detect_jishen_zhiyongshen('甲', ['癸', '乙', '甲', '己'],
+                                      ['未', '卯', '子', '巳'])
+        assert r['hits']
+        assert all('day_gan' not in h for h in r['hits'])
 
     def test_r2_guji_fanzhong_exempt(self):
         """孤忌犯众用豁免：忌神孤（≤1柱）用神众（≥2柱），孤忌犯众自败不触发。

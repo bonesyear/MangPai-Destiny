@@ -10,7 +10,6 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.subjective.caiming import (
     analyze_caiming, classify_caifu_view, _assess_caixing_path,
@@ -138,8 +137,8 @@ class TestCaimingTierTriplet:
     def test_lu_path_desc(self):
         # 禄神当财 -> 路径含「身体力行」
         cm = analyze_caiming('己', ['乙', '己', '己', '庚'], ['巳', '丑', '未', '午'])
-        if cm['primary_view'] == '禄神当财':
-            assert '身体力行' in cm['path']
+        assert cm['primary_view'] == '禄神当财'
+        assert '身体力行' in cm['path']
 
     def test_blockers_avoid_xiong_markers(self):
         # 浮财/合绊/入墓阻因措辞不得含凶向标记词（评估器 rubric 口径）：

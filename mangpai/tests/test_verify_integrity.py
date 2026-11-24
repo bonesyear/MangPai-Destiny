@@ -3,8 +3,8 @@
 
 覆盖 H7/H9 标记的验证基建吞异常点：
   - blind_eval.py eval_cases：引擎异常 → 记 error + main() 退出码非 0
-  - verify_layer3_checkpoint.py B 环节：analyze_guanming 异常 → 退出码非 0
-    （旧版静默置 {}，未被下游断言覆盖的案例（如第1期）失败也可假绿）
+  - verify_layer3_checkpoint.py：引擎实际调用点的官命异常 → 退出码非 0
+    （未被下游断言覆盖的案例（如第1期）失败也可假绿）
   - calib_zhenbao.py 顶层循环：案例失败 → 打印后 re-raise（H12 P1）
   - verify_heldout.py：排盘异常 → 计失败、退出码 1（既已合规，本测试锁回归）
 """
@@ -83,7 +83,36 @@ def test_verify_mangpai_reports_only_known_xfail():
                        capture_output=True, text=True, encoding='utf-8', errors='replace',
                        env=env, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
-    assert '验证结果: 404 passed, 0 failed, 0 xfailed, total 404' in r.stdout
+    assert '验证结果: 375 passed, 0 failed, 0 xfailed, total 375' in r.stdout
+
+
+@pytest.mark.parametrize('relative,expected', [
+    ('mangpai/verify_dayun.py', '验证结果: 72 passed, 0 failed, total 72'),
+    ('mangpai/verify_layer1.py', '验证结果: 68 passed, 0 failed, total 68'),
+    ('mangpai/verify_layer3_checkpoint.py', '验证结果: 20 passed, 0 failed, total 20'),
+])
+def test_verify_scripts_utf8_output(relative, expected):
+    import subprocess
+
+    env = os.environ.copy()
+    env['PYTHONIOENCODING'] = 'cp1252'
+    env['PYTHONUTF8'] = '0'
+    result = subprocess.run(
+        [sys.executable, os.path.join(_REPO, relative)],
+        capture_output=True, text=True, encoding='utf-8', errors='replace',
+        env=env, timeout=120)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert expected in result.stdout
+
+
+def test_verify_dayun_module_mode_runs():
+    import subprocess
+
+    result = subprocess.run(
+        [sys.executable, '-P', os.path.join(_REPO, 'mangpai', 'verify_dayun.py')],
+        capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert '验证结果: 72 passed, 0 failed, total 72' in result.stdout
 
 
 def test_famous_r7_regressions_closed():
@@ -107,17 +136,17 @@ def test_verify_layer3_compute_error_exit_nonzero(monkeypatch):
 
 
 def test_verify_layer3_guanming_error_exit_nonzero(monkeypatch):
-    """verify_layer3_checkpoint B 环节：analyze_guanming 对未被下游断言覆盖的
-    案例（第1期）异常 → 旧版静默置 {} 假绿（exit 0），新版必须 exit != 0。"""
-    import mangpai.subjective.guanming as gm_mod
-    real = gm_mod.analyze_guanming
+    """在引擎实际调用点注入官命异常，未被下游断言覆盖的案例也必须失败。"""
+
+    import mangpai.engine as engine_mod
+    real = engine_mod.analyze_guanming
 
     def selective(day_gan, gans, zhis, **kw):
         if list(gans) == ['戊', '己', '乙', '丁']:  # zhenbao-01
             raise RuntimeError('injected guanming failure')
         return real(day_gan, gans, zhis, **kw)
 
-    monkeypatch.setattr(gm_mod, 'analyze_guanming', selective)
+    monkeypatch.setattr(engine_mod, 'analyze_guanming', selective)
     with pytest.raises(SystemExit) as exc:
         runpy.run_path(_LAYER3, run_name='__main__')
     assert exc.value.code != 0

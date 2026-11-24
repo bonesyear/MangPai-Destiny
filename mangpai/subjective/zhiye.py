@@ -1382,7 +1382,7 @@ def classify_zhiye(
     yunfan_result: 「当前运岁」反局切片，仅作运岁风险展示；
       终身 scores/primary 只读原局方向，不被单步运岁直接否决。
     caiming_result: 财命综合结果（M2 基础职业类目消费 tier/取财法/财看法；
-      缺省时于行业桶未成象的 fallback 区自调 analyze_caiming）。
+      缺省时入口自调 analyze_caiming，与引擎保持同一 gate 口径）。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传，
       免 direction 总线重跑 analyze_zuogong/analyze_laoyu）；缺省自算。
 
@@ -1412,6 +1412,10 @@ def classify_zhiye(
             'fallback_no_clear': False, 'min_score_threshold': _MIN_SCORE_THRESHOLD,
         }
 
+    if caiming_result is None:
+        caiming_result = analyze_caiming(
+            day_gan, gans, zhis, relations=relations,
+            shensha_result=shensha_result, yunfan_result=yunfan_result)
     rel = _ensure_relations(day_gan, gans, zhis, relations)
     wa: List[Dict] = rel.get('work_actions') or []
     muku = analyze_muku(zhis, gans)
@@ -1775,9 +1779,6 @@ def classify_zhiye(
         # fallback 由「无明确职业倾向」升格为合法第一输出：基础类目命中给类目，
         # 未命中给「未分类」+ 最高分桶提示（hint），不再硬塞行业桶。
         cm = caiming_result
-        if cm is None:
-            cm = analyze_caiming(day_gan, gans, zhis, relations=rel,
-                                 shensha_result=ss, yunfan_result=yunfan_result)
         base_career = _classify_base_career(day_gan, gans, zhis, wa, cm, ds)
         if base_career:
             primary = base_career['bucket']
@@ -1841,7 +1842,7 @@ def analyze_zhiye(
     支持两种签名：旧位置参数，或首个参数为 Pillars 对象。
     shensha_result: engine 透传的神煞结果，优先用传入值、缺省才就地重算。
     yunfan_result: 「当前运岁」反局切片，仅作独立风险展示，不进终身 gating。
-    caiming_result: 财命综合结果（M2 基础职业类目消费），缺省 fallback 区自调。
+    caiming_result: 财命综合结果（M2 基础职业类目消费），缺省时入口自调。
     zhengfan_result/laoyu_result: engine 已算的正反局/牢狱结果（修批D 透传）。
     """
     return classify_zhiye(day_gan, gans, zhis, relations=relations,

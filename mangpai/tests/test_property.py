@@ -18,7 +18,6 @@ import os
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai import MangpaiEngine
 from mangpai.objective.bazi_calc import compute_shishen, get_kong_wang, GAN

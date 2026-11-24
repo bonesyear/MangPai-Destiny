@@ -19,7 +19,6 @@ import pytest
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.objective.zihe import detect_zihe
 from mangpai.subjective.yongshen import (
@@ -156,7 +155,7 @@ class TestZiheGanShiyong:
         # 由既有口径判，本测只锚定失用位集合
         r1 = detect_bijiao_duocai('庚', ['辛', '戊', '庚', '甲'],
                                   ['巳', '戌', '申', '寅'])
-        assert '辛' not in ''.join(r1.get('hits') or []) or True  # 位集合锚定即可
+        assert all('year_gan' not in h for h in r1.get('hits') or [])
 
     def test_zihe_caiban_blocker(self):
         """ans12-下岗穷命（庚戌庚辰戊辰壬戌）：壬戌时自合（辰戌冲激活），
@@ -287,8 +286,11 @@ class TestCongErTier:
         """从儿无财不升（儿不生儿，不流通）：从儿格但局无明财，保持原档。"""
         # 癸日，卯卯亥丑辛辛癸癸=从强非从弱不适用；构造从弱从儿无财：
         # 戊申庚申戊申庚申? 自党过多。用 癸卯甲寅癸卯甲寅 -> 从儿无财
+        ct = classify_cong_target('癸', ['甲', '甲', '癸', '甲'], ['寅', '寅', '卯', '寅'])
+        assert ct['label'] == '从儿'
         cm = analyze_caiming('癸', ['甲', '甲', '癸', '甲'], ['寅', '寅', '卯', '寅'])
-        assert cm['tier_static'] != '富' or '从儿' not in cm['level_static']['adjust']
+        assert cm['tier_static'] != '富'
+        assert cm['level_static']['adjust'] == '持平'
 
 
 # ───────────────────── G1：十干喜忌标注层 ─────────────────────

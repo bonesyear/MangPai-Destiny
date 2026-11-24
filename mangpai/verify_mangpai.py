@@ -82,17 +82,6 @@ for zhi, expected in tao_expected.items():
     check(f'桃花 {zhi}→{expected}', _TAO_HUA.get(zhi) == expected,
           f'got {_TAO_HUA.get(zhi)}')
 
-# 验证三合局沐浴位
-sanhe_groups = [
-    (['申', '子', '辰'], '酉', '水局沐浴'),
-    (['寅', '午', '戌'], '卯', '火局沐浴'),
-    (['亥', '卯', '未'], '子', '木局沐浴'),
-    (['巳', '酉', '丑'], '午', '金局沐浴'),
-]
-for members, expected_th, label in sanhe_groups:
-    for m in members:
-        check(f'{label}: {m}→{expected_th}', _TAO_HUA.get(m) == expected_th)
-
 # 年支兼看测试（盲派以日支起，reference='day'）
 ss = compute_shensha_ext('甲', ['寅', '午', '子', '戌'], reference='day')
 check('桃花日支起(子→酉)', ss.get('桃花', {}).get('zhi') == '酉',
@@ -106,6 +95,13 @@ check('年支=日支时无year_ref', ss2.get('桃花', {}).get('year_ref') is No
 
 # ── 2. 驿马查表 ──
 print('\n── 2. 驿马查表 ──')
+
+sanhe_groups = [
+    (['申', '子', '辰'], '酉', '水局沐浴'),
+    (['寅', '午', '戌'], '卯', '火局沐浴'),
+    (['亥', '卯', '未'], '子', '木局沐浴'),
+    (['巳', '酉', '丑'], '午', '金局沐浴'),
+]
 
 # 段氏「三支皆马」：每支映射其所属三合局之对冲三支；列表首位=长生之冲(传统单点)
 ym_expected = {
@@ -275,17 +271,6 @@ check('华盖表覆盖12支', len(_HUA_GAI) == 12)
 for zhi, expected in hg_expected.items():
     check(f'华盖 {zhi}→{expected}', _HUA_GAI.get(zhi) == expected,
           f'got {_HUA_GAI.get(zhi)}')
-
-# 验证三合局墓库位
-sanhe_huagai = [
-    (['寅', '午', '戌'], '戌', '火局墓库'),
-    (['申', '子', '辰'], '辰', '水局墓库'),
-    (['巳', '酉', '丑'], '丑', '金局墓库'),
-    (['亥', '卯', '未'], '未', '木局墓库'),
-]
-for members, expected_hg, label in sanhe_huagai:
-    for m in members:
-        check(f'{label}: {m}→{expected_hg}', _HUA_GAI.get(m) == expected_hg)
 
 # 华盖 = 三合局墓库位（与 TOMB_MAP 交叉验证）
 check('华盖=火墓(戌)', _HUA_GAI['寅'] == '戌' and '火' in TOMB_MAP.get('戌', []))
@@ -578,12 +563,6 @@ check('WX_KE_ME 火→水(水克火)', WX_KE_ME.get('火') == '水')
 check('WX_KE_ME 水→土(土克水)', WX_KE_ME.get('水') == '土')
 check('WX_KE_ME 土→木(木克土)', WX_KE_ME.get('土') == '木')
 
-# 验证合化克破方向：甲己合化土，克破元素=木(WX_KE_ME['土']='木')
-check('化土克破=木', WX_KE_ME.get('土') == '木')
-check('化金克破=火', WX_KE_ME.get('金') == '火')
-check('化水克破=土', WX_KE_ME.get('水') == '土')
-check('化木克破=金', WX_KE_ME.get('木') == '金')
-check('化火克破=水', WX_KE_ME.get('火') == '水')
 
 # ── 11. 做功层次（G1：唯一事实源 gongliang，0-4 层功量）──
 print('\n── 11. 做功层次（gongliang 书锚）──')
@@ -845,8 +824,7 @@ wa_kw_dict = _kw_chong(zg_kw_dict)
 check('空亡(dict)地支参与做功打折',
       wa_kw_dict.get('efficiency_discount') is True, f"action={wa_kw_dict}")
 # 结果透传空亡地支集合：显式子支与年柱己巳并参（理象学:5084）
-from mangpai.objective.bazi_calc import get_kong_wang
-kw_expected = {'子'} | set(get_kong_wang('己', '巳')['zhi'])
+kw_expected = {'子', '戌', '亥'}
 check('kong_wang_zhis 透传',
       set(zg_kw_list.get('kong_wang_zhis', [])) == kw_expected,
       f"got {zg_kw_list.get('kong_wang_zhis')} expected={kw_expected}")

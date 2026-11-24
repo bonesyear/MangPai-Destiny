@@ -19,7 +19,6 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.subjective.caiming import analyze_caiming, assess_caiming_level
 from mangpai.subjective.yongshen import (

@@ -5,12 +5,7 @@ import sys, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from mangpai import MangpaiEngine
-from mangpai.subjective.caiming import analyze_caiming
-from mangpai.subjective.guanming import analyze_guanming
-from mangpai.subjective.hunyin import analyze_hunyin
-from mangpai.subjective.zhiye import analyze_zhiye
 from mangpai.subjective.yingqi_subj import infer_comprehensive_yingqi, liunian_interactions
-from mangpai.subjective.gongliang import analyze_gongliang
 
 def run_case(name, gans, zhis, gender, year, dayun=None, liunian=None):
     """dayun: (gan,zhi) of the relevant大运柱; liunian: (gan,zhi,year) of流年柱."""
@@ -31,17 +26,10 @@ def run_case(name, gans, zhis, gender, year, dayun=None, liunian=None):
 
     res = MangpaiEngine(bazi_data).compute_all()
     dg = gans[2]
-    # A1：案例显式运岁即「当前运岁」，切片入财命/官命/职业方向否决链
-    from mangpai.subjective.yunfan import current_fan_slice
-    yf_slice = current_fan_slice(
-        res.get('yunfan') or {},
-        (dayun[0] + dayun[1]) if dayun else '',
-        include_dayun=bool(dayun), include_liunian=bool(liunian),
-    )
-    cm = analyze_caiming(dg, gans, zhis, yunfan_result=yf_slice)
-    gm = analyze_guanming(dg, gans, zhis, yunfan_result=yf_slice)
-    hy = analyze_hunyin(dg, gans, zhis, gender=gender)
-    zy = analyze_zhiye(dg, gans, zhis, yunfan_result=yf_slice)
+    cm = res.get('caiming', {})
+    gm = res.get('guanming', {})
+    hy = res.get('hunyin', {})
+    zy = res.get('zhiye', {})
     yq = None
     if dayun or liunian:
         yq = infer_comprehensive_yingqi(dg, gans, zhis,

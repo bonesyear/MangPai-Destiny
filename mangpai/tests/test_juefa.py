@@ -7,7 +7,7 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 from mangpai.subjective.juefa import (
     analyze_juefa, DUANYU_22, DUANJU_TABLE, ZIPENGZI_RULES, JINXIANG_JUEYAN,
@@ -39,14 +39,11 @@ def test_jinshui_xijian_guan_qianlong():
 
 
 def test_jinshui_lianti_veto():
-    """庚子日：伤官与日干连体 → veto 注记（岁运冲伤官凶）。"""
-    r = _run('庚子', '庚辰', '庚子', '戊寅')
+    """庚子日冬月：伤官与日干连体 → veto 注记（岁运冲伤官凶）。"""
+    r = _run('庚子', '庚子', '庚子', '庚子')
     sg = r['shangguan_jue']
-    if sg.get('matched') and sg.get('type') == '金水伤官':
-        assert '连体' in sg.get('veto_note', '')
-    else:
-        # 辰月不入金水伤官格（正格须冬月/金旺月），本例验格型门槛
-        assert not sg.get('matched') or sg['type'] != '金水伤官'
+    assert sg['matched'] and sg['type'] == '金水伤官'
+    assert '连体' in sg.get('veto_note', '')
 
 
 def test_tujin_peiyin_zhangzhidong():

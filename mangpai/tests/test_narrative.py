@@ -11,7 +11,6 @@ import os
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.subjective.prompts.hao_style_fewshot import (
     FEWSHOT_EXAMPLES,

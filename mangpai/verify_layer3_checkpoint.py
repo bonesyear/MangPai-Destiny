@@ -12,10 +12,9 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mangpai import MangpaiEngine
-from mangpai.subjective.guanming import analyze_guanming
-from mangpai.subjective.gongliang import analyze_gongliang
-from mangpai.subjective.yongshen import assess_direction_signals
 from mangpai.objective.bazi_calc import compute_shishen, get_kong_wang
+
+sys.stdout.reconfigure(encoding='utf-8')
 
 # 10例（与 calib_zhenbao.CASES 一致）
 CASES = [
@@ -47,13 +46,16 @@ def _bazi_data(gans, zhis, gender, year):
 print('='*60)
 print('── A. 方向判断（10例 assess_direction_signals）──')
 dir_results = {}
+engine_results = {}
 for name, gans, zhis, gender, year in CASES:
     try:
         res = MangpaiEngine(_bazi_data(gans,zhis,gender,year)).compute_all()
-        gl = res.get('gongliang', {})
-        d = assess_direction_signals(gans[2], gans, zhis, gongliang_result=gl)
+        engine_results[name] = res
+        d = res.get('direction', {})
         dir_results[name] = d
-        has_dir = isinstance(d, dict) and 'direction' in d and 'reasons' in d
+        has_dir = isinstance(d, dict) and d.get('direction') in ('吉', '凶', '中性')
+        if name in ('zhenbao-09', 'zhenbao-14b'):
+            has_dir = has_dir and bool(d.get('reasons'))
         check(f'{name} 方向产出', has_dir, f'返回{d}')
     except Exception as e:
         import traceback; traceback.print_exc()
@@ -64,9 +66,8 @@ print('── B. 官命否决（guanming veto）──')
 gm_results = {}
 for name, gans, zhis, gender, year in CASES:
     try:
-        res = MangpaiEngine(_bazi_data(gans,zhis,gender,year)).compute_all()
-        gl = res.get('gongliang', {})
-        gm = analyze_guanming(gans[2], gans, zhis, gongliang_result=gl)
+        res = engine_results.get(name, {})
+        gm = res.get('guanming', {})
         gm_results[name] = gm
     except Exception as e:
         import traceback; traceback.print_exc()
@@ -98,11 +99,7 @@ check('zhenbao-12 官阶未被否决(grade非否决/非官命)', '否决' not in
 
 print('── C. zhenbao-12L3（书「三层强一点」理象学7188）──')
 # 层功 level=3 + 官命 level=3
-yan_gl = None
-for name, gans, zhis, gender, year in CASES:
-    if 'zhenbao-12' in name:
-        gl = analyze_gongliang(day_gan=gans[2], gans=gans, zhis=zhis)
-        yan_gl = gl; break
+yan_gl = engine_results.get('zhenbao-12', {}).get('gongliang', {})
 check('zhenbao-12 层功level=3(三层强一点，大富大贵)', yan_gl and yan_gl.get('level')==3, f"level={yan_gl.get('level') if yan_gl else None}")
 check('zhenbao-12 层功tier=大富大贵', yan_gl and '大富' in str(yan_gl.get('tier_name','')), f"tier={yan_gl.get('tier_name') if yan_gl else None}")
 yan_gm_lv = yan.get('level',{}).get('level') if isinstance(yan.get('level'),dict) else None

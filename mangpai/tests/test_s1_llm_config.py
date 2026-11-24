@@ -13,7 +13,6 @@ import urllib.request
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import mangpai.subjective.llm_backend as lb
 from mangpai.subjective.llm_backend import LLMBackendError, call_deepseek

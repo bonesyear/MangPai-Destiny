@@ -183,17 +183,18 @@ GUAN = [
 ]
 
 def judge_cat4():
-    from mangpai.subjective.caiming import classify_caifu_view
-    from mangpai.subjective.guanming import classify_guanming_combo, detect_guancai_daimao
     res = []
     for name, g, z, exp_primary, book_v in CAI:
-        cv = classify_caifu_view(g[2], g, z)
-        ok = (exp_primary in cv.get('primary', '')) or (exp_primary.split('（')[0] in cv.get('primary',''))
-        res.append((f'cai:{name}', book_v, ok, cv.get('primary')))
+        engine = run(g, z)
+        cv = engine.get('caiming', {})
+        primary = cv.get('primary_view', '')
+        ok = (exp_primary in primary) or (exp_primary.split('（')[0] in primary)
+        res.append((f'cai:{name}', book_v, ok, primary))
     for name, g, z, exp_gm, book_v in GUAN:
-        gm = classify_guanming_combo(g[2], g, z)
-        ok = gm.get('is_guanming') == exp_gm
-        res.append((f'guan:{name}', book_v, ok, gm.get('is_guanming')))
+        engine = run(g, z)
+        got = engine.get('guanming', {}).get('is_guanming')
+        ok = got == exp_gm
+        res.append((f'guan:{name}', book_v, ok, got))
     return res
 
 # ── 类目5: hunyin/xueli/laoyu (6) ──
@@ -312,7 +313,12 @@ def main():
                     reg.append((k, bv, v, d))
                 else:
                     imp.append((k, bv, v, d))
-        n_reg = len(reg)
+        deleted = sorted(set(base) - set(cur))
+        added = sorted(set(cur) - set(base))
+        if deleted or added:
+            print(f'  ⚠️ 用例集合不一致：删除={deleted} 新增={added}')
+        n_reg = len(reg) + len(deleted) + len(added)
+        regression_keys = {k for k, *_ in reg} | set(deleted) | set(added)
         if reg:
             print(f"  ⚠️ REGRESSION ({len(reg)}):")
             for k, bv, v, d in reg:
@@ -325,6 +331,12 @@ def main():
             print("  无变化")
     else:
         print(f"\n(baseline 不存在: {base_path}，仅打印当前判定)")
+    if write_baseline and n_reg:
+        accepted = {a.split('=', 1)[1] for a in sys.argv if a.startswith('--accept=')}
+        if not regression_keys <= accepted:
+            print(f'  ⚠️ 含回归 {sorted(regression_keys)}，拒绝写回基线（显式 --accept=KEY 才例外）')
+            sys.exit(1)
+        print(f'  ⚠️ 已接受回归 {sorted(regression_keys)}，须在 CHANGELOG 记录')
     # 存档（H-fix-3：原子写 + 基线写回校验/备份）
     arch = {k: {'verdict': v, 'detail': d} for k, (v, d) in cur.items()}
     out_path = DEFAULT_BASELINE if write_baseline else CURRENT_OUT

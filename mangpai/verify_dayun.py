@@ -20,11 +20,11 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from mangpai.objective.dayun import _analyze_pillar_interaction
 from mangpai.subjective.dayun import analyze_dayun_mangpai
 from mangpai.subjective.liunian import analyze_liunian_mangpai
-from mangpai.objective.constants import LU, GAN_WX, ZHI_WX
 from mangpai import MangpaiEngine
+
+sys.stdout.reconfigure(encoding='utf-8')
 
 passed = 0
 failed = 0
@@ -244,6 +244,19 @@ dy_7b = result_7b['dayun'][0]
 check('已有气势且未变化返回None', dy_7b.get('qishi_change') is None,
       f"qishi_change={dy_7b.get('qishi_change')}")
 
+# 木3→庚申运金4：真实气势转换与反局信号必须同时检出
+result_7c = analyze_dayun_mangpai(
+    [{'gz': '庚申', 'start_age': 5}], ['甲', '乙', '庚', '壬'], ['寅', '子', '申', '辰'], '庚')
+dy_7c = result_7c['dayun'][0]
+check('气势转换检出（原木→新金）',
+      dy_7c.get('qishi_change', {}).get('changed') is True
+      and dy_7c['qishi_change'].get('natal_dominant') == '木'
+      and dy_7c['qishi_change'].get('new_dominant') == '金',
+      f"qishi_change={dy_7c.get('qishi_change')}")
+check('气势反局负面信号', any('反局大运，气势逆转为凶' in s
+                              for s in dy_7c['negative_signals']),
+      f"negative_signals={dy_7c['negative_signals']}")
+
 # ── 8. 大运综合吉凶评价 ──
 print('\n── 8. 大运综合吉凶评价 ──')
 
@@ -395,8 +408,8 @@ check('流年含大运互动', 'dayun_interaction' in ln_0,
 # ── 12. 主观层 payload 集成 ──
 print('\n── 12. 主观层 payload 集成 ──')
 
-from subjective import build_payload, MANGPAI_SCHOOL
-from subjective.schools import MANGPAI_SCHOOL as SCHOOL
+from mangpai.subjective import build_payload, MANGPAI_SCHOOL
+from mangpai.subjective.schools import MANGPAI_SCHOOL as SCHOOL
 
 check('selectors含dayun_analysis', 'dayun_analysis' in SCHOOL.selectors)
 check('selectors含liunian_analysis', 'liunian_analysis' in SCHOOL.selectors)
@@ -425,9 +438,11 @@ dy_list_13 = [
 ]
 result_13 = analyze_dayun_mangpai(dy_list_13, NATAL_GANS, NATAL_ZHIS, DAY_GAN)
 check('5步大运分析完成', len(result_13['dayun']) == 5)
-check('summary含吉运数', '吉运' in result_13['summary'] or '凶运' in result_13['summary'] or '共5步' in result_13['summary'])
-check('ji_count+xiong_count+banfeng_count<=5',
-      result_13['ji_count'] + result_13['xiong_count'] + result_13['banfeng_count'] <= 5)
+check('summary含凶运2步', '凶运2步' in result_13['summary'])
+check('吉凶计数独立钉值',
+      result_13['ji_count'] == 0 and result_13['xiong_count'] == 2
+      and result_13['banfeng_count'] == 3,
+      f"counts={result_13['ji_count']}/{result_13['xiong_count']}/{result_13['banfeng_count']}")
 
 # 每步大运都有desc
 all_have_desc = all(d.get('desc') for d in result_13['dayun'])

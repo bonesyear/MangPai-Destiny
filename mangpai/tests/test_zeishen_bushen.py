@@ -16,7 +16,6 @@ import os
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.subjective.zeishen_bushen import (
     detect_bao_zhi,

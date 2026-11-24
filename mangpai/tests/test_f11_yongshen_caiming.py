@@ -22,7 +22,6 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.subjective.yongshen import classify_strength
 from mangpai.subjective.caiming import classify_caifu_view, analyze_caiming

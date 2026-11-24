@@ -7,7 +7,6 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mangpai.objective.body_parts import (
     GAN_BODY, ZHI_BODY, GAN_BODY_EXT, ZHI_BODY_EXT,
