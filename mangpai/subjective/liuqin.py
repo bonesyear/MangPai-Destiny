@@ -53,7 +53,7 @@ from mangpai.objective.shensha import compute_shensha_ext
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.shishen import (
     shishen_of as _compute_shishen, shishen_cat as _cat,
-    gan_wx_cat as _wx_cat,
+    gan_wx_cat as _wx_cat, normalize_gender,
 )
 from mangpai.subjective.utils import ensure_relations as _ensure_relations
 from mangpai.subjective.xiangfa_ops import huanxiang as _huanxiang
@@ -1247,6 +1247,7 @@ def analyze_liuqin(
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return {'summary': '四柱不全，无法判定六亲'}
 
+    gender = normalize_gender(gender)
     # A3：方向总线信号（缺省自调）。D6b 前置于 zx_yl——时柱喜用腿（R4）
     # 只读消费 direction_result.cong_target.strength。
     if direction_result is None:

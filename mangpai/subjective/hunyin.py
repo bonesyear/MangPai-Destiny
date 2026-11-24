@@ -54,7 +54,7 @@ from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.muku import analyze_muku, is_entomb, is_gan_entombed
 from mangpai.objective.shensha import compute_shensha_ext, resolve_shensha, _YANG_REN_FULL
 from mangpai.objective.shishen import (
-    shishen_of as _compute_shishen, shishen_cat as _cat,
+    shishen_of as _compute_shishen, shishen_cat as _cat, normalize_gender,
 )
 from mangpai.subjective.utils import ensure_relations as _ensure_relations
 from mangpai.subjective.yongshen import assess_direction_signals, direction_brief
@@ -1531,6 +1531,7 @@ def analyze_hunyin(
             zhis = [p.year_zhi, p.month_zhi, p.day_zhi, p.hour_zhi]
         day_gan = p.day_gan
 
+    gender = normalize_gender(gender)
     # 神煞：优先用 engine 透传值，缺省才就地重算（孤辰/寡宿/华盖/桃花/羊刃）
     ss = resolve_shensha(day_gan, zhis or [], shensha_result)
 

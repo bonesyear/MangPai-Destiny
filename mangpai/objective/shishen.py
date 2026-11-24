@@ -14,9 +14,29 @@ hunyin/xiangfa_ops/gongmen_wuzhi/zhiye/liuqin/laoyu/yingqi_subj/xueli/zaihuo
   - _wx_cat(day_gan, wx) 四份全同；yongshen/gongliang 为 (day_wx, wx) 同逻辑
     （判定顺序不同但条件互斥，结果等价）；空守卫差异仅 ('','') 不可达输入。
 """
+from typing import Optional
+
 from mangpai.objective.constants import GAN_WX, WX_KE, WX_SHENG
 
 YANG_GANS = frozenset('甲丙戊庚壬')
+
+
+def normalize_gender(gender: Optional[str]) -> Optional[str]:
+    """统一公开入口性别别名；None 保留为未提供，非法值显式报错。"""
+    if gender is None:
+        return None
+    if not isinstance(gender, str):
+        raise ValueError(
+            f'gender 须为 男/女（兼容 male/female/M/F/乾/坤），收到 {gender!r}')
+    key = gender.strip().lower()
+    normalized = {
+        '男': '男', '乾': '男', 'male': '男', 'm': '男',
+        '女': '女', '坤': '女', 'female': '女', 'f': '女',
+    }.get(key)
+    if normalized is None:
+        raise ValueError(
+            f'gender 须为 男/女（兼容 male/female/M/F/乾/坤），收到 {gender!r}')
+    return normalized
 
 
 def god_from_wx(day_wx: str, other_wx: str, same_polarity: bool) -> str:

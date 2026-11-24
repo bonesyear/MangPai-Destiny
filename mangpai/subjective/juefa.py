@@ -34,9 +34,10 @@ from typing import Dict, List, Optional
 from mangpai.objective.bazi_calc import ten_god
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.shensha import _YANG_REN_FULL
+from mangpai.objective.shishen import normalize_gender
 from mangpai.objective.constants import (
     DI_ZHI, GAN_WX, ZHI_WX, WX_KE, WX_KE_ME, WX_SHENG,
-    TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS, SAN_HE,
+    TIAN_GAN_HE, LIU_CHONG, LIU_HE, LIU_HAI, XING_PAIRS, SAN_HE, BAN_HE,
     TOMB_MAP, LU,
 )
 
@@ -299,7 +300,9 @@ def _shangguan_jue(gans, zhis, day_gan, ctx) -> Dict:
             facets.append('怕见官（木官杀无火印通关，伤官见官破格，主困顿/官非）')
         r['verdict'] = '；'.join(facets) if facets else '土金伤官格成，喜忌未显（无火印亦无木官）'
         return r
-    if day_wx == '水' and sg_wx == '木' and sg_tou:
+    if (day_wx == '水' and sg_wx == '木'
+            and any(ctx['ss'][p] == '伤官' for p in _PILLARS)
+            and ctx['count']({'正印', '偏印'}, full_hidden=True) >= 1):
         # 水木伤官喜财官（月令可放宽：伤官透而水有印根即论，如案例五酉月）
         r = dict(base, matched=True, type='水木伤官')
         facets = []
@@ -361,11 +364,12 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
         got = []
         if ctx['ss'][_PILLARS[i]] in cai | guansha | yin:
             got.append(ctx['ss'][_PILLARS[i]])
-        for j, (_, hss) in enumerate(ctx['hidden'][_PILLARS[i]]):
-            if j == 0 and hss in cai | guansha | yin:
-                got.append(hss + '(藏)')
         if zhis[i] == lu_zhi:
             got.append('禄')
+        else:
+            for j, (_, hss) in enumerate(ctx['hidden'][_PILLARS[i]]):
+                if j == 0 and hss in cai | guansha | yin:
+                    got.append(hss + '(藏)')
         return got
     y_got, h_got = _ji_shen_at(0), _ji_shen_at(3)
     # 批K 收紧（批J 509 例评估：D1 准确率 76% 但触发面 72% 过宽，用户拍板
@@ -402,9 +406,14 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
         ku = ku_zhis[0]
         open_by = []
         for trio in SAN_HE:
-            if ku in trio and sum(1 for t in trio if t in zhis) >= 2 and \
-                    any(t in zhis for t in trio if t != ku):
+            if len(trio) != 3 or ku not in trio:
+                continue
+            others = [t for t in trio if t != ku and t in zhis]
+            if len(others) == 2:
                 open_by.append(f"三合{'/'.join(trio)}会库")
+            elif len(others) == 1 and (BAN_HE.get(ku + others[0])
+                                       or BAN_HE.get(others[0] + ku)):
+                open_by.append(f"半合{ku}/{others[0]}会库")
         if _zhi_rel(zhis, ku, LIU_CHONG):
             open_by.append('冲开库')
         if _zhi_rel(zhis, ku, XING_PAIRS):
@@ -491,18 +500,20 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
             emit(7, '；'.join(star_bad) + '，但年柱未受坏——星坏宫未坏，不轻断生死', confidence='低')
 
     # 8 女命财官入墓（墓库紧闭方验）
-    if gender == 'female':
+    if gender == '女':
         guan_wx = WX_KE_ME.get(day_wx, '')  # 克我者=官杀五行
         guan_tombs = [z for z in _tomb_of(guan_wx) if z in zhis]
         guan_tou = any(s in guansha for s in tou_ss)
         if guan_tombs and not guan_tou:
             tomb = guan_tombs[0]
-            opened = _zhi_rel(zhis, tomb, LIU_CHONG) or _zhi_rel(zhis, tomb, LIU_HE) or \
-                     _zhi_rel(zhis, tomb, XING_PAIRS)
-            if not opened:
-                emit(8, f'官杀五行（{guan_wx}）之墓（{tomb}）在局且官杀不透、无冲合开库，夫缘深藏，婚姻极不顺')
+            opened = _zhi_rel(zhis, tomb, LIU_CHONG) or _zhi_rel(zhis, tomb, XING_PAIRS)
+            closed = _zhi_rel(zhis, tomb, LIU_HE)
+            if opened:
+                emit(8, f'官杀入墓（{tomb}）但墓有冲刑开库，夫星可出，凶减', confidence='低')
+            elif closed:
+                emit(8, f'官杀入墓（{tomb}）且六合闭库，墓库紧闭，夫缘深藏，婚姻极不顺')
             else:
-                emit(8, f'官杀入墓（{tomb}）但墓有冲合开库，夫星可出，凶减', confidence='低')
+                emit(8, f'官杀五行（{guan_wx}）之墓（{tomb}）在局且官杀不透、无冲刑开库，夫缘深藏，婚姻极不顺')
     else:
         skip(8, '需女命（gender=female）')
 
@@ -519,7 +530,7 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
             break
 
     # 10 女命伤官见官（伤官透干或居本气支 ∧ 正官透）
-    if gender == 'female':
+    if gender == '女':
         sg_benqi = any(zgs and zgs[0][1] == '伤官' for zgs in ctx['hidden'].values())
         if (sg_tou or sg_benqi) and zg_tou:
             extra = ''
@@ -528,13 +539,15 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
                     partner = TIAN_GAN_HE.get(g, '')
                     rivals = [x for j, x in enumerate(gans) if j != i and x == partner]
                     if len(rivals) >= 2:
-                        extra = '；比劫争合夫星（三角加重）'
+                        rival_ss = ten_god(day_gan, partner) if partner != day_gan else '比肩'
+                        rival_label = '比劫' if rival_ss in ('比肩', '劫财') else rival_ss
+                        extra = f'；{rival_label}争合夫星（三角加重）'
             emit(10, '女命伤官见官（夫星受克），挑剔夫妻不和' + extra)
     else:
         skip(10, '需女命（gender=female）')
 
     # 11 女命食伤带三刑（刑及日支夫宫/时支子息宫）
-    if gender == 'female':
+    if gender == '女':
         for i in range(4):
             if ctx['ss'][_PILLARS[i]] in shishang:
                 xz = zhis[i]
@@ -548,22 +561,25 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
 
     # 12 争合（一干被≥2同干合；支同理）
     zhenghe = []
-    for g in set(gans):
+    for g in dict.fromkeys(gans):
         partner = TIAN_GAN_HE.get(g, '')
         if partner and gans.count(partner) >= 2:
             zhenghe.append(f'两{partner}争合一{g}')
-    for z in set(zhis):
+    for z in dict.fromkeys(zhis):
         partners = [w for w in zhis if _in_pairs(z, w, LIU_HE) and w != z]
         if len(partners) >= 2:
             zhenghe.append(f'支{"".join(partners)}争合{z}')
     if zhenghe:
-        emit(12, '；'.join(zhenghe) + '——心性不定感情多角' + ('，女命尤忌（易为偏房）' if gender == 'female' else ''))
+        emit(12, '；'.join(zhenghe) + '——心性不定感情多角' + ('，女命尤忌（易为偏房）' if gender == '女' else ''))
 
     # 13 女命官杀太弱 / 食伤太旺
-    if gender == 'female':
+    if gender == '女':
         gs_n, st_n = c(guansha), c(shishang)
-        if gs_n == 0:
+        gs_all = c(guansha, full_hidden=True)
+        if gs_all == 0:
             emit(13, '女命官杀全无，夫缘浅薄婚难成')
+        elif gs_n == 0:
+            emit(13, '女命官杀不显（仅藏于支中），夫星偏弱')
         elif gs_n <= 1 and st_n >= 3:
             emit(13, f'女命官杀孤弱而食伤{st_n}重，克夫星太过，婚难维持')
     else:
@@ -597,10 +613,12 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
     if yongshen_result is None:
         skip(17, '未提供 yongshen_result，防过杀不评估')
     else:
-        strength = (yongshen_result.get('bijiao_duocai') or {}).get('strength', '')
+        duocai = yongshen_result.get('bijiao_duocai') or {}
+        strength = duocai.get('strength', '')
         if strength in ('身强', '从弱'):
             cai_hurt = []
-            if c(bijiao) >= 1 and c(cai) >= 1:
+            detected = duocai.get('detected')
+            if detected is True or (detected is None and c(bijiao) >= 1 and c(cai) >= 1):
                 cai_hurt.append('比劫夺财')
             for i in range(4):
                 if ZHI_WX.get(zhis[i]) == cai_wx and _zhi_rel(zhis, zhis[i], LIU_CHONG):
@@ -608,7 +626,7 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
             if cai_hurt:
                 emit(17, f'财为用神（{strength}）而{"、".join(cai_hurt)}——养命源受损，贫病之象')
 
-    # 18 贵人头上带刃剑（须 shensha）
+    # 18 贵人头上带刃剑（须 shensha）；“头上”含天干刃，与贵人支同柱
     # F1 标注（批K 更新）：yongshen.py 内部直调不传 shensha_result（该路恒 skip）；
     # 批K 起 engine 编排全参数接入（shensha_result=result['shensha']），
     # 生产可评估——D18 非 A 组，不进 duanyu_a/payload，仅 result 存档。
@@ -616,7 +634,8 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
         skip(18, '未提供 shensha_result，不评估')
     else:
         ty_p = set(shensha_result.get('天乙贵人', {}).get('in_pillars', []))
-        yr_p = set(shensha_result.get('羊刃', {}).get('in_pillars', []))
+        yang_ren = shensha_result.get('羊刃', {})
+        yr_p = set(yang_ren.get('in_pillars', [])) | set(yang_ren.get('gan_in_pillars', []))
         sha_p = {p for p, s in ctx['ss'].items() if s == '七杀'}
         both = ty_p & (yr_p | sha_p)
         if both:
@@ -663,7 +682,7 @@ def _duanyu_hits(gans, zhis, day_gan, ctx, gender,
 
     # 22 合处逢冲/冲处逢合（原局信号；结婚应期须岁运层）
     if gender:
-        spouse_ss = cai if gender == 'male' else guansha
+        spouse_ss = cai if gender == '男' else guansha
         day_zhi = zhis[2]
         signals = []
         he_partners = [w for w in zhis if w != day_zhi and _in_pairs(day_zhi, w, LIU_HE)]
@@ -690,7 +709,12 @@ def _duanju_hits(gans, zhis, day_gan, ctx, gender):
     cai_wx = WX_KE.get(day_wx, '')  # 我克者=财五行
     table = {d['rule']: d for d in DUANJU_TABLE if d.get('checkable')}
 
+    emitted = set()
+
     def emit(rule, detail):
+        if rule in emitted:
+            return
+        emitted.add(rule)
         d = table[rule]
         hits.append({'domain': d['domain'], 'text': d['text'], 'detail': detail})
 
@@ -706,31 +730,31 @@ def _duanju_hits(gans, zhis, day_gan, ctx, gender):
 
     # 婚姻：配偶星多 / 妻星妻宫犯冲 / 夫宫穿夫星
     if gender:
-        spouse = cai if gender == 'male' else guansha
+        spouse = cai if gender == '男' else guansha
         if c(spouse, full_hidden=True) >= 3:
             emit('spouse_many', f'配偶星{c(spouse, full_hidden=True)}重，选择困难搞不定')
-        star_z = [zhis[i] for i in range(4) if ZHI_WX.get(zhis[i]) in
-                  {GAN_WX.get(g) for g in gans if ten_god(day_gan, g) in spouse} and i != 2]
-        if gender == 'male' and _zhi_rel(zhis, zhis[2], LIU_CHONG) and c(cai) >= 1:
+        spouse_wx = cai_wx if gender == '男' else WX_KE_ME.get(day_wx, '')
+        star_z = [zhis[i] for i in range(4)
+                  if ZHI_WX.get(zhis[i]) == spouse_wx and i != 2]
+        if gender == '男' and _zhi_rel(zhis, zhis[2], LIU_CHONG) and c(cai) >= 1:
             emit('wife_star_chong', f'妻宫{zhis[2]}逢冲且财星在局——婚姻动象（应期信号，非凶）')
         chuan_targets = [z for z in star_z if _in_pairs(zhis[2], z, LIU_HAI)]
         if chuan_targets:
             emit('gong_chuan_star', f'日支{zhis[2]}穿配偶星支{"".join(chuan_targets)}——穿非制，主夫妻仇恨')
 
-    # 事业：食神穿杀（食神柱支与七杀柱支成穿）；劫财下官
+    # 事业：食神/七杀按支本气定位成穿；劫财坐下正官
     ss_pos = ctx['ss']
-    shi_z = [zhis[i] for i in range(4) if ss_pos[_PILLARS[i]] == '食神']
-    sha_z = [zhis[i] for i in range(4) if ss_pos[_PILLARS[i]] == '七杀']
+    shi_z = [zhis[i] for i in range(4) if ctx['hidden'][_PILLARS[i]][0][1] == '食神']
+    sha_z = [zhis[i] for i in range(4) if ctx['hidden'][_PILLARS[i]][0][1] == '七杀']
     for a in shi_z:
         for b in sha_z:
             if a != b and _in_pairs(a, b, LIU_HAI):
                 emit('shishen_chuan_sha', f'食神支{a}穿七杀支{b}——下野贬官')
     for i, g in enumerate(gans):
-        if ss_pos[_PILLARS[i]] == '劫财':
-            partner = TIAN_GAN_HE.get(g, '')
-            for j, g2 in enumerate(gans):
-                if j != i and g2 == partner and ss_pos[_PILLARS[j]] == '正官':
-                    emit('jie_xia_guan', f'劫财{g}合官{g2}——权力属他人（别人是一把手）')
+        hidden = ctx['hidden'][_PILLARS[i]]
+        if ss_pos[_PILLARS[i]] == '劫财' and hidden and hidden[0][1] == '正官':
+            emit('jie_xia_guan',
+                 f'劫财{g}坐下带官（支{zhis[i]}藏{hidden[0][0]}）——权力属他人（别人是一把手）')
 
     # 财运：财库喜刑冲 / 坐下财库须刑冲 / 闭了财库破财
     # 批L：静态断向（库开发财/库闭破财）批J 评估反向 36-52%，书义重应期——
@@ -776,7 +800,7 @@ def _duanju_hits(gans, zhis, day_gan, ctx, gender):
     # 健康：青龙怕白虎（甲见庚多）/ 女命日坐阳刃
     if ('甲' in gans or day_gan == '甲') and gans.count('庚') >= 2:
         emit('qinglong_baihu', f'甲木（青龙）逢庚（白虎）×{gans.count("庚")}——肢体伤')
-    if gender == 'female':
+    if gender == '女':
         ren_list = _YANG_REN_FULL.get(day_gan, [])
         if zhis[2] in ren_list:
             emit('female_day_ren', f'女命日支{zhis[2]}为羊刃——子宫刀伤')
@@ -806,7 +830,7 @@ _DUANYU_A_MARKERS: List[tuple] = [
                   '留意身体与情绪（一般性提醒）'),
     ('duanyu', 12, '争合——感情易有多角牵扯、心思不定之象'
                    '（倾向提示，女命尤须留意）'),
-    ('duanyu', 13, '女命夫星弱而食伤旺——婚缘偏迟、过程多磨之倾向（象级提示）'),
+    ('duanyu', 13, '女命夫星偏弱——婚缘偏迟、过程多磨之倾向（象级提示）'),
     ('duanju', 'spouse_many', '配偶星多——选择面广而难定之倾向（象级提示）'),
 ]
 
@@ -862,7 +886,7 @@ def analyze_juefa(
     参数：
       gans/zhis — 四柱天干/地支（年月日时序）
       day_gan — 日干
-      gender — 'male'/'female'；None 则女命专属断语与婚姻应期项跳过
+      gender — 男/女（兼容 male/female/M/F/乾/坤）；None 跳过性别专属项，非法值报错
       yongshen_result — yongshen 方向总线结果（第15/17/19项前提；缺省跳过防过杀）
       shensha_result — 神煞结果（第18项天乙×羊刃同柱前提；缺省跳过）
 
@@ -880,6 +904,7 @@ def analyze_juefa(
                 'hit_count': 0,
                 'summary': '输入不全，诀法未评估'}
 
+    gender = normalize_gender(gender)
     ctx = _build_ctx(gans, zhis, day_gan)
     sg = _shangguan_jue(gans, zhis, day_gan, ctx)
     duanyu_hits, duanyu_skipped = _duanyu_hits(

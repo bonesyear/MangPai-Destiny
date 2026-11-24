@@ -23,9 +23,10 @@ F18 批（2026-08-17）断语层重写（批8 审计 P0×3 + P1：旧六域断�
 from typing import Dict, List, Optional
 
 from mangpai.objective.constants import (
-    GAN_WX, ZHI_WX, DI_ZHI, WX_KE_ME,
+    GAN_WX, DI_ZHI, WX_KE_ME, TOMB_MAP,
 )
 from mangpai.objective.canggan import CANG_GAN_MANGPAI
+from mangpai.objective.muku import is_entomb
 from mangpai.objective.shenshu import (
     _compute_shishen,
     analyze_shenshu,
@@ -41,8 +42,7 @@ _XING = {frozenset(p) for p in
          ('丑戌', '戌未', '丑未', '寅巳', '巳申', '寅申', '子卯')}
 _LU = {'甲': '寅', '乙': '卯', '丙': '巳', '丁': '午', '戊': '巳',
        '己': '午', '庚': '申', '辛': '酉', '壬': '亥', '癸': '子'}
-_TOMB = {'木': '未', '火': '戌', '金': '丑', '水': '辰', '土': '辰'}
-# 沐浴位（阴阳同生同死 + 火土同宫，盲派口径）
+# 沐浴位沿用火土同宫；入墓统一由 is_entomb/TOMB_MAP 判定（土有辰、戌双位）
 _MUYU = {'木': '子', '火': '卯', '土': '卯', '金': '午', '水': '酉'}
 
 # ══════════════════════════════════════════════════════════════
@@ -248,9 +248,8 @@ def analyze_shipaige(
         if pair_in(day_zhi, zhis[i], _CHUAN) and pillar_has(i, ('劫财',)):
             triggered['婚姻'].append('劫财穿配偶宫必离')
             break
-    # 碎片:77（日支五行之墓在局）
-    tomb = _TOMB.get(ZHI_WX.get(day_zhi, ''), '')
-    if tomb and tomb in other_zhis:
+    # 碎片:77（日支实际入墓，单四正、已开墓不冒充）
+    if any(is_entomb(day_zhi, z, zhis, gans) for z in other_zhis):
         triggered['婚姻'].append('婚姻宫入墓难成家')
     # 碎片:78/133
     zlist = [z for z in zhis if z]
@@ -274,10 +273,10 @@ def analyze_shipaige(
     # ── 事业 ──
     lu = _LU.get(day_gan, '')
     sha_wx = WX_KE_ME.get(day_wx, '')
-    # 碎片:88（日主禄在局，且禄支所入之墓=七杀五行之库）
+    # 碎片:88（日主禄与七杀五行之库同局）
     if lu and lu in zhis:
-        lu_tomb = _TOMB.get(ZHI_WX.get(lu, ''), '')
-        if lu_tomb and lu_tomb == _TOMB.get(sha_wx) and lu_tomb in zhis:
+        # shortcut: 同局仅是象级代理，未证明禄支实际入杀库；有明确书证时再收紧。
+        if any(sha_wx in TOMB_MAP.get(z, ()) for z in other_zhis):
             triggered['事业'].append('禄神入杀库')
     # 碎片:90（相邻柱一柱劫财、一柱七杀）
     for i in range(3):

@@ -443,7 +443,7 @@ def test_duanyu_a_marker_wording_safe():
 
 
 def test_engine_juefa_key_and_payload_channel():
-    """engine 端到端：result 含 juefa 键；gender 男/女→female 转换生效
+    """engine 端到端：result 含 juefa 键；gender 别名归一生效
     （女命官杀全无=D13 触发）；payload 只放 A 组精选 dotted-path，
     22 项全文（juefa 顶层键）不进。"""
     from mangpai.engine import MangpaiEngine

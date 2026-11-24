@@ -37,6 +37,7 @@ from mangpai.objective.bazi_calc import (
     GAN, ZHI,
 )
 from mangpai.objective.jiaoyun import _year_gz
+from mangpai.objective.shishen import normalize_gender
 from mangpai.objective.zuogong_detect import detect_relations
 from mangpai.subjective.zuogong_confirm import analyze_zuogong
 from mangpai.subjective.gongliang import analyze_gongliang
@@ -244,11 +245,10 @@ class MangpaiEngine:
         self.di_zhi_relations = bazi_data.get('di_zhi_relations') or get_di_zhi_relations(self.zhis)
         self.input_data = dict(bazi_data.get('input', {}))
         raw_gender = self.input_data.get('gender')
-        gender_key = raw_gender.strip().lower() if isinstance(raw_gender, str) else raw_gender
-        gender = {
-            '男': '男', 'male': '男', 'm': '男', '乾': '男',
-            '女': '女', 'female': '女', 'f': '女', '坤': '女',
-        }.get(gender_key)
+        try:
+            gender = normalize_gender(raw_gender)
+        except ValueError as e:
+            raise EngineInputError(str(e)) from e
         if gender not in ('男', '女'):
             raise EngineInputError(
                 f'gender 须为 男/女（兼容 male/female/M/F/乾/坤），收到 {raw_gender!r}')
@@ -1033,13 +1033,10 @@ class MangpaiEngine:
         # 置 narrative 之后：narrative 不消费 juefa，既有键序全部不动；
         # payload 仅放 A 组精选（selectors dotted-path 'juefa.duanyu_a'）。
         # yongshen.py:875 内部直调（仅 shangguan_jue）保持不动。
-        _jf_gender = {'男': 'male', '女': 'female', '乾': 'male', '坤': 'female',
-                      'male': 'male', 'female': 'female'}.get(
-            self.input_data.get('gender'))
         self._write(result, 'juefa', self._safe_compute(
             'juefa', analyze_juefa,
             self.gans, self.zhis, self.day_gan,
-            gender=_jf_gender,
+            gender=self.input_data.get('gender'),
             yongshen_result=result.get('direction') or None,
             shensha_result=result.get('shensha') or None,
         ))

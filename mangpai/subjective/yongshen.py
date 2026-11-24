@@ -2040,8 +2040,9 @@ def assess_direction_signals(
     # R1：优先读 gongliang 已算得的 pocai_signal；缺省自算
     bijiao = {}
     if gl.get('pocai_signal'):
-        bijiao = {'detected': True, 'severity': gl.get('pocai_severity') or 'normal',
-                  'reason': gl.get('pocai_reason', '')}
+        bijiao = detect_bijiao_duocai(day_gan, gans, zhis, work_actions)
+        bijiao.update(detected=True, severity=gl.get('pocai_severity') or 'normal',
+                      reason=gl.get('pocai_reason', ''))
     else:
         bijiao = detect_bijiao_duocai(day_gan, gans, zhis, work_actions)
 

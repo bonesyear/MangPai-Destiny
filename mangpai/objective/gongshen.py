@@ -33,7 +33,7 @@ from mangpai.objective.xiangfa import (
 )
 from mangpai.objective.body_parts import PILLAR_BODY as _PILLAR_BODY
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective.shishen import shishen_of
+from mangpai.objective.shishen import shishen_of, normalize_gender
 
 
 # ── 宫位名（柱位 -> 六亲宫）──
@@ -168,6 +168,7 @@ def analyze_gongshen(
         month_gan, month_zhi = p.month_gan, p.month_zhi
         hour_gan, hour_zhi = p.hour_gan, p.hour_zhi
 
+    gender = normalize_gender(gender)
     gans = [year_gan, month_gan, day_gan, hour_gan]
     zhis = [year_zhi, month_zhi, day_zhi, hour_zhi]
     pillar_keys = PILLAR_KEYS

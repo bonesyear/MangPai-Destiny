@@ -126,8 +126,8 @@ def test_muyu_shuizai():
 # ── gongmen_wuzhi：阳制阴口径（gaoji:11787-11788）+ 弃用隔离 ──
 
 def test_yangzhiyin_gan_koujing():
-    """书口径含天干：丁火克辛金=阳制阴（旧码纯地支漏检）。"""
-    r = classify_gongjianfa('甲', ['丁', '辛', '甲', '甲'], ['申', '酉', '丑', '亥'])
+    """书口径含天干：日主丁火克辛金=非辅助阳制阴（旧码纯地支漏检）。"""
+    r = classify_gongjianfa('丁', ['甲', '辛', '丁', '甲'], ['申', '酉', '丑', '亥'])
     assert any('阳制阴' in e for e in r['evidence'])
 
 

@@ -64,6 +64,7 @@ from mangpai.objective.constants import (
 )
 from mangpai.objective.canggan import get_canggan_mangpai
 from mangpai.objective.zuogong_detect import detect_relations
+from mangpai.objective.shishen import normalize_gender
 from mangpai.subjective.liuqin import (
     analyze_liuqin, _child_star_cat, _pillar_has_cat, _compute_shishen, _cat,
 )
@@ -191,6 +192,7 @@ def analyze_zinv(
     if not (day_gan and len(gans) == 4 and len(zhis) == 4):
         return _empty
 
+    gender = normalize_gender(gender)
     if relations is None:
         relations = detect_relations(
             day_gan, zhis[2], gans[0], zhis[0], gans[1], zhis[1],

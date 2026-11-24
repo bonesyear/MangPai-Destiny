@@ -27,9 +27,9 @@ gongmen_wuzhi - 盲派公门武职专辑·主观层（subjective）
        卯酉冲/卯午破（依律断案）。
      - 司法·纪检：伤官重/伤官见官（监督官员）、枭神夺食（查处经济/审计）。
 
-层次（8.2 五 + 8.3）：制得干净/包局/合化=官大权重；制不净=官小基层；
-官杀印星虚透天干=名气荣誉非实权，地支见根方落实为管理之职。消费 gongliang
-四档定性（level 1-4）与独立 rank_grade；缺官级证据时不硬定级别，本模块只做口径细化。
+层次（8.2 五 + 8.3）：官杀印星虚透天干=名气荣誉非实权，地支见根方落实
+管理之职。功量 level 只区分无功与缺数据，具体官级只读独立 rank_grade；
+缺官级证据时不硬定级别，本模块只做口径细化。
 
 消费关系：
   - objective.constants（五行生克/藏干）
@@ -91,6 +91,28 @@ def _pos_idx(pos: str) -> int:
     return PILLAR_KEYS.index(k) if k in PILLAR_KEYS else -1
 
 
+def _pos_shishen(pos: str, day_gan: str, gans: List[str], zhis: List[str]) -> str:
+    i = _pos_idx(pos)
+    if i < 0:
+        return ''
+    if pos.endswith('_gan'):
+        return _compute_shishen(day_gan, gans[i])
+    if pos.endswith('_zhi'):
+        cg = get_canggan_mangpai(zhis[i])
+        return _compute_shishen(day_gan, cg[0][0]) if cg else ''
+    return ''
+
+
+def _has_exact_shen(day_gan: str, gans: List[str], zhis: List[str], name: str) -> bool:
+    if any(_compute_shishen(day_gan, g) == name for g in gans if g):
+        return True
+    for z in zhis:
+        for idx, (cg, _) in enumerate(get_canggan_mangpai(z)):
+            if idx <= 1 and _compute_shishen(day_gan, cg) == name:
+                return True
+    return False
+
+
 def _has_cat(day_gan, gans, zhis, cat, exclude_day_gan=False) -> bool:
     n = min(len(gans), len(zhis))
     return any(
@@ -107,9 +129,9 @@ def _action_between_cats(wa, day_gan, gans, zhis, cat_a, cat_b, types) -> List[D
         fi, ti = _pos_idx(a.get('from_pos', '')), _pos_idx(a.get('to_pos', ''))
         if fi < 0 or ti < 0:
             continue
-        fa = _pillar_cats(day_gan, gans[fi], zhis[fi])
-        ta = _pillar_cats(day_gan, gans[ti], zhis[ti])
-        if (cat_a in fa and cat_b in ta) or (cat_b in fa and cat_a in ta):
+        fa = _cat(_pos_shishen(a.get('from_pos', ''), day_gan, gans, zhis))
+        ta = _cat(_pos_shishen(a.get('to_pos', ''), day_gan, gans, zhis))
+        if (cat_a == fa and cat_b == ta) or (cat_b == fa and cat_a == ta):
             out.append(a)
     return out
 
@@ -138,7 +160,7 @@ def classify_junguan(
     combos: List[str] = []
     ev: List[str] = []
 
-    has_qisha = _has_cat(day_gan, gans, zhis, '官杀')
+    has_qisha = _has_exact_shen(day_gan, gans, zhis, '七杀')
     # F13：全刃表口径（戊刃在午、未双刃，旧 zhi 单值对刃在未盘漏检）
     yr_hits = [z for z in ((ss.get('羊刃') or {}).get('zhi_all')
                            or [(ss.get('羊刃') or {}).get('zhi', '')])
@@ -161,8 +183,9 @@ def classify_junguan(
         combos.append('伤官制杀/杀库')
         ev.append('伤官制杀（以技取权，技术兵种/参谋）')
 
-    # 组合3：官杀配比劫/比劫库（比劫库冲官杀库）
-    if has_qisha and _has_cat(day_gan, gans, zhis, '比劫', exclude_day_gan=True):
+    # 组合3：官杀配比劫/比劫库（比劫库冲官杀库），保留正官/七杀大类
+    if _has_cat(day_gan, gans, zhis, '官杀') and \
+            _has_cat(day_gan, gans, zhis, '比劫', exclude_day_gan=True):
         combos.append('官杀配比劫/比劫库')
         ev.append('官杀管比劫（兵众），调动管理之象')
         if '未' in zhis and ('丑' in open_tombs or '戌' in open_tombs):
@@ -211,6 +234,7 @@ def classify_gongjianfa(
     present = set(z for z in zhis if z)
 
     # ── 公安：申酉丑寅组合做功为基，丑戌刑/阳制阴为辅 ──
+    ga_mark = len(ev)
     gong_an_keys = {'申', '酉', '丑', '寅'} & present
     gong_an_base = len(gong_an_keys) >= 2
     gong_an_score = 1 if gong_an_base else 0
@@ -224,8 +248,7 @@ def classify_gongjianfa(
             ev.append('丑戌相刑（扫黑破案）')
         # 阳制阴——仅在公安基象成立时计入
         # F18 按书修正口径（批8 P0-5，gaoji:11787-11788）：阳气=丙丁巳午戊戌、
-        # 阴气=辛酉癸子丑——**含天干、子归阴**（旧码=标准阳支集纯地支「克」、
-        # 子算阳，与书相反）；制类动作（克/冲/穿/刑）须阳为制方。
+        # 阴气=辛酉癸子丑——含天干、子归阴；非辅助制类须阳为制方，合类双向。
         _YANG82 = set('丙丁戊巳午戌')
         _YIN82 = set('辛癸酉子丑')
 
@@ -235,20 +258,33 @@ def classify_gongjianfa(
                 return ''
             return gans[i] if pos.endswith('_gan') else zhis[i]
 
+        non_aux = [a for a in wa if not a.get('auxiliary')]
         yang_ke_yin = any(
             a.get('type') in ('克', '冲', '穿', '刑')
             and a.get('relation_direction') not in ('mutual', 'unknown')
             and _end_ch(a.get('from_pos', '')) in _YANG82
             and _end_ch(a.get('to_pos', '')) in _YIN82
-            for a in wa
+            for a in non_aux
         )
+        yang_he_yin = any(
+            a.get('type') in ('天干合', '地支合', '半合', '暗合')
+            and ((_end_ch(a.get('from_pos', '')) in _YANG82
+                  and _end_ch(a.get('to_pos', '')) in _YIN82)
+                 or (_end_ch(a.get('from_pos', '')) in _YIN82
+                     and _end_ch(a.get('to_pos', '')) in _YANG82))
+            for a in non_aux
+        )
+        yang_ke_yin = yang_ke_yin or yang_he_yin
         if yang_ke_yin:
             gong_an_score += 1
             ev.append('阳制阴（正义制邪恶）')
     if gong_an_score >= 1:
         groups.append('公安')
+    else:
+        del ev[ga_mark:]
 
     # ── 检察·法院：申酉金做功 + 伤官合杀/食神制官 + 卯酉冲卯午破 ──
+    jcy_mark = len(ev)
     jcy_score = 0
     if {'申', '酉'} & present:
         jcy_score += 1
@@ -271,8 +307,11 @@ def classify_gongjianfa(
                     break
     if jcy_score >= 2:
         groups.append('检察法院')
+    else:
+        del ev[jcy_mark:]
 
     # ── 司法·纪检：伤官重/伤官见官 + 枭神夺食 ──
+    sf_mark = len(ev)
     sf_score = 0
     sg_count = sum(1 for i in range(4) if _has_cat(day_gan, [gans[i]], [zhis[i]], '食伤'))
     if sg_count >= 2 and _has_cat(day_gan, gans, zhis, '官杀'):
@@ -285,6 +324,8 @@ def classify_gongjianfa(
         ev.append('枭神夺食（查处经济/审计纪检）')
     if sf_score >= 2:
         groups.append('司法纪检')
+    else:
+        del ev[sf_mark:]
 
     is_gjf = bool(groups)
     return {
@@ -338,7 +379,7 @@ def detect_gongmen_wuzhi_xiang(
                 if z and z in zhis]
     if yr2_hits:
         wuzhi.append(f'羊刃{"".join(yr2_hits)}（刀枪暴力）')
-    if _has_cat(day_gan, gans, zhis, '官杀'):
+    if _has_exact_shen(day_gan, gans, zhis, '七杀'):
         wuzhi.append('七杀（权威暴力）')
 
     return {
@@ -355,8 +396,7 @@ def assess_wuzhi_level(
 ) -> Dict:
     """公门武职层次（8.2 五 + 8.3）：消费 gongliang 四档定性 + 虚透/落实判据。
 
-    层次映射（段氏主流）：
-      gongliang level 4 → 将官/极品；3 → 师级/中高；2 → 团营/中；1 → 基层/小。
+    具体官级仅读 rank_grade，不由 level 反推；level=0 与缺数据分别标注。
     虚透判据：官杀仅透天干无地支根=名气荣誉非实权；地支见根=落实管理之职。
 
     Returns:
@@ -365,11 +405,11 @@ def assess_wuzhi_level(
           'desc': str,
         }
     """
-    # gongliang level
+    # gongliang level 只区分无功/缺数据；具体官级只读独立 rank_grade
+    has_gl = bool(gongliang_result) and 'level' in gongliang_result
     gl = gongliang_result or {}
-    level = gl.get('level', 0) if gl else 0
-    grade_map = {4: '将官/极品', 3: '师级/中高', 2: '团营/中', 1: '基层/小'}
-    grade = grade_map.get(level, '未定（缺 gongliang）')
+    level = gl.get('level', 0) if has_gl else 0
+    rank_grade = gl.get('rank_grade', '')
 
     # 官杀有根判据（地支见根=落实实权）
     day_wx = GAN_WX.get(day_gan, '')
@@ -389,6 +429,17 @@ def assess_wuzhi_level(
     # 虚透：天干有官杀但无地支根
     has_gan_guan = any(_cat(_compute_shishen(day_gan, g)) == '官杀' for g in gans if g)
     xutou = has_gan_guan and not you_gen
+
+    if not has_gl:
+        grade = '未定（缺 gongliang）'
+    elif not has_gan_guan and not you_gen:
+        grade = '未定（无独立官级证据）'
+    elif rank_grade:
+        grade = rank_grade
+    elif level == 0:
+        grade = '无功（无层次）'
+    else:
+        grade = '未定（无独立官级证据）'
 
     parts = [f'层次：{grade}']
     if xutou:

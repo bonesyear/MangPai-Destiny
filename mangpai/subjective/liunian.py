@@ -38,7 +38,7 @@ from mangpai.objective.constants import (
     XING_PAIRS, AN_HE, LU, PILLAR_KEYS, BAN_HE,
 )
 from mangpai.objective.canggan import get_canggan_mangpai
-from mangpai.objective.shishen import wx_cat as _wx_cat
+from mangpai.objective.shishen import wx_cat as _wx_cat, normalize_gender
 from mangpai.objective.zihe import detect_zihe
 from mangpai.objective.jiaoyun import _year_gz
 from mangpai.objective.muku import is_entomb
@@ -826,6 +826,7 @@ def analyze_liunian_mangpai(
         {'liunian': [per-year analysis...], 'summary': '...',
          'dayun_phase': {phase, reason, active, per_year}（有大运时）}
     """
+    gender = normalize_gender(gender)
     dy_gan, dy_zhi = _dayun_parts(current_dayun)
     dy_start_age: Optional[int] = None
     if current_dayun:
