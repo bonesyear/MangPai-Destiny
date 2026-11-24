@@ -93,6 +93,7 @@ def test_a8_kongwang_gate():
     gans, zhis = _split(LI112)
     combo = classify_guanming_combo(gans[2], gans, zhis)
     assert '官杀制比劫' not in combo['zhiyong_combos']
+    assert _analyze(LI112)['is_guanming'] is False
 
 
 # ─────────── A19 食合官支（G9 扩展）───────────

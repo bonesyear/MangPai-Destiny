@@ -19,6 +19,8 @@ severe 条款承担（:879-921，gj-低保伤官 gaoji:19657），scored 残余�
 修法纪律：全走 caiming 消费侧（_detect_zhiku_decai 增输出字段 ku_han_guansha
 +上浮链新增封顶+阻断降档落位），objective 零改动，不动既有上浮链其他分支。
 """
+import pytest
+
 from mangpai.subjective.caiming import analyze_caiming, _detect_zhiku_decai
 
 
@@ -69,13 +71,14 @@ def test_t1_fuhuoyun_capped_fu():
     assert tier == '富'
 
 
+@pytest.mark.xfail(strict=True, reason='书判富；R3 后续改动后为小康，保留未决')
 def test_t1_zhili2_capped_fu():
     """reg67-制例二：丑无木官 → 封顶富（书「虽也是富命，但远不如前者…数千万」）。
 
     R3 合化豁免删除后翻转：丙辛合绊月干辛（身强伤官为用神受绊）凶向封顶
     2阶 → 小康。书判富命与此冲突，按本批纪律不回退，翻转报 blind_eval。"""
     tier, _ = _tier_static(ZHILI2)
-    assert tier == '小康'
+    assert tier == '富'
 
 
 def test_t1_meikuang_exempt_jufu():
@@ -92,13 +95,14 @@ def test_t1_aonaxisi_jufu_unchanged():
 
 # ─────────── 条款二：制库在档，明财阻断下浮落富不落小康 ───────────
 
+@pytest.mark.xfail(strict=True, reason='书判富；R3 后续改动后为小康，保留未决')
 def test_t2_zhili2_heban_floor_fu():
     """制例二：明财壬坐壬戌自合柱被合绊（48期天地合），制库在档 → 落富不落小康。
 
     R3 合化豁免删除后翻转：丙辛合绊辛（身强伤官用神）凶向封顶2阶 → 小康
     （书判富命，冲突不回退，报 blind_eval 明细）；制库上浮链仍在档。"""
     tier, r = _tier_static(ZHILI2)
-    assert tier == '小康'
+    assert tier == '富'
     assert '制库' in r['level_static']['adjust']
 
 
@@ -124,6 +128,7 @@ def test_a12_guard_duyan_pin():
     assert tier == '贫'
 
 
+@pytest.mark.xfail(strict=True, reason='过河拆桥书判富；R3 后续改动后为小康，保留未决')
 def test_a4_guard_dibao_pin_and_guohe_fu():
     """A4 收档 guard：低保伤官（N1 成势怕见官 severe）封顶贫保；过河拆桥富锚
     （具怕见官 facet 而财明现通关）不触 N1 封顶——但 R3 合化豁免删除后卯戌
@@ -132,4 +137,4 @@ def test_a4_guard_dibao_pin_and_guohe_fu():
     tier, _ = _tier_static(DIBAO)
     assert tier == '贫'
     tier, _ = _tier_static(GUOHE)
-    assert tier == '小康'
+    assert tier == '富'

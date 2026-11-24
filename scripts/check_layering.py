@@ -36,7 +36,7 @@ def _layer_of_module(mod: str):
     if mod.startswith('mangpai.objective'):
         return LAYER_OBJECTIVE
     if mod == 'mangpai':
-        return None  # 包级 __init__（re-export 枢纽），不按层约束
+        return LAYER_ENGINE  # 包根 __init__ 会加载 engine 与 subjective
     if mod.startswith('foundation'):
         return LAYER_FOUNDATION
     return None
@@ -63,11 +63,11 @@ FORBIDDEN = {
     LAYER_ENGINE: set(),
 }
 
-# 显式备案的例外（文件, 被导入模块）：函数内局部导入，非顶层耦合。
+# 显式备案的例外（文件, 被导入模块, 作用域）：仅函数内局部导入。
 # - llm_channel.demo()/main 为 CLI 调试入口，延迟加载 engine 避免库调用方
 #   承担编排层导入（H-fix-4c 备案，代码处有注释）。
 WHITELIST = {
-    ('mangpai/subjective/llm_channel.py', 'mangpai.engine'),
+    ('mangpai/subjective/llm_channel.py', 'mangpai.engine', 'local'),
 }
 
 
@@ -86,40 +86,57 @@ def _imports_of(path: str):
             return f'{base}.{node.module}' if node.module else base
         return node.module or ''
 
+    def _module_exists(mod):
+        base = os.path.join(ROOT, *mod.split('.'))
+        return os.path.isfile(base + '.py') or os.path.isfile(
+            os.path.join(base, '__init__.py'))
+
     top, local = [], []
 
-    def _visit(body, is_top):
-        for node in body:
-            if isinstance(node, ast.Import):
-                for a in node.names:
-                    (top if is_top else local).append(a.name)
-            elif isinstance(node, ast.ImportFrom):
-                mod = _resolve(node)
-                if mod:
-                    (top if is_top else local).append(mod)
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                _visit(node.body, False)
-            elif isinstance(node, ast.ClassDef):
-                _visit(node.body, is_top)
-            elif isinstance(node, (ast.If, ast.For, ast.While, ast.With, ast.Try)):
-                # try/except、if 等模块级块内的导入仍视为顶层（如软依赖 guard）
-                for stmt_list in _child_bodies(node):
-                    _visit(stmt_list, is_top)
-    _visit(tree.body, True)
+    def _record(mod, is_top):
+        if mod:
+            (top if is_top else local).append(mod)
+
+    def _walk(node, is_top):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.Import):
+                for alias in child.names:
+                    _record(alias.name, is_top)
+            elif isinstance(child, ast.ImportFrom):
+                mod = _resolve(child)
+                _record(mod, is_top)
+                for alias in child.names:
+                    if alias.name != '*':
+                        submodule = f'{mod}.{alias.name}' if mod else alias.name
+                        if _module_exists(submodule):
+                            _record(submodule, is_top)
+            elif isinstance(child, ast.Call):
+                func = child.func
+                dynamic = (
+                    isinstance(func, ast.Attribute)
+                    and isinstance(func.value, ast.Name)
+                    and func.value.id == 'importlib'
+                    and func.attr == 'import_module'
+                ) or (isinstance(func, ast.Name)
+                      and func.id in ('import_module', '__import__'))
+                if dynamic and child.args \
+                        and isinstance(child.args[0], ast.Constant) \
+                        and isinstance(child.args[0].value, str):
+                    _record(child.args[0].value, is_top)
+                _walk(child, is_top)
+            elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                _walk(child, False)
+            else:
+                _walk(child, is_top)
+
+    _walk(tree, True)
     return top, local
-
-
-def _child_bodies(node):
-    for field in ('body', 'orelse', 'finalbody'):
-        yield getattr(node, field, [])
-    if isinstance(node, ast.Try):
-        for h in node.handlers:
-            yield h.body
 
 
 def _module_name_of(path: str):
     rel = os.path.relpath(path, ROOT).replace(os.sep, '/')
-    return rel[:-3].replace('/', '.') if rel.endswith('.py') else rel
+    name = rel[:-3].replace('/', '.') if rel.endswith('.py') else rel
+    return name[:-9] if name.endswith('.__init__') else name
 
 
 def main():
@@ -142,16 +159,19 @@ def main():
             continue
         mod_self = _module_name_of(path)
         top, local = _imports_of(path)
-        for mod in top + local:
-            tgt = _layer_of_module(mod)
-            rel_path = os.path.relpath(path, ROOT).replace(os.sep, '/')
-            if tgt and tgt in FORBIDDEN[layer] \
-                    and (rel_path, mod) not in WHITELIST:
-                violations.append(
-                    f'{rel_path} ({layer}) 反向导入 {mod} ({tgt})')
+        for scope, imports in (('top', top), ('local', local)):
+            for mod in imports:
+                tgt = _layer_of_module(mod)
+                rel_path = os.path.relpath(path, ROOT).replace(os.sep, '/')
+                if tgt and tgt in FORBIDDEN[layer] \
+                        and (rel_path, mod, scope) not in WHITELIST:
+                    violations.append(
+                        f'{rel_path} ({layer}) 反向导入 {mod} ({tgt})')
         if layer == LAYER_SUBJECTIVE:
-            s_top = {m for m in top if m.startswith('mangpai.subjective')}
-            s_local = {m for m in local if m.startswith('mangpai.subjective')}
+            s_top = {m for m in top
+                     if m.startswith('mangpai.subjective') and m != mod_self}
+            s_local = {m for m in local
+                       if m.startswith('mangpai.subjective') and m != mod_self}
             subj_top_edges[mod_self] = s_top
             if s_local:
                 subj_local_edges[mod_self] = s_local

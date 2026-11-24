@@ -1,5 +1,7 @@
 # P1 官命检测簇批 · 预注册清单（动工前，2026-09-18）
 
+> 2026-11-24 维护说明：li112 足球教练反锚当前 `is_guanming=False`，已恢复常驻断言；本项无需 xfail。
+
 > 依据：`kimi-engine-precision-plan-20260918.md` P1 节。基线=`snapshots/20260918_l1.json`（trainset 官 96✅/19❌ n=115；heldout 官 48✅/18❌ n=66）。
 > 本清单于动代码**之前**完成：探针枚举全部 509 例三新机制命中面+当前引擎状态缓存（/tmp/gm_baseline.json，train 96/held 48 与 KB 一致）。
 

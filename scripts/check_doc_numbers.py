@@ -2,7 +2,7 @@
 """文档数字闸门：README / knowledge-base 权威声明位 vs 实测值，防数字漂移。
 
 只校验「权威声明位置」（README 首行 / 验证表 pytest 行 / 架构分层表、
-KB 验证口径行 / KB §8 工具表 pytest 行），不做全量 grep——KB 含大量
+KB 验证口径行 / KB §8 工具表 pytest 行，同一声明位多条匹配逐条比对），不做全量 grep——KB 含大量
 「旧记 X 均作废」历史口径，全量扫会误报。
 
 实测来源（脚本内自算，不信任声明）：
@@ -11,7 +11,7 @@ KB 验证口径行 / KB §8 工具表 pytest 行），不做全量 grep——KB 
 - 模块数：foundation（仓库根，递归）/ mangpai/objective（递归）/
   mangpai/subjective（只算顶层，prompts/ 子目录不计入，README 既有口径）。
 
-verify 四件套（402/70/64/20）为低频项：各 verify 脚本总数由运行期动态累计，
+verify 四件套（375/72/68/20）为低频项：各 verify 脚本总数由运行期动态累计，
 静态解析不可靠，本闸门跳过；需核对时实际运行对应 verify 脚本。
 
 用法：
@@ -95,11 +95,13 @@ def parse_kb_pytest_line(line):
     return None
 
 
+def find_lines(text, *needles):
+    return [line for line in text.splitlines() if all(n in line for n in needles)]
+
+
 def find_line(text, *needles):
-    for line in text.splitlines():
-        if all(n in line for n in needles):
-            return line
-    return None
+    lines = find_lines(text, *needles)
+    return lines[0] if lines else None
 
 
 # ---------- 实测 ----------
@@ -206,12 +208,14 @@ def check_docs(readme_text, kb_text, actuals):
         ("docs/knowledge-base.md 验证口径行", ("验证口径", "collected")),
         ("docs/knowledge-base.md §8 工具表", ("python3 -m pytest mangpai/tests/", "collected")),
     ):
-        line = find_line(kb_text, *needles)
-        parsed = parse_kb_pytest_line(line) if line else None
-        results.append(_res(label, "pytest collected",
-                            parsed[0] if parsed else None, actuals["collected"]))
-        results.append(_res(label, "pytest passed",
-                            parsed[1] if parsed else None, actuals["passed"]))
+        lines = find_lines(kb_text, *needles)
+        for index, line in enumerate(lines or [None], 1):
+            parsed = parse_kb_pytest_line(line) if line else None
+            suffix = f' #{index}' if len(lines) > 1 else ''
+            results.append(_res(label + suffix, "pytest collected",
+                                parsed[0] if parsed else None, actuals["collected"]))
+            results.append(_res(label + suffix, "pytest passed",
+                                parsed[1] if parsed else None, actuals["passed"]))
 
     return results
 

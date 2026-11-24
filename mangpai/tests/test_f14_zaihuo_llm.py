@@ -139,7 +139,14 @@ def test_narrative_zaihuo_line_no_death():
 
 
 def test_prompt_death_ban():
-    """prompt（模板 + ENVELOPE 规则）明禁死亡/寿数断言。"""
+    """生产 system prompt 明禁死亡/寿数断言，并完整包含安全红线。"""
+    from mangpai.subjective.llm_prompt import build_system_prompt, SAFETY_REDLINE
+    from mangpai.subjective.prompts.hao_style_fewshot import (
+        FEWSHOT_EXAMPLES, format_fewshot_block,
+    )
+
+    production = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
+    assert SAFETY_REDLINE in production
     system, _user = assemble(' test ', {}, school=MANGPAI_SCHOOL)
     assert '死亡' in system and '寿' in system
     tpl = load_template(MANGPAI_SCHOOL)

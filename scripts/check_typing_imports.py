@@ -10,13 +10,14 @@
 字符串注解（"Dict[str, ...]"）同样解析检查；`import typing` 后以 typing.X 限定使用的不算问题。
 
 用法：python3 scripts/check_typing_imports.py [路径...]（默认 mangpai foundation scripts）
-退出码：0=零残留，1=有发现。
+退出码：0=零残留，1=有发现或未扫描到文件，2=路径不存在。
 """
 import ast
 import builtins
 import os
 import sys
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILTIN_NAMES = set(dir(builtins))
 
 
@@ -149,9 +150,12 @@ def check_file(path):
 
 
 def main(argv):
-    roots = argv or ['mangpai', 'foundation', 'scripts']
+    roots = argv or [os.path.join(ROOT, d) for d in ('mangpai', 'foundation', 'scripts')]
     files = []
     for root in roots:
+        if not os.path.exists(root):
+            print(f'路径不存在: {root}', file=sys.stderr)
+            return 2
         if os.path.isfile(root):
             files.append(root)
             continue
@@ -160,6 +164,9 @@ def main(argv):
             for fn in filenames:
                 if fn.endswith('.py'):
                     files.append(os.path.join(dirpath, fn))
+    if not files:
+        print(f'扫描根: {roots}\n扫描 0 个文件，无法判定', file=sys.stderr)
+        return 1
     all_findings = []
     for path in sorted(files):
         all_findings.extend(check_file(path))

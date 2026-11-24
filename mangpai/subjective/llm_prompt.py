@@ -1,7 +1,7 @@
 """LLM 结构化推演通道 prompt 模板（方案 C 混合·升级 narrative 层）。
 
-段氏/郝金阳风格：few-shot 复用 narrative 现有 FEWSHOT_EXAMPLES（受保护，
-不改原文，只作口吻锚嵌入）；输出形态改为 JSON mode 七维 schema；
+段氏/郝金阳风格：few-shot 复用 narrative 现有 FEWSHOT_EXAMPLES（保留口吻锚，
+仅校正过期引擎术语）；输出形态改为 JSON mode 七维 schema；
 安全红线沿用 F14/ENVELOPE_RULES 同款死亡禁令。
 
 红线（不可放松）：
@@ -32,6 +32,7 @@ SCHEMA_SPEC = """\
 - basis 数组每项 = 输入特征 JSON 中**逐字照抄**的字段路径，点分隔（如 "caiming.tier_static"、"gongliang.level"、"zuogong.work_types"），程序会逐条回解析，路径不存在即判违规——只引真实存在的字段，子键拿不准宁缺毋编，不得按命理常识臆测键名（特征 JSON 里没有的键一律不写）。
 - 数组字段（如 xiangfa_ops.juxiang、xiangfa_ops.all_findings、zuogong.work_actions、liunian_analysis.liunian）只允许引用数组名本身；禁止任何形式的下标（如 "xiangfa_ops.juxiang[7]"、"juxiang.7"），也禁止把数组当字典按内容取键（如 "juxiang.寒湿"）。
 - conclusion 措辞强度不得超出引擎断言：引擎给档位/倾向（如财命四档、官命是/否、灾祸风险档），你只能用同级或更弱措辞；引擎未给的具体金额、次数、年份、岁数一律不许编造，宁可断方向不断数。
+- 体用分类中伤官偏用；做功化用指杀印相生；功量层次只以 gongliang 为准。
 - 财运维的档位词只允许「巨富/富/小康/贫」四选一（引擎财档无「平」档，不得使用），且必须取自 caiming.tier_static / caiming.tier 的原值，不得超过两轨中的较高档。tier_static 是终身原局档，tier 与 yunsui_delta 是显式运岁档，不得互相冒用。功量金额档（百万/千万/亿级）≠财命档，不得据金额大小把档位升格；无独立 wealth_grade/rank_grade 证据时，不得仅由 gongliang.level 推具体金额或官级。
 - 事业维的职业部分：主荐职业必须取自 zhiye.primary 对应桶；zhiye.primary 为空=引擎无明确职业倾向，必须如实说「无明确职业倾向」，禁止断言任何具体职业（高分桶只能作「倾向性参考」并注明引擎未定）。
 - 应期维：逐运吉凶以 dayun_analysis.dayun 各运 overall 与正负信号为准；liunian_analysis.dayun_phase 为分看时读各运 segments，为统看时读当前运整运 overall。逐年以 liunian_analysis 逐年 overall 为准，不得用整运总评替代逐年结论；吉凶性质不得相反（凶运说成吉=翻转），吉凶参半须两面并陈；禁止脱离大运/流年表的泛化套话（如「近年多有是非」「晚景渐佳」），表外年份不许断言吉凶。

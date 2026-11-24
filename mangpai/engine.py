@@ -92,7 +92,7 @@ class EngineComputeError(RuntimeError):
 # 异常策略分类（H-fix-2a，H11「_safe_compute 模块对照表」逐模块裁定）：
 #   传导类（14）：模块间判定链 backbone，输出被其他模块的判定消费，
 #     静默降级=隐性误判，必须传导。
-#   降级类（29）：可选/展示性模块（含纯数据层、terminal 领域模块、
+#   降级类（30）：可选/展示性模块（含纯数据层、terminal 领域模块、
 #     叙事层），失败记 warning + _write 回写明确默认值，主链不受影响。
 _PROPAGATE_KEYS = frozenset({
     'shensha',          # 灾祸/婚姻/职业等多模块消费（resolve_shensha 单源）

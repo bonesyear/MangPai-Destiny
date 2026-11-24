@@ -27,12 +27,16 @@ run_suite() {
     if [[ $status -ne 0 ]]; then
         rc=1
         failed+=("$label(exit=$status)")
+        echo "---- $label 最后20行输出 ----"
+        tail -n 20 <<< "$output"
     fi
     if ! grep -E "$pattern" <<< "$output"; then
         rc=1
         failed+=("$label(no-summary)")
-        echo "---- $label 最后20行输出 ----"
-        tail -n 20 <<< "$output"
+        if [[ $status -eq 0 ]]; then
+            echo "---- $label 最后20行输出 ----"
+            tail -n 20 <<< "$output"
+        fi
     fi
 }
 

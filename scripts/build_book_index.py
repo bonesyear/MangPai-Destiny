@@ -2,7 +2,7 @@
 """原著分章索引生成器（零 LLM，纯机械正则）
 
 扫描 docs 下全部 txt 原著，提取章节标题 + 行号，生成索引文件。
-用法: python3 scripts/build_book_index.py
+用法: python3 scripts/build_book_index.py（需本地全部原著；任一缺失即退出且不写文件）
 """
 import re
 import os
@@ -62,6 +62,12 @@ def scan(path: Path):
     return len(lines), hits
 
 def main():
+    missing = [rel for rel, _name in BOOKS if not (DOCS / rel).is_file()]
+    if missing:
+        print('原著缺失，未修改索引：')
+        for rel in missing:
+            print(f'  文件缺失: {rel}')
+        sys.exit(1)
     out_dir = DOCS / "book-index"
     out_dir.mkdir(exist_ok=True)
     total_entries = 0

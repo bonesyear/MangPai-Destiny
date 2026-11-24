@@ -17,6 +17,7 @@ from mangpai.subjective.caiming import analyze_caiming
 
 
 def _split(gz4):
+    assert all((g in '甲丙戊庚壬') == (z in '子寅辰午申戌') for g, z in gz4)
     return [g[0] for g in gz4], [g[1] for g in gz4]
 
 
@@ -36,12 +37,9 @@ LIJIACHENG = ('戊辰', '己未', '庚午', '丁亥')     # 午未不穿
 BAOERSEN = ('丙申', '壬辰', '戊辰', '壬戌')       # 辰戌冲非穿
 AONAXIS = ('乙巳', '己丑', '己未', '庚午')        # 丑未冲非穿
 MEIKUANG = ('丁巳', '癸丑', '丙戌', '甲午')       # 丑戌刑非穿
-# no-op guard：谓词命中（戌穿酉、酉本气金=丙财）但档本在 cap 下（tier_idx≤2）
-# → 完全不追加文本。（批N2 换盘：原盘 甲子丙子己未甲子 的从弱前提——双子穿坏
-# 未根——被修4「日支本气根不被单点刑穿判坏」（li128 书「戌根原自己的」）证伪，
-# 该盘改判身弱后谓词会直接改档，不再覆盖 no-op；换此盘保持 tier_idx≤2 零文本
-# 抖动的守卫覆盖。）
-NOOP = ('丁戌', '庚酉', '丙戌', '戊子')
+# no-op guard：合法四柱，酉穿戌且月令本气土=乙财，但档本在 cap 下（tier_idx≤2）
+# → 完全不追加文本。
+NOOP = ('戊子', '甲戌', '乙酉', '庚寅')
 
 
 # ─────────── 真阳锚：日支穿月令财 → 封顶小康 ───────────
@@ -88,7 +86,7 @@ def test_fu_anchors_not_hit():
 
 
 def test_noop_when_tier_below_cap():
-    """no-op guard：谓词命中（戌穿酉、酉本气金=丙财）但 tier_idx≤2（本档小康）
+    """no-op guard：谓词命中（酉穿戌、戌本气土=乙财）但 tier_idx≤2（本档小康）
     → 完全不追加文本。"""
     tier, adjust = _level_static(NOOP)
     assert tier == '小康'

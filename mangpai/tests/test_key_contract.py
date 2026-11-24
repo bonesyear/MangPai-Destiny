@@ -14,7 +14,7 @@ selectors 残留 engine 不再产出的键 → 死键；payload 键无消费方 
    全量供给（注入 dayun）下实际产出；selectors 无重复登记。
 3. payload → 消费方（防死键，H4 的 zinv 问题推广）：payload 每个键至少在
    一个消费源（narrative / feishu formatter / llm_prompt / llm_channel /
-   prompts 模板）被静态引用，否则须显式备案为 LLM_FEATURE_ONLY_KEYS
+   生产消费源）被静态引用，否则须显式备案为 LLM_FEATURE_ONLY_KEYS
    （特征 JSON 直喂）或 RESERVED_KEYS（预留，供未来扩展）。
 
 实测基线（2026-09-18，hfix4c 快照口径）：engine 48 / selectors 41 / payload 41。
@@ -60,6 +60,17 @@ INTERNAL_ENGINE_KEYS = {
 LLM_FEATURE_ONLY_KEYS = {
     'chang_sheng': '长生十二宫基础特征，prompt 模板/代码零静态引用，特征 JSON 直喂',
     'narrative': '引擎规则摘要串，全仓零代码读取（仅特征 JSON 透传供 LLM 参考）',
+    'nayin': '非生产模板定点读者，特征 JSON 直喂',
+    'nayin_work': '非生产模板定点读者，特征 JSON 直喂',
+    'canggan': '非生产模板定点读者，特征 JSON 直喂',
+    'binzhu': '非生产模板定点读者，特征 JSON 直喂',
+    'anhe': '非生产模板定点读者，特征 JSON 直喂',
+    'biqi': '非生产模板定点读者，特征 JSON 直喂',
+    'wood_type': '非生产模板定点读者，特征 JSON 直喂',
+    'soil': '非生产模板定点读者，特征 JSON 直喂',
+    'he_types': '非生产模板定点读者，特征 JSON 直喂',
+    'virtual_solid': '非生产模板定点读者，特征 JSON 直喂',
+    'shenshu': '非生产模板定点读者，特征 JSON 直喂',
 }
 
 # 断言 3 备案 B：预留键——engine 写入 + payload 透传，无任何消费方
@@ -75,7 +86,6 @@ _CONSUMER_SOURCE_PATHS = (
     'mangpai/feishu/formatter.py',
     'mangpai/subjective/llm_prompt.py',
     'mangpai/subjective/llm_channel.py',
-    'mangpai/subjective/prompts/mangpai.md',
 )
 
 
@@ -139,7 +149,7 @@ def test_payload_keys_have_consumer(payload):
             continue
         assert _static_consumer_hit(key), (
             f'payload 键 {key!r} 无静态消费方（narrative/formatter/llm_prompt/'
-            f'llm_channel/prompts 模板均不引用）——请登记消费者，'
+            f'llm_channel 等生产消费源均不引用）——请登记消费者，'
             f'或显式备案入 LLM_FEATURE_ONLY_KEYS / RESERVED_KEYS')
 
 
@@ -170,9 +180,17 @@ def test_public_reexports_cover_existing_imports():
 
 
 def test_prompt_uses_current_gongliang_contract():
-    text = (_REPO_ROOT / 'mangpai/subjective/prompts/mangpai.md').read_text(encoding='utf-8')
+    from mangpai.subjective.llm_prompt import build_system_prompt, SAFETY_REDLINE
+    from mangpai.subjective.prompts.hao_style_fewshot import (
+        FEWSHOT_EXAMPLES, format_fewshot_block,
+    )
+
+    text = build_system_prompt(format_fewshot_block(FEWSHOT_EXAMPLES))
+    assert SAFETY_REDLINE in text
+    assert '局未定' not in text
+    assert not re.search(r'做功：[^|\n]*L[0-9]', text)
     assert '伤官偏用' in text
     assert '杀印相生' in text
-    assert '不得仅由 level 推具体金额或官级' in text
+    assert '不得仅由 gongliang.level 推具体金额或官级' in text
     assert '富百万级' not in text
     assert '天干合化' not in text

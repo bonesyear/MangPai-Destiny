@@ -221,8 +221,15 @@ def test_llm_off_by_default_env(monkeypatch, tmp_path):
     monkeypatch.setattr('mangpai.subjective.llm_backend._PROJECT_ENV_FILE',
                         tmp_path / 'no-project.env')
     monkeypatch.setenv('FEISHU_USE_LLM', '0')
+    monkeypatch.setattr('mangpai.feishu.service.render_structured_reading',
+                        lambda *args, **kwargs: pytest.fail('默认关闭时不应调用 LLM'))
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例）')  # 不传 use_llm → 读环境变量
     assert 'LLM 七维叙述' not in md
+
+
+def test_suite_blocks_external_http():
+    with pytest.raises(AssertionError, match='测试禁止非本机网络请求'):
+        urllib.request.urlopen('https://example.invalid', timeout=0.01)
 
 
 # ---------------------------------------------------------------- webhook 事件
@@ -272,6 +279,24 @@ def test_token_mismatch_rejected(monkeypatch):
     monkeypatch.setenv('FEISHU_VERIFICATION_TOKEN', 'want')
     with pytest.raises(PermissionError):
         bot.handle_event({'type': 'url_verification', 'token': 'nope', 'challenge': 'c'})
+
+
+def test_message_event_token_mismatch_rejected():
+    fc = FakeClient()
+    event = _msg_event(mid='om_bad_token')
+    event['header']['token'] = 'nope'
+    with pytest.raises(PermissionError):
+        bot.handle_event(event, client=fc, background=False)
+    assert fc.replies == []
+
+
+def test_message_event_body_token_fallback():
+    bot._seen_mids.clear()
+    fc = FakeClient()
+    event = _msg_event(mid='om_v1', text='/help')
+    event['token'] = event['header'].pop('token')
+    assert bot.handle_event(event, client=fc, background=False) == {}
+    assert len(fc.replies) == 1
 
 
 # ---------------------------------------------------------------- 修批 E1 哨兵
@@ -326,8 +351,10 @@ def test_error_logs_do_not_include_sensitive_content(monkeypatch, caplog):
 
 
 def test_main_requires_verification_token(monkeypatch):
-    """FEISHU_VERIFICATION_TOKEN 未配 → 启动即报错。"""
+    """FEISHU_VERIFICATION_TOKEN 未配 → 启动即报错，且不开放真实端口。"""
     monkeypatch.delenv('FEISHU_VERIFICATION_TOKEN', raising=False)
+    monkeypatch.setattr(bot, 'ThreadingHTTPServer',
+                        lambda *args: pytest.fail('配置校验失效时不应启动服务器'))
     with pytest.raises(RuntimeError, match='FEISHU_VERIFICATION_TOKEN'):
         bot.main()
 
@@ -457,6 +484,22 @@ def test_solar_date_wins_over_sizhu_keyword():
     """文本同时含阳历日期和「四柱」触发词 → 阳历优先，不抢占。"""
     md = handle('阳历 2000-01-01 12:00 男 北京（虚构示例） 四柱 己卯 丙子 戊午 戊午', use_llm=False)
     assert '己卯 丙子 戊午 戊午' in md  # 阳历盘，非四柱直排
+
+
+def test_http_message_token_mismatch_returns_401():
+    from http.server import ThreadingHTTPServer
+    srv = ThreadingHTTPServer(('127.0.0.1', 0), bot._Handler)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        req = urllib.request.Request(
+            f'http://127.0.0.1:{srv.server_port}/feishu/callback',
+            data=json.dumps({'header': {'token': 'nope'}}).encode(), method='POST')
+        with pytest.raises(urllib.error.HTTPError) as ei:
+            urllib.request.urlopen(req, timeout=5)
+        assert ei.value.code == 401
+    finally:
+        srv.shutdown()
+        srv.server_close()
 
 
 def test_500_no_internal_echo():

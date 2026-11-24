@@ -21,6 +21,7 @@ def test_verify_all_shows_failure_and_continues_all_suites(tmp_path):
         '#!/bin/bash\n'
         'if [[ "$1" == *verify_mangpai.py ]]; then\n'
         '  echo "验证结果: injected verify failure"\n'
+        '  echo "injected failure detail"\n'
         '  exit 1\n'
         'fi\n'
         'echo "called:$1 $2" >> "' + str(tmp_path / 'calls') + '"\n'
@@ -40,6 +41,7 @@ def test_verify_all_shows_failure_and_continues_all_suites(tmp_path):
     output = result.stdout + result.stderr
     assert result.returncode != 0
     assert 'injected verify failure' in output
+    assert 'injected failure detail' in output
     assert '=== 509 regression gate ===' in output
     calls = (tmp_path / 'calls').read_text(encoding='utf-8')
     assert 'regression_famous.py' in calls
