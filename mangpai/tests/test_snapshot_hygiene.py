@@ -113,8 +113,11 @@ def test_rescore_driver_and_rubric_version(tmp_path, monkeypatch):
         }},
         '_meta': {'git_sha': 'abc', 'rubric_version': 'v0-old', 'note': 'old'},
     }), encoding='utf-8')
-    monkeypatch.setattr(sys, 'argv', ['blind_eval.py', '--rescore', str(source)])
+    output = tmp_path / '20261124_batch28a.json'
+    monkeypatch.setattr(sys, 'argv', ['blind_eval.py', '--rescore', str(source),
+                                      '--out', str(output)])
     blind_eval.main()
-    data = json.loads((tmp_path / '20261103_old_rescore.json').read_text(encoding='utf-8'))
-    assert data['_meta']['rubric_version'] == blind_eval.RUBRIC_VERSION
+    data = json.loads(output.read_text(encoding='utf-8'))
+    assert data['_meta']['rubric_version'] == 'v0-old'
+    assert data['_meta']['zhiye_rubric_version'] == blind_eval.RUBRIC_VERSION
     assert data['trainset']['driver-case']['scores']['职业'] == '✅'

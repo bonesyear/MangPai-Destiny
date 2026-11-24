@@ -82,6 +82,8 @@ P2_PATTERNS = [
 
 # ---------------------------------------------------------------- 白名单/豁免
 FAKE_PREFIXES = ("sk-fake", "sk-file")
+HASH_FIELD_RE = re.compile(
+    r'^\s*"(?:engine_sha256|tree_hash)"\s*:\s*"[0-9a-f]{64}"\s*,?$')
 
 
 def _is_placeholder(value: str, line: str, start: int, end: int) -> bool:
@@ -150,6 +152,8 @@ def scan_lines(lines, fname: str):
                 continue
             if not _is_placeholder(value, line, m.start(1), m.end(1)):
                 findings.append(Finding("P0", "sensitive-env-assignment", fname, lineno, mask(value)))
+        if HASH_FIELD_RE.fullmatch(line):
+            continue
         for kind, pat in P1_PATTERNS:
             for m in pat.finditer(line):
                 if _is_placeholder(m.group(0), line, m.start(), m.end()) or _allowed(line, kind):

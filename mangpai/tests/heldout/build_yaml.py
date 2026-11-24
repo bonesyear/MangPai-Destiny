@@ -108,6 +108,18 @@ def main():
         print(f'⚠️ 未路由: {k} {c["sources"]} {c["context"][:60]!r}')
     if orphan_kept or unrouted:
         print('存在未决项，中止。'); sys.exit(1)
+    # 合并手工扩容并在任何写入前阻止训练集缩水
+    tdir = os.path.join(HERE, '..', 'trainset')
+    train_path = os.path.join(tdir, 'cases.yaml')
+    existing = (yaml.safe_load(open(train_path, encoding='utf-8'))
+                if os.path.exists(train_path) else []) or []
+    generated_ids = {c['id'] for c in train}
+    train.extend(c for c in existing
+                 if not c['id'].startswith(('zhenbao-', 'b67-'))
+                 and c['id'] not in generated_ids)
+    if len(train) < len(existing):
+        raise SystemExit(f'build_yaml: 训练集缩水 {len(existing)}→{len(train)}，拒绝写入')
+
     # 写 YAML（H-fix-3：原子写 + 写入前反解析校验——cases.yaml 是评估数据源）
     head_h = ('# ⚠️ 留出集 · 严禁用于修引擎 ⚠️\n'
               '# V3/K1 郝金阳/段建业断例留出集 — 仅供引擎评估，任何引擎修改不得参考本文件断语。\n'
@@ -119,12 +131,11 @@ def main():
               '# b67-*  = regression67.py 67例中出自这两本书的书例（已用于修引擎）。\n')
     txt_h = head_h + yaml.dump(held, allow_unicode=True, sort_keys=False, width=120)
     _validate_cases_yaml(txt_h, len(held))
-    atomic_write(os.path.join(HERE, 'cases.yaml'), txt_h)
-    tdir = os.path.join(HERE, '..', 'trainset')
+    atomic_write(os.path.join(HERE, 'cases.yaml'), txt_h, backup=True)
     os.makedirs(tdir, exist_ok=True)
     txt_t = head_t + yaml.dump(train, allow_unicode=True, sort_keys=False, width=120)
     _validate_cases_yaml(txt_t, len(train))
-    atomic_write(os.path.join(tdir, 'cases.yaml'), txt_t)
+    atomic_write(train_path, txt_t, backup=True)
     atomic_write(os.path.join(HERE, 'dropped.txt'),
                  ''.join(f'{k}\t{why}\n' for k, why in dropped))
     print(f'heldout={len(held)} trainset={len(train)} dropped={len(dropped)}')

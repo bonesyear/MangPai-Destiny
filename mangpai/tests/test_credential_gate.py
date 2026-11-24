@@ -322,3 +322,12 @@ class TestStagedSpecialContent:
         subprocess.run(['git', 'add', '.gitattributes', 'secret.env'], cwd=repo, check=True)
         r = TestStagedMode()._run_gate(repo)
         assert r.returncode == 1 and 'P0' in r.stdout
+
+
+def test_snapshot_hash_fields_do_not_mask_other_privacy(gate):
+    digest = 'f2a5c8dd5f12a86f11d6980c9e178658' + '52116cab1e3bef43d06a318d946c0809'
+    for key in ('engine_sha256', 'tree_hash'):
+        findings = gate.scan_lines([f'  "{key}": "{digest}"'], fname='snapshot.json')
+        assert [f for f in findings if f.level in ('P0', 'P1')] == []
+    findings = gate.scan_lines([f'  "phone": "{FAKE_PHONE}"'], fname='snapshot.json')
+    assert any(f.kind == 'cn-mobile' for f in findings)

@@ -4,7 +4,7 @@
 污染定义(不得入 heldout):
   calib10    = calib_assertions.yaml 的 10 例(已校准, -> trainset)
   backtest67 = regression67.py 的 67 例书例(已用于修引擎, -> trainset 附录)
-去重键 = (gans, zhis, gender) 全局；跨文件同盘合并，source 双记。
+去重键 = 四柱干支（不看性别）；跨文件同盘合并，source 双记。
 """
 import json, os, sys
 
@@ -17,14 +17,15 @@ import yaml
 
 from _atomic_io import atomic_write, atomic_write_json
 import regression67 as r67
+from famous_cases import FAMOUS
 
 
 def norm_g(gs):
     return ''.join('己' if g == '已' else g for g in gs)
 
 
-def key_of(gans, zhis, gender):
-    return (norm_g(gans), ''.join(zhis), gender)
+def key_of(gans, zhis, gender=None):
+    return norm_g(gans), ''.join(zhis)
 
 
 def contaminated():
@@ -45,6 +46,15 @@ def contaminated():
         out.setdefault(key_of(g, z, '男'), 'backtest67:' + name)
     for name, g, z, gender, *_ in r67.CAT5:
         out.setdefault(key_of(g, z, gender), 'backtest67:' + name)
+    for name, g, z, gender, *_ in FAMOUS:
+        out.setdefault(key_of(g, z, gender), 'famous:' + name)
+    train = yaml.safe_load(open(os.path.join(REPO, 'tests', 'trainset', 'cases.yaml'),
+                                encoding='utf-8'))
+    for c in train:
+        b = c['bazi']
+        out.setdefault(key_of([b[p][0] for p in ('year', 'month', 'day', 'hour')],
+                              [b[p][1] for p in ('year', 'month', 'day', 'hour')]),
+                       'trainset:' + c['id'])
     return out
 
 

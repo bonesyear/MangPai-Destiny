@@ -574,7 +574,7 @@
     month: 辛卯
     day: 己亥
     hour: 丁卯
-  dayun: 丙
+  dayun: 丙申
   liunian: 辛未
   gender: 男
   verdicts:
@@ -1357,23 +1357,6 @@
     子息: 有·子2个大儿子死女儿好
     应期: 辛丑运乙亥年死大儿
   source: shouke-li161:6216
-- id: shouke-li175-慈禧
-  name: shouke-li175-慈禧
-  bazi:
-    year: 乙未
-    month: 丁亥
-    day: 乙丑
-    hour: 己卯
-  dayun: 甲午
-  liunian: 戊申
-  gender: 女
-  verdicts:
-    官命: 是·管皇帝的
-    子息: 有·同治帝死于亥年
-    健康: 凶·甲午运戊申年死
-    婚姻: 差·伤夫克子（乱怀不乱朝）
-    应期: 辛卯运同治死/甲午运戊申年己死
-  source: shouke-li175:6398
 - id: shouke-li181-经济博士生
   name: shouke-li181-经济博士生
   bazi:

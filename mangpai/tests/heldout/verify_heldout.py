@@ -17,6 +17,7 @@ for p in (_HERE, _REPO):
 
 import yaml
 from mangpai import MangpaiEngine
+import blind_eval
 
 GANS = set('甲乙丙丁戊己庚辛壬癸')
 ZHIS = set('子丑寅卯辰巳午未申酉戌亥')
@@ -35,19 +36,8 @@ def check_case(c):
         g, z = b[pillar]
         if (list('甲乙丙丁戊己庚辛壬癸').index(g) - list('子丑寅卯辰巳午未申酉戌亥').index(z)) % 2:
             return f'{pillar} 阴阳不配: {g}{z}'
-    bazi_data = {
-        'bazi': dict(b), 'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {},
-        'input': {'gender': c.get('gender', '男'), 'year': c.get('year', 1960)},
-    }
-    dy = c.get('dayun')
-    if dy and len(dy) == 2:
-        bazi_data['dayun'] = {'direction': '顺', 'start_age': 5,
-                              'dayun': [{'gz': dy, 'start_age': 5}]}
-    ln = c.get('liunian')
-    if ln and len(ln) == 2:
-        bazi_data['liunian'] = [{'gz': ln, 'year': c.get('year', 1960)}]
     try:
-        res = MangpaiEngine(bazi_data).compute_all()
+        res = MangpaiEngine(blind_eval._bazi_data(c)).compute_all()
     except Exception:
         return 'compute_all 异常: ' + traceback.format_exc(limit=2).splitlines()[-1]
     # 干支 echo: 引擎排盘结果应含原四柱（不因输入而改动）

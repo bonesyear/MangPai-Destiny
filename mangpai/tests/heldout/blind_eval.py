@@ -28,11 +28,15 @@
   #   验收门槛以 CI 下界计（如「财命 CI 下界 ≥ X%」）。纯附加输出，既有行不变。
 """
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
 from collections import Counter
+from datetime import datetime
+from math import comb
+from pathlib import Path
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -45,6 +49,7 @@ import yaml
 from _atomic_io import atomic_write_json
 
 from mangpai import MangpaiEngine
+from mangpai.objective.bazi_calc import GAN, ZHI
 
 _XIONG_MARKERS = ['破财', '比劫夺财', '坐牢', '牢狱', '官非', '下浮封顶', '凶向']
 _TIER_RANK = {'贫': 0, '小康': 1, '富': 2, '巨富': 3}
@@ -121,24 +126,43 @@ _ZY_EXCLUDE = {
 }
 
 
+def _yunshi_gz(gz, label):
+    if len(gz) == 1:
+        if gz in GAN:
+            return gz, ''
+        if gz in ZHI:
+            return '', gz
+    elif len(gz) == 2 and gz[0] in GAN and gz[1] in ZHI:
+        if (GAN.index(gz[0]) - ZHI.index(gz[1])) % 2 == 0:
+            return gz[0], gz[1]
+    raise ValueError(f'{label}非法或阴阳不配: {gz!r}')
+
+
 def _bazi_data(c):
     b = c['bazi']
     bazi_data = {
         'bazi': dict(b), 'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {},
-        'input': {'gender': c.get('gender', '男'), 'year': c.get('year', 1960)},
+        'input': {'gender': c.get('gender', '男')},
     }
+    if c.get('year') is not None:
+        bazi_data['input']['year'] = c['year']
     dy = c.get('dayun')
     if dy:
-        # 金标准大运为「干支」或仅「支」（如 qi02 亥运）：支-only 时补 'zhi' 键，
-        # 使 yunfan 等消费方（gz 不足两位回退 gan/zhi 键）仍能吃到该运。
+        gan, zhi = _yunshi_gz(dy, '大运')
         entry = {'gz': dy, 'start_age': 5}
-        if len(dy) == 1:
-            entry['zhi'] = dy
+        if gan:
+            entry['gan'] = gan
+        if zhi:
+            entry['zhi'] = zhi
         bazi_data['dayun'] = {'direction': '顺', 'start_age': 5,
                               'dayun': [entry]}
     ln = c.get('liunian')
-    if ln and len(ln) == 2:
-        bazi_data['liunian'] = [{'gz': ln, 'year': c.get('year', 1960)}]
+    if ln:
+        _yunshi_gz(ln, '流年')
+        entry = {'gz': ln}
+        if c.get('year') is not None:
+            entry['year'] = c['year']
+        bazi_data['liunian'] = [entry]
     return bazi_data
 
 
@@ -209,8 +233,15 @@ def score_zhiye(verdict, zy):
     return '❌', primary
 
 
+_EXPECTED_CASE_COUNTS = {'heldout': 214, 'trainset': 295}
+
+
 def eval_cases(path):
     cases = yaml.safe_load(open(path, encoding='utf-8'))
+    split = os.path.basename(os.path.dirname(path))
+    expected = _EXPECTED_CASE_COUNTS.get(split)
+    if expected is not None and len(cases or []) != expected:
+        raise ValueError(f'{split} 例数异常: {len(cases or [])}，预期 {expected}')
     out = {}
     for c in cases:
         cid = c['id']
@@ -226,6 +257,7 @@ def eval_cases(path):
             print(f'!! {cid} 引擎异常: {e!r}')
             continue
         gm, cm, zy = res.get('guanming', {}), res.get('caiming', {}), res.get('zhiye', {})
+        entry['engine_sha256'] = _engine_hash(res)
         if '官命' in verdicts:
             s, got = score_guanming(verdicts['官命'], gm)
             entry['scores']['官命'] = s
@@ -296,6 +328,39 @@ _ORDER = {'✅': 0, '⚠️': 1, '❌': 2}
 
 
 # ── M5 快照工具：_meta（git sha/rubric 版本/备注）溯源，加载时剥离 ──
+def _json_hash_default(value):
+    if isinstance(value, (set, frozenset)):
+        return sorted(value, key=str)
+    return str(value)
+
+
+def _engine_hash(result):
+    content = json.dumps(result, ensure_ascii=False, sort_keys=True,
+                         default=_json_hash_default)
+    return hashlib.sha256(content.encode('utf-8')).hexdigest()
+
+
+def _worktree_meta():
+    import subprocess
+    try:
+        r = subprocess.run(['git', 'status', '--porcelain'], cwd=_REPO,
+                           capture_output=True, text=True)
+        dirty = bool(r.stdout.strip())
+    except (OSError, subprocess.SubprocessError):
+        dirty = False
+    digest = hashlib.sha256()
+    for root in ('mangpai', 'foundation'):
+        for path in sorted(Path(_REPO, root).rglob('*')):
+            if not path.is_file() or path.suffix not in ('.py', '.yaml', '.sh'):
+                continue
+            if any(part in ('__pycache__', '.pytest_cache', 'snapshots', 'archive')
+                   for part in path.parts):
+                continue
+            digest.update(str(path.relative_to(_REPO)).encode('utf-8'))
+            digest.update(path.read_bytes())
+    return {'dirty': dirty, 'tree_hash': digest.hexdigest()}
+
+
 def _git_sha():
     import subprocess
     try:
@@ -411,22 +476,26 @@ def _print_ci(label, data):
 
 
 def _print_significance(before, after):
-    """--diff 显著性：|Δacc| > 两半宽之和 → 显著改善/退化，否则噪声带内。"""
-    print('\n=== M3 显著性（Wilson95：|Δacc| > 两半宽之和方判显著）===')
+    """--diff 显著性：同案例配对 McNemar 精确检验；Wilson 仅用于汇总展示。"""
+    print('\n=== M3 显著性（配对 McNemar 精确检验，α=0.05）===')
     for split in ('heldout', 'trainset'):
         sb, sa = summarize(before.get(split, {})), summarize(after.get(split, {}))
         for d in ('官命', '财命', '职业'):
             vb, va = sb.get(d), sa.get(d)
             if not vb or not va or not vb['n'] or not va['n']:
                 continue
-            pb, pa = vb['✅'] / vb['n'], va['✅'] / va['n']
-            band = _wilson(vb['✅'], vb['n'])[2] + _wilson(va['✅'], va['n'])[2]
-            delta = pa - pb
+            changes = [f for f in diff(before.get(split, {}), after.get(split, {}))
+                       if f['dim'] == d and f['delta'] is not None]
+            lost = sum(f['delta'] > 0 for f in changes)
+            gained = sum(f['delta'] < 0 for f in changes)
+            n = lost + gained
+            p_value = min(1.0, 2 * sum(comb(n, i) for i in range(min(lost, gained) + 1)) / 2 ** n) if n else 1.0
             verdict = '噪声带内'
-            if abs(delta) > band:
-                verdict = '显著改善' if delta > 0 else '显著退化'
+            if p_value < 0.05 and lost != gained:
+                verdict = '显著退化' if lost > gained else '显著改善'
+            delta = va['✅'] / va['n'] - vb['✅'] / vb['n']
             print(f'  [{split}][{d}] Δ={delta * 100:+.1f}% '
-                  f'半宽和={band * 100:.1f}% → {verdict}')
+                  f'lost={lost} gained={gained} p={p_value:.4f} → {verdict}')
 
 
 # ── M1 文本抖动：score 全不变但 engine 字段有差异（复跑确定性门禁，>0 即失败）──
@@ -439,6 +508,11 @@ def _jitter(before, after):
         if (b.get('scores') or {}) != (a.get('scores') or {}):
             continue
         eb, ea = b.get('engine') or {}, a.get('engine') or {}
+        hb, ha = b.get('engine_sha256'), a.get('engine_sha256')
+        if hb and ha:
+            if hb != ha:
+                out.append((cid, ['engine_sha256'], eb, ea))
+            continue
         if eb == ea:
             continue
         keys = sorted(k for k in set(eb) | set(ea) if eb.get(k) != ea.get(k))
@@ -519,8 +593,9 @@ def _diff_gate(before, after):
 def _validate_snapshot(payload):
     """快照写入前校验（H-fix-3）：_meta 溯源字段在场 + 至少一个 split 非空。"""
     meta = payload.get('_meta') or {}
-    if not meta.get('rubric_version'):
-        raise ValueError('快照缺 _meta.rubric_version，拒绝写入')
+    for key in ('git_sha', 'rubric_version', 'note'):
+        if not meta.get(key):
+            raise ValueError(f'快照缺 _meta.{key}，拒绝写入')
     splits = [k for k in payload if k != '_meta' and payload[k]]
     if not splits:
         raise ValueError('快照无任何 split 数据，拒绝写入')
@@ -557,9 +632,13 @@ def main():
                     e.setdefault('scores', {})['职业'] = s
                 else:
                     e.get('scores', {}).pop('职业', None)
-        out_path = args.rescore.replace('.json', '') + '_rescore.json'
-        data.setdefault('_meta', {})['rubric_version'] = RUBRIC_VERSION
-        atomic_write_json(out_path, data)
+        out_path = args.out or datetime.now().strftime('%Y%m%d_rescore.json')
+        meta = data.setdefault('_meta', {})
+        meta['git_sha'] = _git_sha()
+        meta['zhiye_rubric_version'] = RUBRIC_VERSION
+        meta['note'] = args.note or (meta.get('note', '') + ' 职业rubric重评').strip()
+        meta.update(_worktree_meta())
+        atomic_write_json(out_path, data, validate=_validate_snapshot, backup=True)
         for split, cases in data.items():
             if split == '_meta':
                 continue
@@ -600,7 +679,8 @@ def main():
         payload = dict(result)
         payload['_meta'] = {'git_sha': _git_sha(),
                             'rubric_version': RUBRIC_VERSION,
-                            'note': args.note}
+                            'note': args.note,
+                            **_worktree_meta()}
         # H-fix-3：快照原子写 + 写入前校验（_meta 溯源字段须在场）
         atomic_write_json(args.out, payload, validate=_validate_snapshot)
         print(f'(saved -> {args.out})')

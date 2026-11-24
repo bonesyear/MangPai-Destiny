@@ -54,7 +54,6 @@
     month: 壬寅
     day: 庚辰
     hour: 辛巳
-  dayun: 戊寅
   liunian: 庚辰
   gender: 男
   verdicts:
@@ -2020,12 +2019,11 @@
     month: 辛亥
     day: 丁丑
     hour: 癸卯
-  dayun: 壬卯
   gender: 乾
   verdicts:
     财命: 富·壬卯运发财·包工头数千万
     官命: 否·所以不当官，壬主管理与控制，不主官。
-  source: chuji:3296
+  source: chuji:3296（原壬卯干支疑误，暂不配运）
 - id: cj-校长-2
   name: cj-校长-2
   bazi:
@@ -3603,3 +3601,20 @@
   verdicts:
     财命: 巨富·壬午运煤矿发财十亿
   source: yanjiu:15535
+- id: shouke-li175-慈禧
+  name: shouke-li175-慈禧
+  bazi:
+    year: 乙未
+    month: 丁亥
+    day: 乙丑
+    hour: 己卯
+  dayun: 甲午
+  liunian: 戊申
+  gender: 女
+  verdicts:
+    官命: 是·管皇帝的
+    子息: 有·同治帝死于亥年
+    健康: 凶·甲午运戊申年死
+    婚姻: 差·伤夫克子（乱怀不乱朝）
+    应期: 辛卯运同治死/甲午运戊申年己死
+  source: shouke-li175:6398
