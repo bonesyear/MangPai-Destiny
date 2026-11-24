@@ -43,7 +43,7 @@ run_suite() {
 echo "=== verify checks（375 + 72 + 68 + 20）==="
 run_suite verify_mangpai '验证结果' "$PYTHON" mangpai/verify_mangpai.py
 run_suite verify_dayun '验证结果' "$PYTHON" mangpai/verify_dayun.py
-run_suite verify_layer1 '验证结果' "$PYTHON" mangpai/verify_layer1.py
+run_suite verify_layer1 '验证结果' "$PYTHON" mangpai/verify_layer1.py --require-all
 run_suite verify_layer3 '验证结果' "$PYTHON" mangpai/verify_layer3_checkpoint.py
 echo "=== pytest ==="
 run_suite pytest 'passed|failed|error' "$PYTHON" -m pytest mangpai/tests/ -q

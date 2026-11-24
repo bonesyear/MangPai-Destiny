@@ -45,8 +45,15 @@ def test_disclaimer_llm_reading_path():
 
 def test_help_carries_privacy_notice_and_disclaimer():
     h = handle('/help')
-    assert '第三方' in h and '大模型' in h      # 外发告知（V4 P1-2；厂商名不写死）
+    assert '不外发' in h
     assert DISCLAIMER.strip() in h
+
+
+def test_help_reports_configured_receiver(monkeypatch):
+    monkeypatch.setenv('MANGPAI_USE_LLM', '1')
+    monkeypatch.setenv('MANGPAI_LLM_BASE_URL', 'https://llm.example.com/v1/chat/completions')
+    h = handle('/help')
+    assert 'llm.example.com' in h and '将提交' in h
 
 
 # ---------------------------------------------------------------- P1 lark_md 三符

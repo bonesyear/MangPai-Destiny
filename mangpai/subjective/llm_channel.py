@@ -1,6 +1,6 @@
 """LLM 结构化推演通道（方案 C 混合·升级 narrative 层）。
 
-链路：引擎 dict → build_payload 特征抽取（selectors 41 键 + zaihuo_llm_view
+链路：引擎 dict → build_payload 特征抽取（selectors 42 键 + zaihuo_llm_view
 + 死亡词典 scrub，全复用）→ DeepSeek JSON mode 七维叙述 → 三层校验 → 展示。
 
 **红线：本模块输出永不回写 compute_all() dict**；无 API key/调用失败时

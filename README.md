@@ -1,6 +1,6 @@
 # MangPai · Chinese Bazi Analysis Engine
 
-基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1989 验证用例通过，另 3 项 strict xfail。
+基于段建业/郝金阳盲派理论的八字命理推演引擎。59 模块四层架构，1997 验证用例通过，另 3 项 strict xfail。
 
 > 🔒 **隐私优先**：引擎本地运算，零外发、零落盘、不建用户档案；命理计算始终在你自己机器上完成。详见 [隐私说明](docs/privacy-policy.md)。
 
@@ -19,14 +19,14 @@
 | **Foundation** | 基础层 | 2 | 干支性情赋（滴天髓 65 条规则）+ 六十甲子纳音表（跨流派共享） |
 | **Objective** | 客观层 | 27 | 排盘、节气、藏干、长生、十神（shishen 单一权威）、空亡、冲合刑害穿破检测、做功识别、墓库、神煞、大运流年、应期、身体部位 |
 | **Subjective** | 主观层 | 30 | 层功量化、象法九原则、财命官命、婚姻学历牢狱、职业取象、应期推断、岁运反局、方向判断、六亲、子女、迁移、相貌、灾祸、诀法 |
-| **Narrative** | 叙事层 | - | 引擎结论 → 郝金阳风格推演（5 模板 Few-shot + 生成后校验器） |
+| **Narrative** | 叙事层 | 4（已计入 Subjective 30） | 引擎结论 → 郝金阳风格推演（5 模板 Few-shot + 生成后校验器） |
 
 > H-fix 系列（2026-09）新增公共模块：objective `shishen.py`（十神单一权威）/ `_relation_utils.py`（关系对工具）、subjective `utils.py`（`_ensure_*` 公共 helper）——重复逻辑下沉产物，防多份实现漂移；分层单向依赖不变（`scripts/check_layering.py` 守护）。
 
 ## 推演流程
 
 1. **八字输入** — 出生年月日时、性别、地点
-2. **排盘** — 四柱八字、大运、流年（内嵌 1900-2100 节气表，经天文历 468 组交叉验证）
+2. **排盘** — 四柱八字、大运、流年（内嵌 1900-2100 节气表，4824 项与 sxtwl 交叉验证（分钟级））
 3. **客观检测** — 做什么功？类型/层次/效率。神煞、墓库、虚实
 4. **主观判断** — 富贵层级、财命官命、婚姻职业、应期
 5. **叙事输出** — 结构化结论 + 郝金阳风格自然语言推演
@@ -47,12 +47,12 @@
 |------|------|:--:|
 | verify_mangpai（V7 合并版） | 375 passed（375 项） | ✅ |
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 72 / 68 / 20 | ✅ |
-| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1989 passed + 3 xfailed | ✅ |
+| pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 1997 passed + 3 xfailed | ✅ |
 | blind_eval（heldout 214 + trainset 295 三维开发评估） | `LATEST=20261124_batch28a.json`（rubric v10）；批次28A零计分退化，75条预期文本差异全归因，双 seed 一致 | ✅ 新基线零差异 |
 
 ## 入仓前的脱敏闸门
 
-仓库常驻闸门六件套：分层单向（`scripts/check_layering.py`）、typing/import 面（`scripts/check_typing_imports.py`）、键契约（`mangpai/tests/test_key_contract.py`）、防假-green（`mangpai/tests/test_verify_integrity.py`）、脱敏脱密（`scripts/check_credentials.py`）、**文档数字**（`scripts/check_doc_numbers.py`，2026-09-19 入库）。
+仓库常驻闸门六件套：分层单向（`scripts/check_layering.py`）、typing/import 面（`scripts/check_typing_imports.py`）、键契约（`mangpai/tests/test_key_contract.py`）、防假-green（`mangpai/tests/test_verify_integrity.py`）、脱敏脱密（`scripts/check_credentials.py`）、**文档数字**（`scripts/check_doc_numbers.py`，2026-09-19 入库）。`test_repo_gates.py` 与提交钩子执行分层/typing/死链检查；CI 在 Python 3.10/3.11/3.14 矩阵运行完整 pytest 和静态闸门。
 
 文档数字闸门校验本 README 与 `docs/knowledge-base.md` 权威声明位（首行/验证表/架构表/验证口径行/§8 工具表）的模块数与 pytest 数字是否等于实测（`pytest --collect-only` ~0.5s + 分层口径计数，不真跑全量、不跑 verify），漂移即退出码 1。**不算 pre-commit 默认项**——改了测试数量（新增/删除用例）或模块数后手动跑一次即可：
 
@@ -85,8 +85,8 @@ python3 scripts/check_credentials.py --all    # 全量审计（存量出生信�
 | 层 | 内容 | 通过率 |
 |:--:|------|:--:|
 | 第一层 | 基础数据（纳音/节气/藏干/长生/干支性情）vs 经典原著 | 100% |
-| 第二层 | 模块算法 68 项 vs 段建业原著 | 65✅ 3⚠️ 0❌（原书与现行口径分列） |
-| 第三层 | 端到端 10 例 vs 郝金阳断语 | 47%✅ 75%✅+⚠️ |
+| 第二层 | 模块算法 68 项 vs 段建业原著 | 67✅ 1⚠️ 0❌（现行基线） |
+| 第三层 | 端到端 10 例 vs 郝金阳断语（45 项） | 35✅ 10⚠️ 0❌（77.78%✅，100%✅+⚠️） |
 
 ## 快速开始
 
@@ -101,6 +101,11 @@ print(result['summary'])
 ## 安装
 
 Python 3.10+（3.11.15 / 3.14.4 双版本全量实测通过；3.10 语法面兼容、未单独实测）。Windows 实测通过（3.14.7）；Windows 控制台中文输出乱码属 GBK 终端问题，命令行用法前设 `PYTHONIOENCODING=utf-8` 即可（引擎本身不受影响）。
+
+```bash
+git clone https://github.com/bonesyear/MangPai-Destiny.git
+cd MangPai-Destiny  # 后续模块命令默认在仓库根运行；其他目录需先设 PYTHONPATH=<仓库根>
+```
 
 **引擎核心零依赖（纯标准库）**，排盘数据全部内嵌，clone 即可用。其余组件按需安装：
 
@@ -178,7 +183,7 @@ text = render_structured_reading(result, user_question='此造财运如何？')
 print(text)
 ```
 
-命令行 demo（吃 trainset 内置案例，需 `pip install pyyaml`；案例路径已锚定 `__file__`，**可在任意目录运行**）：
+命令行 demo（吃 trainset 内置案例，需 `pip install pyyaml`；需在仓库根目录运行，或先设置 `PYTHONPATH=<仓库根>`）：
 
 ```bash
 python3 -m mangpai.subjective.llm_channel b67-李嘉诚 "财运"

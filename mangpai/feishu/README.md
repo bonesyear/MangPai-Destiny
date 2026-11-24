@@ -46,6 +46,15 @@ set -a; . ./.env; set +a
 python3 -m mangpai.feishu.bot
 ```
 
+上述命令须在仓库根目录执行；其他目录需先设置 `PYTHONPATH=<仓库根>`。systemd 示例：
+
+```ini
+[Service]
+WorkingDirectory=/opt/MangPai-Destiny
+Environment=PYTHONPATH=/opt/MangPai-Destiny
+ExecStart=/usr/bin/python3 -m mangpai.feishu.bot
+```
+
 `FEISHU_*` 不会由飞书组件自动从 `.env` 读取，必须导出为进程环境。控制台重置 Verification Token 后也须同步更新并重启。
 
 事件回调立即 200 ack，排盘+LLM 在后台线程算完走 reply 接口回原消息（markdown 卡片）。

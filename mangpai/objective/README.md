@@ -115,4 +115,4 @@ result = {
 - 23 个模块，约 3300 行代码
 - 每个模块独立 try/except，单模块失败不影响其他
 - 测试：`tests/test_subjective.py`（27 个测试，用于主观层联调）
-- 独立验证脚本：`verify_mangpai.py`（根目录，V7 合并版 432 项，原 `objective/verify_mangpai.py` 已并入）、`verify_dayun.py`（70 项大运流年专项）
+- 独立验证脚本：`verify_mangpai.py`（根目录，V7 合并版 375 项，原 `objective/verify_mangpai.py` 已并入）、`verify_dayun.py`（72 项大运流年专项）、`verify_layer1.py`（68 项基础层）、`verify_layer3_checkpoint.py`（20 项方向层检查点）

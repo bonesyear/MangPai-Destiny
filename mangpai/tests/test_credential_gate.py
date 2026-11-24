@@ -262,7 +262,11 @@ class TestHookChain:
     def _install(self, repo):
         import shutil
         (repo / 'scripts').mkdir()
-        for name in ('check_credentials.py', 'install_git_hooks.sh'):
+        for path in ('foundation', 'mangpai/objective', 'mangpai/subjective'):
+            (repo / path).mkdir(parents=True)
+        (repo / 'mangpai' / 'engine.py').write_text('', encoding='utf-8')
+        for name in ('check_credentials.py', 'install_git_hooks.sh',
+                     'check_layering.py', 'check_typing_imports.py', 'check_doc_links.py'):
             shutil.copy2(REPO_ROOT / 'scripts' / name, repo / 'scripts' / name)
         bash = shutil.which('bash')
         if not bash:

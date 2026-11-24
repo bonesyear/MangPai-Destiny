@@ -47,7 +47,10 @@ run_gate() {
 }
 case "${1:-commit}" in
     commit)
-        run_gate --staged
+        run_gate --staged || exit "$?"
+        for gate in check_layering.py check_typing_imports.py check_doc_links.py; do
+            "${PYTHON[@]}" "scripts/$gate" || exit "$?"
+        done
         ;;
     push)
         EMPTY_TREE="$(git hash-object -t tree /dev/null)"

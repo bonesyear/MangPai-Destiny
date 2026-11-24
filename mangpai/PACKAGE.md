@@ -2,7 +2,7 @@
 
 ## 当前结构
 
-包按 Foundation → Objective → Subjective → Narrative 分层，共 59 个基础/客观/主观模块；编排器与叙事接入不计入该模块数。
+包按 Foundation → Objective → Subjective → Narrative 分层，共 59 个基础/客观/主观模块；其中 Subjective 的 30 个包含 `llm_backend`、`llm_channel`、`llm_prompt`、`narrative` 四个叙事接入模块，编排器 `engine.py` 不计入。
 
 ```text
 mangpai/

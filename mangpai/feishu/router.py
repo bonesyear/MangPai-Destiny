@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import os
 import re
+import urllib.parse
 from datetime import date
 from typing import Optional
 
 from mangpai.feishu.service import paipan
 from mangpai.objective.bazi_calc import prc_dst_bounds
+from mangpai.subjective.llm_backend import _API_URL, _env_value, llm_enabled
 
 # 常用城市东经（真太阳时校正用）；未收录 → 提示用户直给经度。
 CITY_LON = {
@@ -35,8 +37,18 @@ HELP = """盲派排盘用法：
 · 四柱直排：四柱 己卯 丙子 戊午 戊午 男 [2000]（虚构示例）
 · /ver 版本基线 · /help 本帮助
 （细挖 focus=财运/婚姻 二期开放）
-隐私提示：排盘数据（生辰/性别/出生地经度）将提交第三方大模型生成叙述。
+隐私提示：{privacy}
 命理分析仅供参考，不构成人生决策依据。"""
+
+
+def help_text() -> str:
+    if not llm_enabled():
+        privacy = '当前未启用 LLM，生辰与排盘特征不外发。'
+    else:
+        base_url = _env_value('MANGPAI_LLM_BASE_URL', '') or _API_URL
+        host = urllib.parse.urlsplit(base_url).hostname or 'api.deepseek.com'
+        privacy = f'排盘数据（生辰/性别及排盘特征）将提交至 {host} 生成叙述。'
+    return HELP.format(privacy=privacy)
 
 _DATE_RE = re.compile(r'(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*日?')
 _TIME_RE = re.compile(r'(?<![\d:：.])(\d{1,2})\s*[:：点时]\s*(\d{1,2})?\s*分?')  # 前导边界防 '123:45'→23:45 静默截断
@@ -143,7 +155,7 @@ def handle(text: str, use_llm: Optional[bool] = None) -> str:
     """消息文本 → 回复文本。解析失败返回带示例的提示，不抛错。"""
     text = (text or '').strip()
     if not text or text in ('/help', 'help', '帮助', '？', '?'):
-        return HELP
+        return help_text()
     if text in ('/ver', '/version', '版本'):
         return version_line()
     try:
@@ -152,4 +164,4 @@ def handle(text: str, use_llm: Optional[bool] = None) -> str:
             return paipan(parse_pillars(text), use_llm=use_llm)
         return paipan(parse_solar(text), use_llm=use_llm)
     except (ParseError, ValueError) as e:
-        return f'输入有误：{e}\n\n{HELP}'
+        return f'输入有误：{e}\n\n{help_text()}'

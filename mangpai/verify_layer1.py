@@ -231,4 +231,7 @@ print('='*60)
 skipped_note = f', skipped {skipped}' if skipped else ''
 print(f'验证结果: {passed} passed, {failed} failed, total {passed+failed}{skipped_note}')
 print('='*60)
+if skipped and '--require-all' in sys.argv:
+    print(f'完整性检查失败：{skipped} 项被跳过（--require-all）')
+    sys.exit(1)
 sys.exit(0 if failed==0 else 1)
