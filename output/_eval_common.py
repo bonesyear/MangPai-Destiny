@@ -541,9 +541,10 @@ def engine_for_record(case, record=None):
 
 
 def seconds_to_valley(now=None):
-    from mangpai.subjective.llm_backend import _price_tier
+    from mangpai.subjective.llm_backend import _BJT, _price_tier
 
-    now = now or datetime.now()
+    now = now or datetime.now(_BJT)
+    now = now.replace(tzinfo=_BJT) if now.tzinfo is None else now.astimezone(_BJT)
     if _price_tier(now.timestamp()) == 'offpeak':
         return 0
     for hour in (12, 18):

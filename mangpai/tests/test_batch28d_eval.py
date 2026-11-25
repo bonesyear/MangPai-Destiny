@@ -234,6 +234,8 @@ def test_valley_wait_is_portable_and_bounded():
     assert ec.seconds_to_valley(datetime(2026, 1, 1, 11, 0, 0)) == 3603
     assert ec.seconds_to_valley(datetime(2026, 1, 1, 15, 0, 0)) == 10803
     assert ec.seconds_to_valley(datetime(2026, 1, 1, 13, 0, 0)) == 0
+    from datetime import timezone
+    assert ec.seconds_to_valley(datetime(2026, 1, 1, 3, 0, 0, tzinfo=timezone.utc)) == 3603
 
 
 def test_cross_dimension_redlines_are_structured():

@@ -106,7 +106,7 @@ def test_a103_snapshot_requires_complete_meta_and_rescore_preserves_rubric(
     assert data['trainset']['driver-case']['scores']['职业'] == '✅'
 
 
-def test_f110_full_engine_hash_feeds_jitter_and_worktree_meta():
+def test_f110_full_engine_hash_feeds_jitter_and_worktree_meta(monkeypatch):
     left = {'summary': 'same', 'unordered': {'b', 'a'}}
     right = {'summary': 'same', 'unordered': {'a', 'b'}}
     assert blind_eval._engine_hash(left) == blind_eval._engine_hash(right)
@@ -117,6 +117,9 @@ def test_f110_full_engine_hash_feeds_jitter_and_worktree_meta():
     after = {'case': {'scores': {}, 'engine': {}, 'engine_sha256': changed}}
     jitter = blind_eval._jitter(before, after)
     assert len(jitter) == 1 and 'engine_sha256' in jitter[0][1]
+    import subprocess
+    monkeypatch.setattr(subprocess, 'run', lambda *args, **kwargs:
+                        subprocess.CompletedProcess(args[0], 0, stdout=' M mangpai/subjective/zhengfan.py\n'))
     meta = blind_eval._worktree_meta()
     assert meta['dirty'] is True
     assert meta['tree_hash']

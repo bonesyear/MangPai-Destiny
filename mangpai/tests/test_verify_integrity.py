@@ -109,7 +109,7 @@ def test_verify_dayun_module_mode_runs():
     import subprocess
 
     result = subprocess.run(
-        [sys.executable, '-P', os.path.join(_REPO, 'mangpai', 'verify_dayun.py')],
+        [sys.executable, os.path.join(_REPO, 'mangpai', 'verify_dayun.py')],
         capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
     assert '验证结果: 72 passed, 0 failed, total 72' in result.stdout
