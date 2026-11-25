@@ -520,6 +520,11 @@ def _jitter(before, after):
     return out
 
 
+def _ordered_regressions(before, after):
+    return [f for f in diff(before, after)
+            if f['delta'] is not None and f['delta'] > 0]
+
+
 def _print_diff(before, after):
     for name, data in (('BEFORE', before), ('AFTER', after)):
         for split in ('heldout', 'trainset'):
@@ -534,7 +539,8 @@ def _print_diff(before, after):
     print('\n=== 翻转明细（heldout + trainset）===')
     for split in ('heldout', 'trainset'):
         flips = diff(before.get(split, {}), after.get(split, {}))
-        print(f'\n--- {split}: {len(flips)} 条翻转 ---')
+        ordered = _ordered_regressions(before.get(split, {}), after.get(split, {}))
+        print(f'\n--- {split}: {len(flips)} 条翻转；有序回退 {len(ordered)} 条 ---')
         for f in flips:
             arrow = {1: '↓变差', 2: '↓↓变差', -1: '↑改善', -2: '↑↑改善'}.get(
                 f['delta'], '·换档')
@@ -582,9 +588,8 @@ def diff(before, after):
 def _diff_gate(before, after):
     regressions = 0
     for split in ('heldout', 'trainset'):
-        regressions += sum(
-            1 for f in diff(before.get(split, {}), after.get(split, {}))
-            if f['delta'] is not None and f['delta'] > 0)
+        regressions += len(_ordered_regressions(
+            before.get(split, {}), after.get(split, {})))
     jitter = sum(len(_jitter(before.get(split, {}), after.get(split, {})))
                  for split in ('heldout', 'trainset'))
     return regressions, jitter

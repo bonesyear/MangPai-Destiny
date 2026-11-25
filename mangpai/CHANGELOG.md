@@ -3,6 +3,16 @@
 > 历史路径说明：旧批次引用的已删除文档、快照与模块未公开，以 Git 历史为准；新条目仅使用有效路径。
 <!-- doc-links:ignore -->
 
+## 2026-11-25 批次 31 · 评估方法学与历史文档
+
+| 项目 | 内容 |
+|------|------|
+| A109 发布口径 | 旧七维GO统一降为有条件GO（待复跑）：commits `3d0c962`/`738ff31`、`v4-flash`、r4，G1重扫清秀47/294；当前prompt与默认模型未做真实LLM/S1复跑，旧指标不得当发布证据 |
+| A110–A112/A24 预注册 | 7份预注册标明与实现同一次提交，不能单独证明先定后做；P1翻转改预注册3条+事后改门1条，岳飞改捕/贼<3且印有本气支；G2标样本内拟合，不再称预注册先行 |
+| A113 有序回退 | blind_eval新增有序回退计数与报告，保持原有门禁行为；li141后续⚠️→❌及P4库制库+6生效已写入台账，不再称P1-P4全程零回退 |
+| A114/A115 证据恢复 | 恢复7份任务书/方案/终态至`docs/archive/`；qi05上浮预测落空、财制印刑警p3/p4仍❌而r7转✅已修正；原/tmp探针未公开，不虚构恢复，现有哨兵仅作独立复核入口 |
+| 验证 | 方法学与相关28项通过；完整pytest 2012 collected=2009 passed+3 xfailed，四组verify为375/72/68/20；核心67✅/1⚠️/0❌、名人42✅/4⚠️/1❌、校准35✅/10⚠️/0❌均无变化；509零翻转、零有序回退、零文本抖动，双seed与LATEST全输出一致，不新增快照；文档死链为0，真实LLM/飞书未调用 |
+
 ## 2026-11-25 批次 30 · 飞书接入层
 
 | 项目 | 内容 |
@@ -684,7 +694,7 @@
 | 契约/哨兵 | test_key_contract：断言 1/2 改 **dotted-path 首段归算**（部分投影=已登记；完整路径可解析性由 payload 镜像断言传递担保），payload 锁 42，基线注 engine 49=selectors 42+白名单 7；test_hfix5_compute_all：KEYS_PHASE5 尾增 juefa、KEYS_FULL_49、参数化 48→49/45→46；test_subjective/test_a_llm_redline/verify_dayun:405 计数 41→42 同步；test_juefa +7 哨兵（D1 双向/duanyu_a 只含 A 组/C 组盘为空/表序输出/marker 红线自查/engine 端到端 gender 转换+payload 隔离） |
 | 验证 | pytest **1278 passed+1xf**（1271→1278，+7 测）；verify 四件套 **420**/70/64/20 全绿；**blind vs `snapshots/LATEST`（批H/I 基线，不写基线）：heldout/trainset 三维零翻转零文本抖动**，六维 Δ 全 +0.0%（juefa 键新增未误动判定逻辑）；check_layering（66 文件无反向依赖）+check_typing_imports（190 文件 0 处）+check_credentials（P0=P1=P2=0）+check_doc_numbers 全过；README/KB 验证数字同步（1279 collected=1278+1xf） |
 
-## 2026-10-17 G2 · 三条书证功量规则批（闭合 G1 三个不合书备案案例：副总/差例三/慈禧全落书判值；预注册先行）
+## 2026-10-17 G2 · 三条书证功量规则批（副总/差例三/慈禧回书；样本内规则补写与偏差复核）
 
 | 项目 | 内容 |
 |------|------|
@@ -694,7 +704,7 @@
 | 红线守护 | 16 已钉书例 level/score **一个不变差**（test_gongliang 42 测全绿）；test_hfix5_gongliang 按文件头部 exec 流程重钉——安全断言：ph1/ph2 逐字节不变、13 盘 level/raw_level/score/gong_points 不变、PILLARS_PIN 两盘逐字节不变；变化精确落在预期 5 盘 chain_length 1→0（克链剔日主边，points 不变）+ ph3 增 `_yuanshen_family_pts`/`_tg_huai_struct`/`_tg_huai_note` 三键 + ph4 增 points 键 |
 | 验证 | 哨兵 `TestG2Sanli` 3 测先红（修前 L3/L3/L3）后绿（L1/L0/L4）；pytest **1266 passed+1xf**（1263→1266）；verify 四件套 **420**/70/64/20（总数不变，三锚就地改书判值：慈禧 ==4/差例三 ==0/副总 ==1）；regression67 副总 CAT2 standing ❌→✅ 自然闭合（vs baseline67 IMPROVE 1 条、0 新增回归；`hunyin:离婚` 既存 ALARM 不动，G1 §五-4；baseline67 未重钉）；**blind vs `snapshots/20261017_c1.json`（LATEST）不写基线**：heldout **0 翻转**；trainset 5 翻转 + 文本抖动 17 条**逐案归因全闭合**（2 变差=书内张力备案：reg67-伤食当财书读官杀为成势之党一员（:7280-7285）与否决谓词张力/yx-记者-2 通则 L1 vs 断语富；1 改善 yx-富富有百万巨富→富归位；2 换档 ✅→✅；抖动含副总/差例三本尊自证合书、朱元璋 sanhe 豁免 L4 帝王归位、9 例克链剔边文本微调打分不变）；六维 Δ 噪声带内（trainset 财 +0.9%）；check_layering+check_typing_imports+check_doc_numbers 全过；README/KB 验证数字同步（1266/1267 collected）。基线推进留主代理统一换基线（F6 先例）；预注册=`docs/kimi-g2-sanli-prereg-20261017.md`、设计稿 §6.4 实施结果 |
 
-## 2026-10-17 G1 · 做功层次体系收编批（zuogong_confirm L0-L5 类型计数体系废除，gongliang 收编为做功层次唯一事实源；公共 API 变更；设计稿+预注册先行）
+## 2026-10-17 G1 · 做功层次体系收编批（zuogong_confirm L0-L5 类型计数体系废除，gongliang 收编为做功层次唯一事实源；公共 API 变更；设计稿+预注册边界）
 
 | 项目 | 内容 |
 |------|------|
@@ -715,16 +725,17 @@
 | 翻转明细（全预注册） | trainset 财 **61→63✅**（+2，预警带 +1~3 内，M3 噪声带内，CI 下界 44.8%→46.6%）：cj-教授 ❌→✅（巨富→小康）/zj-案例I ⚠️→✅（富→小康）/yx-贫穷命贫困线上 ❌→⚠️（改善非✅）；**官 102✅/职 41✅ 零翻转**；heldout 三维**零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）；文本抖动 1 条（yx-书法家-2 caiming_adjust 条款文本，设计内；佛具/普金全量轨岁运反局先行压档条款 no-op=良性偏差备案） |
 | 验证 | 哨兵 `test_t_jiaoshou_caiming.py` 6 测先红（3）后绿；pytest **1113 passed+1xf**；verify 432+70+64+20；双 seed 剥 _meta 逐字节一致；67/famous 无变化（马云不回归）；calib 常驻 2 条零新增（pytest 19 测全绿）；check_layering+check_typing_imports 通过；3.11.15/3.14.4 双版本 blind 冒烟剥 _meta 逐字节一致（blind 链路不触 sxtwl）。换基线 **`snapshots/20260918_t1.json`** + LATEST 推进；预注册=`docs/kimi-t-jiaoshou-caiming-prereg-20260918.md`，详账=backlog T-教授节 |
 
-## 2026-09-18 P4 · 职业军警新面批（引擎精度批 P 系列第四批=收官批·判定改动批；预注册先行；objective muku 纯增量+zhiye military 窄消费）
+## 2026-09-18 P4 · 职业军警新面批（引擎精度批 P 系列第四批=收官批·判定改动批；预注册与偏差复核；objective muku 纯增量+zhiye military 窄消费）
 
 | 项目 | 内容 |
 |------|------|
 | 检测面（objective 纯增量） | `muku.py` 新增 `detect_ku_zhi_ku(zhis)`：库制库=阳库（辰戌，阳土）收/刑 阴库（丑未，阴土），阳库恒为制方（阳制阴）；收=is_entomb 四库之土入辰墓（收式唯辰，戌论冲开不入墓），刑=丑戌/戌未；阳库冲阴库十二支不存在，kind∈{收,刑} 完备。**analyze_muku/is_entomb 等既有输出零改动**（muku 13 消费方契约不变，F2 先例全量回归=六件套实证零回归） |
 | 消费条款（zhiye military，贵气门**外**） | `_score_military` F15 块后：**库制库·阳制阴（墓用执法象）+6**，要件与门=① detect_ku_zhi_ku 命中 ② 阴库成双多见（丑≥2 或未≥2，墓用结构条件2「有物可墓…成势、多见」gaoji:2190-2194+案例三双丑/例四双未明文）。墓用结构=格局级做功（gaoji:2177-2182）不走贵气门（:11956 管 8.2 字级组合）；mingju_xiong 军警 gating 照旧撤分。书锚 gaoji:2401-2417「阳库收阴库…阳制阴…实际为警察」+:11747-11756「戌未相刑，刑开官杀库…入兵营掌权之象」+:11630 丑=阴库公安象 |
-| 翻转明细（全预注册） | trainset 职 **40→41✅**（+1：gj-警察墓库 merchant 7→military 7 tie_pri 胜出；⚠️ 预警带 +2~4 未达=偏差备案，库制库书锚仅 2 例同构，不为追指标放宽条款）；**官 102✅/财 61✅ 零翻转**；heldout 三维**零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）；**文本抖动 0**；命中面 12 例归因=数亿坐牢/qi22 无职 verdict 快照不收、足球/建筑-2/8721/qi50 分数升 primary 不变、li139/qi05/li141 gating 撤分（li141=岁运反局流年破坏功神） |
+| 翻转明细（预注册与偏差） | trainset 职 **40→41✅**（+1：gj-警察墓库 merchant 7→military 7 tie_pri 胜出；⚠️ 预警带 +2~4 未达=偏差备案，库制库书锚仅 2 例同构，不为追指标放宽条款）；**官 102✅/财 61✅ 零翻转**；heldout 三维**零翻转零抖动**（官 48✅/财 47✅/职 24✅ 保）；**文本抖动 0**；命中面 12 例归因=数亿坐牢/qi22 无职 verdict 快照不收、足球/建筑-2/8721/qi50 分数升 primary 不变、li139/qi05/li141 gating 撤分（li141=岁运反局流年破坏功神） |
 | 军警探针 | 8.2 书例探针 **3/10→4/10**：军官例四（戌未刑开杀库，mil 1→7 过阈）归位 military——F15 贵气门备案由墓用结构通道承接（旧哨兵「无 8.2/戌武库 evidence」仍成立）；例二（margin 6）/例九（margin 1）锚条款结构性不命中逐字不动；yx-科级 collateral 不复现（阴库 0） |
 | 收档 | 8.2 例三/五/六/七/八/十+军警备案簇余（岳飞/戴笠/reg67-公安/yx-公安）+「库藏何物」分级加权（两锚各执无第三锚）——理由=backlog P4 节/预注册 §七 |
-| 验证 | 哨兵 `test_p4_zhiye_kuzhiku.py` 10 测先红后绿；pytest **1107 passed+1xf**；verify 432+70+64+20；双 seed 逐字节一致；67/famous 无变化；calib 常驻 2 条零新增；M2 财命七组双集逐字不动；check_layering+check_typing_imports 通过；3.11/3.14 冒烟逐字节一致。换基线 **`snapshots/20260918_p4.json`** + LATEST 推进；预注册=`docs/kimi-p4-zhiye-muku-prereg-20260918.md`，详账=backlog P4 节。**P 系列收官**：P1-P4 四批全落地（trainset 官 96→102✅/财 59→61✅/职 40→41✅，heldout 三维四批贯穿零回退） |
+| 后续回退 | `shouke-li141-名笔杆子` 在批6由 ⚠️→❌，是岁运 gating 解除后 P4 库制库 +6 生效的有序回退，不能再写「官/职零翻转」或「P1-P4 全程零回退」 |
+| 验证 | 哨兵 `test_p4_zhiye_kuzhiku.py` 10 测先红后绿；pytest **1107 passed+1xf**；verify 432+70+64+20；双 seed 逐字节一致；67/famous 无变化；calib 常驻 2 条零新增；M2 财命七组双集逐字不动；check_layering+check_typing_imports 通过；3.11/3.14 冒烟逐字节一致。换基线 **`snapshots/20260918_p4.json`** + LATEST 推进；预注册=`docs/kimi-p4-zhiye-muku-prereg-20260918.md`，详账=backlog P4 节。**P 系列收官**：P1-P4 四批全落地（trainset 官 96→102✅/财 59→61✅/职 40→41✅，heldout 的 li141 在后续批6发生 ⚠️→❌ 有序回退，不称四批贯穿零回退） |
 
 ## 2026-09-18 P3 · 财命残簇批（引擎精度批 P 系列第三批·判定改动批；预注册先行；caiming 消费侧，objective 零改动）
 
@@ -746,14 +757,14 @@
 | 翻转明细（全预注册） | trainset 官 **100→102✅**（+2，方案带 +2~5 下沿；M3 噪声带内，CI 下界 79.6%→81.6%）：cj-2206（A12）/cj-1395（A17）；**财/职零翻转**；heldout 三维**零翻转**（官 48✅/财 47✅/职 24✅ 保）；文本抖动 2 条（cj-妓女/shouke-qi23-闹婚不离 veto_reasons 岁运反局剥除连锁——A12 夫宫分流后官命域 veto 链收窄不再适用，机制设计内，两例官命维 unscorable 零评分影响） |
 | 验证 | 哨兵 `test_p2_guanming_fp.py` 10 测先红（5 红）后绿；pytest **1087 passed+1xf**；verify 432+70+64+20；双 seed 逐字节一致（同 note 复跑 cmp 一致）；67/famous 无变化；calib 常驻 2 条零新增；四保护锚（cj-2097/yx-部长/朱元璋/reg67-公安+cj-公安附验）margin 检验全保+A4 印类方向门 10 锚复验全 True；check_layering+check_typing_imports 通过；3.11/3.14 冒烟一致。换基线 **`snapshots/20260918_p2.json`** + LATEST 推进；预注册=`docs/kimi-p2-guanming-prereg-20260918.md`，详账=backlog P2 节 |
 
-## 2026-09-18 P1 · 官命检测簇批（引擎精度批 P 系列首批·判定改动批；预注册先行）
+## 2026-09-18 P1 · 官命检测簇批（引擎精度批 P 系列首批·判定改动批；预注册与偏差边界）
 
 | 项目 | 内容 |
 |------|------|
 | A8 支杀化印（新检测面） | `zuogong_detect._scan_shayin_huayong` 新 type='支杀化印' 与 '杀印相生' **并列**（明杀透干门未动）：杀不透干+印 active+杀支与印支六合/半合+杀支非旬空（日/年并参，反锚 shouke:5768 li112 足球队教练）；**仅入 work_actions 不进 work_types**——化用主功/功量链结构性不可达（化用虚高 4 锚免疫）。书锚 chuji:1369-1371/zhongji:3911·3932/shouke:6648 |
 | A19 食合官支（新检测面+G9 扩展消费边） | `guanming` G9 循环扩展：非日柱激活自合柱+柱干食伤+坐支主气官杀 → combo '合制·食合官支'；**时柱主位门**（zhongji:3683 规则三）+**官支入墓门**（入墓不做功，反锚 lixiangxue:6340 普例1「巳入戌墓…普通人」）。书锚 chuji:1751-1756（cj-主席） |
 | A11 贼捕制印（新消费边 zeishen→guanming） | `zeishen_bushen` 新公开 `detect_zeibu_dangshi`（党势级贼捕轴：贼虚透+捕党≥6.0 太旺+捕/贼≥3+原神不救）；`guanming` 消费：贼=印→combo '贼捕制印'（入印类家族，方向门禁令沿用）、贼=官杀→'贼捕制官杀'（G3 同口径门）。书锚 chuji:380-385/zhongji:3855-3857/gaoji:11171·11380；zeishen 既有输出与 engine.py 零改动 |
-| 翻转明细（全预注册） | trainset 官 **96→100✅**（+4，方案带 +3~5 内；M3 噪声带内，CI 下界 75.6%→79.6%）：cj-正处级化杀/cj-书记/cj-主席/cj-戴笠（机制类书锚路径，已声明）；**财/职零翻转**；heldout 三维**零翻转零抖动**（官 48✅ 保）；文本抖动 1 条（zj-平常八字 veto 剥除，A8 门槛设计内） |
+| 翻转明细（3+1） | trainset 官 **96→100✅**（+4，方案带 +3~5 内；M3 噪声带内，CI 下界 75.6%→79.6%）：预注册规则命中 3 条（正处级化杀/书记/戴笠），事后改门命中 1 条（cj-主席，官党太旺门改为时柱主位门+官支入墓门）；**财/职零翻转**；heldout 三维**零翻转零抖动**（官 48✅ 保）；文本抖动 1 条（zj-平常八字 veto 剥除，A8 门槛设计内） |
 | 验证 | 哨兵 `test_p1_guanming_zeibu.py` 11 测先红后绿；pytest **1077 passed+1xf**；verify 432+70+64+20；双 seed 逐字节一致；67/famous 无变化；calib 常驻 2 条零新增；化用虚高 4 锚+A4 印类方向门 10 锚复验全保；check_layering+check_typing_imports 通过；3.11/3.14 冒烟一致。换基线 **`snapshots/20260918_p1.json`** + LATEST 推进；预注册=`docs/kimi-p1-guanming-prereg-20260918.md`，详账=backlog P1 节 |
 
 ## 2026-09-18 L1 · 遗留清理批（引擎精度批紧前批，单批两阶段一次换基线；引擎判定/score 零改动）

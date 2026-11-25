@@ -1,6 +1,8 @@
 # P2 官命 fp 窄修簇批 · 预注册清单（动工前，2026-09-18）
 
-> 依据：`kimi-engine-precision-plan-20260918.md` P2 节。基线=`snapshots/20260918_p1.json`（trainset 官 100✅/15❌ n=115；heldout 官 48✅/18❌ n=66；trainset 财 59✅/职 40✅）。
+> 存证边界：本文件与实现同一次提交，不能单独证明先定后做；“预注册”仅指原任务书预期区间。原 `/tmp` 探针未公开，现有哨兵为独立复核入口，不冒充原探针。
+
+> 依据：`docs/archive/tasks/kimi-engine-precision-plan.md` P2 节。基线=`snapshots/20260918_p1.json`（trainset 官 100✅/15❌ n=115；heldout 官 48✅/18❌ n=66；trainset 财 59✅/职 40✅）。
 > 本清单于动代码**之前**完成：探针枚举全部 509 例两条款命中面（/tmp/p2_probe.py + 内联探针），当前引擎状态与基线快照一致（trainset 官 ❌15 名单逐例核对）。
 > 偏差声明①：任务书称四保护锚「均在 trainset cases.yaml 可查到」，实测**朱元璋仅在 heldout**（shouke-qi47-朱元璋）——以只评估不反推方式作保护锚核验（不以其设计条款），特此备案。
 > 偏差声明②：KB §6.2 只给 A13-A18 类型名未给 case id，本批以代码+书原文实测定位（见下表），fp 簇 7 = cj-2206 + 下列 6 例；散落 1 = zj-工薪无官（§6.5 F11 已收档，软断语）。
