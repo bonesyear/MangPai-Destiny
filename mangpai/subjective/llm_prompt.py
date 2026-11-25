@@ -28,7 +28,7 @@ SCHEMA_SPEC = """\
   "迁移": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"},
   "相貌": {"conclusion": "≤100字", "basis": [...], "confidence": "高|中|低"}
 }
-- 七个维度键固定，缺一不可；某维特征数据为空（引擎未判定）则 conclusion 写「数据不足」，basis 给空数组 []。
+- 七个维度键固定，缺一不可；顶层只允许这七个键，禁止拼接维度名、添加占位键或用后缀复制已有维度，不得输出任何其他顶层键。某维特征数据为空（引擎未判定）则 conclusion 写「数据不足」，basis 给空数组 []。
 - basis 数组每项 = 输入特征 JSON 中**逐字照抄**的字段路径，点分隔（如 "caiming.tier_static"、"gongliang.level"、"zuogong.work_types"），程序会逐条回解析，路径不存在即判违规——只引真实存在的字段，子键拿不准宁缺毋编，不得按命理常识臆测键名（特征 JSON 里没有的键一律不写）。
 - 数组字段（如 xiangfa_ops.juxiang、xiangfa_ops.all_findings、zuogong.work_actions、liunian_analysis.liunian）只允许引用数组名本身；禁止任何形式的下标（如 "xiangfa_ops.juxiang[7]"、"juxiang.7"），也禁止把数组当字典按内容取键（如 "juxiang.寒湿"）。
 - conclusion 措辞强度不得超出引擎断言：引擎给档位/倾向（如财命四档、官命是/否、灾祸风险档），你只能用同级或更弱措辞；引擎未给的具体金额、次数、年份、岁数一律不许编造，宁可断方向不断数。

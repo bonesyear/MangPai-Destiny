@@ -1124,6 +1124,14 @@ def test_r1_l0_rejects_extra_dimension():
     assert _l0_schema(_good()) == []
 
 
+def test_s1_prompt_rejects_derived_dimension_keys():
+    """S1 两例真实输出七维齐全仍追加派生键，生产 prompt 须明确禁止。"""
+    from mangpai.subjective.llm_prompt import build_system_prompt
+    prompt = build_system_prompt('')
+    for rule in ('顶层只允许', '拼接维度名', '占位键', '后缀复制'):
+        assert rule in prompt
+
+
 def test_r2_user_question_isolated_in_prompt():
     """批R②：所问改用 JSON 字段隔离并限长，不真调 LLM，只验 prompt 文本。
     （所问仅为问题上下文，指令性文字不改规则/锚定）。不真调 LLM，只验 prompt 文本。"""
