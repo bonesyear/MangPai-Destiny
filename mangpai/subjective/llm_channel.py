@@ -484,8 +484,11 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                     i = t.find(w, i + 1)
                     continue  # 「倒是官带财帽」让步/术语族（N2 r3 yx-富钢材生意发财假阳）
                 # 前后各 5 字符内有有效否定（不是…/…否决/无缘/难成…）视为否定语境放行；
+                # 另识别明确否定谓语，不扩大窗口，避免误放「官命格成立」；
                 # 修批F①：同财档口径——否定单位须同子句，双重否定/反语肯定不免
                 if not (_neg_in_pre(t, i) or _neg_in_post(t, i + len(w))
+                        or t[i + len(w):].startswith(
+                            ('判否', '一栏是否', '是否定的', '这一块是凶向否决'))
                         or t[i - 1:i] in ('难', '无')):
                     v.append({'layer': 'L2',
                               'detail': f'事业 与引擎官命=否矛盾：「{w}」'})

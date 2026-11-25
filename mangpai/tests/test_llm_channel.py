@@ -110,6 +110,15 @@ def test_l2_guanming_contradiction():
     # 窗口外仍拦真矛盾：无任何否定语境的正向断言
     data['事业']['conclusion'] = '此人是官命，能当官，仕途顺遂'
     assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    for s in ('官命判否，并非仕途掌权的格',
+              '官命一栏是否，权柄无',
+              '官命是否定的，凶向直接把官命否决了',
+              '官命这一块是凶向否决的，非官命，权柄判无'):
+        data['事业']['conclusion'] = s
+        assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
+    data['事业']['conclusion'] = '官命格成立，但层次未定、权柄不明'
+    assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
 
 
 def test_l2_death_redline():
