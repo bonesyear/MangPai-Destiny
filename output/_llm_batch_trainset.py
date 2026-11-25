@@ -21,7 +21,7 @@ from _eval_common import (
     FEWSHOT_CONTAMINATED_IDS, engine_fe, load_batch, summarize_costs)
 from mangpai.subjective.llm_backend import (
     call_deepseek, LLMBackendError, _API_URL, _env_value)
-from mangpai.subjective.llm_channel import build_prompts, validate_reading
+from mangpai.subjective.llm_channel import build_prompts, validate_reading, _loads_reading_json
 from mangpai.tests.heldout.blind_eval import _git_sha, _worktree_meta
 
 RUN_ID = os.environ.get('LLM_BATCH_RUN_ID') or datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
@@ -87,7 +87,7 @@ def run_case(case, state=None):
         rec['thinking'] = resp.get(
             'thinking', (_env_value('MANGPAI_LLM_THINKING', '1') or '1') != '0')
         try:
-            data = json.loads(resp['text'])
+            data = _loads_reading_json(resp['text'])
         except json.JSONDecodeError as e:
             rec['parse_error'] = str(e)
             rec['raw'] = resp['text'][:500]

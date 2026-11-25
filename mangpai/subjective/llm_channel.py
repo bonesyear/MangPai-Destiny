@@ -113,16 +113,20 @@ _QIANYI_FORBID = ('出国', '移民', '海外', '国外', '外国',
 _XIANGMAO_FORBID = ('漂亮', '美', '丑', '帅', '标致', '水灵', '清秀', '端庄',
                     '英俊', '好看', '靓丽', '俊俏', '颜值高', '姿色')
 # 相貌排除窗（E7 窗口机制同族，但按相邻字判定更准——±5 窗会放跑真结论词）：
-# 「美元」货币、「丑时」时辰、「X丑」干支 非相貌结论词，放行。
+# 「美元」货币、「丑时」时辰、「X丑」及独立「丑」地支搭配，非相貌结论词，放行。
 _STEMS = '甲乙丙丁戊己庚辛壬癸'
+_BRANCHES = '子丑寅卯辰巳午未申酉戌亥'
 
 
 def _xiangmao_exempt(text: str, w: str, j: int) -> bool:
-    """相貌禁词命中处的排除窗：美元/丑时/干支（X丑）不计。"""
+    """相貌禁词排除窗：美元/丑时/干支及独立丑地支搭配不计。"""
     if w == '美' and text[j + 1:j + 2] == '元':
         return True
-    if w == '丑' and (text[j + 1:j + 2] == '时'
-                      or (j > 0 and text[j - 1] in _STEMS)):
+    if w == '丑' and (
+            text[j + 1:j + 2] == '时'
+            or (j > 0 and text[j - 1] in _STEMS + _BRANCHES)
+            or text[j + 1:j + 2] in _BRANCHES + '土库墓月年日运未戌合冲刑穿破害马本空临'
+            or (text[j + 1:j + 2] == '、' and text[j + 2:j + 3] in _BRANCHES)):
         return True
     return False
 
@@ -629,6 +633,14 @@ def build_prompts(
     return system, user
 
 
+def _loads_reading_json(raw: str):
+    """仅剥离模型偶尔回显的 response_format 前缀，其他多余文本仍拒绝。"""
+    prefix = '{"type":"json_object"}'
+    if raw.startswith(prefix):
+        raw = raw[len(prefix):].lstrip()
+    return json.loads(raw)
+
+
 def render_structured_reading(
     engine_result: Dict[str, Any],
     user_question: Optional[str] = None,
@@ -664,7 +676,7 @@ def render_structured_reading(
         _logger.warning('LLM 输出类型非法或超长，不予展示')
         return f"[LLM 输出非合法 JSON，不予展示 | 类型非法或超过16000字符]\n{_DISCLAIMER_LINE}"
     try:
-        data = json.loads(raw)
+        data = _loads_reading_json(raw)
     except ValueError as e:
         _logger.warning('LLM 输出非合法 JSON，不予展示（%s）', type(e).__name__)
         return f"[LLM 输出非合法 JSON，不予展示 | {type(e).__name__}]\n{_DISCLAIMER_LINE}"

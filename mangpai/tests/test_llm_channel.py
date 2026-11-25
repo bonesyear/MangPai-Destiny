@@ -425,6 +425,18 @@ def test_l2_xiangmao_redline():
         assert not any('相貌' in x['detail'] for x in v), s
 
 
+def test_l2_chou_branch_exemptions():
+    data = _good()
+    for s in ('时支丑库，申为传送', '丑、午、未三马都带官星',
+              '支上5到10岁丑冲刑开未墓库', '月柱丑本是财库',
+              '刑开丑库有功、合闭丑库', '戌刑月柱丑墓库', '丑临门户主车',
+              '子丑合绊', '巳酉丑三合'):
+        data['应期']['conclusion'] = s
+        assert not any('触禁结论词' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
+    data['相貌']['conclusion'] = '丑陋不堪'
+    assert any('触禁结论词' in x['detail'] for x in _l2_enum(data, _ENGINE))
+
+
 def test_qianyi_anchor():
     # N1：有信号盘列 marker+应期窗+禁令；无信号盘明令不得断言迁移
     from mangpai.subjective.llm_prompt import _qianyi_anchor

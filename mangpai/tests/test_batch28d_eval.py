@@ -194,6 +194,19 @@ def test_batch_run_case_records_reproduction_metadata(monkeypatch):
     assert rec['features'] and rec['model'] == 'mock'
 
 
+def test_batch_run_case_accepts_response_format_prefix(monkeypatch):
+    import _llm_batch_trainset as batch
+
+    reading = {dim: {'conclusion': '数据不足', 'basis': [], 'confidence': '低'}
+               for dim in ('性格', '事业', '财运', '婚姻', '应期', '迁移', '相貌')}
+    monkeypatch.setattr(batch, 'call_deepseek', lambda *args: {
+        'text': '{"type":"json_object"}\n' + json.dumps(reading),
+        'usage': {}, 'cost_cny': None, 'model': 'mock'})
+    rec = batch.run_case(_synthetic_case())
+    assert 'parse_error' not in rec
+    assert rec['reading'] == reading
+
+
 def test_batch_budget_stops_before_llm(monkeypatch):
     import _llm_batch_trainset as batch
 
