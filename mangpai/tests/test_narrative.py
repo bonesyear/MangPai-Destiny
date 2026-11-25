@@ -245,6 +245,22 @@ def test_validate_band_must_match_caiming():
     assert not any(v['kind'] == 'band' for v in r2['violations'])
 
 
+def test_validate_ganzhi_time_references_and_pronouns():
+    one = {'dayun_analysis': {'dayun': [{'gz': '庚辰'}]}}
+    r = validate_narrative_numbers('庚辰年变动，这一年有迁移。', one)
+    assert not any(v['kind'] == 'year' and v['text'] in ('庚辰年', '这一年') for v in r['violations'])
+
+    two = {'dayun_analysis': {'dayun': [{'gz': '辛卯'}]},
+           'liunian_analysis': {'liunian': [{'gz': '己卯'}]}}
+    r = validate_narrative_numbers('辛卯运和己卯年，这两年反而停留。', two)
+    assert not any(v['kind'] == 'year' and v['text'] in ('己卯年', '这两年') for v in r['violations'])
+
+    r = validate_narrative_numbers('辛巳年反局。', one)
+    assert any(v['kind'] == 'year' and v['text'] == '辛巳年' for v in r['violations'])
+    r = validate_narrative_numbers('运干那五年偏财到路。', two)
+    assert any(v['kind'] == 'year' and v['text'] == '五年' for v in r['violations'])
+
+
 def test_render_mark_mode_appends_note(monkeypatch):
     monkeypatch.setattr(_narr, '_call_llm', lambda s, u, model=None: '你1999年升官。')
     out = _narr.render_hao_narrative(_ER, call_llm=True, validate='mark')

@@ -465,6 +465,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     """从引擎结果抽取数字白名单（年份/年龄/计数/金额档），供断语数字回对。
 
     - years: 结果 JSON 中全部 1800-2099 四位数（出生年/流年年/交运日期等）；
+    - ganzhi: 大运/流年记录中的实际运岁干支，供干支年及这/那+一/两年回对；
     - ages: 大运 start_age/end_age 整数 + 当前年龄（当前年−出生年）+ 大限宫位边界；
     - counts: 上下文计数（N步大运/N流年/入墓N处/锁N/命中N法/约N个/
       gongliang level/score/gong_points 等）；
@@ -472,6 +473,11 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     years, ages, counts, bands = set(), set(), set(), set()
+    ganzhi = set()
+    for section, key in (('dayun_analysis', 'dayun'), ('liunian_analysis', 'liunian')):
+        for item in (engine_result.get(section) or {}).get(key) or []:
+            if isinstance(item, dict) and item.get('gz'):
+                ganzhi.add(item['gz'])
     try:
         blob = json.dumps(engine_result, ensure_ascii=False, default=str)
     except (TypeError, ValueError):
@@ -501,7 +507,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     cm_blob = str(cm.get('summary', '')) + str(cm.get('tier', ''))
     for m in re.finditer(r'(百亿|千亿|数十亿|千万|百万|十万|亿|万)', cm_blob):
         bands.add(m.group(1))
-    return {'years': years, 'ages': ages, 'counts': counts, 'bands': bands}
+    return {'years': years, 'ages': ages, 'counts': counts, 'bands': bands, 'ganzhi': ganzhi}
 
 
 def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -532,6 +538,8 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
             violations.append({'text': m.group(0), 'kind': 'year',
                                'detail': f'{m.group(1)}年无对应引擎年份'})
     for m in _GZ_YEAR_RE.finditer(text):
+        if m.group(0)[:2] in wl['ganzhi']:
+            continue
         ys = _gz_years(m.group(0)[:2])
         if not any(y in wl['years'] for y in ys):
             violations.append({'text': m.group(0), 'kind': 'year',
@@ -568,9 +576,13 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
                 violations.append({'text': m.group(0), 'kind': 'count',
                                    'detail': f'{m.group(1)}不在引擎计数白名单'})
 
-    # 中文年限及「载」与短年份同样回对，不让顶多一年/两载逃逸。
+    # 中文年限及「载」与短年份同样回对，不让顶多一年/两载逃逸；
+    # 这/那+一/两年仅在运岁干支参照数足够时豁免，其他时长仍回对。
     for m in re.finditer(r'([一二两三四五六七八九十]{1,6}年|[一二两三四五六七八九十]{1,6}载|\d{1,2}载)', text):
         raw_n = m.group(1)[:-1]
+        if (raw_n in ('一', '两') and text[m.start() - 1:m.start()] in ('这', '那')
+                and len(wl['ganzhi']) >= _cn_to_int(raw_n)):
+            continue
         n = int(raw_n) if raw_n.isdigit() else _cn_to_int(raw_n)
         if n is not None and not any(y % 100 == n for y in wl['years']):
             violations.append({'text': m.group(0), 'kind': 'year',
