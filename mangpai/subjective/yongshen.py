@@ -25,8 +25,8 @@
    - 只取**紧贴**（相邻柱）六合/五合（段氏原文「紧贴相合为绊」）；
    - 地支六合按受害方判定（与 objective.he_types 合克/合伤/闭气口径一致：
      子丑=两伤、卯戌=戌伤、巳申=申伤、辰酉=辰伤、寅亥=寅伤、午未=未伤），
-     受害方十神为用神才触发——森田健「卯戌合绊，戌根失去力量」（戌为受害
-     方）正例；午未闭气受害方为未（库），午不受绊，故李嘉诚未午合不触发；
+     受害方十神为用神才触发；但三合成局支撑的合制、主财生宾官后的拆桥
+     之合是做功，不按失用论；午未闭气受害方为未（库），午不受绊，故李嘉诚未午合不触发；
    - 天干五合互绊（合即互绊失去原性），但只判他干紧贴（年干×月干），
      日干参与之合（合财/合官）属 zuogong「合用」做功层，不在此论；
    - 中和/不明不定用忌，不触发（防过火）。
@@ -1609,7 +1609,8 @@ def detect_heban_yongshen(
     **做功参与抑制**：受绊方若同时参与非辅助**冲**（from/to 任一），则该神
     已入局交战、未「失去原性」，合不能废其用——不触发（段氏「相冲可破局破合…
     相合与相冲兼论」之义；奥纳西斯 未午合而未入丑未冲做功，段氏论巨富不论绊）。
-    穿与合兼论，不自动解合；克/刑/破不参与抑制。
+    三合成局之支所透天干克合他干为合制，主财生宾官后宾字合官为过河拆桥，
+    均有直接书证，不按一般受绊；穿与合兼论，不自动解合；其余克/刑/破不参与抑制。
     **合化豁免已删（书明文禁止化气读法）**：理象学:2311「地支六合并不讲合化，
     只讲合」；shouke:2574「千万不要理解成卯戌合化火助日主，六合以合为主，
     化是极其微弱的」。合绊受害照判，不再以「合化出喜用」豁免凶绊（旧豁免的
@@ -1629,11 +1630,20 @@ def detect_heban_yongshen(
         return {'detected': False, 'severity': None, 'reason': '', 'strength': strength}
 
     # 做功参与抑制：收集非辅助冲的参与柱位；穿与合兼论，不自动解合。
+    actions = _ensure_work_actions(day_gan, gans, zhis, work_actions)
     engaged: Set[str] = set()
-    for a in _ensure_work_actions(day_gan, gans, zhis, work_actions):
-        if a.get('auxiliary'):
-            continue
-        if a.get('type', '') != '冲':
+    sanhe_hezhi_gans: Set[str] = set()
+    for a in actions:
+        if a.get('type') == '三合局':
+            branches = {zhis[_PK4.index(p[:-4])] for p in a.get('participants') or []
+                        if p.endswith('_zhi') and p[:-4] in _PK4}
+            changed = next((wx for he, wx in SAN_HE.items() if set(he) == branches), '')
+            for p in a.get('participants') or []:
+                if p.endswith('_zhi') and p[:-4] in _PK4:
+                    idx = _PK4.index(p[:-4])
+                    if changed and GAN_WX.get(gans[idx]) == changed:
+                        sanhe_hezhi_gans.add(f'{_PK4[idx]}_gan')
+        if a.get('auxiliary') or a.get('type', '') != '冲':
             continue
         fp, tp = a.get('from_pos', ''), a.get('to_pos', '')
         if fp:
@@ -1709,8 +1719,17 @@ def detect_heban_yongshen(
                         and GAN_WX.get(day_gan) in TOMB_MAP.get(z, [])):
                     continue  # 主位合日主比劫之墓是做功，不按本气财星合绊（理象学:11591）
                 if (is_main and cat in js) or (not is_main and cat in ys):
-                    partner = zhis[i + 1] if j == i else zhis[i]
+                    partner_idx = i + 1 if j == i else i
+                    partner = zhis[partner_idx]
                     pcat = _wx_cat(dw, ZHI_WX.get(partner, ''))
+                    partner_pos = f'{_PK[partner_idx]}_zhi'
+                    if (not is_main and partner_idx < 2 and pcat == '官杀'
+                            and any(a.get('type') == '生'
+                                    and a.get('from_pos') in ('day_zhi', 'hour_zhi')
+                                    and a.get('to_pos') == partner_pos
+                                    and _pos_main_wx(a['from_pos'], gans, zhis) == cai_wx
+                                    for a in actions)):
+                        continue  # 主财生宾官、宾字合官=过河拆桥，合官之字是功神（中级:2995-2999）
                     if j == 2 and cat in js and pcat == '财' and pcat in ys:
                         continue  # 日支得财来合是得财，不按本气为忌合绊（理象学:6757）
                     if (cat in ys and pcat in ys
@@ -1739,6 +1758,10 @@ def detect_heban_yongshen(
         for j, g in ((0, g0), (1, g1)):
             cat = _wx_cat(dw, GAN_WX.get(g, ''))
             if cat in ys and f'{_PK[j]}_gan' not in engaged:
+                partner_idx = 1 - j
+                if (f'{_PK[partner_idx]}_gan' in sanhe_hezhi_gans
+                        and WX_KE.get(GAN_WX.get(gans[partner_idx], '')) == GAN_WX.get(g, '')):
+                    continue  # 合方坐三合成局之支且克被合方=合制（理象学:6482），非失用
                 if j == 1 and TIAN_GAN_HE.get(day_gan) == g:
                     continue  # 日主合用做功（从格顺势合财=得财），月干用神未失原性
                 if cong_hequ_exempt:

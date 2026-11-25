@@ -126,16 +126,41 @@ class TestR2CangguanTongguan:
 # ───────────────────── R3 用神被合绊 ─────────────────────
 
 class TestR3HebanYongshen:
-    def test_r3_morita_ken_huaqi_exempt(self):
-        """森田健 辛戊己癸/卯戌亥酉：身弱，卯戌合绊戌（比劫用神、日主根）。
-        旧「卯戌合化火=印」合化出喜用豁免已删——书明文禁止六合化气读法
-        （理象学:2311「地支六合并不讲合化，只讲合」；shouke:2574「千万不要
-        理解成卯戌合化火助日主，六合以合为主，化是极其微弱的」），合绊受害
-        照判（此造财命翻转属书口径纠正，blind_eval 报明细）。"""
+    def test_r3_morita_ken_guohe_work_not_heban(self):
+        """森田健 辛戊己癸/卯戌亥酉：亥财生卯官，戌合卯是过河拆桥。
+        中级:2995-2999「戌合住了卯，要用戌」「只要把戌生旺了就行」，
+        戌是功神而非受绊失用；不恢复书明文禁止的卯戌化火豁免。"""
         r = detect_heban_yongshen('己', ['辛', '戊', '己', '癸'],
                                   ['卯', '戌', '亥', '酉'])
+        assert not r['detected']
+
+    def test_r3_guohe_requires_main_cai_sheng_bin_guan(self, monkeypatch):
+        """近反例：日支午非财，不生年支卯官，卯戌仍按普通合绊论。"""
+        monkeypatch.setattr(
+            'mangpai.subjective.yongshen.classify_strength',
+            lambda *_args: '身弱',
+        )
+        r = detect_heban_yongshen('己', ['辛', '戊', '己', '癸'],
+                                  ['卯', '戌', '午', '酉'])
         assert r['detected']
         assert any('戌' in h for h in r['hits'])
+
+    def test_r3_zhili2_sanhe_hezhi_not_heban(self):
+        """理象学:6482「丙辛合制」：丙坐寅午戌火局之午，合制辛非辛失用。"""
+        r = detect_heban_yongshen('戊', ['丙', '辛', '戊', '壬'],
+                                  ['午', '丑', '寅', '戌'])
+        assert not r['detected']
+
+    def test_r3_bingxin_heban_without_sanhe(self, monkeypatch):
+        """近反例：无寅午戌火局支撑时，丙辛紧贴仍按一般合绊论。"""
+        monkeypatch.setattr(
+            'mangpai.subjective.yongshen.classify_strength',
+            lambda *_args: '身强',
+        )
+        r = detect_heban_yongshen('戊', ['丙', '辛', '戊', '壬'],
+                                  ['子', '丑', '寅', '戌'])
+        assert r['detected']
+        assert any('辛' in h for h in r['hits'])
 
     def test_r3_onassis_suppressed_by_chong(self):
         """奥纳西斯 乙己己庚/巳丑未午：从强，未午合但未入丑未冲做功
@@ -198,8 +223,8 @@ class TestR3HebanYongshen:
         assert not r['detected']
 
     @pytest.mark.parametrize('zhis,strength,expected', [
-        (['卯', '戌', '子', '午'], '身弱', True),   # 宾位用神受绊：不吉
-        (['卯', '戌', '子', '午'], '身强', False),  # 宾位忌神受绊：吉
+        (['卯', '戌', '午', '子'], '身弱', True),   # 宾位用神受绊：不吉
+        (['卯', '戌', '午', '子'], '身强', False),  # 宾位忌神受绊：吉
         (['子', '午', '卯', '戌'], '身弱', False),  # 主位用神受绊：吉
         (['子', '午', '卯', '戌'], '身强', True),   # 主位忌神受绊：凶
     ])

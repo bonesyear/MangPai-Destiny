@@ -147,6 +147,19 @@ def test_wuxiang_ricai_qiucai_no_fan():
     assert '五行相克相背' not in (zf.get('reason') or '')
 
 
+def test_zhili2_rule2_sanhe_sheng_control_not_fan():
+    """理象学:6482-6486：戊生辛且日支寅入火局制辛，次要戊克壬不另立反局。"""
+    zf = _zf(['丙', '辛', '戊', '壬'], ['午', '丑', '寅', '戌'])
+    assert zf['type'] != 'fan'
+    assert '日主之功与日支之功相反' not in (zf.get('reason') or '')
+
+
+def test_qi02_sheng_without_sanhe_control_keeps_fan():
+    """shouke-qi02：乙生丙但无日支三合制丙，不得以日生为由撤销反局。"""
+    zf = _zf(['甲', '丙', '乙', '己'], ['申', '子', '丑', '卯'])
+    assert zf['type'] == 'fan'
+
+
 def test_rule2_day_gan_and_day_zhi_opposite():
     """中级:152-157：日主克戊土、日支申冲寅木，两种意向相克则反局。"""
     wa = [

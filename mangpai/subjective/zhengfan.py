@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
     PILLAR_KEYS, GAN_WX, ZHI_WX, WX_SHENG, WX_KE, WX_KE_ME,
-    TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP, CANG_GAN_MANGPAI, BAN_HE,
+    TIAN_GAN_HE, LIU_CHONG, LIU_HE, TOMB_MAP, CANG_GAN_MANGPAI, BAN_HE, SAN_HE,
 )
 from mangpai.objective.zihe import detect_zihe
 
@@ -311,12 +311,31 @@ def analyze_zhengfan(
     def _is_zhu(pos: str) -> bool:
         return pos.startswith(('day_', 'hour_'))
 
+    sheng_targets = {
+        _pos_element(wa.get('to_pos', ''), gans, zhis) for wa in work_actions
+        if not wa.get('auxiliary') and wa.get('relation_direction') != 'unknown'
+        and wa.get('from_pos') == 'day_gan' and wa.get('to_pos')
+        and wa.get('type') in ('生', '食伤')
+    }
+    sheng_targets.discard('')
+    sanhe_sheng_control = False
+    for wa in work_actions:
+        participants = wa.get('participants') or []
+        if wa.get('type') != '三合局' or 'day_zhi' not in participants:
+            continue
+        branches = {zhis[PILLAR_KEYS.index(p[:-4])] for p in participants
+                    if p.endswith('_zhi') and p[:-4] in PILLAR_KEYS}
+        changed = next((wx for he, wx in SAN_HE.items() if set(he) == branches), '')
+        if WX_KE.get(changed) in sheng_targets:
+            sanhe_sheng_control = True
+            break
     for wa in work_actions:
         if wa.get('auxiliary') or wa.get('relation_direction') == 'unknown':
             continue
         from_pos = wa.get('from_pos', '')
         to_pos = wa.get('to_pos', '')
-        if (wa.get('type') == '克' and from_pos == 'day_gan'
+        # 中级:145/理象学:6482：日支三合同制日主所生之神时，次要克不另立相反意向。
+        if (wa.get('type') == '克' and from_pos == 'day_gan' and not sanhe_sheng_control
                 and to_pos and not _k25_skip(wa, from_pos, to_pos)):
             gan_targets.append(to_pos)
         if from_pos == 'day_zhi' and to_pos:
