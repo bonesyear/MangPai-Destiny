@@ -261,6 +261,23 @@ def test_validate_ganzhi_time_references_and_pronouns():
     assert any(v['kind'] == 'year' and v['text'] == '五年' for v in r['violations'])
 
 
+def test_validate_dayun_segment_duration_references():
+    segmented = {'dayun_analysis': {'dayun': [{'gz': '丙午', 'segments': [
+        {'part': '干', 'start_age': 0, 'end_age': 5},
+        {'part': '支', 'start_age': 5, 'end_age': 10},
+    ]}]}}
+    r = validate_narrative_numbers('运干那五年偏财到路，运支那五年变动多。', segmented)
+    assert not any(v['kind'] == 'year' for v in r['violations'])
+
+    for phrase in ('运干那四年', '运支那十年', '那五年'):
+        r = validate_narrative_numbers(phrase + '有变动。', segmented)
+        assert any(v['kind'] == 'year' for v in r['violations']), phrase
+
+    segmented['dayun_analysis']['dayun'][0]['segments'][1]['end_age'] = 15
+    r = validate_narrative_numbers('运支那五年变动多。', segmented)
+    assert any(v['kind'] == 'year' and v['text'] == '五年' for v in r['violations'])
+
+
 def test_render_mark_mode_appends_note(monkeypatch):
     monkeypatch.setattr(_narr, '_call_llm', lambda s, u, model=None: '你1999年升官。')
     out = _narr.render_hao_narrative(_ER, call_llm=True, validate='mark')

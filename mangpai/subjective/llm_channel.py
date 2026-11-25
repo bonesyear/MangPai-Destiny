@@ -490,7 +490,7 @@ def _l2_enum(data: dict, engine_result: dict) -> list:
                 # 修批F①：同财档口径——否定单位须同子句，双重否定/反语肯定不免
                 if not (_neg_in_pre(t, i) or _neg_in_post(t, i + len(w))
                         or t[i + len(w):].startswith(
-                            ('判否', '一栏是否', '是否定的', '这一块是凶向否决'))
+                            ('为否', '判否', '一栏是否', '是否定的', '这一块是凶向否决'))
                         or t[i - 1:i] in ('难', '无')):
                     v.append({'layer': 'L2',
                               'detail': f'事业 与引擎官命=否矛盾：「{w}」'})

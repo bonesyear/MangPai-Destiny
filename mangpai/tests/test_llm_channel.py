@@ -116,6 +116,10 @@ def test_l2_guanming_contradiction():
               '官命这一块是凶向否决的，非官命，权柄判无'):
         data['事业']['conclusion'] = s
         assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
+    data['事业']['conclusion'] = '官命为否，权柄上写无'
+    assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    data['事业']['conclusion'] = '官命为是，权柄上写有'
+    assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
     data['事业']['conclusion'] = '官命格成立，但层次未定、权柄不明'
     assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
     assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
