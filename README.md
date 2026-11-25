@@ -49,7 +49,8 @@
 | verify_dayun / verify_layer1 / verify_layer3_checkpoint | 72 / 68 / 20 | ✅ |
 | pytest（含属性化测试 + 契约测试 + 错误注入测试 + mock 哨兵） | 2017 passed + 0 xfailed | ✅ |
 | blind_eval（heldout 214 + trainset 295 三维开发评估） | `LATEST=20261125_batch32.json`（rubric v10）；批次32仅制例二/过河拆桥 ❌→✅，零退化、零文本抖动，双 seed 一致 | ✅ 新基线零差异 |
-| 真实 LLM 冒烟 | Coding Plan ACP + DeepSeek 单例生产 prompt；七维/Schema/validate_reading 均通过，0违规、0 reject；DeepSeek 45,483 tokens，offpeak 估算 ¥0.0775605 | ✅ 单例通过（批量S1未做） |
+| 真实 LLM 冒烟 | Coding Plan ACP + DeepSeek 单例生产 prompt；七维/Schema/validate_reading 均通过，0违规、0 reject；DeepSeek 45,483 tokens，offpeak 估算 ¥0.0775605 | ✅ 单例通过（全量S1未做） |
+| 真实 S1 试点 | 30例冻结样本，14/27有效校验通过；2空内容、1解析失败、4例触发结构化 reject（7条）；总成本 ¥2.1691605 | ⚠️ 试点完成，非全量GO |
 | 真实飞书验收 | 用户决定永久结项，不再调用或安排验收；现有离线测试保留 | 已结项 |
 
 ## 入仓前的脱敏闸门
