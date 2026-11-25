@@ -374,6 +374,18 @@ def test_l1_remap_ambiguous_stays_violation():
     assert len(v) == 2 and remapped == []
 
 
+def test_l1_remap_same_value_distinct_objects_not_ambiguous():
+    feats = {'caiming': {'caifu_view': {'caixing_path': {'blockers': ['x']}},
+                          'blockers': ['x']},
+             'zuogong': {'work_types': ['化用']}}
+    data = _good()
+    data['性格']['basis'] = ['caiming.caixing_path.blockers']
+    remapped = []
+    v = _l1_basis(data, feats, remapped)
+    assert v == [] and len(remapped) == 1
+    assert remapped[0]['detail'].endswith('→ caiming.caifu_view.caixing_path.blockers')
+
+
 def test_l1_remap_empty_target_stays_violation():
     # remap 只治键名写错；映射到的真键为空仍记违规
     feats = {'xiangfa_ops': {'juxiang': []}, 'zuogong': {'work_types': ['化用']}}

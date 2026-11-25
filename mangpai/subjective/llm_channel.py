@@ -172,10 +172,10 @@ _LEAF_ALIAS = {'signals': 'factors'}
 def _remap_basis(features: dict, path: str):
     """近-miss 路径的唯一展开。返回 (真键, 值)；无唯一展开返回 (None, _MISSING)。"""
     segs = path.split('.')
-    cands = set()
+    cands = []
     # 规则 A：xiangfa.X → xiangfa_ops.X
     if segs[0] == 'xiangfa' and len(segs) > 1:
-        cands.add('xiangfa_ops.' + '.'.join(segs[1:]))
+        cands.append('xiangfa_ops.' + '.'.join(segs[1:]))
     # 规则 B：已解析前缀节点的直接子 dict 中，恰一个可接续剩余路径
     node, i = features, 0
     while i < len(segs) and isinstance(node, dict) and segs[i] in node:
@@ -186,19 +186,21 @@ def _remap_basis(features: dict, path: str):
         hits = [k for k, ch in node.items()
                 if isinstance(ch, dict) and _resolve(ch, rest) is not _MISSING]
         if len(hits) == 1:
-            cands.add('.'.join(segs[:i] + [hits[0]] + segs[i:]))
+            cands.append('.'.join(segs[:i] + [hits[0]] + segs[i:]))
     # 规则 C：删除一个中间段
     for j in range(1, len(segs) - 1):
-        cands.add('.'.join(segs[:j] + segs[j + 1:]))
+        cands.append('.'.join(segs[:j] + segs[j + 1:]))
     # 规则 D：叶键别名
     if len(segs) > 1 and segs[-1] in _LEAF_ALIAS:
-        cands.add('.'.join(segs[:-1] + [_LEAF_ALIAS[segs[-1]]]))
+        cands.append('.'.join(segs[:-1] + [_LEAF_ALIAS[segs[-1]]]))
     vals = {}
     for cand in cands:
         val = _resolve(features, cand)
         if val is not _MISSING:
             vals[cand] = val
-    uniq = {id(v): (k, v) for k, v in vals.items()}  # 多候选解析到同一对象=同一意图
+    uniq = {}
+    for k, v in vals.items():
+        uniq.setdefault(json.dumps(v, ensure_ascii=False, sort_keys=True, default=str), (k, v))
     if len(uniq) == 1:
         return next(iter(uniq.values()))
     return None, _MISSING
