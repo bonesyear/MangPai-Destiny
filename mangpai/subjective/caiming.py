@@ -59,6 +59,7 @@ caiming - 盲派财命定性·主观层（subjective）
 置信度：中
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
@@ -513,7 +514,7 @@ def _assess_caixing_path(
             heban.append(f'{PILLAR_NAMES_CN[_gi]}干{gans[_gi]}（财）坐{_zg}自合柱，'
                          f'被支中藏干合绊失用（48期天地合）')
     except Exception as e:
-        _logger.warning('自合柱检测失败，财来就我豁免跳过: %s', e, exc_info=True)
+        _logger.warning('自合柱检测失败，财来就我豁免跳过: %s', exception_log_detail(e))
         _zihe = {'compute_error': True}
     for i in range(3):
         a, b = zhis[i], zhis[i + 1]
@@ -573,7 +574,7 @@ def _assess_caixing_path(
             if GAN_WX.get(_dz.get('he_shen', ''), '') == cai_wx:
                 out['hecai_work'] = True
     except Exception as e:
-        _logger.warning('日主自合读取失败，G9 合财做功跳过: %s', e, exc_info=True)
+        _logger.warning('日主自合读取失败，G9 合财做功跳过: %s', exception_log_detail(e))
 
     # 财星虚透合财（理象学:6682-6684「身强或身弱，遇财星虚透合财时，要看此财
     # 代表什么，若无所指代，财虚主才能，不主财富」）：财透干而地支无本/中气
@@ -1716,7 +1717,7 @@ def assess_caiming_level(
         try:
             _dz2 = detect_zihe(gans or [], zhis or []).get('day_zihe')
         except Exception as e:
-            _logger.warning('自合柱检测失败，G9 升档跳过: %s', e, exc_info=True)
+            _logger.warning('自合柱检测失败，G9 升档跳过: %s', exception_log_detail(e))
             _dz2 = None
         if _dz2 and _dz2.get('activated'):
             _cai_wx_g9 = WX_KE.get(GAN_WX.get(day_gan, ''), '')

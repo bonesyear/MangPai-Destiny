@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional
 
 from mangpai import MangpaiEngine, calc_mangpai_full
 from mangpai.feishu.formatter import format_report
+from mangpai.objective.bazi_calc import year_gz
 from mangpai.subjective.llm_backend import llm_enabled
 from mangpai.subjective.llm_channel import render_structured_reading
 
@@ -43,6 +44,10 @@ def engine_result_pillars(pillars, gender, year: Optional[int] = None) -> Dict[s
             raise ValueError(f'干支阴阳错配（非六十甲子）: {p}')
     if not gender:
         raise ValueError('性别必填（大运方向依赖性别）')
+    if year is not None and pillars[0] not in (year_gz(year, 1, 1, 0, 0), year_gz(year - 1, 1, 1, 0, 0)):
+        raise ValueError(
+            f'出生年与年柱不符：{year} 年为 {year_gz(year, 1, 1, 0, 0)}，'
+            f'立春前也可能为 {year_gz(year - 1, 1, 1, 0, 0)}，收到 {pillars[0]}')
     bazi_data = {
         'bazi': dict(zip(('year', 'month', 'day', 'hour'), pillars)),
         'shishen': {}, 'kong_wang': {}, 'di_zhi_relations': {},
@@ -76,7 +81,8 @@ def paipan(spec: Dict[str, Any], use_llm: Optional[bool] = None) -> str:
         use_llm = use_llm_default()
     if use_llm:
         try:
-            out = render_structured_reading(res, validate='mark', timeout=30, retries=0)
+            out = render_structured_reading(
+                res, validate='mark', timeout=30, retries=0, show_telemetry=False)
         except Exception as e:
             _logger.warning('LLM 叙述异常，保留引擎直出: %s', type(e).__name__)
             out = '[LLM 不可用，已降级]'

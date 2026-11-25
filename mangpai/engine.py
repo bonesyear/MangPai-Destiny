@@ -48,6 +48,7 @@ from mangpai.subjective.liunian import analyze_liunian_mangpai
 # 领域专辑 + 高级技法模块（objective 检测 ← subjective 判断 ← engine 编排）
 from mangpai.subjective.caiming import analyze_caiming
 from mangpai.subjective.guanming import analyze_guanming
+from mangpai.subjective.utils import exception_log_detail
 from mangpai.subjective.hunyin import analyze_hunyin
 from mangpai.subjective.xueli import analyze_xueli
 from mangpai.subjective.laoyu import analyze_laoyu
@@ -293,7 +294,7 @@ class MangpaiEngine:
         except Exception as e:
             if key in _PROPAGATE_KEYS:
                 raise EngineComputeError(key, e) from e
-            logger.warning(f"模块 {key} 计算失败: {e}", exc_info=True)
+            logger.warning('模块 %s 计算失败: %s', key, exception_log_detail(e))
             return None
 
     def _write(self, result: Dict[str, Any], key: str, val: Any) -> None:

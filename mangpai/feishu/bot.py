@@ -34,6 +34,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from mangpai.feishu.client import FeishuClient, FeishuError
 from mangpai.feishu.router import handle as route
+from mangpai.engine import EngineComputeError
+from mangpai.subjective.utils import exception_log_detail
 
 log = logging.getLogger(__name__)
 
@@ -112,7 +114,11 @@ def _respond(client, message_id, text, use_llm=None):
     try:
         reply = route(text) if use_llm is None else route(text, use_llm=use_llm)
     except Exception as e:  # 边界兜底：引擎/网络异常也要回用户一句；日志只记类型，脱敏
-        log.error('排盘异常 mid=%s: %s', message_id, type(e).__name__)
+        if isinstance(e, EngineComputeError):
+            detail = f'{e.key}/{exception_log_detail(e.orig)}'
+        else:
+            detail = exception_log_detail(e)
+        log.error('排盘异常 mid=%s: %s', message_id, detail)
         reply = '排盘失败：内部错误，请稍后重试'
     try:
         client.reply(message_id, 'interactive', reply)
@@ -213,7 +219,7 @@ def handle_event(body: dict, client=None, background=True) -> dict:
 
 
 _MAX_WORKERS = 32
-_MAX_BODY = 1_048_576   # 回调 body 上限 1MB，超出 413
+_MAX_BODY = 131_072     # 回调 body 上限 128KB，超出 413
 _READ_TIMEOUT = 15.0    # 整个请求体读取截止（秒）
 _sem = threading.BoundedSemaphore(64)  # 最多64个在途任务；入队前非阻塞拒绝
 _executor = ThreadPoolExecutor(max_workers=_MAX_WORKERS)
@@ -283,7 +289,10 @@ class _Handler(BaseHTTPRequestHandler):
                 remaining -= len(chunk)
             if remaining:
                 raise ValueError('incomplete body')
-            body = json.loads(b''.join(chunks) or b'{}')
+            raw = b''.join(chunks) or b'{}'
+            if raw.lstrip()[:1] != b'{':
+                raise ValueError('callback body must be a JSON object')
+            body = json.loads(raw)
             resp = handle_event(body)
             code, data = 200, json.dumps(resp).encode('utf-8')
         except PermissionError as e:
@@ -321,6 +330,9 @@ def _validate_startup():
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s %(name)s %(message)s')
     _validate_startup()
     port = int(os.environ.get('FEISHU_PORT', '9700'))
     host = os.environ.get('FEISHU_HOST', '127.0.0.1')

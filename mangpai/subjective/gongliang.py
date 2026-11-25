@@ -97,6 +97,7 @@ G2 三条书证规则（2026-10-17，闭合 G1 三个不合书备案案例；预
 置信度：中
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -1655,7 +1656,7 @@ def _apply_caps_and_direction(
         try:
             _strength_gl = classify_strength(day_gan, gans, zhis)
         except Exception as e:
-            _logger.warning('强弱判定失败，从格标注跳过: %s', e, exc_info=True)
+            _logger.warning('强弱判定失败，从格标注跳过: %s', exception_log_detail(e))
             _strength_gl = ''
     return {
         'zhi_jing': zhi_jing, 'zb_jing_adopted': zb_jing_adopted,

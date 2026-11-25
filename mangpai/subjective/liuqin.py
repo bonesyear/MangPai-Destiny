@@ -40,6 +40,7 @@ liuqin - 盲派六亲专辑·主观层（subjective）
 置信度：中
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
@@ -744,7 +745,7 @@ def detect_zixi_xingbie(
                 corroborated = True
                 break
     except Exception as e:
-        _logger.warning("换象互证计算失败，跳过互证: %s", e, exc_info=True)
+        _logger.warning("换象互证计算失败，跳过互证: %s", exception_log_detail(e))
         corroborated = False
 
     final_gender = ''
@@ -1195,7 +1196,7 @@ def detect_zixi_youlie(
         elif js_cats and (hour_cats & js_cats) and not (hour_cats & ys_cats):
             lie.append('时柱为忌神（子女宫坐忌神）')
     except Exception as e:
-        _logger.warning("时柱喜用增补腿计算失败，跳过: %s", e, exc_info=True)
+        _logger.warning("时柱喜用增补腿计算失败，跳过: %s", exception_log_detail(e))
 
     verdict = '劣' if lie else ('优' if you else '平')
     parts = ([f'优：{"、".join(you)}'] if you else []) + ([f'劣：{"、".join(lie)}'] if lie else [])
@@ -1255,7 +1256,7 @@ def analyze_liuqin(
             direction_result = assess_direction_signals(
                 day_gan, gans, zhis, relations=relations)
         except Exception as e:
-            _logger.warning("assess_direction_signals 失败，降级为空: %s", e, exc_info=True)
+            _logger.warning("assess_direction_signals 失败，降级为空: %s", exception_log_detail(e))
             direction_result = {'compute_error': True}
 
     pstar = classify_parent_star(day_gan, gans, zhis, relations=relations)

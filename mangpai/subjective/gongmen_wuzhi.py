@@ -45,6 +45,7 @@ gongmen_wuzhi - 盲派公门武职专辑·主观层（subjective）
 置信度：中
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -515,7 +516,7 @@ def analyze_gongmen_wuzhi(
             direction_result = assess_direction_signals(
                 day_gan, gans, zhis, relations=relations, gongliang_result=gl)
         except Exception as e:
-            _logger.warning("assess_direction_signals 失败，降级为空: %s", e, exc_info=True)
+            _logger.warning("assess_direction_signals 失败，降级为空: %s", exception_log_detail(e))
             direction_result = {'compute_error': True}
 
     is_wuzhi = jg.get('is_junguan') or gjf.get('is_gongjianfa') or \

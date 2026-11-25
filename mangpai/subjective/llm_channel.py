@@ -577,7 +577,8 @@ def _larkmd_sanitize(text: str) -> str:
         '[': '［', ']': '］', '(': '（', ')': '）', '<': '＜', '>': '＞'}))
 
 
-def format_reading(reading: dict, validation: dict, backend: dict) -> str:
+def format_reading(reading: dict, validation: dict, backend: dict,
+                   show_telemetry: bool = True) -> str:
     """成品展示文本。"""
     lines = []
     bad_l1 = {x['detail'].split('.')[0] for x in validation.get('violations', [])
@@ -596,7 +597,7 @@ def format_reading(reading: dict, validation: dict, backend: dict) -> str:
         lines.append('【引擎校验】以下要点未通过三层校验（请人工复核，勿直采信）：')
         for x in validation['violations']:
             lines.append(f"  · [{x['layer']}] {_larkmd_sanitize(x['detail'])}")
-    if backend:
+    if backend and show_telemetry:
         u = backend.get('usage') or {}
         # S1：定价表仅 DeepSeek 有效，其他 provider cost_cny=None → 显式「未计价」
         cost = backend.get('cost_cny')
@@ -637,6 +638,7 @@ def render_structured_reading(
     validate: str = 'mark',
     timeout: float | None = None,
     retries: int | None = None,
+    show_telemetry: bool = True,
 ) -> str:
     """引擎 dict → DeepSeek 七维 JSON 叙述 → 三层校验 → 展示文本。
 
@@ -683,7 +685,7 @@ def render_structured_reading(
         return ('[断语被 L0 schema 校验拦截，不予输出]\n'
                 + '\n'.join(f"  - {x['detail']}" for x in report['violations'])
                 + f'\n{_DISCLAIMER_LINE}')
-    return format_reading(data, report, resp)
+    return format_reading(data, report, resp, show_telemetry=show_telemetry)
 
 
 def _demo_cases_path() -> Path:

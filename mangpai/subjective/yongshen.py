@@ -42,6 +42,7 @@
 """
 
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.canggan import get_canggan_mangpai
@@ -1232,7 +1233,7 @@ def detect_shangguan_jianguan(
     try:
         sg = analyze_juefa(gans, zhis, day_gan).get('shangguan_jue') or {}
     except Exception as e:
-        _logger.warning('伤官诀分向(juefa)计算失败，按无分向降级: %s', e, exc_info=True)
+        _logger.warning('伤官诀分向(juefa)计算失败，按无分向降级: %s', exception_log_detail(e))
         sg = {'compute_error': True}
     vd = sg.get('verdict', '') if sg.get('matched') else ''
 

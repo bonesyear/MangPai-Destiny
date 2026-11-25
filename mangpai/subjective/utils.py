@@ -8,6 +8,9 @@ docs/tasks/codehygiene-fix-backlog.md H-fix-4b 节）。
 
 只依赖 objective 层，单向分层不破。
 """
+from os.path import basename
+from traceback import extract_tb
+
 from mangpai.objective.constants import PILLAR_KEYS
 from mangpai.objective.muku import analyze_muku
 from mangpai.objective.zuogong_detect import detect_relations
@@ -32,3 +35,11 @@ def ensure_muku(gans, zhis, muku_result):
     if len(zhis) != 4:
         return {}
     return analyze_muku(zhis, gans)
+
+
+def exception_log_detail(error):
+    frames = extract_tb(error.__traceback__)
+    if not frames:
+        return type(error).__name__
+    frame = frames[-1]
+    return f'{type(error).__name__}@{basename(frame.filename)}:{frame.lineno}'

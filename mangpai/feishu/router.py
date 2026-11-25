@@ -2,7 +2,7 @@
 
 排盘输入两种：
   阳历 2000-01-01 12:00 男 北京（虚构示例）   （农历请用户自转阳历；性别必填）
-  四柱 己卯 丙子 戊午 戊午 男 [2000]（虚构示例）  （year 可选，仅影响流年锚）
+  四柱 己卯 丙子 戊午 戊午 男 [2000]（虚构示例）  （year 可选，影响虚岁/大限和流年锚）
 城市名查内置经度表；未收录城市可直接写给定经度（如 114.07）。
 """
 from __future__ import annotations
@@ -52,7 +52,7 @@ def help_text() -> str:
 
 _DATE_RE = re.compile(r'(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})\s*日?')
 _TIME_RE = re.compile(r'(?<![\d:：.])(\d{1,2})\s*[:：点时]\s*(\d{1,2})?\s*分?')  # 前导边界防 '123:45'→23:45 静默截断
-_LON_RE = re.compile(r'(?<![\d.])(\d{2,3}\.\d{1,4})(?![\d.])')
+_LON_RE = re.compile(r'(?<![\d.])(-?\d{1,3}(?:\.\d{1,4})?)(?![\d.])')
 _PILLAR_RE = re.compile(r'[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]')
 _GENDERS = {'男': '男', '乾': '男', 'male': '男', '女': '女', '坤': '女', 'female': '女'}
 
@@ -89,6 +89,8 @@ def _pop_lon_or_city(rest: str) -> tuple[str, Optional[float], str]:
     m = _LON_RE.search(rest)
     if m:
         lon = float(m.group(1))
+        if re.search(r'西经|(?<![A-Za-z])[Ww](?=\s*-?\d)', rest):
+            lon = -abs(lon)
         if -180.0 <= lon <= 180.0:
             return (rest[:m.start()] + rest[m.end():]), lon, f'经度{lon}'
     for name in sorted(CITY_LON, key=len, reverse=True):
@@ -134,8 +136,7 @@ def parse_solar(text: str) -> dict:
     if bounds and bounds[0].date() <= date(year, month, day) <= bounds[1].date() \
             and is_dst is None:
         raise ParseError('该日期可能处于历史夏令时，请在末尾注明「夏令时」或「标准时」')
-    label = f"{dm.group(1)}-{int(dm.group(2)):02d}-{int(dm.group(3)):02d} " \
-            f"{hour:02d}:{minute:02d} {gender} {place}"
+    label = gender
     return {'kind': 'solar', 'year': year, 'month': month,
             'day': day, 'hour': hour, 'minute': minute, 'gender': gender, 'lon': lon,
             'is_dst': bool(is_dst), 'place': place, 'label': label}

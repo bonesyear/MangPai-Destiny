@@ -47,6 +47,7 @@ M2 基础职业类目（行业桶未成象时的第二梯队，段氏《中级�
   输出「未分类」+ 最高分桶名作提示（hint），fallback 升格为合法第一输出。
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -1556,8 +1557,8 @@ def classify_zhiye(
         if xo.get('hexiang'):
             corroborate.append(f'合象{len(xo["hexiang"])}处（产新象印证组合）')
     except Exception as e:
-        _logger.warning('analyze_xiangfa_ops 象法互证失败，跳过互证加权',
-                        exc_info=True)
+        _logger.warning('analyze_xiangfa_ops 象法互证失败，跳过互证加权: %s',
+                        exception_log_detail(e))
     for _b, _n in _corro_adds.items():
         scores[_b] = scores.get(_b, 0) + min(_n, 2)
         if _n > 2:

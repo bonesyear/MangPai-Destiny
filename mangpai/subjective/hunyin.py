@@ -43,6 +43,7 @@ hunyin - 盲派婚姻专辑·主观层（subjective）
 置信度：中
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set
 
 from mangpai.objective.constants import (
@@ -1566,7 +1567,7 @@ def analyze_hunyin(
             direction_result = assess_direction_signals(
                 day_gan, gans or [], zhis or [], relations=relations)
         except Exception as e:
-            _logger.warning("assess_direction_signals 失败，降级为空: %s", e, exc_info=True)
+            _logger.warning("assess_direction_signals 失败，降级为空: %s", exception_log_detail(e))
             direction_result = {'compute_error': True}
 
     parts = [f'婚姻{quality.get("quality","平")}']

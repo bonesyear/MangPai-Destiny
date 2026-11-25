@@ -34,6 +34,7 @@ zuogong_confirm - 盲派做功引擎·做功成立确认层（subjective）
 置信度：中
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.zuogong_detect import detect_relations
@@ -321,7 +322,7 @@ def analyze_zuogong(
         binzhu_result = analyze_binzhu(year_zhi, month_zhi, day_zhi, hour_zhi,
                                        year_gan, month_gan, day_gan, hour_gan)
     except Exception as e:
-        _logger.warning('binzhu 宾主分析失败，回退硬编码主宾柱位: %s', e, exc_info=True)
+        _logger.warning('binzhu 宾主分析失败，回退硬编码主宾柱位: %s', exception_log_detail(e))
         binzhu_result = None
     _cn_to_pillar = dict(zip(PILLAR_NAMES_CN, PILLAR_KEYS))
     binzhu_zhu: Set[str] = set()
@@ -406,7 +407,7 @@ def analyze_zuogong(
         try:
             ti_result = classify_tiyong(shishen, day_gan)
         except Exception as e:
-            _logger.warning('tiyong 体用分类失败，跳过体用补充判定: %s', e, exc_info=True)
+            _logger.warning('tiyong 体用分类失败，跳过体用补充判定: %s', exception_log_detail(e))
             ti_result = None
     # 深度消费 ti_result：按各柱十神聚合体/用元素集合，供正反向做功补充判定。
     # 食伤为中性居体用之间，消费其 bias：食神偏体(入 ti)、伤官偏用(入 yong)，
@@ -888,18 +889,18 @@ def analyze_zuogong(
     try:
         wood_result = analyze_wood_type(day_gan, year_zhi, month_zhi, day_zhi, hour_zhi)
     except Exception as e:
-        _logger.warning('wood_type 木性信号自算失败，跳过该标注: %s', e, exc_info=True)
+        _logger.warning('wood_type 木性信号自算失败，跳过该标注: %s', exception_log_detail(e))
         wood_result = {'compute_error': True}
     try:
         soil_result = analyze_soil(year_zhi, month_zhi, day_zhi, hour_zhi)
     except Exception as e:
-        _logger.warning('soil 燥湿生克信号自算失败，跳过该标注: %s', e, exc_info=True)
+        _logger.warning('soil 燥湿生克信号自算失败，跳过该标注: %s', exception_log_detail(e))
         soil_result = {'compute_error': True}
     try:
         vs_result = analyze_virtual_solid(
             day_gan, day_zhi, year_gan, year_zhi, month_gan, month_zhi, hour_gan, hour_zhi)
     except Exception as e:
-        _logger.warning('virtual_solid 虚透信号自算失败，跳过该标注: %s', e, exc_info=True)
+        _logger.warning('virtual_solid 虚透信号自算失败，跳过该标注: %s', exception_log_detail(e))
         vs_result = {'compute_error': True}
 
     wood_signals = {

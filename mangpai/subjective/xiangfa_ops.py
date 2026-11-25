@@ -32,6 +32,7 @@ xiangfa_ops - 盲派象法操作层·主观层（subjective）
 置信度：中
 """
 import logging
+from mangpai.subjective.utils import exception_log_detail
 from typing import Dict, List, Optional, Set, Tuple
 
 from mangpai.objective.constants import (
@@ -169,7 +170,7 @@ def _ganqing_layer_domains(
             day_gz=day_gz, states=states,
         )
     except Exception as e:
-        _logger.warning(f"干支性情象层匹配失败: {e}", exc_info=True)
+        _logger.warning('干支性情象层匹配失败: %s', exception_log_detail(e))
         return set()
     doms: Set[str] = set()
     for r in rules or []:

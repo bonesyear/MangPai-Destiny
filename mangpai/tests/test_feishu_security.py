@@ -186,4 +186,4 @@ def test_feishu_llm_uses_short_timeout_without_retry(monkeypatch):
 
     monkeypatch.setattr('mangpai.feishu.service.render_structured_reading', fake_render)
     paipan(parse_solar('阳历 2000-01-01 12:00 男 北京（虚构示例）'), use_llm=True)
-    assert captured == {'timeout': 30, 'retries': 0}
+    assert captured == {'timeout': 30, 'retries': 0, 'show_telemetry': False}
