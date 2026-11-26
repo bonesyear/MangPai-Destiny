@@ -120,6 +120,14 @@ def test_l2_guanming_contradiction():
     assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
     data['事业']['conclusion'] = '官命为是，权柄上写有'
     assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    for s in ('官命断的是「否」，官场那条路不通',
+              '官命一途被否——印入比劫墓',
+              '官命：否，但官杀在月柱有根',
+              '官命是被否掉的，官杀入墓不开',
+              '官命断否，硬往官位上攀是白费力气',
+              '官命又被凶向否决；时支午藏杀被制'):
+        data['事业']['conclusion'] = s
+        assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
     data['事业']['conclusion'] = '官命格成立，但层次未定、权柄不明'
     assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
     assert any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE))
@@ -455,11 +463,13 @@ def test_l2_chou_branch_exemptions():
     for s in ('时支丑库，申为传送', '丑、午、未三马都带官星',
               '支上5到10岁丑冲刑开未墓库', '月柱丑本是财库',
               '刑开丑库有功、合闭丑库', '戌刑月柱丑墓库', '丑临门户主车',
-              '子丑合绊', '巳酉丑三合'):
+              '子丑合绊', '巳酉丑三合', '丑为家乡之马却落空亡',
+              '暗合丑又合动引事', '月柱丑是财库'):
         data['应期']['conclusion'] = s
         assert not any('触禁结论词' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
-    data['相貌']['conclusion'] = '丑陋不堪'
-    assert any('触禁结论词' in x['detail'] for x in _l2_enum(data, _ENGINE))
+    for s in ('丑陋不堪', '他丑是事实', '他丑又难看'):
+        data['相貌']['conclusion'] = s
+        assert any('触禁结论词' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
 
 
 def test_qianyi_anchor():

@@ -232,6 +232,12 @@ def test_validate_age_and_count():
     assert 'age' not in kinds
     assert kinds.count('count') == 2
 
+    marriage = {'hunyin': {'cishu': {'gong_attack_count': 2, 'star_mingxian_count': 1}}}
+    r = validate_narrative_numbers('数法上有作两回婚姻的提示，只作提示。', marriage)
+    assert not any(v['kind'] == 'count' for v in r['violations'])
+    r = validate_narrative_numbers('数法上有作三回婚姻的提示。', marriage)
+    assert any(v['kind'] == 'count' for v in r['violations'])
+
 
 def test_validate_amount_always_flagged():
     r = validate_narrative_numbers('你最多时有1800万资产。', _ER)
@@ -268,8 +274,12 @@ def test_validate_dayun_segment_duration_references():
     ]}]}}
     r = validate_narrative_numbers('运干那五年偏财到路，运支那五年变动多。', segmented)
     assert not any(v['kind'] == 'year' for v in r['violations'])
+    r = validate_narrative_numbers('丙午运分两截：头五年走丙，后五年走午。', segmented)
+    assert not any(v['kind'] == 'year' for v in r['violations'])
 
-    for phrase in ('运干那四年', '运支那十年', '那五年'):
+    for phrase in ('运干那四年', '运支那十年', '那五年', '婚姻头五年',
+                   '丙午运分两截：头四年', '辛卯运分两截：头五年',
+                   '丙午运分两截。后五年'):
         r = validate_narrative_numbers(phrase + '有变动。', segmented)
         assert any(v['kind'] == 'year' for v in r['violations']), phrase
 

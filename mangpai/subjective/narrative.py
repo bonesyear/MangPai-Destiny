@@ -467,19 +467,21 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     - years: 结果 JSON 中全部 1800-2099 四位数（出生年/流年年/交运日期等）；
     - ganzhi: 大运/流年记录中的实际运岁干支，供干支年及这/那+一/两年回对；
     - durations: 大运 segments 中运干/运支的实际跨度，供这/那+N年回对；
+    - split_durations: 同一运干→支两段有序跨度，供「X运分两截」的头/后+N年回对；
     - ages: 大运 start_age/end_age 整数 + 当前年龄（当前年−出生年）+ 大限宫位边界；
     - counts: 上下文计数（N步大运/N流年/入墓N处/锁N/命中N法/约N个/
-      gongliang level/score/gong_points 等）；
+      gongliang level/score/gong_points、婚姻 cishu 宫坏数/星明现数等）；
     - bands: 财命 summary 中的金额档字（百万/千万/亿/百亿/千亿…）。
     """
 
     years, ages, counts, bands = set(), set(), set(), set()
-    ganzhi, durations = set(), set()
+    ganzhi, durations, split_durations = set(), set(), set()
     for section, key in (('dayun_analysis', 'dayun'), ('liunian_analysis', 'liunian')):
         for item in (engine_result.get(section) or {}).get(key) or []:
             if isinstance(item, dict) and item.get('gz'):
                 ganzhi.add(item['gz'])
             if section == 'dayun_analysis' and isinstance(item, dict):
+                parts = []
                 for seg in item.get('segments') or []:
                     if not isinstance(seg, dict):
                         continue
@@ -487,7 +489,13 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
                     if (seg.get('part') in ('干', '支')
                             and all(isinstance(x, (int, float)) for x in (start, end))
                             and end > start):
-                        durations.add((seg['part'], end - start))
+                        duration = end - start
+                        durations.add((seg['part'], duration))
+                        parts.append((seg['part'], duration))
+                if (item.get('gz') and len(parts) == 2
+                        and [part for part, _ in parts] == ['干', '支']):
+                    split_durations.add((item['gz'], '头', parts[0][1]))
+                    split_durations.add((item['gz'], '后', parts[1][1]))
     try:
         blob = json.dumps(engine_result, ensure_ascii=False, default=str)
     except (TypeError, ValueError):
@@ -506,7 +514,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
             pass
     for pat in (r'(\d+)步大运', r'(\d+)流年', r'入墓(\d+)处', r'锁(\d+)',
                 r'命中(\d+)法', r'约(\d+)个', r'(\d+)岁运联动',
-                r'"(?:level|score)": (\d+)'):
+                r'"(?:level|score|gong_attack_count|star_mingxian_count)": (\d+)'):
         for m in re.finditer(pat, blob):
             counts.add(int(m.group(1)))
     # gong_points 为小数功量点（如 2.5=两层半），整数截断入白名单——
@@ -518,7 +526,7 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     for m in re.finditer(r'(百亿|千亿|数十亿|千万|百万|十万|亿|万)', cm_blob):
         bands.add(m.group(1))
     return {'years': years, 'ages': ages, 'counts': counts, 'bands': bands,
-            'ganzhi': ganzhi, 'durations': durations}
+            'ganzhi': ganzhi, 'durations': durations, 'split_durations': split_durations}
 
 
 def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -588,10 +596,17 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
                                    'detail': f'{m.group(1)}不在引擎计数白名单'})
 
     # 中文年限及「载」与短年份同样回对，不让顶多一年/两载逃逸；
-    # 这/那+一/两年仅在运岁干支参照数足够时豁免；运干/运支时长须匹配对应分段。
+    # 这/那+一/两年仅在运岁干支参照数足够时豁免；运段这/那/头/后时长须匹配对应分段。
     for m in re.finditer(r'([一二两三四五六七八九十]{1,6}年|[一二两三四五六七八九十]{1,6}载|\d{1,2}载)', text):
         raw_n = m.group(1)[:-1]
         n = int(raw_n) if raw_n.isdigit() else _cn_to_int(raw_n)
+        phase = text[m.start() - 1:m.start()]
+        if phase in ('头', '后'):
+            intro = re.search(
+                r'([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])运分两截：[^。！？]*$',
+                text[:m.start()])
+            if intro and (intro.group(1), phase, n) in wl['split_durations']:
+                continue
         ref = text[m.start() - 3:m.start()]
         if (len(ref) == 3 and ref[0] == '运' and ref[2] in ('这', '那')
                 and (ref[1], n) in wl['durations']):
