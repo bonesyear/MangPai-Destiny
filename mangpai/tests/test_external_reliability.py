@@ -211,6 +211,12 @@ def test_response_format_prefix_still_rejects_trailing_junk(monkeypatch):
     assert out.startswith('[LLM 输出非合法 JSON')
 
 
+    raw = json.dumps(_reading()) + '\n' + json.dumps(_reading())
+    monkeypatch.setattr(lc, 'call_deepseek', lambda *a, **kw: _llm_response(raw))
+    out = lc.render_structured_reading({'bazi': {}, 'input': {}})
+    assert out.startswith('[LLM 输出非合法 JSON')
+
+
 def test_service_preserves_engine_on_unexpected_llm_error(monkeypatch):
     monkeypatch.setattr(service, 'engine_result_pillars', lambda *args: {})
     monkeypatch.setattr(service, 'format_report', lambda *args, **kw: 'ENGINE-REPORT')

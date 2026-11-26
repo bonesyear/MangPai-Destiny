@@ -428,6 +428,13 @@ def test_l0_requires_seven_dims():
     assert any('相貌' in x['detail'] for x in v)
 
 
+    flat = {dim: '文本' for dim in _good()}
+    flat.update(basis=[], confidence='中')
+    v = _l0_schema(flat)
+    assert sum('非对象' in x['detail'] for x in v) == 7
+    assert sum('额外维度' in x['detail'] for x in v) == 2
+
+
 def test_l2_qianyi_redline():
     # 迁移维绝对禁出境词（对齐引擎措辞上限「迁移/远行」）
     data = _good()
@@ -1143,6 +1150,14 @@ def test_s1_prompt_rejects_derived_dimension_keys():
     from mangpai.subjective.llm_prompt import build_system_prompt
     prompt = build_system_prompt('')
     for rule in ('顶层只允许', '拼接维度名', '占位键', '后缀复制'):
+        assert rule in prompt
+
+
+def test_s1_schema_prompt_forbids_flat_and_multi_object():
+    """复跑出现附属键/拍平/逐维多对象，生产prompt须覆盖这些通用结构。"""
+    from mangpai.subjective.llm_prompt import build_system_prompt
+    prompt = build_system_prompt('')
+    for rule in ('逐字照抄schema', '附属顶层键', '提升到顶层', '逐维分批', '多个JSON对象'):
         assert rule in prompt
 
 
