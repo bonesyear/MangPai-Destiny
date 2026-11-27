@@ -238,6 +238,10 @@ def test_validate_age_and_count():
     r = validate_narrative_numbers('数法上有作三回婚姻的提示。', marriage)
     assert any(v['kind'] == 'count' for v in r['violations'])
 
+    wrong_gz = {'dayun_analysis': {'dayun': [{'gz': '庚戌'}]}}
+    r = validate_narrative_numbers('庚辰一岁运反局。', wrong_gz)
+    assert any(v['kind'] == 'age' and v['text'] == '一岁' for v in r['violations'])
+
 
 def test_validate_amount_always_flagged():
     r = validate_narrative_numbers('你最多时有1800万资产。', _ER)
@@ -276,10 +280,17 @@ def test_validate_dayun_segment_duration_references():
     assert not any(v['kind'] == 'year' for v in r['violations'])
     r = validate_narrative_numbers('丙午运分两截：头五年走丙，后五年走午。', segmented)
     assert not any(v['kind'] == 'year' for v in r['violations'])
+    for text in ('丙午运干头那五年走正官。',
+                 '丙午一步运：前五年走丙，后五年走午。',
+                 '丙午运干头那五年走正官；支上五到十年气旺。'):
+        r = validate_narrative_numbers(text, segmented)
+        assert not any(v['kind'] == 'year' for v in r['violations']), text
 
     for phrase in ('运干那四年', '运支那十年', '那五年', '婚姻头五年',
                    '丙午运分两截：头四年', '辛卯运分两截：头五年',
-                   '丙午运分两截。后五年'):
+                   '丙午运分两截。后五年', '丙午运干头那四年',
+                   '辛卯运干头那五年', '丙午一步运：前四年',
+                   '丙午一步运。后五年', '支上五到十一年', '婚姻五到十年'):
         r = validate_narrative_numbers(phrase + '有变动。', segmented)
         assert any(v['kind'] == 'year' for v in r['violations']), phrase
 

@@ -125,7 +125,10 @@ def test_l2_guanming_contradiction():
               '官命：否，但官杀在月柱有根',
               '官命是被否掉的，官杀入墓不开',
               '官命断否，硬往官位上攀是白费力气',
-              '官命又被凶向否决；时支午藏杀被制'):
+              '官命又被凶向否决；时支午藏杀被制',
+              '官命判为否，走不了实权仕途',
+              '官命判定为否、凶向否决',
+              '官命这一条被凶向直接否决'):
         data['事业']['conclusion'] = s
         assert not any('官命=否' in x['detail'] for x in _l2_enum(data, _ENGINE)), s
     data['事业']['conclusion'] = '官命格成立，但层次未定、权柄不明'
