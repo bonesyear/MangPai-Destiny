@@ -447,6 +447,7 @@ def _cn_to_int(s: str) -> int | None:
 _GZ_GAN = '甲乙丙丁戊己庚辛壬癸'
 _GZ_ZHI = '子丑寅卯辰巳午未申酉戌亥'
 _GZ_YEAR_RE = re.compile(r'[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]年')
+_GZ_DAYUN_RE = re.compile(r'([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])(?:一[岁步])?运')
 
 
 def _gz_years(gz: str, lo: int = 1800, hi: int = 2099) -> list:
@@ -466,8 +467,9 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
 
     - years: 结果 JSON 中全部 1800-2099 四位数（出生年/流年年/交运日期等）；
     - ganzhi: 大运/流年记录中的实际运岁干支，供干支年及这/那+一/两年回对；
+    - dayun_ganzhi: 仅大运记录的实际干支，供「XX运」回对，流年不得冒充；
     - durations: 大运 segments 中运干/运支的实际跨度，供这/那+N年回对；
-    - split_durations: 同一运干→支两段有序跨度，供运分两截/一步运的头/前/后+N年回对；
+    - split_durations: 同一运干→支两段有序跨度，供运段代词及单字干/支+N年回对；
     - spans: 同一运干/支段的实际 start_age/end_age，供干/支上N到N年回对；
     - ages: 大运 start_age/end_age 整数 + 当前年龄（当前年−出生年）+ 大限宫位边界；
     - counts: 上下文计数（N步大运/N流年/入墓N处/锁N/命中N法/约N个/
@@ -476,11 +478,14 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     years, ages, counts, bands = set(), set(), set(), set()
-    ganzhi, durations, split_durations, spans = set(), set(), set(), set()
+    ganzhi, dayun_ganzhi = set(), set()
+    durations, split_durations, spans = set(), set(), set()
     for section, key in (('dayun_analysis', 'dayun'), ('liunian_analysis', 'liunian')):
         for item in (engine_result.get(section) or {}).get(key) or []:
             if isinstance(item, dict) and item.get('gz'):
                 ganzhi.add(item['gz'])
+                if section == 'dayun_analysis':
+                    dayun_ganzhi.add(item['gz'])
             if section == 'dayun_analysis' and isinstance(item, dict):
                 parts = []
                 for seg in item.get('segments') or []:
@@ -529,8 +534,8 @@ def _engine_number_whitelist(engine_result: Dict[str, Any]) -> Dict[str, Any]:
     for m in re.finditer(r'(百亿|千亿|数十亿|千万|百万|十万|亿|万)', cm_blob):
         bands.add(m.group(1))
     return {'years': years, 'ages': ages, 'counts': counts, 'bands': bands,
-            'ganzhi': ganzhi, 'durations': durations, 'split_durations': split_durations,
-            'spans': spans}
+            'ganzhi': ganzhi, 'dayun_ganzhi': dayun_ganzhi,
+            'durations': durations, 'split_durations': split_durations, 'spans': spans}
 
 
 def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -568,6 +573,11 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
             violations.append({'text': m.group(0), 'kind': 'year',
                                'detail': (f'{m.group(0)}无对应引擎年份' if ys else
                                           f'{m.group(0)}为非法干支组合')})
+
+    for m in _GZ_DAYUN_RE.finditer(text):
+        if m.group(1) not in wl['dayun_ganzhi']:
+            violations.append({'text': m.group(0), 'kind': 'year',
+                               'detail': f'{m.group(0)}无对应引擎大运'})
 
     # 年龄（修批F⑤：补中文数字——「四十二岁有一劫」修复前逃逸；十百千两零组合
     # 走 _cn_to_int 转数值后回对，解析失败不计）
@@ -611,6 +621,22 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
             start_n = _cn_to_int(range_intro.group(3))
             if (range_intro.group(1), range_intro.group(2), start_n, n) in wl['spans']:
                 continue
+        stem_ref = re.search(r'([甲乙丙丁戊己庚辛壬癸])字当头那$', text[:m.start()])
+        if stem_ref:
+            matches = {gz for gz, phase, duration in wl['split_durations']
+                       if phase == '头' and gz[0] == stem_ref.group(1)}
+            if len(matches) == 1:
+                gz = next(iter(matches))
+                if (gz, '头', n) in wl['split_durations']:
+                    continue
+        branch_ref = re.search(r'([子丑寅卯辰巳午未申酉戌亥])字那$', text[:m.start()])
+        if branch_ref:
+            matches = {gz for gz, phase, duration in wl['split_durations']
+                       if phase == '后' and gz[1] == branch_ref.group(1)}
+            if len(matches) == 1:
+                gz = next(iter(matches))
+                if (gz, '后', n) in wl['split_durations']:
+                    continue
         lead = re.search(
             r'([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])运(干|支)头那$',
             text[:m.start()])
@@ -629,6 +655,10 @@ def validate_narrative_numbers(text: str, engine_result: Dict[str, Any]) -> Dict
         ref = text[m.start() - 3:m.start()]
         if (len(ref) == 3 and ref[0] == '运' and ref[2] in ('这', '那')
                 and (ref[1], n) in wl['durations']):
+            continue
+        if (text[m.start() - 1:m.start()] == '哪'
+                and text[m.end():].startswith(
+                    ('不下断', '不断言', '不确定', '无法确定', '不能确定', '不预测'))):
             continue
         if (raw_n in ('一', '两') and text[m.start() - 1:m.start()] in ('这', '那')
                 and len(wl['ganzhi']) >= _cn_to_int(raw_n)):

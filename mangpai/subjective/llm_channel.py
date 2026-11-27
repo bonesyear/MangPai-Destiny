@@ -124,6 +124,7 @@ def _xiangmao_exempt(text: str, w: str, j: int) -> bool:
         return True
     if w == '丑' and (
             text[j + 1:j + 2] == '时'
+            or (j >= 2 and text[j - 2:j] in ('年柱', '月柱', '日柱', '时柱'))
             or (j > 0 and text[j - 1] in _STEMS + _BRANCHES)
             or text[j + 1:j + 2] in _BRANCHES + '土库墓月年日运未戌合冲刑穿破害马本空临'
             or (text[j + 1:j + 2] == '、' and text[j + 2:j + 3] in _BRANCHES)
@@ -571,7 +572,12 @@ def validate_reading(data: Any, features: dict, engine_result: dict) -> dict:
         violations += _l1_basis(data, features, remapped)
         violations += _l2_enum(data, engine_result)
     blob = json.dumps(data, ensure_ascii=False) if isinstance(data, dict) else str(data)
-    n1 = validate_narrative_numbers(blob, engine_result)
+    # 合成排盘的运岁可能只在 features 中，N1 须与模型可见证据同源。
+    n1_engine = dict(engine_result)
+    for key in ('dayun_analysis', 'liunian_analysis'):
+        if not n1_engine.get(key) and features.get(key):
+            n1_engine[key] = features[key]
+    n1 = validate_narrative_numbers(blob, n1_engine)
     violations += [{'layer': 'N1',
                     'detail': f"「{x['text']}」({x['kind']}): {x['detail']}"}
                    for x in n1['violations']]

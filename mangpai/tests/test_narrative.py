@@ -241,6 +241,7 @@ def test_validate_age_and_count():
     wrong_gz = {'dayun_analysis': {'dayun': [{'gz': '庚戌'}]}}
     r = validate_narrative_numbers('庚辰一岁运反局。', wrong_gz)
     assert any(v['kind'] == 'age' and v['text'] == '一岁' for v in r['violations'])
+    assert any(v['kind'] == 'year' and v['text'] == '庚辰一岁运' for v in r['violations'])
 
 
 def test_validate_amount_always_flagged():
@@ -270,6 +271,18 @@ def test_validate_ganzhi_time_references_and_pronouns():
     r = validate_narrative_numbers('运干那五年偏财到路。', two)
     assert any(v['kind'] == 'year' and v['text'] == '五年' for v in r['violations'])
 
+    dayun = {'dayun_analysis': {'dayun': [{'gz': '庚戌'}]},
+             'liunian_analysis': {'liunian': [{'gz': '庚辰'}]}}
+    r = validate_narrative_numbers('庚辰运反局。', dayun)
+    assert any(v['kind'] == 'year' and v['text'] == '庚辰运' for v in r['violations'])
+    r = validate_narrative_numbers('庚戌运反局。', dayun)
+    assert not any(v['kind'] == 'year' and v['text'] == '庚戌运' for v in r['violations'])
+
+    r = validate_narrative_numbers('流年干支未给，具体哪一年不下断。', {})
+    assert not any(v['kind'] == 'year' for v in r['violations'])
+    r = validate_narrative_numbers('哪一年会发财。', {})
+    assert any(v['kind'] == 'year' and v['text'] == '一年' for v in r['violations'])
+
 
 def test_validate_dayun_segment_duration_references():
     segmented = {'dayun_analysis': {'dayun': [{'gz': '丙午', 'segments': [
@@ -282,7 +295,8 @@ def test_validate_dayun_segment_duration_references():
     assert not any(v['kind'] == 'year' for v in r['violations'])
     for text in ('丙午运干头那五年走正官。',
                  '丙午一步运：前五年走丙，后五年走午。',
-                 '丙午运干头那五年走正官；支上五到十年气旺。'):
+                 '丙午运干头那五年走正官；支上五到十年气旺。',
+                 '丙字当头那五年走丙，午字那五年转凶。'):
         r = validate_narrative_numbers(text, segmented)
         assert not any(v['kind'] == 'year' for v in r['violations']), text
 
@@ -290,7 +304,8 @@ def test_validate_dayun_segment_duration_references():
                    '丙午运分两截：头四年', '辛卯运分两截：头五年',
                    '丙午运分两截。后五年', '丙午运干头那四年',
                    '辛卯运干头那五年', '丙午一步运：前四年',
-                   '丙午一步运。后五年', '支上五到十一年', '婚姻五到十年'):
+                   '丙午一步运。后五年', '支上五到十一年', '婚姻五到十年',
+                   '甲字当头那五年', '丙字当头那四年', '戌字那五年'):
         r = validate_narrative_numbers(phrase + '有变动。', segmented)
         assert any(v['kind'] == 'year' for v in r['violations']), phrase
 
